@@ -117,46 +117,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
                 vol.Optional(
                     CONF_SEED_ALLOWED_DOMAINS,
-                    default=data.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"label": "light", "value": "light"},
-                            {"label": "switch", "value": "switch"},
-                            {"label": "fan", "value": "fan"},
-                            {"label": "cover", "value": "cover"},
-                            {"label": "climate", "value": "climate"},
-                            {"label": "lock", "value": "lock"},
-                            {"label": "alarm", "value": "alarm_control_panel"},
-                            {"label": "media", "value": "media_player"},
-                            {"label": "scene", "value": "scene"},
-                            {"label": "script", "value": "script"},
-                        ],
-                        multiple=True,
-                        mode="dropdown",
-                    )
-                ),
+                    default=",".join(
+                        data.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS) or []
+                    ),
+                ): selector.TextSelector(selector.TextSelectorConfig(multiline=False)),
                 vol.Optional(
                     CONF_SEED_BLOCKED_DOMAINS,
-                    default=data.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"label": "light", "value": "light"},
-                            {"label": "switch", "value": "switch"},
-                            {"label": "fan", "value": "fan"},
-                            {"label": "cover", "value": "cover"},
-                            {"label": "climate", "value": "climate"},
-                            {"label": "lock", "value": "lock"},
-                            {"label": "alarm", "value": "alarm_control_panel"},
-                            {"label": "media", "value": "media_player"},
-                            {"label": "scene", "value": "scene"},
-                            {"label": "script", "value": "script"},
-                        ],
-                        multiple=True,
-                        mode="dropdown",
-                    )
-                ),
+                    default=",".join(
+                        data.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS) or []
+                    ),
+                ): selector.TextSelector(selector.TextSelectorConfig(multiline=False)),
                 vol.Optional(
                     CONF_SEED_MAX_OFFERS_PER_HOUR,
                     default=data.get(

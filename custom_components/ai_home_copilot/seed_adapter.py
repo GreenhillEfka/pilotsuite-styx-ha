@@ -35,6 +35,29 @@ _LOGGER = logging.getLogger(__name__)
 _ENTITY_ID_RE = re.compile(r"\b([a-z_]+\.[a-z0-9_]+)\b")
 
 
+def _parse_domains(value: Any) -> set[str]:
+    """Parse domains from config.
+
+    Accepts either list[str] (older config) or a comma/space separated string.
+    """
+
+    if value is None:
+        return set()
+
+    if isinstance(value, str):
+        parts = [p.strip() for p in re.split(r"[,\s]+", value) if p.strip()]
+        return set(parts)
+
+    if isinstance(value, list):
+        out: set[str] = set()
+        for v in value:
+            if isinstance(v, str) and v.strip():
+                out.add(v.strip())
+        return out
+
+    return set()
+
+
 @dataclass(frozen=True)
 class Seed:
     seed_id: str
@@ -188,8 +211,12 @@ async def async_process_seed_entity(hass: HomeAssistant, entry: ConfigEntry, ent
 
     cfg = entry.data | entry.options
 
-    allowed_domains = set(cfg.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS) or [])
-    blocked_domains = set(cfg.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS) or [])
+    allowed_domains = _parse_domains(
+        cfg.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS)
+    )
+    blocked_domains = _parse_domains(
+        cfg.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS)
+    )
 
     max_per_hour = int(cfg.get(CONF_SEED_MAX_OFFERS_PER_HOUR, DEFAULT_SEED_MAX_OFFERS_PER_HOUR) or 0)
     min_seconds_between = int(
