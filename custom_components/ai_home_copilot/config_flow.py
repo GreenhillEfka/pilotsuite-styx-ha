@@ -5,7 +5,6 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
 
 from .const import (
     CONF_HOST,
@@ -34,6 +33,23 @@ from .const import (
     DEFAULT_WATCHDOG_INTERVAL_SECONDS,
     DOMAIN,
 )
+
+
+def _as_csv(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return ",".join([v for v in value if isinstance(v, str)])
+    return str(value)
+
+
+def _parse_csv(value: str) -> list[str]:
+    if not value:
+        return []
+    parts = [p.strip() for p in value.replace("\n", ",").split(",")]
+    return [p for p in parts if p]
 
 
 async def _validate_input(hass: HomeAssistant, data: dict) -> None:
@@ -65,9 +81,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_TOKEN): str,
-                vol.Optional(CONF_TEST_LIGHT): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="light")
-                ),
+                # Use a plain string to maximize compatibility (no selector).
+                vol.Optional(CONF_TEST_LIGHT, default=""): str,
             }
         )
 
@@ -85,6 +100,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             # webhook_url is display-only; ignore if user edits it.
             user_input.pop(CONF_WEBHOOK_URL, None)
+
+            # Normalize seed entities (comma-separated list -> list[str])
+            seed_csv = user_input.get(CONF_SUGGESTION_SEED_ENTITIES)
+            if isinstance(seed_csv, str):
+                user_input[CONF_SUGGESTION_SEED_ENTITIES] = _parse_csv(seed_csv)
+
+            # Keep allow/block domains as the raw string; seed adapter parses both list and str.
             return self.async_create_entry(title="", data=user_input)
 
         data = {**self.config_entry.data, **self.config_entry.options}
@@ -97,36 +119,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         schema = vol.Schema(
             {
-                vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): selector.TextSelector(
-                    selector.TextSelectorConfig(multiline=False)
-                ),
+                vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): str,
                 vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
                 vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): int,
                 vol.Optional(CONF_TOKEN, default=data.get(CONF_TOKEN, "")): str,
                 vol.Optional(
                     CONF_TEST_LIGHT,
                     default=data.get(CONF_TEST_LIGHT, ""),
-                ): selector.EntitySelector(selector.EntitySelectorConfig(domain="light")),
+                ): str,
+                # Comma-separated list of sensor entity_ids.
                 vol.Optional(
                     CONF_SUGGESTION_SEED_ENTITIES,
-                    default=data.get(
-                        CONF_SUGGESTION_SEED_ENTITIES, DEFAULT_SUGGESTION_SEED_ENTITIES
+                    default=_as_csv(
+                        data.get(CONF_SUGGESTION_SEED_ENTITIES, DEFAULT_SUGGESTION_SEED_ENTITIES)
                     ),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", multiple=True)
-                ),
+                ): str,
                 vol.Optional(
                     CONF_SEED_ALLOWED_DOMAINS,
-                    default=",".join(
-                        data.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS) or []
-                    ),
-                ): selector.TextSelector(selector.TextSelectorConfig(multiline=False)),
+                    default=_as_csv(data.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS)),
+                ): str,
                 vol.Optional(
                     CONF_SEED_BLOCKED_DOMAINS,
-                    default=",".join(
-                        data.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS) or []
-                    ),
-                ): selector.TextSelector(selector.TextSelectorConfig(multiline=False)),
+                    default=_as_csv(data.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS)),
+                ): str,
                 vol.Optional(
                     CONF_SEED_MAX_OFFERS_PER_HOUR,
                     default=data.get(
