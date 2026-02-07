@@ -9,7 +9,7 @@ from .coordinator import CopilotDataUpdateCoordinator
 from .seed_adapter import async_setup_seed_adapter
 from .webhook import async_register_webhook, async_unregister_webhook
 
-PLATFORMS: list[str] = ["binary_sensor", "sensor", "button"]
+PLATFORMS: list[str] = ["binary_sensor", "sensor", "button", "text", "number"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:

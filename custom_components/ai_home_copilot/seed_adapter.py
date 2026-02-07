@@ -278,8 +278,12 @@ async def async_setup_seed_adapter(hass: HomeAssistant, entry: ConfigEntry) -> N
     if not entity_ids:
         return
 
+    # Accept either list[str] or csv string (dashboard config entity writes string)
+    if isinstance(entity_ids, str):
+        entity_ids = [p.strip() for p in re.split(r"[,\s]+", entity_ids) if p.strip()]
+
     if not isinstance(entity_ids, list) or not all(isinstance(x, str) for x in entity_ids):
-        _LOGGER.warning("Invalid %s option; expected list[str]", CONF_SUGGESTION_SEED_ENTITIES)
+        _LOGGER.warning("Invalid %s option; expected list[str] or csv string", CONF_SUGGESTION_SEED_ENTITIES)
         return
 
     @callback
