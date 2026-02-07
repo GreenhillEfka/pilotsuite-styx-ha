@@ -134,9 +134,22 @@ async def async_generate_ha_overview(hass: HomeAssistant) -> Path:
 
     await hass.async_add_executor_job(_write_text, out_path, content)
 
+    # Also copy to /share (if present) for easy access via Samba/Add-ons.
+    shared_path = None
+    try:
+        share_dir = Path("/share") / "ai_home_copilot"
+        if share_dir.exists() or share_dir.parent.exists():
+            share_dir.mkdir(parents=True, exist_ok=True)
+            shared_path = share_dir / out_path.name
+            await hass.async_add_executor_job(_write_text, shared_path, content)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Unable to write overview to /share (not available)")
+
     # Persist last generated path (for later download/publish).
     st = await async_get_overview_state(hass)
     st.last_path = str(out_path)
+    if shared_path is not None:
+        st.last_shared_path = str(shared_path)
     await async_set_overview_state(hass, st)
 
     persistent_notification.async_create(

@@ -14,11 +14,13 @@ STORE_VERSION = 1
 @dataclass
 class OverviewState:
     last_path: str | None = None
+    last_shared_path: str | None = None
     last_published_path: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "last_path": self.last_path,
+            "last_shared_path": self.last_shared_path,
             "last_published_path": self.last_published_path,
         }
 
@@ -28,6 +30,7 @@ async def async_get_overview_state(hass: HomeAssistant) -> OverviewState:
     data = await store.async_load() or {}
     return OverviewState(
         last_path=data.get("last_path"),
+        last_shared_path=data.get("last_shared_path"),
         last_published_path=data.get("last_published_path"),
     )
 
