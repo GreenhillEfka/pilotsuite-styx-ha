@@ -26,12 +26,18 @@ Turn Home Assistant usage patterns into *governed*, *privacy-first* automation s
 Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 
 ### NOW (stabilize + operability)
-- ✅ HACS repo + releases/tags (v0.1.0, v0.1.1)
+- ✅ HACS repo + releases/tags
 - ✅ Webhook push + watchdog fallback
 - ✅ Governance UX: Repairs + safe blueprint shipped
 - ✅ Error analysis + reversible fixer (log scan + Repairs fix + rollback)
+- ✅ DevLogs debug pipeline (opt-in push + in-HA fetch) to keep development observable
+- 🟡 Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior
 
 ### NEXT (make suggestions real)
+**N0 – Stable module foundation (HA side)**
+- ⏳ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update
+- ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
+
 **N1 – Candidate lifecycle + UX polish (HA side)**
 - ⏳ Candidate states: add `defer` (with “offer again after X days”)
 - ⏳ Better Repairs fix flow text + link to Blueprint UI
@@ -44,7 +50,7 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ⏳ `POST /api/v1/habitus/candidates/{id}/accept|dismiss|defer`
 
 **N3 – HA → Core event forwarder**
-- ⏳ Allowlist which HA events/entities we forward
+- ⏳ Allowlist which HA events/entities we forward (incl. media signals from MediaContext)
 - ⏳ Token-protected calls, rate limits, and redaction rules
 
 ### LATER (expansion modules)
