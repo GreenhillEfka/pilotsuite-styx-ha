@@ -10,6 +10,11 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_HOST,
     CONF_PORT,
+    CONF_SEED_ALLOWED_DOMAINS,
+    CONF_SEED_BLOCKED_DOMAINS,
+    CONF_SEED_MAX_OFFERS_PER_HOUR,
+    CONF_SEED_MAX_OFFERS_PER_UPDATE,
+    CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
     CONF_SUGGESTION_SEED_ENTITIES,
     CONF_TEST_LIGHT,
     CONF_TOKEN,
@@ -18,6 +23,11 @@ from .const import (
     CONF_WATCHDOG_INTERVAL_SECONDS,
     DEFAULT_HOST,
     DEFAULT_PORT,
+    DEFAULT_SEED_ALLOWED_DOMAINS,
+    DEFAULT_SEED_BLOCKED_DOMAINS,
+    DEFAULT_SEED_MAX_OFFERS_PER_HOUR,
+    DEFAULT_SEED_MAX_OFFERS_PER_UPDATE,
+    DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS,
     DEFAULT_SUGGESTION_SEED_ENTITIES,
     DEFAULT_TEST_LIGHT,
     DEFAULT_WATCHDOG_ENABLED,
@@ -105,6 +115,67 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor", multiple=True)
                 ),
+                vol.Optional(
+                    CONF_SEED_ALLOWED_DOMAINS,
+                    default=data.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            "light",
+                            "switch",
+                            "fan",
+                            "cover",
+                            "climate",
+                            "lock",
+                            "alarm_control_panel",
+                            "media_player",
+                            "scene",
+                            "script",
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    CONF_SEED_BLOCKED_DOMAINS,
+                    default=data.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            "light",
+                            "switch",
+                            "fan",
+                            "cover",
+                            "climate",
+                            "lock",
+                            "alarm_control_panel",
+                            "media_player",
+                            "scene",
+                            "script",
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    CONF_SEED_MAX_OFFERS_PER_HOUR,
+                    default=data.get(
+                        CONF_SEED_MAX_OFFERS_PER_HOUR, DEFAULT_SEED_MAX_OFFERS_PER_HOUR
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+                    default=data.get(
+                        CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+                        DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_SEED_MAX_OFFERS_PER_UPDATE,
+                    default=data.get(
+                        CONF_SEED_MAX_OFFERS_PER_UPDATE, DEFAULT_SEED_MAX_OFFERS_PER_UPDATE
+                    ),
+                ): int,
                 vol.Optional(
                     CONF_WATCHDOG_ENABLED,
                     default=data.get(CONF_WATCHDOG_ENABLED, DEFAULT_WATCHDOG_ENABLED),

@@ -22,6 +22,11 @@
           "token": "API token",
           "test_light_entity_id": "Test light (for the toggle button)",
           "suggestion_seed_entities": "Suggestion seed sensors (optional)",
+          "seed_allowed_domains": "Seed allowlist domains (optional)",
+          "seed_blocked_domains": "Seed blocklist domains (optional)",
+          "seed_max_offers_per_hour": "Seed limiter: max offers per hour",
+          "seed_min_seconds_between_offers": "Seed limiter: min seconds between offers",
+          "seed_max_offers_per_update": "Seed limiter: max offers per sensor update",
           "watchdog_enabled": "Enable watchdog polling (fallback)",
           "watchdog_interval_seconds": "Watchdog interval (seconds)"
         }

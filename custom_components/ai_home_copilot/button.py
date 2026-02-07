@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from .const import CONF_TEST_LIGHT, DEFAULT_TEST_LIGHT, DOMAIN
 from .entity import CopilotBaseEntity
 from .inventory import async_generate_ha_overview
+from .inventory_publish import async_publish_last_overview
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 
@@ -23,6 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotAnalyzeLogsButton(coordinator),
             CopilotRollbackLastFixButton(coordinator),
             CopilotGenerateOverviewButton(coordinator),
+            CopilotDownloadOverviewButton(coordinator),
         ],
         True,
     )
@@ -90,3 +92,13 @@ class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_generate_ha_overview(self.hass)
+
+
+class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot download HA overview"
+    _attr_unique_id = "ai_home_copilot_download_ha_overview"
+    _attr_icon = "mdi:download"
+
+    async def async_press(self) -> None:
+        await async_publish_last_overview(self.hass)

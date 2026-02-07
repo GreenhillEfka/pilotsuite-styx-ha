@@ -10,8 +10,24 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt as dt_util
 
-from .const import CONF_SUGGESTION_SEED_ENTITIES, DEFAULT_SUGGESTION_SEED_ENTITIES, DOMAIN
+from .const import (
+    CONF_SEED_ALLOWED_DOMAINS,
+    CONF_SEED_BLOCKED_DOMAINS,
+    CONF_SEED_MAX_OFFERS_PER_HOUR,
+    CONF_SEED_MAX_OFFERS_PER_UPDATE,
+    CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+    CONF_SUGGESTION_SEED_ENTITIES,
+    DEFAULT_SEED_ALLOWED_DOMAINS,
+    DEFAULT_SEED_BLOCKED_DOMAINS,
+    DEFAULT_SEED_MAX_OFFERS_PER_HOUR,
+    DEFAULT_SEED_MAX_OFFERS_PER_UPDATE,
+    DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+    DEFAULT_SUGGESTION_SEED_ENTITIES,
+    DOMAIN,
+)
+from .seed_store import SeedLimiterState, async_get_seed_limiter_state, async_set_seed_limiter_state
 from .suggest import Candidate, async_offer_candidate
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,7 +89,13 @@ def _extract_text_from_item(item: Any) -> str:
     return str(item)
 
 
-def _extract_seeds_from_state(source_entity_id: str, state: State) -> list[Seed]:
+def _extract_seeds_from_state(
+    source_entity_id: str,
+    state: State,
+    *,
+    allowed_domains: set[str],
+    blocked_domains: set[str],
+) -> list[Seed]:
     attrs = state.attributes or {}
 
     candidates: list[Any] = []
@@ -102,7 +124,20 @@ def _extract_seeds_from_state(source_entity_id: str, state: State) -> list[Seed]
         if not text.strip():
             continue
 
-        entities_found = sorted(set(_ENTITY_ID_RE.findall(text)))[:12]
+        entities_found = sorted(set(_ENTITY_ID_RE.findall(text)))
+
+        # Apply domain allow/block lists to the detected entity_ids.
+        if allowed_domains:
+            entities_found = [e for e in entities_found if e.split(".")[0] in allowed_domains]
+        if blocked_domains:
+            entities_found = [e for e in entities_found if e.split(".")[0] not in blocked_domains]
+
+        entities_found = entities_found[:12]
+
+        # If filtering removed everything, skip (avoids spam / low-actionability).
+        if (allowed_domains or blocked_domains) and not entities_found:
+            continue
+
         payload = _truncate(text, 800)
         seed_id = _stable_id(source_entity_id, payload)
 
@@ -120,12 +155,75 @@ def _extract_seeds_from_state(source_entity_id: str, state: State) -> list[Seed]
     return seeds
 
 
+async def _limiter_allow_offer(
+    hass: HomeAssistant,
+    *,
+    max_per_hour: int,
+    min_seconds_between: int,
+) -> bool:
+    now = dt_util.utcnow().timestamp()
+    st = await async_get_seed_limiter_state(hass)
+
+    # Reset window if needed
+    if st.window_start_ts is None or now - st.window_start_ts >= 3600:
+        st = SeedLimiterState(window_start_ts=now, count_in_window=0, last_offer_ts=st.last_offer_ts)
+
+    if max_per_hour > 0 and st.count_in_window >= max_per_hour:
+        return False
+
+    if st.last_offer_ts is not None and min_seconds_between > 0:
+        if now - st.last_offer_ts < min_seconds_between:
+            return False
+
+    st.count_in_window += 1
+    st.last_offer_ts = now
+    await async_set_seed_limiter_state(hass, st)
+    return True
+
+
 async def async_process_seed_entity(hass: HomeAssistant, entry: ConfigEntry, entity_id: str) -> None:
     st = hass.states.get(entity_id)
     if st is None:
         return
 
-    for seed in _extract_seeds_from_state(entity_id, st):
+    cfg = entry.data | entry.options
+
+    allowed_domains = set(cfg.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS) or [])
+    blocked_domains = set(cfg.get(CONF_SEED_BLOCKED_DOMAINS, DEFAULT_SEED_BLOCKED_DOMAINS) or [])
+
+    max_per_hour = int(cfg.get(CONF_SEED_MAX_OFFERS_PER_HOUR, DEFAULT_SEED_MAX_OFFERS_PER_HOUR) or 0)
+    min_seconds_between = int(
+        cfg.get(
+            CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+            DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+        )
+        or 0
+    )
+    max_per_update = int(
+        cfg.get(CONF_SEED_MAX_OFFERS_PER_UPDATE, DEFAULT_SEED_MAX_OFFERS_PER_UPDATE) or 0
+    )
+    if max_per_update <= 0:
+        max_per_update = 3
+
+    seeds = _extract_seeds_from_state(
+        entity_id,
+        st,
+        allowed_domains=allowed_domains,
+        blocked_domains=blocked_domains,
+    )
+
+    offered = 0
+    for seed in seeds:
+        if offered >= max_per_update:
+            break
+
+        if not await _limiter_allow_offer(
+            hass,
+            max_per_hour=max_per_hour,
+            min_seconds_between=min_seconds_between,
+        ):
+            break
+
         entities_str = ", ".join(seed.entities_found) if seed.entities_found else "(none detected)"
         cand = Candidate(
             candidate_id=f"seed_{entity_id}_{seed.seed_id}".replace(".", "_").replace("-", "_"),
@@ -144,6 +242,7 @@ async def async_process_seed_entity(hass: HomeAssistant, entry: ConfigEntry, ent
             },
         )
         await async_offer_candidate(hass, entry.entry_id, cand)
+        offered += 1
 
 
 async def async_setup_seed_adapter(hass: HomeAssistant, entry: ConfigEntry) -> None:

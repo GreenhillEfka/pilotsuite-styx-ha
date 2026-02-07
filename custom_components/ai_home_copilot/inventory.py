@@ -9,6 +9,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry, device_registry, entity_registry
 from homeassistant.util import dt as dt_util
 
+from .overview_store import OverviewState, async_get_overview_state, async_set_overview_state
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -131,6 +133,11 @@ async def async_generate_ha_overview(hass: HomeAssistant) -> Path:
     out_path = out_dir / f"ha_overview_{now.strftime('%Y%m%d_%H%M%S')}.md"
 
     await hass.async_add_executor_job(_write_text, out_path, content)
+
+    # Persist last generated path (for later download/publish).
+    st = await async_get_overview_state(hass)
+    st.last_path = str(out_path)
+    await async_set_overview_state(hass, st)
 
     persistent_notification.async_create(
         hass,
