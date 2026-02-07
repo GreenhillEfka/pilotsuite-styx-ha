@@ -18,9 +18,6 @@ from .const import (
     CONF_DEVLOG_PUSH_MAX_CHARS,
     CONF_DEVLOG_PUSH_MAX_LINES,
     CONF_DEVLOG_PUSH_PATH,
-    CONF_HOST,
-    CONF_PORT,
-    CONF_TOKEN,
     DEFAULT_DEVLOG_PUSH_ENABLED,
     DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS,
     DEFAULT_DEVLOG_PUSH_MAX_CHARS,
@@ -127,7 +124,66 @@ async def _save_state(hass: HomeAssistant, data: dict[str, Any]) -> None:
     await store.async_save(data)
 
 
-async def async_setup_devlog_push(hass: HomeAssistant, entry: ConfigEntry, *, coordinator_api: CopilotApiClient) -> Callable[[], None]:
+async def async_push_devlog_test(hass: HomeAssistant, entry: ConfigEntry, *, api: CopilotApiClient) -> None:
+    """Manually push a short test message to the Copilot-Core devlog endpoint."""
+    cfg = entry.data | entry.options
+    path = str(cfg.get(CONF_DEVLOG_PUSH_PATH, DEFAULT_DEVLOG_PUSH_PATH) or DEFAULT_DEVLOG_PUSH_PATH)
+
+    payload = {
+        "kind": "devlog_test",
+        "when": _now_iso(),
+        "source": {"type": "homeassistant", "entry_id": entry.entry_id},
+        "text": "AI Home CoPilot devlog test message (sanitized pipeline check).",
+    }
+
+    await api.async_post(path, payload)
+
+
+async def async_push_latest_ai_copilot_error(hass: HomeAssistant, entry: ConfigEntry, *, api: CopilotApiClient) -> bool:
+    """Push the latest ai_home_copilot-related traceback block, if any. Returns True if sent."""
+
+    cfg = entry.data | entry.options
+    max_lines = int(cfg.get(CONF_DEVLOG_PUSH_MAX_LINES, DEFAULT_DEVLOG_PUSH_MAX_LINES))
+    max_chars = int(cfg.get(CONF_DEVLOG_PUSH_MAX_CHARS, DEFAULT_DEVLOG_PUSH_MAX_CHARS))
+    path = str(cfg.get(CONF_DEVLOG_PUSH_PATH, DEFAULT_DEVLOG_PUSH_PATH) or DEFAULT_DEVLOG_PUSH_PATH)
+
+    try:
+        lines = await hass.async_add_executor_job(_tail_file_sync, _LOG_PATH, max_lines)
+    except FileNotFoundError:
+        return False
+
+    block = _extract_latest_block(lines)
+    if not block:
+        return False
+
+    sanitized = _sanitize(block, max_chars=max_chars)
+    sig = _sha1(sanitized)
+
+    state = await _load_state(hass)
+    key = entry.entry_id
+    last = state.get(key) if isinstance(state.get(key), dict) else {}
+    last_sig = str(last.get("last_sig", ""))
+
+    if sig == last_sig:
+        return False
+
+    payload = {
+        "kind": "ha_log_snippet",
+        "when": _now_iso(),
+        "source": {"type": "homeassistant", "entry_id": entry.entry_id},
+        "text": sanitized,
+    }
+
+    await api.async_post(path, payload)
+
+    state[key] = {"last_sig": sig, "last_sent": payload["when"]}
+    await _save_state(hass, state)
+    return True
+
+
+async def async_setup_devlog_push(
+    hass: HomeAssistant, entry: ConfigEntry, *, coordinator_api: CopilotApiClient
+) -> Callable[[], None]:
     """Set up periodic log-snippet push (opt-in). Returns an unsubscribe callable."""
 
     async def _tick(_now) -> None:
@@ -167,23 +223,24 @@ async def async_setup_devlog_push(hass: HomeAssistant, entry: ConfigEntry, *, co
         payload = {
             "kind": "ha_log_snippet",
             "when": _now_iso(),
-            "source": {
-                "type": "homeassistant",
-                "entry_id": entry.entry_id,
-            },
+            "source": {"type": "homeassistant", "entry_id": entry.entry_id},
             "text": sanitized,
         }
 
         try:
             await coordinator_api.async_post(path, payload)
         except Exception:  # noqa: BLE001
-            # Don’t spam logs; best-effort only.
+            # Best-effort only.
             return
 
         state[key] = {"last_sig": sig, "last_sent": payload["when"]}
         await _save_state(hass, state)
 
-    interval = int((entry.data | entry.options).get(CONF_DEVLOG_PUSH_INTERVAL_SECONDS, DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS))
+    interval = int(
+        (entry.data | entry.options).get(
+            CONF_DEVLOG_PUSH_INTERVAL_SECONDS, DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS
+        )
+    )
     interval = max(10, min(interval, 3600))
 
     return async_track_time_interval(hass, _tick, timedelta(seconds=interval))

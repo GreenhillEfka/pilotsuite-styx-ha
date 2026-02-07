@@ -28,7 +28,12 @@
           "seed_min_seconds_between_offers": "Seed limiter: min seconds between offers",
           "seed_max_offers_per_update": "Seed limiter: max offers per sensor update",
           "watchdog_enabled": "Enable watchdog polling (fallback)",
-          "watchdog_interval_seconds": "Watchdog interval (seconds)"
+          "watchdog_interval_seconds": "Watchdog interval (seconds)",
+          "devlog_push_enabled": "Dev: push sanitized log snippets to Core",
+          "devlog_push_interval_seconds": "Dev: push interval (seconds)",
+          "devlog_push_path": "Dev: Core endpoint path",
+          "devlog_push_max_lines": "Dev: read last N log lines",
+          "devlog_push_max_chars": "Dev: max chars per snippet"
         }
       }
     },

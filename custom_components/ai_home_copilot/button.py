@@ -10,6 +10,7 @@ from .inventory import async_generate_ha_overview
 from .inventory_publish import async_publish_last_overview
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
+from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -26,6 +27,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotGenerateOverviewButton(coordinator),
             CopilotDownloadOverviewButton(coordinator),
             CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
+            CopilotDevLogTestPushButton(coordinator, entry),
+            CopilotDevLogPushLatestButton(coordinator, entry),
         ],
         True,
     )
@@ -117,3 +120,31 @@ class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.hass.config_entries.async_reload(self._entry_id)
+
+
+class CopilotDevLogTestPushButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot devlog push test"
+    _attr_unique_id = "ai_home_copilot_devlog_push_test"
+    _attr_icon = "mdi:bug-play"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_push_devlog_test(self.hass, self._entry, api=self.coordinator.api)
+
+
+class CopilotDevLogPushLatestButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot devlog push latest"
+    _attr_unique_id = "ai_home_copilot_devlog_push_latest"
+    _attr_icon = "mdi:bug-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_push_latest_ai_copilot_error(self.hass, self._entry, api=self.coordinator.api)
