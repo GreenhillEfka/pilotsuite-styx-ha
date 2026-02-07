@@ -1,0 +1,81 @@
+blueprint:
+  name: "AI Home CoPilot: A → B (safe)"
+  description: >
+    Safe A→B automation: triggers on a local entity state change and performs a
+    constrained local action on a selected target (no webhooks, no external calls).
+  domain: automation
+
+  input:
+    a_entity:
+      name: "A: Trigger entity"
+      selector:
+        entity: {}
+
+    a_to_state:
+      name: "A: State that triggers"
+      default: "on"
+      selector:
+        text: {}
+
+    a_for:
+      name: "A: Must be in that state for (optional)"
+      default:
+        seconds: 0
+      selector:
+        duration: {}
+
+    conditions:
+      name: "Optional extra conditions"
+      default: []
+      selector:
+        condition: {}
+
+    b_target:
+      name: "B: Target"
+      selector:
+        target:
+          entity:
+            - domain: light
+            - domain: switch
+            - domain: fan
+
+    b_action:
+      name: "B: Action"
+      default: "turn_on"
+      selector:
+        select:
+          options:
+            - label: "Turn on"
+              value: "turn_on"
+            - label: "Turn off"
+              value: "turn_off"
+            - label: "Toggle"
+              value: "toggle"
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  b_action: !input b_action
+
+triggers:
+  - trigger: state
+    entity_id: !input a_entity
+    to: !input a_to_state
+    for: !input a_for
+
+conditions: !input conditions
+
+actions:
+  - choose:
+      - conditions: "{{ b_action == 'turn_on' }}"
+        sequence:
+          - action: homeassistant.turn_on
+            target: !input b_target
+      - conditions: "{{ b_action == 'turn_off' }}"
+        sequence:
+          - action: homeassistant.turn_off
+            target: !input b_target
+    default:
+      - action: homeassistant.toggle
+        target: !input b_target
