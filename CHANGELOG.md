@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-02-07
 ### Added
-- Habitus zones (Phase 1): JSON text entity + validate button + zones count sensor (local-only).
+- Habitus zones (UX): Options wizard (create/edit/delete) with required motion/presence + lights.
+- Habitus dashboard generator: create + publish YAML dashboard views per zone.
+
+### Changed
+- Habitus zones store now enforces the minimum requirements on save.
 
 ## [0.1.18] - 2026-02-07
 ### Added
