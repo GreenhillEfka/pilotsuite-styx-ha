@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import re
+from urllib.parse import urlparse
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -19,12 +21,40 @@ from .const import (
 )
 
 
+def _normalize_base_url(host: str, port: int) -> str:
+    """Build a usable base URL from user input.
+
+    Users sometimes paste a full URL (e.g. "http://192.168.30.18:8909").
+    We accept that and normalize it to avoid double schemes like "http://http://...".
+    """
+
+    raw = (host or "").strip().rstrip("/")
+
+    if raw.startswith("http://") or raw.startswith("https://"):
+        parsed = urlparse(raw)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        return raw
+
+    # Strip any accidental path.
+    raw = raw.split("/", 1)[0]
+
+    # If host already includes a port (e.g. "192.168.30.18:8909"), keep it.
+    if re.match(r"^[^\[]+:[0-9]+$", raw) and raw.count(":") == 1:
+        return f"http://{raw}".rstrip("/")
+
+    return f"http://{raw}:{int(port)}".rstrip("/")
+
+
 class CopilotDataUpdateCoordinator(DataUpdateCoordinator[CopilotStatus]):
     def __init__(self, hass: HomeAssistant, config: dict):
         self._hass = hass
         self._config = config
         session = async_get_clientsession(hass)
-        base_url = f"http://{config[CONF_HOST]}:{config[CONF_PORT]}"
+        base_url = _normalize_base_url(
+            str(config.get(CONF_HOST, "")),
+            int(config.get(CONF_PORT, 0) or 0),
+        )
         token = config.get(CONF_TOKEN)
         self.api = CopilotApiClient(session=session, base_url=base_url, token=token)
 
@@ -36,7 +66,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator[CopilotStatus]):
         super().__init__(
             hass,
             logger=__import__("logging").getLogger(__name__),
-            name=f"{DOMAIN}-{config[CONF_HOST]}:{config[CONF_PORT]}",
+            name=f"{DOMAIN}-{config.get(CONF_HOST)}:{config.get(CONF_PORT)}",
             update_interval=timedelta(seconds=watchdog_interval) if watchdog_enabled else None,
         )
 
