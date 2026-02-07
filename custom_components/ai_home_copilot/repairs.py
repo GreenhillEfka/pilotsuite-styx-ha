@@ -22,6 +22,17 @@ STEP_CHOICE = vol.Schema(
     }
 )
 
+STEP_SEED_CHOICE = vol.Schema(
+    {
+        vol.Required("decision", default="done"): vol.In(
+            {
+                "done": "Ich habe daraus eine Automation erstellt",
+                "dismiss": "Nicht mehr vorschlagen",
+            }
+        )
+    }
+)
+
 STEP_DISABLE_INTEGRATION = vol.Schema(
     {
         vol.Required("confirm", default=False): bool,
@@ -49,6 +60,48 @@ class CandidateRepairFlow(RepairsFlow):
             return self.async_create_entry(title="", data={"result": "accepted"})
 
         return self.async_show_form(step_id="init", data_schema=STEP_CHOICE)
+
+
+class SeedRepairFlow(RepairsFlow):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        *,
+        entry_id: str,
+        candidate_id: str,
+        source: str,
+        entities: str,
+        excerpt: str,
+    ) -> None:
+        self.hass = hass
+        self._entry_id = entry_id
+        self._candidate_id = candidate_id
+        self._source = source
+        self._entities = entities
+        self._excerpt = excerpt
+
+    async def async_step_init(self, user_input=None) -> data_entry_flow.FlowResult:
+        if user_input is not None:
+            if user_input["decision"] == "dismiss":
+                await async_set_candidate_state(
+                    self.hass, self._entry_id, self._candidate_id, CandidateState.DISMISSED
+                )
+                return self.async_create_entry(title="", data={"result": "dismissed"})
+
+            await async_set_candidate_state(
+                self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
+            )
+            return self.async_create_entry(title="", data={"result": "accepted"})
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=STEP_SEED_CHOICE,
+            description_placeholders={
+                "source": self._source,
+                "entities": self._entities,
+                "excerpt": self._excerpt,
+            },
+        )
 
 
 class DisableCustomIntegrationRepairFlow(RepairsFlow):
@@ -101,6 +154,26 @@ async def async_create_fix_flow(
     entry_id = data.get("entry_id")
     candidate_id = data.get("candidate_id")
     if isinstance(entry_id, str) and isinstance(candidate_id, str):
+        if data.get("kind") == "seed":
+            source = str(data.get("seed_source") or "")
+            entities = data.get("seed_entities")
+            entities_str = ", ".join(entities) if isinstance(entities, list) else ""
+            excerpt = str(data.get("seed_text") or "")
+            # keep placeholders small
+            excerpt = excerpt.strip().replace("\n", " ")
+            if len(excerpt) > 160:
+                excerpt = excerpt[:159] + "…"
+            if len(entities_str) > 120:
+                entities_str = entities_str[:119] + "…"
+            return SeedRepairFlow(
+                hass,
+                entry_id=entry_id,
+                candidate_id=candidate_id,
+                source=source,
+                entities=entities_str,
+                excerpt=excerpt,
+            )
+
         return CandidateRepairFlow(hass, entry_id=entry_id, candidate_id=candidate_id)
 
     # 2) Log findings

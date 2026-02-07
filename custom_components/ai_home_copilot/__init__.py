@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 from .blueprints import async_install_blueprints
 from .const import CONF_WEBHOOK_ID, DOMAIN
 from .coordinator import CopilotDataUpdateCoordinator
+from .seed_adapter import async_setup_seed_adapter
 from .webhook import async_register_webhook, async_unregister_webhook
 
 PLATFORMS: list[str] = ["binary_sensor", "sensor", "button"]
@@ -32,6 +33,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "webhook_id": webhook_id,
     }
 
+    # Optional: ingest suggestion seeds from other sensor entities.
+    await async_setup_seed_adapter(hass, entry)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -46,5 +50,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         if webhook_id:
             await async_unregister_webhook(hass, webhook_id)
+
+        data = hass.data[DOMAIN].get(entry.entry_id)
+        unsub = data.get("unsub_seed_adapter") if isinstance(data, dict) else None
+        if callable(unsub):
+            unsub()
+
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unload_ok

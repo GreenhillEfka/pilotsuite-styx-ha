@@ -10,6 +10,7 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_HOST,
     CONF_PORT,
+    CONF_SUGGESTION_SEED_ENTITIES,
     CONF_TEST_LIGHT,
     CONF_TOKEN,
     CONF_WEBHOOK_URL,
@@ -17,6 +18,7 @@ from .const import (
     CONF_WATCHDOG_INTERVAL_SECONDS,
     DEFAULT_HOST,
     DEFAULT_PORT,
+    DEFAULT_SUGGESTION_SEED_ENTITIES,
     DEFAULT_TEST_LIGHT,
     DEFAULT_WATCHDOG_ENABLED,
     DEFAULT_WATCHDOG_INTERVAL_SECONDS,
@@ -95,6 +97,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_TEST_LIGHT,
                     default=data.get(CONF_TEST_LIGHT, ""),
                 ): selector.EntitySelector(selector.EntitySelectorConfig(domain="light")),
+                vol.Optional(
+                    CONF_SUGGESTION_SEED_ENTITIES,
+                    default=data.get(
+                        CONF_SUGGESTION_SEED_ENTITIES, DEFAULT_SUGGESTION_SEED_ENTITIES
+                    ),
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor", multiple=True)
+                ),
                 vol.Optional(
                     CONF_WATCHDOG_ENABLED,
                     default=data.get(CONF_WATCHDOG_ENABLED, DEFAULT_WATCHDOG_ENABLED),

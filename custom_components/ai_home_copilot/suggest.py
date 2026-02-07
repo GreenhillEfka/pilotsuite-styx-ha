@@ -20,6 +20,12 @@ class Candidate:
     title: str
     blueprint_url: str | None = None
 
+    # Optional issue customizations
+    translation_key: str = "candidate_suggestion"
+    translation_placeholders: dict[str, str] | None = None
+    data: dict[str, Any] | None = None
+    learn_more_url: str | None = None
+
 
 def _issue_id(entry_id: str, candidate_id: str) -> str:
     return f"cand_{entry_id}_{candidate_id}".replace("-", "_")
@@ -32,6 +38,15 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
 
     await async_set_candidate_state(hass, entry_id, candidate.candidate_id, CandidateState.OFFERED)
 
+    placeholders = candidate.translation_placeholders or {"title": candidate.title}
+    data = {
+        "entry_id": entry_id,
+        "candidate_id": candidate.candidate_id,
+        "blueprint_url": candidate.blueprint_url,
+    }
+    if candidate.data:
+        data.update(candidate.data)
+
     ir.async_create_issue(
         hass,
         DOMAIN,
@@ -39,16 +54,10 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
         is_fixable=True,
         is_persistent=False,
         severity=ir.IssueSeverity.WARNING,
-        translation_key="candidate_suggestion",
-        translation_placeholders={
-            "title": candidate.title,
-        },
-        data={
-            "entry_id": entry_id,
-            "candidate_id": candidate.candidate_id,
-            "blueprint_url": candidate.blueprint_url,
-        },
-        learn_more_url=candidate.blueprint_url,
+        translation_key=candidate.translation_key,
+        translation_placeholders=placeholders,
+        data=data,
+        learn_more_url=candidate.learn_more_url or candidate.blueprint_url,
     )
 
 

@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_TEST_LIGHT, DEFAULT_TEST_LIGHT, DOMAIN
 from .entity import CopilotBaseEntity
+from .inventory import async_generate_ha_overview
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 
@@ -21,6 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotCreateDemoSuggestionButton(coordinator, entry.entry_id),
             CopilotAnalyzeLogsButton(coordinator),
             CopilotRollbackLastFixButton(coordinator),
+            CopilotGenerateOverviewButton(coordinator),
         ],
         True,
     )
@@ -36,6 +38,8 @@ class CopilotToggleLightButton(CopilotBaseEntity, ButtonEntity):
         self._light_entity_id = entity_id
 
     async def async_press(self) -> None:
+        if not self._light_entity_id:
+            return
         await self.hass.services.async_call(
             "light",
             "toggle",
@@ -76,3 +80,13 @@ class CopilotRollbackLastFixButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_rollback_last_fix(self.hass)
+
+
+class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot generate HA overview"
+    _attr_unique_id = "ai_home_copilot_generate_ha_overview"
+    _attr_icon = "mdi:map-search"
+
+    async def async_press(self) -> None:
+        await async_generate_ha_overview(self.hass)
