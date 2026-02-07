@@ -121,19 +121,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            "light",
-                            "switch",
-                            "fan",
-                            "cover",
-                            "climate",
-                            "lock",
-                            "alarm_control_panel",
-                            "media_player",
-                            "scene",
-                            "script",
+                            {"label": "light", "value": "light"},
+                            {"label": "switch", "value": "switch"},
+                            {"label": "fan", "value": "fan"},
+                            {"label": "cover", "value": "cover"},
+                            {"label": "climate", "value": "climate"},
+                            {"label": "lock", "value": "lock"},
+                            {"label": "alarm", "value": "alarm_control_panel"},
+                            {"label": "media", "value": "media_player"},
+                            {"label": "scene", "value": "scene"},
+                            {"label": "script", "value": "script"},
                         ],
                         multiple=True,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        mode="dropdown",
                     )
                 ),
                 vol.Optional(
@@ -142,19 +142,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            "light",
-                            "switch",
-                            "fan",
-                            "cover",
-                            "climate",
-                            "lock",
-                            "alarm_control_panel",
-                            "media_player",
-                            "scene",
-                            "script",
+                            {"label": "light", "value": "light"},
+                            {"label": "switch", "value": "switch"},
+                            {"label": "fan", "value": "fan"},
+                            {"label": "cover", "value": "cover"},
+                            {"label": "climate", "value": "climate"},
+                            {"label": "lock", "value": "lock"},
+                            {"label": "alarm", "value": "alarm_control_panel"},
+                            {"label": "media", "value": "media_player"},
+                            {"label": "scene", "value": "scene"},
+                            {"label": "script", "value": "script"},
                         ],
                         multiple=True,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        mode="dropdown",
                     )
                 ),
                 vol.Optional(
