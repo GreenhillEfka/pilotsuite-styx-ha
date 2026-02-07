@@ -19,6 +19,11 @@ CONF_MEDIA_TV_PLAYERS = "media_tv_players"
 
 # Dev/Debug: push sanitized HA log snippets to Copilot-Core (opt-in).
 CONF_DEVLOG_PUSH_ENABLED = "devlog_push_enabled"
+
+# Core API v1: capabilities ping + HA->Core event forwarder (opt-in).
+CONF_EVENTS_FORWARDER_ENABLED = "events_forwarder_enabled"
+CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS = "events_forwarder_flush_interval_seconds"
+CONF_EVENTS_FORWARDER_MAX_BATCH = "events_forwarder_max_batch"
 CONF_DEVLOG_PUSH_INTERVAL_SECONDS = "devlog_push_interval_seconds"
 CONF_DEVLOG_PUSH_PATH = "devlog_push_path"
 CONF_DEVLOG_PUSH_MAX_LINES = "devlog_push_max_lines"
@@ -49,6 +54,10 @@ DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS = 60
 DEFAULT_DEVLOG_PUSH_PATH = "/api/v1/dev/logs"
 DEFAULT_DEVLOG_PUSH_MAX_LINES = 220
 DEFAULT_DEVLOG_PUSH_MAX_CHARS = 6000
+
+DEFAULT_EVENTS_FORWARDER_ENABLED = False
+DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS = 5
+DEFAULT_EVENTS_FORWARDER_MAX_BATCH = 50
 
 DEFAULT_SUGGESTION_SEED_ENTITIES: list[str] = []
 DEFAULT_SEED_ALLOWED_DOMAINS: list[str] = []

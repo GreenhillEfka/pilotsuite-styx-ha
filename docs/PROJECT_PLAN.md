@@ -44,14 +44,20 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ⏳ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text
 
 **N2 – Core API v1 minimal**
-- ⏳ `POST /api/v1/ingest/events` (batch)
+- ⏳ `POST /api/v1/events` (batch)
+- ⏳ `GET /api/v1/events` (debug window / support tooling)
+- ⏳ Candidate store endpoints (for HA UX + future ranking)
 - ⏳ Habitus miner A→B (Δt window, debounce, support/confidence/lift)
-- ⏳ `GET /api/v1/habitus/candidates`
-- ⏳ `POST /api/v1/habitus/candidates/{id}/accept|dismiss|defer`
 
 **N3 – HA → Core event forwarder**
-- ⏳ Allowlist which HA events/entities we forward (incl. media signals from MediaContext)
+- ⏳ Capabilities ping (`GET /api/v1/capabilities`) and clear “Core supports v1?” status
+- ⏳ Allowlist which HA entities we forward (default: Habitus zones; optional: MediaContext lists)
 - ⏳ Token-protected calls, rate limits, and redaction rules
+
+**N4 – Brain Graph (Dev surface)**
+- 💡 Co-activity graph (neurons + synapses) generated from forwarded events
+- 💡 First view: static SVG + summary table (HA-friendly, low maintenance)
+- 💡 Later: interactive graph panel (optional)
 
 ### LATER (expansion modules)
 - 💡 Mood vector v0.1 (comfort/frugality/joy) and ranking

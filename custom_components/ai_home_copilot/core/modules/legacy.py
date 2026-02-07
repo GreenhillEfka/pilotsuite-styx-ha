@@ -10,6 +10,7 @@ from ...devlog_push import async_setup_devlog_push
 from ...seed_adapter import async_setup_seed_adapter
 from ...media_setup import async_setup_media_context, async_unload_media_context
 from ...webhook import async_register_webhook, async_unregister_webhook
+from ...core_v1 import async_fetch_core_capabilities
 from ..module import ModuleContext
 
 
@@ -45,6 +46,10 @@ class LegacyModule:
             "webhook_id": webhook_id,
             "unsub_devlog_push": unsub_devlog_push,
         }
+
+        # Core API v1: capabilities ping (best-effort, read-only).
+        # Old cores will return 404; this is expected and shown in the sensor.
+        await async_fetch_core_capabilities(hass, entry, api=coordinator.api)
 
         # Read-only media context (music vs TV/other).
         await async_setup_media_context(hass, entry)

@@ -20,6 +20,7 @@ from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
 from .habitus_zones_entities import HabitusZonesValidateButton
 from .habitus_dashboard import async_generate_habitus_zones_dashboard, async_publish_last_habitus_dashboard
+from .core_v1 import async_fetch_core_capabilities
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -39,6 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogTestPushButton(coordinator, entry),
             CopilotDevLogPushLatestButton(coordinator, entry),
             CopilotDevLogsFetchButton(coordinator, entry),
+            CopilotCoreCapabilitiesFetchButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
             CopilotGenerateHabitusDashboardButton(coordinator, entry),
             CopilotDownloadHabitusDashboardButton(coordinator, entry),
@@ -223,6 +225,51 @@ class CopilotDevLogsFetchButton(CopilotBaseEntity, ButtonEntity):
             msg,
             title="AI Home CoPilot DevLogs (last 10)",
             notification_id="ai_home_copilot_devlogs",
+        )
+
+
+class CopilotCoreCapabilitiesFetchButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot fetch core capabilities"
+    _attr_unique_id = "ai_home_copilot_fetch_core_capabilities"
+    _attr_icon = "mdi:api"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        try:
+            cap = await async_fetch_core_capabilities(self.hass, self._entry, api=self.coordinator.api)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to fetch capabilities: {err}",
+                title="AI Home CoPilot Core capabilities",
+                notification_id="ai_home_copilot_core_capabilities",
+            )
+            return
+
+        msg = [f"fetched: {cap.fetched}", f"supported: {cap.supported}"]
+        if cap.http_status is not None:
+            msg.append(f"http_status: {cap.http_status}")
+        if cap.error:
+            msg.append(f"error: {cap.error}")
+
+        modules = None
+        if isinstance(cap.data, dict):
+            modules = cap.data.get("modules")
+        if isinstance(modules, dict):
+            msg.append("")
+            msg.append("modules:")
+            for k, v in modules.items():
+                msg.append(f"- {k}: {v}")
+
+        persistent_notification.async_create(
+            self.hass,
+            "\n".join(msg),
+            title="AI Home CoPilot Core capabilities",
+            notification_id="ai_home_copilot_core_capabilities",
         )
 
 

@@ -27,6 +27,9 @@ from .const import (
     CONF_DEVLOG_PUSH_PATH,
     CONF_DEVLOG_PUSH_MAX_LINES,
     CONF_DEVLOG_PUSH_MAX_CHARS,
+    CONF_EVENTS_FORWARDER_ENABLED,
+    CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
+    CONF_EVENTS_FORWARDER_MAX_BATCH,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
@@ -47,6 +50,9 @@ from .const import (
     DEFAULT_DEVLOG_PUSH_PATH,
     DEFAULT_DEVLOG_PUSH_MAX_LINES,
     DEFAULT_DEVLOG_PUSH_MAX_CHARS,
+    DEFAULT_EVENTS_FORWARDER_ENABLED,
+    DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
+    DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
     DOMAIN,
 )
 
@@ -210,6 +216,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_WATCHDOG_INTERVAL_SECONDS, DEFAULT_WATCHDOG_INTERVAL_SECONDS
                     ),
                 ): int,
+                # Core API v1: HA -> Core event forwarder (opt-in, allowlist=Habitus zones).
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_ENABLED,
+                    default=data.get(CONF_EVENTS_FORWARDER_ENABLED, DEFAULT_EVENTS_FORWARDER_ENABLED),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
+                        DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_MAX_BATCH,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_MAX_BATCH,
+                        DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
+                    ),
+                ): int,
+
                 # Opt-in dev tool: push sanitized HA log snippets to Copilot-Core.
                 vol.Optional(
                     CONF_DEVLOG_PUSH_ENABLED,
