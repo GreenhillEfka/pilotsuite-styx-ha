@@ -26,6 +26,31 @@ def _dev_log_path() -> str:
 
 # In-memory ring buffer of recent dev logs.
 _DEV_LOG_CACHE: list[dict] = []
+_DEV_LOG_CACHE_LOADED = False
+
+
+def _ensure_dev_log_cache_loaded() -> None:
+    """Load last dev logs into memory.
+
+    Must run inside an application context (uses current_app).
+    """
+
+    global _DEV_LOG_CACHE_LOADED
+    if _DEV_LOG_CACHE_LOADED:
+        return
+    _DEV_LOG_CACHE_LOADED = True
+
+    path = _dev_log_path()
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            lines = fh.readlines()[-DEV_LOG_MAX_CACHE_DEFAULT :]
+        for line in lines:
+            try:
+                _DEV_LOG_CACHE.append(json.loads(line))
+            except Exception:
+                continue
+    except Exception:
+        return
 
 
 def _append_dev_log(entry: dict) -> None:
@@ -46,25 +71,9 @@ def _append_dev_log(entry: dict) -> None:
         del _DEV_LOG_CACHE[: len(_DEV_LOG_CACHE) - max_cache]
 
 
-def _load_dev_log_cache() -> None:
-    path = _dev_log_path()
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            lines = fh.readlines()[-DEV_LOG_MAX_CACHE_DEFAULT :]
-        for line in lines:
-            try:
-                _DEV_LOG_CACHE.append(json.loads(line))
-            except Exception:
-                continue
-    except Exception:
-        return
-
-
-_load_dev_log_cache()
-
-
 @bp.post("/dev/logs")
 def ingest_dev_logs():
+    _ensure_dev_log_cache_loaded()
     payload = request.get_json(silent=True) or {}
     entry = {"received": _now_iso(), "payload": payload}
 
@@ -78,6 +87,7 @@ def ingest_dev_logs():
 
 @bp.get("/dev/logs")
 def get_dev_logs():
+    _ensure_dev_log_cache_loaded()
     try:
         limit = int(request.args.get("limit", "50"))
     except Exception:

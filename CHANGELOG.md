@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [copilot_core-v0.2.1] - 2026-02-08
+### Fixed
+- Startup crash in v0.2.0: DevLogs module accessed `current_app` at import time ("Working outside of application context").
+
 ## [copilot_core-v0.1.2] - 2026-02-07
 ### Added
 - `/devlogs` HTML view for ingested DevLogs.

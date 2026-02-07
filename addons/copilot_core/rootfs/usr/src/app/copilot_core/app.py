@@ -15,7 +15,7 @@ def _now_iso() -> str:
 
 @dataclass(frozen=True)
 class CopilotConfig:
-    version: str = os.environ.get("COPILOT_VERSION", "0.2.0")
+    version: str = os.environ.get("COPILOT_VERSION", "0.2.1")
 
     # Auth
     auth_token: str = ""
