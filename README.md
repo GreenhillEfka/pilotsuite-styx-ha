@@ -34,6 +34,9 @@ Entities created:
 - `sensor.ai_home_copilot_version`
 - `button.ai_home_copilot_toggle_light`
 
+## Project plan
+See: `docs/PROJECT_PLAN.md` (canvas + kanban overview)
+
 ## Included blueprint
 A safe A→B automation blueprint is shipped with the integration and will be installed (if missing) to:
 `/config/blueprints/automation/ai_home_copilot/a_to_b_safe.yaml`
