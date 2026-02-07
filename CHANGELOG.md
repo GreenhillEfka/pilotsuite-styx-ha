@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Habitus zones (Phase 1): JSON text entity + validate button + zones count sensor (local-only).
+
 ## [0.1.18] - 2026-02-07
 ### Added
 - Dev surface documentation and HA Diagnostics support (sanitized).

@@ -14,6 +14,7 @@ from .const import (
     DOMAIN,
 )
 from .entity import CopilotBaseEntity
+from .habitus_zones_entities import HabitusZonesJsonText
 
 
 def _as_csv(value) -> str:
@@ -54,6 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     async_add_entities(
         [
+            HabitusZonesJsonText(coordinator, entry),
             _BaseConfigText(
                 coordinator,
                 entry,

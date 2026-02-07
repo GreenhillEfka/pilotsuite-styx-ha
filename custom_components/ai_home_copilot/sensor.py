@@ -14,13 +14,14 @@ from .media_entities import (
     TvPrimaryAreaSensor,
     TvSourceSensor,
 )
+from .habitus_zones_entities import HabitusZonesCountSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator = data["coordinator"]
 
-    entities = [CopilotVersionSensor(coordinator)]
+    entities = [CopilotVersionSensor(coordinator), HabitusZonesCountSensor(coordinator, entry)]
 
     media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
     if media_coordinator is not None:

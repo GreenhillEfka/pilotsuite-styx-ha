@@ -18,6 +18,7 @@ from .inventory_publish import async_publish_last_overview
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
+from .habitus_zones_entities import HabitusZonesValidateButton
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -37,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogTestPushButton(coordinator, entry),
             CopilotDevLogPushLatestButton(coordinator, entry),
             CopilotDevLogsFetchButton(coordinator, entry),
+            HabitusZonesValidateButton(coordinator, entry),
         ],
         True,
     )
