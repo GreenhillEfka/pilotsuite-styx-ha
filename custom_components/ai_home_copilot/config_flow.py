@@ -94,7 +94,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+        # In newer HA versions, OptionsFlow has a read-only `config_entry` property.
+        # Store the entry under our own attribute to stay compatible.
+        self._entry = config_entry
 
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         if user_input is not None:
@@ -109,7 +111,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             # Keep allow/block domains as the raw string; seed adapter parses both list and str.
             return self.async_create_entry(title="", data=user_input)
 
-        data = {**self.config_entry.data, **self.config_entry.options}
+        data = {**self._entry.data, **self._entry.options}
 
         webhook_id = data.get("webhook_id")
         base = self.hass.config.internal_url or self.hass.config.external_url or ""
