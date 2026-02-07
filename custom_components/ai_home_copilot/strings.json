@@ -15,6 +15,14 @@
       "init": {
         "title": "AI Home CoPilot options",
         "description": "Configure AI Home CoPilot.",
+        "menu_options": {
+          "settings": "Settings",
+          "habitus_zones": "Habitus zones"
+        }
+      },
+      "settings": {
+        "title": "AI Home CoPilot settings",
+        "description": "Configure AI Home CoPilot.",
         "data": {
           "webhook_url": "Webhook URL (copy into Copilot-Core)",
           "host": "Host",
@@ -31,13 +39,54 @@
           "seed_max_offers_per_update": "Seed limiter: max offers per sensor update",
           "watchdog_enabled": "Enable watchdog polling (fallback)",
           "watchdog_interval_seconds": "Watchdog interval (seconds)",
-          "media_music_players": "MediaContext: music players (csv)",
-          "media_tv_players": "MediaContext: TV/other players (csv)",
           "devlog_push_enabled": "Dev: push sanitized log snippets to Core",
           "devlog_push_interval_seconds": "Dev: push interval (seconds)",
           "devlog_push_path": "Dev: Core endpoint path",
           "devlog_push_max_lines": "Dev: read last N log lines",
           "devlog_push_max_chars": "Dev: max chars per snippet"
+        }
+      },
+      "habitus_zones": {
+        "title": "Habitus zones",
+        "description": "Create and manage curated zones (independent from Home Assistant Areas). Each zone requires motion/presence + at least one light.",
+        "menu_options": {
+          "create_zone": "Create zone",
+          "edit_zone": "Edit zone",
+          "delete_zone": "Delete zone",
+          "back": "Back"
+        }
+      },
+      "create_zone": {
+        "title": "Create Habitus zone",
+        "description": "Pick a motion/presence entity and at least one light. Add any optional entities you want CoPilot to consider for this zone.",
+        "data": {
+          "zone_id": "Zone id (snake_case)",
+          "name": "Display name",
+          "motion_entity_id": "Motion / presence entity",
+          "light_entity_ids": "Lights (one or more)",
+          "optional_entity_ids": "Optional entities"
+        }
+      },
+      "edit_zone": {
+        "title": "Edit Habitus zone",
+        "data": {
+          "zone_id": "Zone"
+        }
+      },
+      "edit_zone_form": {
+        "title": "Edit Habitus zone",
+        "data": {
+          "zone_id": "Zone id (snake_case)",
+          "name": "Display name",
+          "motion_entity_id": "Motion / presence entity",
+          "light_entity_ids": "Lights (one or more)",
+          "optional_entity_ids": "Optional entities"
+        }
+      },
+      "delete_zone": {
+        "title": "Delete Habitus zone",
+        "data": {
+          "zone_id": "Zone"
         }
       }
     },

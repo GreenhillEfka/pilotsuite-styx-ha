@@ -28,16 +28,17 @@ A Habituszone contains:
 
 ## Configuration UX (incremental)
 ### Phase 1 (fast, robust)
-- A dashboard-editable text entity per zone OR a single JSON/YAML text config entity.
+- A dashboard-editable **JSON text entity** holding a list of zones.
 - Buttons:
-  - "validate zones" (check entity existence)
-  - "reload zones"
+  - "validate zones" (check entity existence + minimum requirements)
+  - "generate habitus dashboard" (create a YAML dashboard file)
+  - "download habitus dashboard" (publish to `/local/…`)
 
 ### Phase 2 (nice UX)
-- Options flow / config flow wizard:
-  - create zone
-  - add/remove entities (multi-select)
-  - set minimal "required" entity types (optional)
+- Options flow wizard:
+  - create/edit/delete zone
+  - pick **required**: motion/presence + one or more lights
+  - pick optional entities (multi-select)
 
 ### Phase 3 (labels/tags integration)
 - If HA Labels exist: allow zone inclusion via labels.

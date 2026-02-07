@@ -115,6 +115,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._entry = config_entry
 
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
+        # Top-level menu: keep settings form, add Habitus zones wizard.
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["settings", "habitus_zones"],
+        )
+
+    async def async_step_settings(self, user_input: dict | None = None) -> FlowResult:
         if user_input is not None:
             # webhook_url is display-only; ignore if user edits it.
             user_input.pop(CONF_WEBHOOK_URL, None)
@@ -123,15 +130,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             seed_csv = user_input.get(CONF_SUGGESTION_SEED_ENTITIES)
             if isinstance(seed_csv, str):
                 user_input[CONF_SUGGESTION_SEED_ENTITIES] = _parse_csv(seed_csv)
-
-            # Normalize media players (comma-separated list -> list[str])
-            music_csv = user_input.get(CONF_MEDIA_MUSIC_PLAYERS)
-            if isinstance(music_csv, str):
-                user_input[CONF_MEDIA_MUSIC_PLAYERS] = _parse_csv(music_csv)
-
-            tv_csv = user_input.get(CONF_MEDIA_TV_PLAYERS)
-            if isinstance(tv_csv, str):
-                user_input[CONF_MEDIA_TV_PLAYERS] = _parse_csv(tv_csv)
 
             # Normalize media players (comma-separated list -> list[str])
             music_csv = user_input.get(CONF_MEDIA_MUSIC_PLAYERS)
@@ -159,10 +157,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
                 vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): int,
                 vol.Optional(CONF_TOKEN, default=data.get(CONF_TOKEN, "")): str,
-                vol.Optional(
-                    CONF_TEST_LIGHT,
-                    default=data.get(CONF_TEST_LIGHT, ""),
-                ): str,
+                vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): str,
                 vol.Optional(
                     CONF_MEDIA_MUSIC_PLAYERS,
                     default=_as_csv(data.get(CONF_MEDIA_MUSIC_PLAYERS, DEFAULT_MEDIA_MUSIC_PLAYERS)),
@@ -242,7 +237,142 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="settings", data_schema=schema)
+
+    async def async_step_habitus_zones(self, user_input: dict | None = None) -> FlowResult:
+        return self.async_show_menu(
+            step_id="habitus_zones",
+            menu_options=["create_zone", "edit_zone", "delete_zone", "back"],
+        )
+
+    async def async_step_back(self, user_input: dict | None = None) -> FlowResult:
+        return await self.async_step_init()
+
+    async def async_step_create_zone(self, user_input: dict | None = None) -> FlowResult:
+        return await self._async_step_zone_form(mode="create", user_input=user_input)
+
+    async def async_step_edit_zone(self, user_input: dict | None = None) -> FlowResult:
+        from .habitus_zones_store import async_get_zones
+
+        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        ids = [z.zone_id for z in zones]
+        if not ids:
+            return self.async_abort(reason="no_zones")
+
+        if user_input is None:
+            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            return self.async_show_form(step_id="edit_zone", data_schema=schema)
+
+        zid = str(user_input.get("zone_id", ""))
+        return await self._async_step_zone_form(mode="edit", user_input=None, zone_id=zid)
+
+    async def async_step_delete_zone(self, user_input: dict | None = None) -> FlowResult:
+        from .habitus_zones_store import async_get_zones, async_set_zones
+
+        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        ids = [z.zone_id for z in zones]
+        if not ids:
+            return self.async_abort(reason="no_zones")
+
+        if user_input is None:
+            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            return self.async_show_form(step_id="delete_zone", data_schema=schema)
+
+        zid = str(user_input.get("zone_id", ""))
+        remain = [z for z in zones if z.zone_id != zid]
+        await async_set_zones(self.hass, self._entry.entry_id, remain)
+        return await self.async_step_habitus_zones()
+
+    async def _async_step_zone_form(
+        self,
+        *,
+        mode: str,
+        user_input: dict | None,
+        zone_id: str | None = None,
+    ) -> FlowResult:
+        from homeassistant.helpers import selector
+        from .habitus_zones_store import HabitusZone, async_get_zones, async_set_zones
+
+        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        existing = {z.zone_id: z for z in zones}
+
+        if zone_id and zone_id in existing:
+            z = existing[zone_id]
+        else:
+            z = HabitusZone(zone_id="", name="", entity_ids=[])
+
+        if user_input is not None:
+            zid = str(user_input.get("zone_id") or "").strip()
+            name = str(user_input.get("name") or zid).strip()
+            motion = str(user_input.get("motion_entity_id") or "").strip()
+            lights = user_input.get("light_entity_ids") or []
+            optional = user_input.get("optional_entity_ids") or []
+
+            if not isinstance(lights, list):
+                lights = [lights]
+            if not isinstance(optional, list):
+                optional = [optional]
+
+            entity_ids = [motion] + [str(x).strip() for x in lights] + [str(x).strip() for x in optional]
+            entity_ids = [e for e in entity_ids if e]
+
+            # De-dupe
+            seen = set()
+            uniq = []
+            for e in entity_ids:
+                if e in seen:
+                    continue
+                seen.add(e)
+                uniq.append(e)
+
+            new_zone = HabitusZone(zone_id=zid, name=name or zid, entity_ids=uniq)
+
+            # Replace / insert
+            new_list = [zz for zz in zones if zz.zone_id != zid]
+            new_list.append(new_zone)
+            # Persist (store enforces requirements)
+            await async_set_zones(self.hass, self._entry.entry_id, new_list)
+
+            return await self.async_step_habitus_zones()
+
+        default_motion = None
+        default_lights: list[str] = []
+        default_optional: list[str] = []
+
+        # Best-effort prefill from existing zone
+        for eid in z.entity_ids:
+            if eid.startswith("light."):
+                default_lights.append(eid)
+            elif eid.startswith("binary_sensor.") and default_motion is None:
+                default_motion = eid
+            else:
+                default_optional.append(eid)
+
+        schema = vol.Schema(
+            {
+                vol.Required("zone_id", default=(z.zone_id if mode == "edit" else "")): str,
+                vol.Optional("name", default=(z.name if z.name else "")): str,
+                vol.Required(
+                    "motion_entity_id",
+                    default=default_motion or "",
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"], multiple=False)
+                ),
+                vol.Required(
+                    "light_entity_ids",
+                    default=default_lights,
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="light", multiple=True)
+                ),
+                vol.Optional(
+                    "optional_entity_ids",
+                    default=default_optional,
+                ): selector.EntitySelector(selector.EntitySelectorConfig(multiple=True)),
+            }
+        )
+
+        step_id = "create_zone" if mode == "create" else "edit_zone_form"
+        return self.async_show_form(step_id=step_id, data_schema=schema)
 
 
 # Options flow is provided via ConfigFlow.async_get_options_flow

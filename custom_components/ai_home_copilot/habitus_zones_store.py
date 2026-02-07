@@ -75,6 +75,10 @@ async def async_get_zones(hass: HomeAssistant, entry_id: str) -> list[HabitusZon
 
 
 async def async_set_zones(hass: HomeAssistant, entry_id: str, zones: list[HabitusZone]) -> None:
+    # Enforce requirements for each zone.
+    for z in zones:
+        _validate_zone_requirements(hass, z)
+
     st = _store(hass)
     data = await st.async_load() or {}
     entries = data.setdefault("entries", {})
