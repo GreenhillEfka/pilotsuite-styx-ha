@@ -130,13 +130,57 @@ class HabitusZonesValidateButton(CopilotBaseEntity, ButtonEntity):
 
         missing: list[str] = []
         total = 0
+
+        # Requirement checks (mirrors store policy).
+        zones_missing_motion: list[str] = []
+        zones_missing_light: list[str] = []
+
+        def domain(eid: str) -> str:
+            return eid.split(".", 1)[0] if "." in eid else ""
+
+        def is_light(eid: str) -> bool:
+            return domain(eid) == "light"
+
+        def is_motion_or_presence(eid: str) -> bool:
+            dom = domain(eid)
+            if dom not in ("binary_sensor", "sensor"):
+                return False
+            st = self.hass.states.get(eid)
+            device_class = st.attributes.get("device_class") if st else None
+            if device_class in ("motion", "presence", "occupancy"):
+                return True
+            eid_l = eid.lower()
+            return any(k in eid_l for k in ("motion", "presence", "occupancy"))
+
         for z in zones:
+            has_motion = False
+            has_light = False
             for eid in z.entity_ids:
                 total += 1
-                if self.hass.states.get(eid) is None:
+                st = self.hass.states.get(eid)
+                if st is None:
                     missing.append(f"{z.zone_id}: {eid}")
+                    continue
+                has_light = has_light or is_light(eid)
+                has_motion = has_motion or is_motion_or_presence(eid)
+
+            if not has_motion:
+                zones_missing_motion.append(z.zone_id)
+            if not has_light:
+                zones_missing_light.append(z.zone_id)
 
         msg = [f"Zones: {len(zones)}", f"Entities referenced: {total}"]
+
+        if zones_missing_motion or zones_missing_light:
+            msg.append("")
+            msg.append("Requirements (minimum signals):")
+            msg.append("- motion/presence: REQUIRED")
+            msg.append("- light: REQUIRED")
+            if zones_missing_motion:
+                msg.append(f"Missing motion/presence in: {', '.join(zones_missing_motion)}")
+            if zones_missing_light:
+                msg.append(f"Missing light in: {', '.join(zones_missing_light)}")
+
         if missing:
             msg.append("")
             msg.append(f"Missing entities: {len(missing)}")

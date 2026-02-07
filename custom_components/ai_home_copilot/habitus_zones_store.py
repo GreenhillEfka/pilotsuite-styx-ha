@@ -90,6 +90,50 @@ async def async_set_zones(hass: HomeAssistant, entry_id: str, zones: list[Habitu
     async_dispatcher_send(hass, SIGNAL_HABITUS_ZONES_UPDATED, entry_id)
 
 
+def _domain(entity_id: str) -> str:
+    return entity_id.split(".", 1)[0] if "." in entity_id else ""
+
+
+def _is_light_entity(entity_id: str) -> bool:
+    return _domain(entity_id) == "light"
+
+
+def _is_motion_or_presence_entity(hass: HomeAssistant, entity_id: str) -> bool:
+    dom = _domain(entity_id)
+    if dom not in ("binary_sensor", "sensor"):
+        return False
+
+    st = hass.states.get(entity_id)
+    device_class = None
+    if st is not None:
+        device_class = st.attributes.get("device_class")
+
+    if device_class in ("motion", "presence", "occupancy"):
+        return True
+
+    # Fallback heuristic (best effort): allow common naming if device_class is missing.
+    eid_l = entity_id.lower()
+    return any(k in eid_l for k in ("motion", "presence", "occupancy"))
+
+
+def _validate_zone_requirements(hass: HomeAssistant, z: HabitusZone) -> None:
+    """Enforce minimal required signals for a Habitus zone.
+
+    Policy (user decision): each zone must have:
+    - at least one motion/presence entity
+    - at least one light entity
+    """
+
+    has_motion = any(_is_motion_or_presence_entity(hass, eid) for eid in z.entity_ids)
+    has_light = any(_is_light_entity(eid) for eid in z.entity_ids)
+
+    if not has_motion or not has_light:
+        raise ValueError(
+            f"Zone '{z.zone_id}' must include at least 1 motion/presence entity and 1 light entity. "
+            f"Found motion/presence={has_motion}, light={has_light}."
+        )
+
+
 async def async_set_zones_from_raw(hass: HomeAssistant, entry_id: str, raw: Any) -> list[HabitusZone]:
     """Validate + normalize and persist zones.
 
@@ -102,7 +146,7 @@ async def async_set_zones_from_raw(hass: HomeAssistant, entry_id: str, raw: Any)
         raw = raw.get("zones")
 
     if not isinstance(raw, list):
-        raise ValueError("Zones must be a list (or {zones:[...]}).");
+        raise ValueError("Zones must be a list (or {zones:[...]}).")
 
     zones: list[HabitusZone] = []
     for item in raw:
@@ -120,6 +164,10 @@ async def async_set_zones_from_raw(hass: HomeAssistant, entry_id: str, raw: Any)
             continue
         seen.add(z.zone_id)
         uniq.append(z)
+
+    # Enforce requirements.
+    for z in uniq:
+        _validate_zone_requirements(hass, z)
 
     await async_set_zones(hass, entry_id, uniq)
     return uniq
