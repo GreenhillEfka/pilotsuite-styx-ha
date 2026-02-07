@@ -6,6 +6,8 @@ The core idea: **better decisions require better context — but context must no
 
 ## Non‑negotiables
 
+> These are *defaults*, not dogma. If a maxim blocks a clearly better solution, we revisit it explicitly (issue + rationale + safeguards + doc update).
+
 ### 1) Privacy‑first
 - **Local-first by default.** Any analysis should run locally. Remote calls are opt‑in.
 - **Data minimization.** Only process what is required for the feature.

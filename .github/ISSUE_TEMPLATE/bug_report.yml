@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a problem in the AI Home CoPilot HA integration
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+
+        **Privacy note:** Please remove tokens, passwords, and any sensitive personal info from logs.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: ai_home_copilot integration version (tag)
+      placeholder: v0.1.15
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: 2026.1.x
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (sanitized)
+      description: Paste only the relevant traceback/snippet. Redact secrets.
+      render: text
+    validations:
+      required: false

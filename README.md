@@ -39,6 +39,8 @@ Entities created:
 See: `docs/PROJECT_PLAN.md` (canvas + kanban overview)
 
 ## Docs
+Start here: `docs/START_HERE.md`
+
 - Project plan: `docs/PROJECT_PLAN.md`
 - Ops (reload vs restart): `docs/OPERATIONS.md`
 - Dashboard template: `docs/DASHBOARD_LOVELACE.md`

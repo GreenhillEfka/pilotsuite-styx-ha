@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose an improvement or new module
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CoPilot prefers: **observe → explain → suggest → confirm → act (optional)**.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / goal
+      description: What should CoPilot help with?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the intended UX and safety constraints.
+    validations:
+      required: true
+
+  - type: textarea
+    id: governance
+    attributes:
+      label: Governance & safety
+      description: What confirmations are required? Any rollback?
+      value: |
+        - Suggestion only? (yes/no)
+        - Requires confirmation? (yes/no)
+        - Rollback needed? (yes/no)
+    validations:
+      required: true
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy impact
+      description: What data does the feature need? Can it be local-first?
+    validations:
+      required: true
