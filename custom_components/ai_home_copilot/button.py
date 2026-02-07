@@ -19,6 +19,7 @@ from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
 from .habitus_zones_entities import HabitusZonesValidateButton
+from .habitus_dashboard import async_generate_habitus_zones_dashboard, async_publish_last_habitus_dashboard
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -39,6 +40,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogPushLatestButton(coordinator, entry),
             CopilotDevLogsFetchButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
+            CopilotGenerateHabitusDashboardButton(coordinator, entry),
+            CopilotDownloadHabitusDashboardButton(coordinator, entry),
         ],
         True,
     )
@@ -210,7 +213,6 @@ class CopilotDevLogsFetchButton(CopilotBaseEntity, ButtonEntity):
             header = f"- {received} ({kind})".strip()
             lines.append(header)
             if text:
-                # indent a bit for readability
                 snippet = "\n".join("  " + ln for ln in text.splitlines()[:20])
                 lines.append(snippet)
 
@@ -222,3 +224,39 @@ class CopilotDevLogsFetchButton(CopilotBaseEntity, ButtonEntity):
             title="AI Home CoPilot DevLogs (last 10)",
             notification_id="ai_home_copilot_devlogs",
         )
+
+
+class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot generate habitus dashboard"
+    _attr_unique_id = "ai_home_copilot_generate_habitus_dashboard"
+    _attr_icon = "mdi:view-dashboard-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_generate_habitus_zones_dashboard(self.hass, self._entry.entry_id)
+
+
+class CopilotDownloadHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot download habitus dashboard"
+    _attr_unique_id = "ai_home_copilot_download_habitus_dashboard"
+    _attr_icon = "mdi:download"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        try:
+            await async_publish_last_habitus_dashboard(self.hass)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to publish habitus dashboard: {err}",
+                title="AI Home CoPilot Habitus dashboard",
+                notification_id="ai_home_copilot_habitus_dashboard_download",
+            )
