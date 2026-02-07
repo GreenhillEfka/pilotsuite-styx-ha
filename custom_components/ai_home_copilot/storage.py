@@ -16,6 +16,7 @@ STORAGE_KEY = f"{DOMAIN}.candidates"
 class CandidateState(StrEnum):
     NEW = "new"
     OFFERED = "offered"
+    DEFERRED = "deferred"
     ACCEPTED = "accepted"
     DISMISSED = "dismissed"
 
@@ -41,12 +42,28 @@ async def _save(hass: HomeAssistant, data: dict[str, Any]) -> None:
     await store.async_save(data)
 
 
+def _parse_record(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return dict(value)
+    if isinstance(value, str):
+        return {"state": value}
+    return {}
+
+
+async def async_get_candidate_record(
+    hass: HomeAssistant, entry_id: str, candidate_id: str
+) -> dict[str, Any]:
+    data = await _load(hass)
+    entry = data["entries"].get(entry_id, {})
+    rec = _parse_record(entry.get(candidate_id))
+    return rec
+
+
 async def async_get_candidate_state(
     hass: HomeAssistant, entry_id: str, candidate_id: str
 ) -> CandidateState:
-    data = await _load(hass)
-    entry = data["entries"].get(entry_id, {})
-    state = entry.get(candidate_id, CandidateState.NEW)
+    rec = await async_get_candidate_record(hass, entry_id, candidate_id)
+    state = rec.get("state", CandidateState.NEW)
     try:
         return CandidateState(state)
     except Exception:  # noqa: BLE001
@@ -58,5 +75,23 @@ async def async_set_candidate_state(
 ) -> None:
     data = await _load(hass)
     entries = data["entries"].setdefault(entry_id, {})
-    entries[candidate_id] = state.value
+    cur = _parse_record(entries.get(candidate_id))
+    cur["state"] = state.value
+    entries[candidate_id] = cur
+    await _save(hass, data)
+
+
+async def async_defer_candidate(
+    hass: HomeAssistant,
+    entry_id: str,
+    candidate_id: str,
+    *,
+    until_ts: float,
+) -> None:
+    data = await _load(hass)
+    entries = data["entries"].setdefault(entry_id, {})
+    cur = _parse_record(entries.get(candidate_id))
+    cur["state"] = CandidateState.DEFERRED.value
+    cur["defer_until_ts"] = float(until_ts)
+    entries[candidate_id] = cur
     await _save(hass, data)

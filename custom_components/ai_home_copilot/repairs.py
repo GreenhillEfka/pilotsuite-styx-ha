@@ -9,16 +9,23 @@ from homeassistant.core import HomeAssistant
 from .log_fixer import async_disable_custom_integration_for_manifest_error
 from .log_store import FindingType
 from .log_store import async_get_log_fixer_state
-from .storage import CandidateState, async_set_candidate_state
+from .storage import CandidateState, async_defer_candidate, async_set_candidate_state
 
 STEP_CHOICE = vol.Schema(
     {
         vol.Required("decision", default="imported"): vol.In(
             {
                 "imported": "Blueprint importiert / Automation erstellt",
+                "defer": "Später nochmal erinnern",
                 "dismiss": "Nicht mehr vorschlagen",
             }
         )
+    }
+)
+
+STEP_DEFER = vol.Schema(
+    {
+        vol.Required("days", default=7): vol.All(int, vol.Range(min=1, max=365)),
     }
 )
 
@@ -27,6 +34,7 @@ STEP_SEED_CHOICE = vol.Schema(
         vol.Required("decision", default="done"): vol.In(
             {
                 "done": "Ich habe daraus eine Automation erstellt",
+                "defer": "Später nochmal erinnern",
                 "dismiss": "Nicht mehr vorschlagen",
             }
         )
@@ -54,12 +62,31 @@ class CandidateRepairFlow(RepairsFlow):
                 )
                 return self.async_create_entry(title="", data={"result": "dismissed"})
 
+            if user_input["decision"] == "defer":
+                return await self.async_step_defer()
+
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
             )
             return self.async_create_entry(title="", data={"result": "accepted"})
 
         return self.async_show_form(step_id="init", data_schema=STEP_CHOICE)
+
+    async def async_step_defer(self, user_input=None) -> data_entry_flow.FlowResult:
+        if user_input is not None:
+            from homeassistant.util import dt as dt_util
+
+            days = int(user_input.get("days", 7))
+            until = dt_util.utcnow().timestamp() + days * 86400
+            await async_defer_candidate(
+                self.hass,
+                self._entry_id,
+                self._candidate_id,
+                until_ts=until,
+            )
+            return self.async_create_entry(title="", data={"result": "deferred", "days": days})
+
+        return self.async_show_form(step_id="defer", data_schema=STEP_DEFER)
 
 
 class SeedRepairFlow(RepairsFlow):
@@ -88,6 +115,9 @@ class SeedRepairFlow(RepairsFlow):
                 )
                 return self.async_create_entry(title="", data={"result": "dismissed"})
 
+            if user_input["decision"] == "defer":
+                return await self.async_step_defer()
+
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
             )
@@ -102,6 +132,22 @@ class SeedRepairFlow(RepairsFlow):
                 "excerpt": self._excerpt,
             },
         )
+
+    async def async_step_defer(self, user_input=None) -> data_entry_flow.FlowResult:
+        if user_input is not None:
+            from homeassistant.util import dt as dt_util
+
+            days = int(user_input.get("days", 7))
+            until = dt_util.utcnow().timestamp() + days * 86400
+            await async_defer_candidate(
+                self.hass,
+                self._entry_id,
+                self._candidate_id,
+                until_ts=until,
+            )
+            return self.async_create_entry(title="", data={"result": "deferred", "days": days})
+
+        return self.async_show_form(step_id="defer", data_schema=STEP_DEFER)
 
 
 class DisableCustomIntegrationRepairFlow(RepairsFlow):

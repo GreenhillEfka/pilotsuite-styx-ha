@@ -36,6 +36,20 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
     if state in (CandidateState.ACCEPTED, CandidateState.DISMISSED):
         return
 
+    if state == CandidateState.DEFERRED:
+        from homeassistant.util import dt as dt_util
+        from .storage import async_get_candidate_record
+
+        rec = await async_get_candidate_record(hass, entry_id, candidate.candidate_id)
+        until_ts = rec.get("defer_until_ts")
+        try:
+            until_ts = float(until_ts)
+        except Exception:  # noqa: BLE001
+            until_ts = None
+
+        if until_ts and dt_util.utcnow().timestamp() < until_ts:
+            return
+
     await async_set_candidate_state(hass, entry_id, candidate.candidate_id, CandidateState.OFFERED)
 
     placeholders = candidate.translation_placeholders or {"title": candidate.title}
