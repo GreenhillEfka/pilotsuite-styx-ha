@@ -15,6 +15,7 @@ from .const import (
 from .entity import CopilotBaseEntity
 from .inventory import async_generate_ha_overview
 from .inventory_publish import async_publish_last_overview
+from .config_snapshot import async_generate_config_snapshot, async_publish_last_config_snapshot
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
@@ -36,6 +37,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotRollbackLastFixButton(coordinator),
             CopilotGenerateOverviewButton(coordinator),
             CopilotDownloadOverviewButton(coordinator),
+            CopilotGenerateConfigSnapshotButton(coordinator, entry),
+            CopilotDownloadConfigSnapshotButton(coordinator),
             CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
             CopilotDevLogTestPushButton(coordinator, entry),
             CopilotDevLogPushLatestButton(coordinator, entry),
@@ -121,6 +124,38 @@ class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_publish_last_overview(self.hass)
+
+
+class CopilotGenerateConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot generate config snapshot"
+    _attr_unique_id = "ai_home_copilot_generate_config_snapshot"
+    _attr_icon = "mdi:content-save-cog"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_generate_config_snapshot(self.hass, self._entry)
+
+
+class CopilotDownloadConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot download config snapshot"
+    _attr_unique_id = "ai_home_copilot_download_config_snapshot"
+    _attr_icon = "mdi:download"
+
+    async def async_press(self) -> None:
+        try:
+            await async_publish_last_config_snapshot(self.hass)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to publish config snapshot: {err}",
+                title="AI Home CoPilot config snapshot",
+                notification_id="ai_home_copilot_config_snapshot",
+            )
 
 
 class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):

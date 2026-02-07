@@ -17,7 +17,8 @@
         "description": "Configure AI Home CoPilot.",
         "menu_options": {
           "settings": "Settings",
-          "habitus_zones": "Habitus zones"
+          "habitus_zones": "Habitus zones",
+          "backup_restore": "Backup / restore"
         }
       },
       "settings": {
@@ -59,6 +60,40 @@
           "back": "Back"
         }
       },
+      "backup_restore": {
+        "title": "Backup / restore",
+        "description": "Import a previously generated local config snapshot. This overwrites Habitus zones and selected options. Secrets remain unchanged if redacted.",
+        "menu_options": {
+          "import_snapshot": "Import snapshot",
+          "back": "Back"
+        }
+      },
+      "import_snapshot": {
+        "title": "Import config snapshot",
+        "data": {
+          "source": "Source"
+        }
+      },
+      "import_snapshot_path": {
+        "title": "Import from file path",
+        "description": "{hint}",
+        "data": {
+          "path": "Snapshot path"
+        }
+      },
+      "import_snapshot_paste": {
+        "title": "Paste snapshot JSON",
+        "data": {
+          "json": "Snapshot JSON"
+        }
+      },
+      "import_snapshot_confirm": {
+        "title": "Confirm import",
+        "description": "This will import {zones} Habitus zones and update options from the snapshot.\n\nTokens are not imported unless explicitly included (redacted values keep your current token).",
+        "data": {
+          "confirm": "Yes, import now"
+        }
+      },
       "create_zone": {
         "title": "Create Habitus zone",
         "description": "Pick a motion/presence entity and at least one light. Add any optional entities you want CoPilot to consider for this zone.",
@@ -94,7 +129,10 @@
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect"
+      "cannot_connect": "Failed to connect",
+      "cannot_read": "Could not read snapshot file",
+      "invalid_json": "Invalid JSON",
+      "confirm_required": "Please confirm"
     }
   },
   "issues": {

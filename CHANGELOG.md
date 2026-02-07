@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-02-07
+### Added
+- Local config snapshot export (generate + download link). Tokens are redacted by default.
+- Snapshot import via OptionsFlow (Backup/restore) with confirmation + automatic reload.
+
 ## [0.2.1] - 2026-02-07
 ### Added
 - Core API v1 capabilities: sensor `AI Home CoPilot core API v1` (shows supported/not_supported/unauthorized) + button to fetch capabilities now.

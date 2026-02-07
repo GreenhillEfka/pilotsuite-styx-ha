@@ -114,17 +114,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_user(user_input)
 
 
-class OptionsFlowHandler(config_entries.OptionsFlow):
+from .config_snapshot_flow import ConfigSnapshotOptionsFlow
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         # In newer HA versions, OptionsFlow has a read-only `config_entry` property.
         # Store the entry under our own attribute to stay compatible.
         self._entry = config_entry
+        ConfigSnapshotOptionsFlow.__init__(self, config_entry)
 
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         # Top-level menu: keep settings form, add Habitus zones wizard.
         return self.async_show_menu(
             step_id="init",
-            menu_options=["settings", "habitus_zones"],
+            menu_options=["settings", "habitus_zones", "backup_restore"],
         )
 
     async def async_step_settings(self, user_input: dict | None = None) -> FlowResult:
