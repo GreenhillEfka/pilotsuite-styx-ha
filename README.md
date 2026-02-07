@@ -2,6 +2,15 @@
 
 Custom integration domain: `ai_home_copilot`.
 
+## Start here (docs index)
+- **Start here:** `docs/START_HERE.md`
+- **Ethics & Governance:** `docs/ETHICS_GOVERNANCE.md`
+- **Security & Privacy:** `docs/SECURITY_PRIVACY.md`
+- **Operations:** `docs/OPERATIONS.md`
+- **DevLogs:** `docs/DEVLOGS.md`
+- **Project plan:** `docs/PROJECT_PLAN.md`
+- **Changelog:** `CHANGELOG.md`
+
 Privacy-first:
 - No personal data (IPs, tokens) is shipped as defaults.
 - The integration never creates automations silently (governance-first).

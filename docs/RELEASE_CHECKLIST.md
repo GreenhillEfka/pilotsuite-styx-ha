@@ -17,6 +17,26 @@ Goal: keep releases stable, reversible, and well-documented.
 - [ ] Mention any required HA restart.
 - [ ] Mention migrations, if any.
 
+### Release notes snippet (copy/paste)
+
+```text
+Summary:
+- 
+
+User-visible changes:
+- 
+
+Ops / Upgrade notes:
+- HACS update requires HA restart.
+- If Options changed: reload entry via button.ai_home_copilot_reload_config_entry.
+
+Privacy/Governance:
+- 
+
+Known issues:
+- 
+```
+
 ## After tagging
 - [ ] Create GitHub Release with notes.
 - [ ] Optional: add a short “upgrade notes” section in README.
