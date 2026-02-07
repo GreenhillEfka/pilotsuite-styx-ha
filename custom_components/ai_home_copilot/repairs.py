@@ -6,6 +6,9 @@ from homeassistant import data_entry_flow
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 
+from .log_fixer import async_disable_custom_integration_for_manifest_error
+from .log_store import FindingType
+from .log_store import async_get_log_fixer_state
 from .storage import CandidateState, async_set_candidate_state
 
 STEP_CHOICE = vol.Schema(
@@ -16,6 +19,12 @@ STEP_CHOICE = vol.Schema(
                 "dismiss": "Nicht mehr vorschlagen",
             }
         )
+    }
+)
+
+STEP_DISABLE_INTEGRATION = vol.Schema(
+    {
+        vol.Required("confirm", default=False): bool,
     }
 )
 
@@ -42,6 +51,44 @@ class CandidateRepairFlow(RepairsFlow):
         return self.async_show_form(step_id="init", data_schema=STEP_CHOICE)
 
 
+class DisableCustomIntegrationRepairFlow(RepairsFlow):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        *,
+        issue_id: str,
+        integration: str,
+    ) -> None:
+        self.hass = hass
+        self._issue_id = issue_id
+        self._integration = integration
+
+    async def async_step_init(self, user_input=None) -> data_entry_flow.FlowResult:
+        if user_input is not None:
+            if not user_input.get("confirm"):
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=STEP_DISABLE_INTEGRATION,
+                    errors={"base": "confirm_required"},
+                    description_placeholders={
+                        "integration": self._integration,
+                    },
+                )
+
+            tx = await async_disable_custom_integration_for_manifest_error(
+                self.hass, integration=self._integration, issue_id=self._issue_id
+            )
+            return self.async_create_entry(title="", data={"result": "disabled", "tx": tx.data})
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=STEP_DISABLE_INTEGRATION,
+            description_placeholders={
+                "integration": self._integration,
+            },
+        )
+
+
 async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
@@ -50,10 +97,24 @@ async def async_create_fix_flow(
     if not data:
         raise data_entry_flow.UnknownFlow
 
+    # 1) Candidate suggestions
     entry_id = data.get("entry_id")
     candidate_id = data.get("candidate_id")
-
     if isinstance(entry_id, str) and isinstance(candidate_id, str):
         return CandidateRepairFlow(hass, entry_id=entry_id, candidate_id=candidate_id)
+
+    # 2) Log findings
+    finding_id = data.get("finding_id")
+    if isinstance(finding_id, str) and issue_id.startswith("log_"):
+        state = await async_get_log_fixer_state(hass)
+        finding = (state.get("findings") or {}).get(finding_id)
+        if isinstance(finding, dict) and finding.get("finding_type") == FindingType.MANIFEST_PARSE_ERROR:
+            integration = (finding.get("details") or {}).get("integration")
+            if isinstance(integration, str) and integration:
+                return DisableCustomIntegrationRepairFlow(
+                    hass,
+                    issue_id=issue_id,
+                    integration=integration,
+                )
 
     raise data_entry_flow.UnknownFlow
