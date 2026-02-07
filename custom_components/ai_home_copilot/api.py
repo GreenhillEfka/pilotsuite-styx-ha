@@ -70,6 +70,9 @@ class CopilotApiClient:
         except aiohttp.ClientError as e:
             raise CopilotApiError(f"Client error calling {url}: {e}") from e
 
+    async def async_get(self, path: str) -> dict:
+        return await self._get_json(path)
+
     async def async_post(self, path: str, payload: dict) -> dict:
         return await self._post_json(path, payload)
 
