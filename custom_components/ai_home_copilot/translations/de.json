@@ -1,0 +1,164 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AI Home CoPilot",
+        "description": "Verbinde dich mit dem AI Home CoPilot Core Add-on.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "token": "API-Token",
+          "test_light_entity_id": "Test-Licht (für den Toggle-Button)",
+          "webhook_url": "Webhook-URL (in Copilot-Core eintragen)"
+        }
+      },
+      "init": {
+        "title": "AI Home CoPilot Optionen",
+        "description": "Konfiguriere AI Home CoPilot.",
+        "menu_options": {
+          "settings": "Einstellungen",
+          "habitus_zones": "Habituszonen",
+          "backup_restore": "Backup / Wiederherstellen"
+        }
+      },
+      "settings": {
+        "title": "AI Home CoPilot Einstellungen",
+        "description": "Konfiguriere AI Home CoPilot.",
+        "data": {
+          "webhook_url": "Webhook-URL (in Copilot-Core eintragen)",
+          "host": "Host",
+          "port": "Port",
+          "token": "API-Token",
+          "test_light_entity_id": "Test-Licht (für den Toggle-Button)",
+          "media_music_players": "MediaContext: Musik-Player (CSV)",
+          "media_tv_players": "MediaContext: TV/Other-Player (CSV)",
+          "suggestion_seed_entities": "Seed-Sensoren (optional)",
+          "seed_allowed_domains": "Seed Allowlist Domains (CSV, optional)",
+          "seed_blocked_domains": "Seed Blocklist Domains (CSV, optional)",
+          "seed_max_offers_per_hour": "Seed Limiter: max. Vorschläge pro Stunde",
+          "seed_min_seconds_between_offers": "Seed Limiter: min. Sekunden zwischen Vorschlägen",
+          "seed_max_offers_per_update": "Seed Limiter: max. Vorschläge pro Update",
+          "watchdog_enabled": "Watchdog-Polling aktivieren (Fallback)",
+          "watchdog_interval_seconds": "Watchdog-Intervall (Sekunden)",
+          "events_forwarder_enabled": "Core v1: Habituszonen-Events an Core weiterleiten (Opt-in)",
+          "events_forwarder_flush_interval_seconds": "Core v1: Forwarder Flush-Intervall (Sekunden)",
+          "events_forwarder_max_batch": "Core v1: Forwarder max. Batch-Größe",
+          "devlog_push_enabled": "Dev: Sanitized Log-Snippets an Core pushen",
+          "devlog_push_interval_seconds": "Dev: Push-Intervall (Sekunden)",
+          "devlog_push_path": "Dev: Core Endpoint Path",
+          "devlog_push_max_lines": "Dev: letzte N Log-Zeilen lesen",
+          "devlog_push_max_chars": "Dev: max. Zeichen pro Snippet"
+        }
+      },
+      "habitus_zones": {
+        "title": "Habituszonen",
+        "description": "Erstelle und verwalte kuratierte Zonen (unabhängig von Home Assistant Areas). Jede Zone braucht Motion/Präsenz + mindestens 1 Licht.",
+        "menu_options": {
+          "create_zone": "Zone erstellen",
+          "edit_zone": "Zone bearbeiten",
+          "delete_zone": "Zone löschen",
+          "back": "Zurück"
+        }
+      },
+      "backup_restore": {
+        "title": "Backup / Wiederherstellen",
+        "description": "Importiere einen zuvor generierten lokalen Config-Snapshot. Das überschreibt Habituszonen und ausgewählte Optionen. Secrets bleiben unverändert, wenn redacted.",
+        "menu_options": {
+          "import_snapshot": "Snapshot importieren",
+          "back": "Zurück"
+        }
+      },
+      "import_snapshot": {
+        "title": "Config-Snapshot importieren",
+        "data": {
+          "source": "Quelle"
+        }
+      },
+      "import_snapshot_path": {
+        "title": "Import über Dateipfad",
+        "description": "{hint}",
+        "data": {
+          "path": "Snapshot-Pfad"
+        }
+      },
+      "import_snapshot_paste": {
+        "title": "Snapshot JSON einfügen",
+        "data": {
+          "json": "Snapshot JSON"
+        }
+      },
+      "import_snapshot_confirm": {
+        "title": "Import bestätigen",
+        "description": "Das importiert {zones} Habituszonen und aktualisiert Optionen aus dem Snapshot.\n\nTokens werden nicht importiert, solange sie redacted sind (<redacted> behält deinen aktuellen Token).",
+        "data": {
+          "confirm": "Ja, jetzt importieren"
+        }
+      },
+      "create_zone": {
+        "title": "Habituszone erstellen",
+        "description": "Wähle eine Motion/Präsenz-Entität und mindestens ein Licht. Optional kannst du weitere Entitäten hinzufügen.",
+        "data": {
+          "zone_id": "Zonen-ID (snake_case)",
+          "name": "Anzeigename",
+          "motion_entity_id": "Motion / Präsenz",
+          "light_entity_ids": "Lichter (eins oder mehrere)",
+          "optional_entity_ids": "Optionale Entitäten"
+        }
+      },
+      "edit_zone": {
+        "title": "Habituszone bearbeiten",
+        "data": {
+          "zone_id": "Zone"
+        }
+      },
+      "edit_zone_form": {
+        "title": "Habituszone bearbeiten",
+        "data": {
+          "zone_id": "Zonen-ID (snake_case)",
+          "name": "Anzeigename",
+          "motion_entity_id": "Motion / Präsenz",
+          "light_entity_ids": "Lichter (eins oder mehrere)",
+          "optional_entity_ids": "Optionale Entitäten"
+        }
+      },
+      "delete_zone": {
+        "title": "Habituszone löschen",
+        "data": {
+          "zone_id": "Zone"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "cannot_read": "Snapshot-Datei konnte nicht gelesen werden",
+      "invalid_json": "Ungültiges JSON",
+      "confirm_required": "Bitte bestätigen"
+    }
+  },
+  "issues": {
+    "candidate_suggestion": {
+      "title": "CoPilot Vorschlag: {title}",
+      "description": "CoPilot hat ein wiederverwendbares Muster gefunden und schlägt vor, daraus eine Automation zu machen. Klicke auf Fix, nachdem du die Automation via Blueprint erstellt hast."
+    },
+    "seed_suggestion": {
+      "title": "CoPilot Seed: {title}",
+      "description": "CoPilot hat einen Vorschlags-Seed aus {source} erkannt. Erkannte Entitäten: {entities}.\n\nAuszug: {excerpt}\n\nNutze den sicheren A→B Blueprint und bestätige anschließend per Fix."
+    },
+    "log_manifest_parse_error": {
+      "title": "Custom Integration hat ungültiges manifest.json: {integration}",
+      "description": "Home Assistant meldete Fehler beim Parsen von manifest.json. Das kann den Start verhindern. Klicke Fix, um die Integration deaktivieren (reversibel)."
+    },
+    "log_setup_failed": {
+      "title": "Setup fehlgeschlagen für Custom Integration: {integration}",
+      "description": "Home Assistant meldete, dass das Setup fehlgeschlagen ist. Prüfe Logs und Version der Integration."
+    },
+    "log_state_attr_oversize": {
+      "title": "State-Attribute zu groß: {entity_id}",
+      "description": "Diese Entität schreibt sehr große Attribute (größer als empfohlen). Das kann Performance/Recorder beeinflussen."
+    },
+    "log_blocking_import_module": {
+      "title": "Blocking call erkannt: import_module",
+      "description": "Home Assistant hat einen blockierenden import_module Call im Event Loop erkannt. Aktualisiere/ersetze die verantwortliche Integration."
+    }
+  }
+}

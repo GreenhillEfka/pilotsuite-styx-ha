@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-02-08
+### Fixed
+- German UI: Options/fields now show proper labels (adds `translations/de.json`).
+- Integration branding: adds `custom_components/ai_home_copilot/icon.png` + `logo.png` (fixes “icon not available”).
+
 ## [0.2.3] - 2026-02-08
 ### Added
 - CI: basic syntax + JSON validation on push/PR.
