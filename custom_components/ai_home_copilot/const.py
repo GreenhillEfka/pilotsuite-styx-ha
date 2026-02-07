@@ -1,5 +1,9 @@
 DOMAIN = "ai_home_copilot"
 
+# Internal hass.data keys (namespaced to avoid entry_id collisions).
+DATA_CORE = "_core"
+DATA_RUNTIME = "runtime"
+
 CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_TOKEN = "token"
