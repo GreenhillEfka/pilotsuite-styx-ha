@@ -15,6 +15,7 @@ A privacy-first, governance-first layer that helps you:
 - Dashboard template: [`DASHBOARD_LOVELACE.md`](./DASHBOARD_LOVELACE.md)
 - Dev surface (observability): [`DEV_SURFACE.md`](./DEV_SURFACE.md)
 - DevLogs pipeline (debug): [`DEVLOGS.md`](./DEVLOGS.md)
+- Habituszonen (curated zones): [`HABITUS_ZONES.md`](./HABITUS_ZONES.md)
 - Security & Privacy: [`SECURITY_PRIVACY.md`](./SECURITY_PRIVACY.md)
 - Ethics & Governance: [`ETHICS_GOVERNANCE.md`](./ETHICS_GOVERNANCE.md)
 - Release checklist: [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md)
