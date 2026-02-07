@@ -6,13 +6,14 @@ Privacy-first:
 - No personal data (IPs, tokens) is shipped as defaults.
 - The integration never creates automations silently (governance-first).
 
-## Install (recommended): HACS (works with private repos)
+## Install (recommended): HACS
 1. Install HACS (if not already installed).
 2. HACS → **Integrations** → menu (⋮) → **Custom repositories**.
 3. Add this repository as type **Integration**.
-   - If the repository is private, make sure HACS has a GitHub token with access.
 4. Install the integration from HACS.
 5. Restart Home Assistant.
+
+> Note: This repository is intended to be **public** for HACS distribution. Privacy is enforced by code hygiene (no personal defaults, no secret leakage).
 
 ### Update / Rollback
 HACS creates an `update.*` entity for the repository.
@@ -37,8 +38,14 @@ Entities created:
 ## Project plan
 See: `docs/PROJECT_PLAN.md` (canvas + kanban overview)
 
-## Ops
-See: `docs/OPERATIONS.md` (reload vs restart)
+## Docs
+- Project plan: `docs/PROJECT_PLAN.md`
+- Ops (reload vs restart): `docs/OPERATIONS.md`
+- Dashboard template: `docs/DASHBOARD_LOVELACE.md`
+- DevLogs (debug pipeline): `docs/DEVLOGS.md`
+- Security & Privacy: `docs/SECURITY_PRIVACY.md`
+- Ethics & Governance: `docs/ETHICS_GOVERNANCE.md`
+- Release checklist: `docs/RELEASE_CHECKLIST.md`
 
 ## Included blueprint
 A safe A→B automation blueprint is shipped with the integration and will be installed (if missing) to:
