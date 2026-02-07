@@ -1,0 +1,18 @@
+# Changelog
+
+All notable changes to this repository are documented here.
+
+This repository contains a Home Assistant Add-on repository (Copilot Core) and related scaffolding.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [Unreleased]
+
+## [copilot_core-v0.1.2] - 2026-02-07
+### Added
+- `/devlogs` HTML view for ingested DevLogs.
+
+## [copilot_core-v0.1.1] - 2026-02-07
+### Added
+- `POST/GET /api/v1/dev/logs` endpoint.
+- Shared token auth via add-on option `auth_token`.
