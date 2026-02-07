@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-02-07
+### Added
+- MediaContext v0.1 (read-only): music vs TV/other signals.
+- Config via dashboard-editable text entities (CSV lists of media players).
+
 ## [0.1.15] - 2026-02-07
 ### Added
 - Documentation pack: operations, dashboard, privacy/governance, DevLogs, release checklist.

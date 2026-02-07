@@ -6,11 +6,36 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .entity import CopilotBaseEntity
+from .media_entities import (
+    MusicActiveCountSensor,
+    MusicNowPlayingSensor,
+    MusicPrimaryAreaSensor,
+    TvActiveCountSensor,
+    TvPrimaryAreaSensor,
+    TvSourceSensor,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    async_add_entities([CopilotVersionSensor(coordinator)], True)
+    data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data["coordinator"]
+
+    entities = [CopilotVersionSensor(coordinator)]
+
+    media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
+    if media_coordinator is not None:
+        entities.extend(
+            [
+                MusicNowPlayingSensor(media_coordinator),
+                MusicPrimaryAreaSensor(media_coordinator),
+                TvPrimaryAreaSensor(media_coordinator),
+                TvSourceSensor(media_coordinator),
+                MusicActiveCountSensor(media_coordinator),
+                TvActiveCountSensor(media_coordinator),
+            ]
+        )
+
+    async_add_entities(entities, True)
 
 
 class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):

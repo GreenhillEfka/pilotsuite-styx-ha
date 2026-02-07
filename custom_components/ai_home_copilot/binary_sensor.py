@@ -6,11 +6,25 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .entity import CopilotBaseEntity
+from .media_entities import MusicActiveBinarySensor, TvActiveBinarySensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    async_add_entities([CopilotOnlineBinarySensor(coordinator)], True)
+    data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data["coordinator"]
+
+    entities = [CopilotOnlineBinarySensor(coordinator)]
+
+    media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
+    if media_coordinator is not None:
+        entities.extend(
+            [
+                MusicActiveBinarySensor(media_coordinator),
+                TvActiveBinarySensor(media_coordinator),
+            ]
+        )
+
+    async_add_entities(entities, True)
 
 
 class CopilotOnlineBinarySensor(CopilotBaseEntity, BinarySensorEntity):

@@ -9,6 +9,8 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import (
     CONF_HOST,
     CONF_PORT,
+    CONF_MEDIA_MUSIC_PLAYERS,
+    CONF_MEDIA_TV_PLAYERS,
     CONF_SEED_ALLOWED_DOMAINS,
     CONF_SEED_BLOCKED_DOMAINS,
     CONF_SEED_MAX_OFFERS_PER_HOUR,
@@ -27,6 +29,8 @@ from .const import (
     CONF_DEVLOG_PUSH_MAX_CHARS,
     DEFAULT_HOST,
     DEFAULT_PORT,
+    DEFAULT_MEDIA_MUSIC_PLAYERS,
+    DEFAULT_MEDIA_TV_PLAYERS,
     DEFAULT_SEED_ALLOWED_DOMAINS,
     DEFAULT_SEED_BLOCKED_DOMAINS,
     DEFAULT_SEED_MAX_OFFERS_PER_HOUR,
@@ -35,6 +39,8 @@ from .const import (
     DEFAULT_SUGGESTION_SEED_ENTITIES,
     DEFAULT_TEST_LIGHT,
     DEFAULT_WATCHDOG_ENABLED,
+    DEFAULT_MEDIA_MUSIC_PLAYERS,
+    DEFAULT_MEDIA_TV_PLAYERS,
     DEFAULT_WATCHDOG_INTERVAL_SECONDS,
     DEFAULT_DEVLOG_PUSH_ENABLED,
     DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS,
@@ -118,6 +124,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if isinstance(seed_csv, str):
                 user_input[CONF_SUGGESTION_SEED_ENTITIES] = _parse_csv(seed_csv)
 
+            # Normalize media players (comma-separated list -> list[str])
+            music_csv = user_input.get(CONF_MEDIA_MUSIC_PLAYERS)
+            if isinstance(music_csv, str):
+                user_input[CONF_MEDIA_MUSIC_PLAYERS] = _parse_csv(music_csv)
+
+            tv_csv = user_input.get(CONF_MEDIA_TV_PLAYERS)
+            if isinstance(tv_csv, str):
+                user_input[CONF_MEDIA_TV_PLAYERS] = _parse_csv(tv_csv)
+
+            # Normalize media players (comma-separated list -> list[str])
+            music_csv = user_input.get(CONF_MEDIA_MUSIC_PLAYERS)
+            if isinstance(music_csv, str):
+                user_input[CONF_MEDIA_MUSIC_PLAYERS] = _parse_csv(music_csv)
+
+            tv_csv = user_input.get(CONF_MEDIA_TV_PLAYERS)
+            if isinstance(tv_csv, str):
+                user_input[CONF_MEDIA_TV_PLAYERS] = _parse_csv(tv_csv)
+
             # Keep allow/block domains as the raw string; seed adapter parses both list and str.
             return self.async_create_entry(title="", data=user_input)
 
@@ -138,6 +162,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     CONF_TEST_LIGHT,
                     default=data.get(CONF_TEST_LIGHT, ""),
+                ): str,
+                vol.Optional(
+                    CONF_MEDIA_MUSIC_PLAYERS,
+                    default=_as_csv(data.get(CONF_MEDIA_MUSIC_PLAYERS, DEFAULT_MEDIA_MUSIC_PLAYERS)),
+                ): str,
+                vol.Optional(
+                    CONF_MEDIA_TV_PLAYERS,
+                    default=_as_csv(data.get(CONF_MEDIA_TV_PLAYERS, DEFAULT_MEDIA_TV_PLAYERS)),
                 ): str,
                 # Comma-separated list of sensor entity_ids.
                 vol.Optional(

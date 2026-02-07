@@ -8,6 +8,7 @@ from ...const import DOMAIN
 from ...coordinator import CopilotDataUpdateCoordinator
 from ...devlog_push import async_setup_devlog_push
 from ...seed_adapter import async_setup_seed_adapter
+from ...media_setup import async_setup_media_context, async_unload_media_context
 from ...webhook import async_register_webhook, async_unregister_webhook
 from ..module import ModuleContext
 
@@ -45,6 +46,9 @@ class LegacyModule:
             "unsub_devlog_push": unsub_devlog_push,
         }
 
+        # Read-only media context (music vs TV/other).
+        await async_setup_media_context(hass, entry)
+
         # Optional: ingest suggestion seeds from other sensor entities.
         await async_setup_seed_adapter(hass, entry)
 
@@ -73,6 +77,8 @@ class LegacyModule:
             unsub_devlog = data.get("unsub_devlog_push") if isinstance(data, dict) else None
             if callable(unsub_devlog):
                 unsub_devlog()
+
+            await async_unload_media_context(hass, entry)
 
             hass.data[DOMAIN].pop(entry.entry_id, None)
 

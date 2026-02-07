@@ -13,6 +13,10 @@ CONF_WEBHOOK_URL = "webhook_url"
 CONF_WATCHDOG_ENABLED = "watchdog_enabled"
 CONF_WATCHDOG_INTERVAL_SECONDS = "watchdog_interval_seconds"
 
+# MediaContext (read-only signals)
+CONF_MEDIA_MUSIC_PLAYERS = "media_music_players"
+CONF_MEDIA_TV_PLAYERS = "media_tv_players"
+
 # Dev/Debug: push sanitized HA log snippets to Copilot-Core (opt-in).
 CONF_DEVLOG_PUSH_ENABLED = "devlog_push_enabled"
 CONF_DEVLOG_PUSH_INTERVAL_SECONDS = "devlog_push_interval_seconds"
@@ -36,6 +40,9 @@ DEFAULT_PORT = 8909
 DEFAULT_TEST_LIGHT = ""
 DEFAULT_WATCHDOG_ENABLED = False
 DEFAULT_WATCHDOG_INTERVAL_SECONDS = 1800
+
+DEFAULT_MEDIA_MUSIC_PLAYERS: list[str] = []
+DEFAULT_MEDIA_TV_PLAYERS: list[str] = []
 
 DEFAULT_DEVLOG_PUSH_ENABLED = False
 DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS = 60
