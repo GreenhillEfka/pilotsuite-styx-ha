@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-07
+### Added / Included (foundation bundle)
+- Stable connectivity entities: online + core version.
+- Webhook push mode + optional watchdog polling fallback.
+- Governance UX: Repairs + shipped safe A→B blueprint (no silent automations).
+- Log analysis + reversible fixer (disable broken custom integration via rename + rollback).
+- Overview report generator + publish/download flow.
+- Seeds adapter (optional) + limiter + allow/block domains.
+- Dev surface:
+  - DevLogs push (opt-in) + in-HA fetch
+  - HA Diagnostics download (sanitized)
+- MediaContext v0.1 (read-only): music vs TV/other signals (Spotify/Sonos/TV).
+- Habitus zones v0.1:
+  - UX wizard (create/edit/delete) with required motion/presence + lights
+  - validate button + zones count
+  - dashboard YAML generator + publish/download
+- Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior.
+
+### Notes
+- Safe defaults: no personal IPs/entity_ids shipped; secrets are not exposed via entities.
+- HACS updates require a Home Assistant restart.
+
 ## [0.1.19] - 2026-02-07
 ### Added
 - Habitus zones (UX): Options wizard (create/edit/delete) with required motion/presence + lights.
