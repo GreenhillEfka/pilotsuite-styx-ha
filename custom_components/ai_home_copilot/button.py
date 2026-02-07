@@ -53,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class CopilotToggleLightButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_name = "Toggle test light"
     _attr_unique_id = "toggle_test_light"
     _attr_icon = "mdi:light-switch"
@@ -73,6 +74,7 @@ class CopilotToggleLightButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotCreateDemoSuggestionButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_name = "Create demo suggestion"
     _attr_unique_id = "create_demo_suggestion"
     _attr_icon = "mdi:lightbulb-on-outline"
@@ -86,6 +88,7 @@ class CopilotCreateDemoSuggestionButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotAnalyzeLogsButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot analyze logs"
     _attr_unique_id = "ai_home_copilot_analyze_logs"
@@ -97,6 +100,7 @@ class CopilotAnalyzeLogsButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotRollbackLastFixButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot rollback last fix"
     _attr_unique_id = "ai_home_copilot_rollback_last_fix"
@@ -107,6 +111,7 @@ class CopilotRollbackLastFixButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot generate HA overview"
     _attr_unique_id = "ai_home_copilot_generate_ha_overview"
@@ -117,6 +122,7 @@ class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot download HA overview"
     _attr_unique_id = "ai_home_copilot_download_ha_overview"
@@ -173,6 +179,7 @@ class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotDevLogTestPushButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot devlog push test"
     _attr_unique_id = "ai_home_copilot_devlog_push_test"
@@ -187,6 +194,7 @@ class CopilotDevLogTestPushButton(CopilotBaseEntity, ButtonEntity):
 
 
 class CopilotDevLogPushLatestButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot devlog push latest"
     _attr_unique_id = "ai_home_copilot_devlog_push_latest"

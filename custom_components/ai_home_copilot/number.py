@@ -19,6 +19,8 @@ from .entity import CopilotBaseEntity
 class _BaseConfigNumber(CopilotBaseEntity, NumberEntity):
     _attr_has_entity_name = False
     _attr_mode = "box"
+    # Advanced tuning: keep available but hidden by default.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(
         self,

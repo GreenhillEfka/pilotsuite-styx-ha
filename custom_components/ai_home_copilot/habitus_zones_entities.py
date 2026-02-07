@@ -22,6 +22,8 @@ from .habitus_zones_store import (
 
 
 class HabitusZonesJsonText(CopilotBaseEntity, TextEntity):
+    # Advanced / debug editor; wizard is the primary UX.
+    _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot habitus zones (json)"
     _attr_unique_id = "ai_home_copilot_habitus_zones_json"

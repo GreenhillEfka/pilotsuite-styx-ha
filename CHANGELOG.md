@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-02-08
+### Added
+- CI: basic syntax + JSON validation on push/PR.
+
+### Changed
+- Declutter: advanced config entities and dev/demo buttons are now disabled by default (can be enabled in HA entity registry).
+
 ## [0.2.2] - 2026-02-07
 ### Added
 - Local config snapshot export (generate + download link). Tokens are redacted by default.

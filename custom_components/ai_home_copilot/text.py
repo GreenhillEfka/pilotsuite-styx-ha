@@ -30,6 +30,8 @@ def _as_csv(value) -> str:
 class _BaseConfigText(CopilotBaseEntity, TextEntity):
     _attr_has_entity_name = False
     _attr_mode = "text"
+    # Advanced config surface: keep available but hidden by default to reduce entity clutter.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry: ConfigEntry, *, key: str, name: str, unique_id: str):
         super().__init__(coordinator)

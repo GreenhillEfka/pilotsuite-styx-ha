@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Syntax check (py_compile)
+        run: |
+          python -m py_compile $(find custom_components/ai_home_copilot -name '*.py')
+
+      - name: Validate JSON files
+        run: |
+          python - <<'PY'
+          import json
+          for path in [
+              'custom_components/ai_home_copilot/strings.json',
+              'custom_components/ai_home_copilot/translations/en.json',
+          ]:
+              with open(path,'r',encoding='utf-8') as f:
+                  json.load(f)
+          print('json ok')
+          PY
