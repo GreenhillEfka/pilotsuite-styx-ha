@@ -32,7 +32,11 @@ class CopilotApiClient:
     async def _get_json(self, path: str) -> dict:
         url = f"{self._base_url}{path}"
         try:
-            async with self._session.get(url, headers=self._headers(), timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            async with self._session.get(
+                url,
+                headers=self._headers(),
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
                 if resp.status >= 400:
                     body = await resp.text()
                     raise CopilotApiError(f"HTTP {resp.status} for {url}: {body[:200]}")
@@ -41,6 +45,33 @@ class CopilotApiClient:
             raise CopilotApiError(f"Timeout calling {url}") from e
         except aiohttp.ClientError as e:
             raise CopilotApiError(f"Client error calling {url}: {e}") from e
+
+    async def _post_json(self, path: str, payload: dict) -> dict:
+        url = f"{self._base_url}{path}"
+        try:
+            async with self._session.post(
+                url,
+                json=payload,
+                headers=self._headers(),
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status >= 400:
+                    body = await resp.text()
+                    raise CopilotApiError(f"HTTP {resp.status} for {url}: {body[:200]}")
+                # Some endpoints may return empty 204.
+                if resp.status == 204:
+                    return {}
+                ctype = resp.headers.get("Content-Type", "")
+                if "json" in ctype:
+                    return await resp.json()
+                return {"text": (await resp.text())[:2000]}
+        except asyncio.TimeoutError as e:
+            raise CopilotApiError(f"Timeout calling {url}") from e
+        except aiohttp.ClientError as e:
+            raise CopilotApiError(f"Client error calling {url}: {e}") from e
+
+    async def async_post(self, path: str, payload: dict) -> dict:
+        return await self._post_json(path, payload)
 
     async def async_get_status(self) -> CopilotStatus:
         health: dict | None = None

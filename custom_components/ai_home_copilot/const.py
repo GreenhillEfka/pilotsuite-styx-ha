@@ -9,6 +9,13 @@ CONF_WEBHOOK_URL = "webhook_url"
 CONF_WATCHDOG_ENABLED = "watchdog_enabled"
 CONF_WATCHDOG_INTERVAL_SECONDS = "watchdog_interval_seconds"
 
+# Dev/Debug: push sanitized HA log snippets to Copilot-Core (opt-in).
+CONF_DEVLOG_PUSH_ENABLED = "devlog_push_enabled"
+CONF_DEVLOG_PUSH_INTERVAL_SECONDS = "devlog_push_interval_seconds"
+CONF_DEVLOG_PUSH_PATH = "devlog_push_path"
+CONF_DEVLOG_PUSH_MAX_LINES = "devlog_push_max_lines"
+CONF_DEVLOG_PUSH_MAX_CHARS = "devlog_push_max_chars"
+
 # Optional: entities that emit LLM-generated suggestions we want to treat as "seed" candidates.
 # Example: sensor.ai_automation_suggestions_openai
 CONF_SUGGESTION_SEED_ENTITIES = "suggestion_seed_entities"
@@ -25,6 +32,13 @@ DEFAULT_PORT = 8909
 DEFAULT_TEST_LIGHT = ""
 DEFAULT_WATCHDOG_ENABLED = False
 DEFAULT_WATCHDOG_INTERVAL_SECONDS = 1800
+
+DEFAULT_DEVLOG_PUSH_ENABLED = False
+DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS = 60
+DEFAULT_DEVLOG_PUSH_PATH = "/api/v1/dev/logs"
+DEFAULT_DEVLOG_PUSH_MAX_LINES = 220
+DEFAULT_DEVLOG_PUSH_MAX_CHARS = 6000
+
 DEFAULT_SUGGESTION_SEED_ENTITIES: list[str] = []
 DEFAULT_SEED_ALLOWED_DOMAINS: list[str] = []
 DEFAULT_SEED_BLOCKED_DOMAINS: list[str] = []

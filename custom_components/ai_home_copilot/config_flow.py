@@ -20,6 +20,11 @@ from .const import (
     CONF_WEBHOOK_URL,
     CONF_WATCHDOG_ENABLED,
     CONF_WATCHDOG_INTERVAL_SECONDS,
+    CONF_DEVLOG_PUSH_ENABLED,
+    CONF_DEVLOG_PUSH_INTERVAL_SECONDS,
+    CONF_DEVLOG_PUSH_PATH,
+    CONF_DEVLOG_PUSH_MAX_LINES,
+    CONF_DEVLOG_PUSH_MAX_CHARS,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_SEED_ALLOWED_DOMAINS,
@@ -31,6 +36,11 @@ from .const import (
     DEFAULT_TEST_LIGHT,
     DEFAULT_WATCHDOG_ENABLED,
     DEFAULT_WATCHDOG_INTERVAL_SECONDS,
+    DEFAULT_DEVLOG_PUSH_ENABLED,
+    DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS,
+    DEFAULT_DEVLOG_PUSH_PATH,
+    DEFAULT_DEVLOG_PUSH_MAX_LINES,
+    DEFAULT_DEVLOG_PUSH_MAX_CHARS,
     DOMAIN,
 )
 
@@ -172,6 +182,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     default=data.get(
                         CONF_WATCHDOG_INTERVAL_SECONDS, DEFAULT_WATCHDOG_INTERVAL_SECONDS
                     ),
+                ): int,
+                # Opt-in dev tool: push sanitized HA log snippets to Copilot-Core.
+                vol.Optional(
+                    CONF_DEVLOG_PUSH_ENABLED,
+                    default=data.get(CONF_DEVLOG_PUSH_ENABLED, DEFAULT_DEVLOG_PUSH_ENABLED),
+                ): bool,
+                vol.Optional(
+                    CONF_DEVLOG_PUSH_INTERVAL_SECONDS,
+                    default=data.get(
+                        CONF_DEVLOG_PUSH_INTERVAL_SECONDS,
+                        DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS,
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_DEVLOG_PUSH_PATH,
+                    default=data.get(CONF_DEVLOG_PUSH_PATH, DEFAULT_DEVLOG_PUSH_PATH),
+                ): str,
+                vol.Optional(
+                    CONF_DEVLOG_PUSH_MAX_LINES,
+                    default=data.get(CONF_DEVLOG_PUSH_MAX_LINES, DEFAULT_DEVLOG_PUSH_MAX_LINES),
+                ): int,
+                vol.Optional(
+                    CONF_DEVLOG_PUSH_MAX_CHARS,
+                    default=data.get(CONF_DEVLOG_PUSH_MAX_CHARS, DEFAULT_DEVLOG_PUSH_MAX_CHARS),
                 ): int,
             }
         )
