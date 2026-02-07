@@ -37,6 +37,9 @@ Entities created:
 ## Project plan
 See: `docs/PROJECT_PLAN.md` (canvas + kanban overview)
 
+## Ops
+See: `docs/OPERATIONS.md` (reload vs restart)
+
 ## Included blueprint
 A safe A→B automation blueprint is shipped with the integration and will be installed (if missing) to:
 `/config/blueprints/automation/ai_home_copilot/a_to_b_safe.yaml`

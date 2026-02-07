@@ -25,6 +25,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotRollbackLastFixButton(coordinator),
             CopilotGenerateOverviewButton(coordinator),
             CopilotDownloadOverviewButton(coordinator),
+            CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
         ],
         True,
     )
@@ -102,3 +103,17 @@ class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_publish_last_overview(self.hass)
+
+
+class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot reload"
+    _attr_unique_id = "ai_home_copilot_reload_config_entry"
+    _attr_icon = "mdi:reload"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.config_entries.async_reload(self._entry_id)
