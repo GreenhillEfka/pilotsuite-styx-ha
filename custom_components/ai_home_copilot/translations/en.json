@@ -56,7 +56,9 @@
           "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
           "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
           "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
-          "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons"
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons"
         }
       },
       "habitus_zones": {
@@ -149,7 +151,8 @@
       "cannot_connect": "Failed to connect",
       "cannot_read": "Could not read snapshot file",
       "invalid_json": "Invalid JSON",
-      "confirm_required": "Please confirm"
+      "confirm_required": "Please confirm",
+      "invalid": "Invalid input"
     }
   },
   "issues": {

@@ -39,6 +39,8 @@ from .const import (
     CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_MAX_LINES,
     CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+    CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+    CONF_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
@@ -71,6 +73,8 @@ from .const import (
     DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
     DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+    DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+    DEFAULT_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
     DOMAIN,
 )
 
@@ -301,6 +305,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     default=data.get(
                         CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
                         DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+                    default=data.get(
+                        CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+                        DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
+                    default=data.get(
+                        CONF_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
+                        DEFAULT_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
                     ),
                 ): bool,
 

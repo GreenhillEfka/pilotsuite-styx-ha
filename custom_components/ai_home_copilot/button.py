@@ -4,6 +4,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 
 from .const import (
     CONF_DEVLOG_PUSH_PATH,
@@ -27,10 +28,13 @@ from .pilotsuite_dashboard import (
 )
 from .core_v1 import async_fetch_core_capabilities
 from .ha_errors_digest import async_show_ha_errors_digest
+from .core.modules.dev_surface import _async_ping
+from .suggest import Candidate, async_offer_candidate
 from .button_safety_backup import (
     CopilotSafetyBackupCreateButton,
     CopilotSafetyBackupStatusButton,
 )
+from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -55,8 +59,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotCoreCapabilitiesFetchButton(coordinator, entry),
             CopilotCoreEventsFetchButton(coordinator, entry),
             CopilotCoreGraphStateFetchButton(coordinator, entry),
+            CopilotCoreGraphCandidatesPreviewButton(coordinator, entry),
+            CopilotCoreGraphCandidatesOfferButton(coordinator, entry),
             CopilotForwarderStatusButton(coordinator, entry),
             CopilotHaErrorsFetchButton(coordinator, entry),
+            CopilotPingCoreButton(coordinator, entry),
+            CopilotEnableDebug30mButton(coordinator, entry.entry_id),
+            CopilotDisableDebugButton(coordinator, entry.entry_id),
+            CopilotClearErrorDigestButton(coordinator, entry.entry_id),
             CopilotSafetyBackupCreateButton(coordinator, entry),
             CopilotSafetyBackupStatusButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
@@ -64,6 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDownloadHabitusDashboardButton(coordinator, entry),
             CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
             CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
+            CopilotTagRegistrySyncLabelsNowButton(coordinator),
         ],
         True,
     )
@@ -482,6 +493,120 @@ class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
         )
 
 
+class CopilotCoreGraphCandidatesPreviewButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot preview graph candidates"
+    _attr_unique_id = "ai_home_copilot_preview_graph_candidates"
+    _attr_icon = "mdi:graph-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        url = "/api/v1/candidates/graph_candidates?limit=10"
+        try:
+            data = await self.coordinator.api.async_get(url)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to fetch graph candidates: {err}",
+                title="AI Home CoPilot graph candidates",
+                notification_id="ai_home_copilot_graph_candidates",
+            )
+            return
+
+        items = data.get("items") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            items = []
+
+        lines: list[str] = [f"count: {len(items)}"]
+        for it in items[:10]:
+            if not isinstance(it, dict):
+                continue
+            title = str(it.get("title") or "")
+            text = str(it.get("seed_text") or "")
+            cid = str(it.get("candidate_id") or "")
+            lines.append("")
+            lines.append(f"- {title} ({cid})")
+            if text:
+                lines.append(f"  {text}")
+
+        msg = "\n".join(lines) if lines else "No items."
+        if len(msg) > 8000:
+            msg = msg[:7950] + "\n...(truncated)..."
+
+        persistent_notification.async_create(
+            self.hass,
+            msg,
+            title="AI Home CoPilot graph candidates (preview)",
+            notification_id="ai_home_copilot_graph_candidates",
+        )
+
+
+class CopilotCoreGraphCandidatesOfferButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot offer graph candidates"
+    _attr_unique_id = "ai_home_copilot_offer_graph_candidates"
+    _attr_icon = "mdi:lightbulb-auto-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        url = "/api/v1/candidates/graph_candidates?limit=5"
+        try:
+            data = await self.coordinator.api.async_get(url)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to fetch graph candidates: {err}",
+                title="AI Home CoPilot graph candidates",
+                notification_id="ai_home_copilot_graph_candidates_offer",
+            )
+            return
+
+        items = data.get("items") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            items = []
+
+        offered = 0
+        for it in items[:5]:
+            if not isinstance(it, dict):
+                continue
+
+            cid = str(it.get("candidate_id") or "")
+            if not cid:
+                continue
+
+            cand = Candidate(
+                candidate_id=cid,
+                kind="seed",
+                title=str(it.get("title") or "Graph candidate"),
+                seed_source=str(it.get("seed_source") or "brain_graph"),
+                seed_entities=[str(x) for x in (it.get("seed_entities") or []) if isinstance(x, str)],
+                seed_text=str(it.get("seed_text") or ""),
+                data=it.get("data") if isinstance(it.get("data"), dict) else None,
+                translation_key="seed_suggestion",
+                translation_placeholders={"title": str(it.get("title") or "Graph candidate")},
+            )
+
+            await async_offer_candidate(self.hass, self._entry.entry_id, cand)
+            offered += 1
+
+        persistent_notification.async_create(
+            self.hass,
+            f"Offered {offered} graph candidates via Repairs.",
+            title="AI Home CoPilot graph candidates",
+            notification_id="ai_home_copilot_graph_candidates_offer",
+        )
+
+
 class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot forwarder status"
@@ -562,6 +687,118 @@ class CopilotHaErrorsFetchButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_show_ha_errors_digest(self.hass, self._entry)
+
+
+class CopilotPingCoreButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot ping core"
+    _attr_unique_id = "ai_home_copilot_ping_core"
+    _attr_icon = "mdi:access-point-network"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        try:
+            res = await _async_ping(self.hass, self._entry)
+            dt = res.get("duration_ms")
+            persistent_notification.async_create(
+                self.hass,
+                f"Core ping ok (duration_ms={dt}).",
+                title="AI Home CoPilot core ping",
+                notification_id="ai_home_copilot_core_ping",
+            )
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Core ping failed: {err}",
+                title="AI Home CoPilot core ping",
+                notification_id="ai_home_copilot_core_ping",
+            )
+
+
+class CopilotEnableDebug30mButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot enable debug for 30m"
+    _attr_unique_id = "ai_home_copilot_enable_debug_30m"
+    _attr_icon = "mdi:bug"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "enable_debug_for",
+            {"entry_id": self._entry_id, "minutes": 30},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "Debug enabled for 30 minutes (auto-disable).",
+            title="AI Home CoPilot debug",
+            notification_id="ai_home_copilot_debug",
+        )
+
+
+class CopilotDisableDebugButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot disable debug"
+    _attr_unique_id = "ai_home_copilot_disable_debug"
+    _attr_icon = "mdi:bug-off"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "disable_debug",
+            {"entry_id": self._entry_id},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "Debug disabled.",
+            title="AI Home CoPilot debug",
+            notification_id="ai_home_copilot_debug",
+        )
+
+
+class CopilotClearErrorDigestButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot clear error digest"
+    _attr_unique_id = "ai_home_copilot_clear_error_digest"
+    _attr_icon = "mdi:broom"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "clear_error_digest",
+            {"entry_id": self._entry_id},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "Error digest cleared.",
+            title="AI Home CoPilot dev surface",
+            notification_id="ai_home_copilot_dev_surface",
+        )
 
 
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
