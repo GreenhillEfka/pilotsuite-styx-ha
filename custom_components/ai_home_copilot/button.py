@@ -38,6 +38,7 @@ from .button_safety_backup import (
 )
 from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
 from .button_update_rollback import CopilotUpdateRollbackReportButton
+from .brain_graph_viz import async_publish_brain_graph_viz
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -66,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotCoreGraphStateFetchButton(coordinator, entry),
             CopilotCoreGraphCandidatesPreviewButton(coordinator, entry),
             CopilotCoreGraphCandidatesOfferButton(coordinator, entry),
+            CopilotPublishBrainGraphVizButton(coordinator, entry),
             CopilotForwarderStatusButton(coordinator, entry),
             CopilotHaErrorsFetchButton(coordinator, entry),
             CopilotPingCoreButton(coordinator, entry),
@@ -526,6 +528,24 @@ class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
             title="AI Home CoPilot Core graph (state)",
             notification_id="ai_home_copilot_core_graph_state",
         )
+
+
+class CopilotPublishBrainGraphVizButton(CopilotBaseEntity, ButtonEntity):
+    """Publish a minimal local HTML/SVG brain-graph preview."""
+
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot publish brain graph viz"
+    _attr_unique_id = "ai_home_copilot_publish_brain_graph_viz"
+    _attr_icon = "mdi:graph"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_publish_brain_graph_viz(self.hass, self.coordinator)
 
 
 class CopilotCoreGraphCandidatesPreviewButton(CopilotBaseEntity, ButtonEntity):
