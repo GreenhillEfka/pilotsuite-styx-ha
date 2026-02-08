@@ -33,3 +33,7 @@ If enabled, the integration can forward a **privacy-first allowlist** of events 
 - `call_service` (optional): forwards intent-like service calls **only when** they target Habitus zone entities.
   - Service data is stripped (only the domain/service name and the targeted entity_ids are kept).
 - Event `id` uses `event_type:context.id` when available to support best-effort idempotency.
+- Optional: **persistent forwarder queue** (disabled by default):
+  - Stores unsent forwarder events in Home Assistant's local `.storage/` (per config entry).
+  - Bounded queue with **drop-oldest** policy.
+  - Persisted in a rate-limited manner (flush interval) to avoid blocking the event loop.

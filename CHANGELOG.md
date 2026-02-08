@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.18] - 2026-02-08
+### Added
+- Events forwarder: optional **persistent queue** (store unsent events across HA restarts) with bounded size + drop-oldest policy.
+- Events forwarder: forwarder status now shows persisted queue length + total drops.
+
+### Fixed
+- Events forwarder reliability: on send errors, the batch is re-queued instead of being lost.
+
 ## [0.2.17] - 2026-02-08
 ### Added
 - Safety Backup ("Safety Point"): neue Buttons zum Starten eines HA-Backups (bevor Updates/Experimente laufen) + Statusanzeige.

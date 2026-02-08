@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.storage import Store
 
 from ...const import (
     DOMAIN,
@@ -20,11 +21,17 @@ from ...const import (
     CONF_EVENTS_FORWARDER_MAX_BATCH,
     CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
     CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
     DEFAULT_EVENTS_FORWARDER_ENABLED,
     DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
     DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
     DEFAULT_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
     DEFAULT_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+    DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+    DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+    DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
 )
 from ...habitus_zones_store import SIGNAL_HABITUS_ZONES_UPDATED, async_get_zones
 from ...core_v1 import async_fetch_core_capabilities
@@ -116,6 +123,12 @@ def _allowed_state_attrs(entity_id: str, state_obj: Any) -> dict[str, Any]:
     return {k: attrs.get(k) for k in allow if k in attrs}
 
 
+def _store_key(entry_id: str) -> str:
+    # Stored in .storage (local HA config directory).
+    # Keep it stable + namespaced.
+    return f"{DOMAIN}.events_forwarder.{entry_id}"
+
+
 @dataclass(slots=True)
 class _ForwarderState:
     unsub_state: Callable[[], None] | None = None
@@ -123,13 +136,24 @@ class _ForwarderState:
     unsub_timer: Callable[[], None] | None = None
     unsub_call_service: Callable[[], None] | None = None
 
+    # persistence timers
+    unsub_persist_timer: Callable[[], None] | None = None
+
     entity_ids: list[str] | None = None
     entity_to_zone_ids: dict[str, list[str]] | None = None
 
     queue: list[dict[str, Any]] | None = None
 
-    # best-effort in-memory idempotency
+    # best-effort idempotency (in-memory, optionally persisted)
     seen_until: dict[str, float] | None = None
+
+    # persistent queue
+    store: Store | None = None
+    persistent_enabled: bool = False
+    persistent_dirty: bool = False
+    persistent_flush_interval: int = 5
+    persistent_max_size: int = 500
+    dropped_total: int = 0
 
 
 def _entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
@@ -202,6 +226,41 @@ class EventsForwarderModule:
         )
         idempotency_ttl = max(0, min(idempotency_ttl, 86400))
 
+        # Persistent queue options (store unsent events across HA restarts)
+        persistent_enabled = bool(
+            cfg.get(
+                CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+                DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+            )
+        )
+        persistent_max_size = int(
+            cfg.get(
+                CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+                DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+            )
+        )
+        persistent_max_size = max(0, min(persistent_max_size, 50000))
+
+        persistent_flush_interval = int(
+            cfg.get(
+                CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+                DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+            )
+        )
+        persistent_flush_interval = max(1, min(persistent_flush_interval, 60))
+
+        st.persistent_enabled = persistent_enabled
+        st.persistent_max_size = persistent_max_size
+        st.persistent_flush_interval = persistent_flush_interval
+
+        if persistent_enabled:
+            st.store = Store(hass, version=1, key=_store_key(entry.entry_id))
+
+        # Operator visibility
+        data["events_forwarder_persistent_enabled"] = persistent_enabled
+        data["events_forwarder_persistent_queue_len"] = 0
+        data["events_forwarder_dropped_total"] = 0
+
         def _schedule_task(coro_fn) -> None:
             """Schedule a coroutine function on the HA event loop.
 
@@ -215,6 +274,88 @@ class EventsForwarderModule:
                 hass.loop.call_soon_threadsafe(_run)
             except Exception:  # noqa: BLE001
                 _run()
+
+        async def _persist_load() -> None:
+            if not st.persistent_enabled or st.store is None:
+                return
+
+            try:
+                loaded = await st.store.async_load()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Events forwarder: failed to load persistent queue: %s", err)
+                return
+
+            if not isinstance(loaded, dict):
+                return
+
+            queue = loaded.get("queue")
+            if isinstance(queue, list):
+                st.queue = [q for q in queue if isinstance(q, dict)]
+            if st.queue is None:
+                st.queue = []
+
+            seen_until = loaded.get("seen_until")
+            if isinstance(seen_until, dict):
+                # only keep numeric expiries
+                st.seen_until = {
+                    str(k): float(v)
+                    for k, v in seen_until.items()
+                    if isinstance(k, str) and k and isinstance(v, (int, float))
+                }
+
+            drops = loaded.get("dropped_total")
+            if isinstance(drops, int):
+                st.dropped_total = max(0, drops)
+
+            # Enforce bounds on load as well.
+            if st.persistent_max_size > 0 and len(st.queue) > st.persistent_max_size:
+                overflow = len(st.queue) - st.persistent_max_size
+                del st.queue[:overflow]
+                st.dropped_total += overflow
+                st.persistent_dirty = True
+
+            data["events_forwarder_queue_len"] = len(st.queue)
+            data["events_forwarder_persistent_queue_len"] = len(st.queue)
+            data["events_forwarder_dropped_total"] = st.dropped_total
+
+            # If we have pending items, schedule a send soon.
+            if st.queue:
+                st.unsub_timer = async_call_later(hass, 1, _flush_timer)
+
+            if st.persistent_dirty:
+                _schedule_task(_persist_save)
+
+        async def _persist_save() -> None:
+            if not st.persistent_enabled or st.store is None:
+                return
+            if not st.persistent_dirty:
+                return
+
+            payload = {
+                "queue": st.queue or [],
+                "seen_until": st.seen_until or {},
+                "dropped_total": int(st.dropped_total or 0),
+                "updated_at": _now_iso(),
+            }
+            try:
+                await st.store.async_save(payload)
+                st.persistent_dirty = False
+                data["events_forwarder_persisted_at"] = payload["updated_at"]
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Events forwarder: failed to persist queue: %s", err)
+
+        def _persist_timer(_now) -> None:
+            # callback from async_call_later (sync context)
+            _schedule_task(_persist_save)
+
+        def _persist_mark_dirty() -> None:
+            if not st.persistent_enabled:
+                return
+            st.persistent_dirty = True
+            if st.unsub_persist_timer is None:
+                st.unsub_persist_timer = async_call_later(
+                    hass, st.persistent_flush_interval, _persist_timer
+                )
 
         def _seen_allow(id_key: str) -> bool:
             if not id_key or idempotency_ttl <= 0:
@@ -236,13 +377,26 @@ class EventsForwarderModule:
                 return False
 
             st.seen_until[id_key] = now + idempotency_ttl
+            _persist_mark_dirty()
             return True
 
         def _enqueue(item: dict[str, Any]) -> None:
             if st.queue is None:
                 st.queue = []
             st.queue.append(item)
+
+            # Enforce persistent max size (drop-oldest). If max_size==0, treat as "no limit".
+            if st.persistent_enabled and st.persistent_max_size > 0:
+                overflow = len(st.queue) - st.persistent_max_size
+                if overflow > 0:
+                    del st.queue[:overflow]
+                    st.dropped_total += overflow
+
             data["events_forwarder_queue_len"] = len(st.queue)
+            data["events_forwarder_persistent_queue_len"] = len(st.queue)
+            data["events_forwarder_dropped_total"] = st.dropped_total
+
+            _persist_mark_dirty()
 
             # Schedule flush if this was the first in an empty queue.
             if st.unsub_timer is None:
@@ -406,11 +560,21 @@ class EventsForwarderModule:
 
             if st.queue is None:
                 st.queue = []
-            items = list(st.queue)
-            st.queue = []
-            data["events_forwarder_queue_len"] = 0
-            if not items:
+
+            if not st.queue:
+                data["events_forwarder_queue_len"] = 0
+                data["events_forwarder_persistent_queue_len"] = 0
                 return
+
+            # Take up to max_batch items, keep remainder.
+            items = list(st.queue[:max_batch])
+            remain = list(st.queue[max_batch:])
+            st.queue = remain
+
+            data["events_forwarder_queue_len"] = len(st.queue)
+            data["events_forwarder_persistent_queue_len"] = len(st.queue)
+
+            _persist_mark_dirty()
 
             data["events_forwarder_last"] = {
                 "sent": 0,
@@ -427,6 +591,7 @@ class EventsForwarderModule:
                     "time": _now_iso(),
                     "status": "sent",
                 }
+                _persist_mark_dirty()
             except asyncio.CancelledError:
                 # Cancellation should not happen during normal runtime; record it for debugging.
                 data["events_forwarder_last"] = {
@@ -434,6 +599,11 @@ class EventsForwarderModule:
                     "time": _now_iso(),
                     "status": "cancelled",
                 }
+                # Re-queue: put items back at the front.
+                st.queue = items + (st.queue or [])
+                data["events_forwarder_queue_len"] = len(st.queue)
+                data["events_forwarder_persistent_queue_len"] = len(st.queue)
+                _persist_mark_dirty()
                 return
             except Exception as err:  # noqa: BLE001
                 data["events_forwarder_last"] = {
@@ -444,9 +614,28 @@ class EventsForwarderModule:
                 }
                 _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s", err)
 
+                # Re-queue items (front), keep order.
+                st.queue = items + (st.queue or [])
+
+                # Enforce bounds after re-queue.
+                if st.persistent_enabled and st.persistent_max_size > 0:
+                    overflow = len(st.queue) - st.persistent_max_size
+                    if overflow > 0:
+                        del st.queue[:overflow]
+                        st.dropped_total += overflow
+                        data["events_forwarder_dropped_total"] = st.dropped_total
+
+                data["events_forwarder_queue_len"] = len(st.queue)
+                data["events_forwarder_persistent_queue_len"] = len(st.queue)
+
+                _persist_mark_dirty()
+
         def _flush_timer(_now) -> None:
             # callback from async_call_later (sync context)
             _schedule_task(_flush_now)
+
+        # Load persisted queue before subscriptions.
+        await _persist_load()
 
         # initial subscriptions + listen for zone updates
         await _refresh_subscriptions()
@@ -478,6 +667,8 @@ class EventsForwarderModule:
                 st.unsub_timer()
             if callable(st.unsub_call_service):
                 st.unsub_call_service()
+            if callable(st.unsub_persist_timer):
+                st.unsub_persist_timer()
 
             if isinstance(data, dict):
                 data.pop("events_forwarder_state", None)
@@ -490,6 +681,22 @@ class EventsForwarderModule:
         entry: ConfigEntry = ctx.entry
 
         data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        st = data.get("events_forwarder_state") if isinstance(data, dict) else None
+        if isinstance(st, _ForwarderState) and st.persistent_enabled and st.store is not None:
+            # Best-effort final persist.
+            if st.persistent_dirty:
+                try:
+                    await st.store.async_save(
+                        {
+                            "queue": st.queue or [],
+                            "seen_until": st.seen_until or {},
+                            "dropped_total": int(st.dropped_total or 0),
+                            "updated_at": _now_iso(),
+                        }
+                    )
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.warning("Events forwarder: failed to persist queue on unload: %s", err)
+
         unsub = data.get("unsub_events_forwarder") if isinstance(data, dict) else None
         if callable(unsub):
             unsub()
