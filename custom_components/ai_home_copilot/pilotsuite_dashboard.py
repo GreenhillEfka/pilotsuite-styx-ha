@@ -125,6 +125,23 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
         "sensor.ai_home_copilot_habitus_zones_count",
     ]
 
+    # Systemressourcen (optional; nur anzeigen, wenn vorhanden)
+    resource_candidates = [
+        # system_monitor (typisch)
+        "sensor.processor_use",
+        "sensor.memory_use_percent",
+        "sensor.disk_use_percent",
+        "sensor.load_1m",
+        "sensor.load_5m",
+        "sensor.load_15m",
+        # alternative naming (je nach Setup)
+        "sensor.cpu_use",
+        "sensor.ram_use_percent",
+        "sensor.system_monitor_processor_use",
+        "sensor.system_monitor_memory_use_percent",
+    ]
+    resource_entities = [e for e in resource_candidates if hass.states.get(e) is not None]
+
     operations_entities = [
         "button.ai_home_copilot_reload_config_entry",
         "button.ai_home_copilot_forwarder_status",
@@ -191,15 +208,16 @@ Dieses Dashboard wird von **AI Home CoPilot** generiert (governance-first).
 """,
     )
 
-    grid = _grid_card(
-        [
-            _entities_card("Status", overview_entities),
-            _entities_card("Betrieb (sicher)", operations_entities),
-            _entities_card("Dashboards (Generate)", dashboards_entities),
-            _entities_card("Core API", core_entities),
-        ],
-        columns=2,
-    )
+    grid_cards = [
+        _entities_card("Status", overview_entities),
+        _entities_card("Betrieb (sicher)", operations_entities),
+        _entities_card("Dashboards (Generate)", dashboards_entities),
+        _entities_card("Core API", core_entities),
+    ]
+    if resource_entities:
+        grid_cards.append(_entities_card("Systemressourcen", resource_entities))
+
+    grid = _grid_card(grid_cards, columns=2)
 
     views.append(_view("CoPilot", "copilot", "mdi:robot-outline", "\n\n".join([intro, grid])))
 
@@ -283,10 +301,11 @@ Wenn `/api/v1/events` leer bleibt:
     persistent_notification.async_create(
         hass,
         (
-            f"Generated PilotSuite dashboard YAML at:\n{out_path}\n\n"
-            f"Latest (stable):\n{latest_path}"
+            f"PilotSuite-Dashboard YAML generiert:\n{out_path}\n\n"
+            f"Latest (stabil):\n{latest_path}\n\n"
+            "Hinweis: In der Regel reicht **Generate** + Browser-Reload (das Dashboard referenziert die latest-Datei)."
         ),
-        title="AI Home CoPilot PilotSuite dashboard",
+        title="AI Home CoPilot PilotSuite",
         notification_id="ai_home_copilot_pilotsuite_dashboard",
     )
 
