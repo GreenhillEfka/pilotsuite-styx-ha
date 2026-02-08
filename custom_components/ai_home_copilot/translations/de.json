@@ -150,7 +150,8 @@
       "cannot_connect": "Verbindung fehlgeschlagen",
       "cannot_read": "Snapshot-Datei konnte nicht gelesen werden",
       "invalid_json": "Ungültiges JSON",
-      "confirm_required": "Bitte bestätigen"
+      "confirm_required": "Bitte bestätigen",
+      "invalid": "Ungültige Eingabe"
     }
   },
   "issues": {

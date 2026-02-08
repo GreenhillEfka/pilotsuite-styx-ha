@@ -4,6 +4,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .blueprints import async_install_blueprints
 from .core.runtime import CopilotRuntime
 from .core.modules.legacy import LegacyModule
 from .core.modules.events_forwarder import EventsForwarderModule
@@ -28,6 +29,9 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # Install shipped blueprints (does not create automations).
+    await async_install_blueprints(hass)
+
     runtime = _get_runtime(hass)
     await runtime.async_setup_entry(entry, modules=["legacy", "events_forwarder", "dev_surface"])
     return True

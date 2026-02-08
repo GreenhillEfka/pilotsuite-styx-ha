@@ -8,4 +8,6 @@ Dieses Dokument listet **Work-in-progress** Änderungen, die noch **nicht** als 
 ## Unreleased (development)
 
 ### In Arbeit
-- 
+- Repairs/Blueprints: governance-first Apply-Flow (confirm-first) + Transaction-Log (WIP)
+- dev_surface: UI Buttons + PilotSuite toggle (WIP integriert)
+- diagnostics_contract: contract-shaped Diagnostics + Support-Bundle (WIP integriert) 
