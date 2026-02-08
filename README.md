@@ -2,6 +2,11 @@
 
 This repository is structured as a **Home Assistant Add-on repository** (for installing the Core service) and also contains a **custom integration scaffold** (adapter).
 
+## Start here (docs index)
+- **Start here:** `docs/START_HERE.md`
+- **Ethics & Governance:** `docs/ETHICS_GOVERNANCE.md`
+- **Changelog:** `CHANGELOG.md`
+
 ## Install (Add-on repo)
 Home Assistant → Settings → Add-ons → Add-on Store → ⋮ → Repositories → add this repo URL.
 

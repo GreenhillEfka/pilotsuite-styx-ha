@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a problem in the Copilot Core add-on
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please redact tokens and sensitive home data.
+
+  - type: input
+    id: version
+    attributes:
+      label: Add-on version
+      placeholder: copilot_core-v0.1.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (sanitized)
+      render: text
