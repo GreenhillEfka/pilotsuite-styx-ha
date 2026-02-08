@@ -24,36 +24,111 @@ def _copy(src: Path, dst: Path) -> None:
     shutil.copyfile(src, dst)
 
 
+def _domain(entity_id: str) -> str:
+    return entity_id.split(".", 1)[0] if "." in entity_id else ""
+
+
+def _entities_card_yaml(title: str, entities: list[str]) -> str:
+    lines = [
+        "      - type: entities",
+        f"        title: {title}",
+        "        show_header_toggle: false",
+        "        entities:",
+    ]
+    if not entities:
+        lines.append("          - type: section")
+        lines.append("            label: (none)")
+    else:
+        for eid in entities:
+            lines.append(f"          - entity: {eid}")
+    return "\n".join(lines)
+
+
+def _history_graph_yaml(title: str, entities: list[str]) -> str:
+    lines = [
+        "      - type: history-graph",
+        f"        title: {title}",
+        "        hours_to_show: 24",
+        "        entities:",
+    ]
+    if not entities:
+        lines.append("          - sensor.time")
+    else:
+        for eid in entities[:12]:
+            lines.append(f"          - {eid}")
+    return "\n".join(lines)
+
+
+def _logbook_yaml(title: str, entities: list[str]) -> str:
+    lines = [
+        "      - type: logbook",
+        f"        title: {title}",
+        "        hours_to_show: 24",
+        "        entities:",
+    ]
+    if not entities:
+        lines.append("          - sensor.time")
+    else:
+        for eid in entities[:12]:
+            lines.append(f"          - {eid}")
+    return "\n".join(lines)
+
+
 def _lovelace_yaml_for_zone(zone_id: str, zone_name: str, entity_ids: list[str]) -> str:
     """Return a YAML snippet for one Lovelace view.
 
-    Keep it simple and robust: one entities card + one history graph.
+    UX goal: small, readable grouping by domain (no custom cards).
     """
 
-    entities_yaml = "\n".join(f"          - entity: {eid}" for eid in entity_ids)
-    if not entities_yaml:
-        entities_yaml = "          - entity: sensor.time\n            name: (no entities configured)"
+    groups: dict[str, list[str]] = {
+        "binary_sensor": [],
+        "light": [],
+        "cover": [],
+        "climate": [],
+        "media_player": [],
+        "sensor": [],
+        "other": [],
+    }
 
-    graph_ents = entity_ids[:12]
-    graph_yaml = "\n".join(f"          - {eid}" for eid in graph_ents)
-    if not graph_yaml:
-        graph_yaml = "          - sensor.time"
+    for eid in entity_ids:
+        d = _domain(eid)
+        if d in groups:
+            groups[d].append(eid)
+        else:
+            groups["other"].append(eid)
+
+    # Key signals for history/logbook: motion + lights + media + climate.
+    key_signals = (
+        groups["binary_sensor"][:2]
+        + groups["light"][:6]
+        + groups["media_player"][:4]
+        + groups["climate"][:2]
+    )
+
+    cards: list[str] = []
+    cards.append(_entities_card_yaml(f"{zone_name} — Lights", groups["light"]))
+    cards.append(_entities_card_yaml(f"{zone_name} — Presence/Motion", groups["binary_sensor"]))
+    if groups["media_player"]:
+        cards.append(_entities_card_yaml(f"{zone_name} — Media", groups["media_player"]))
+    if groups["climate"]:
+        cards.append(_entities_card_yaml(f"{zone_name} — Climate", groups["climate"]))
+    if groups["cover"]:
+        cards.append(_entities_card_yaml(f"{zone_name} — Covers", groups["cover"]))
+    if groups["sensor"]:
+        cards.append(_entities_card_yaml(f"{zone_name} — Sensors", groups["sensor"]))
+    if groups["other"]:
+        cards.append(_entities_card_yaml(f"{zone_name} — Other", groups["other"]))
+
+    cards.append(_history_graph_yaml(f"{zone_name} — History (24h)", key_signals))
+    cards.append(_logbook_yaml(f"{zone_name} — Logbook (24h)", key_signals))
 
     return (
         f"  - title: {zone_name}\n"
         f"    path: hz-{zone_id}\n"
         f"    icon: mdi:home-circle\n"
         f"    cards:\n"
-        f"      - type: entities\n"
-        f"        title: {zone_name} — Controls & Signals\n"
-        f"        show_header_toggle: false\n"
-        f"        entities:\n"
-        f"{entities_yaml}\n\n"
-        f"      - type: history-graph\n"
-        f"        title: {zone_name} — History (last 24h)\n"
-        f"        hours_to_show: 24\n"
-        f"        entities:\n"
-        f"{graph_yaml}\n"
+        + "\n\n".join(cards)
+        + "\n"
     )
 
 
