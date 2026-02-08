@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-02-08
+### Fixed
+- OptionsFlow menu labels missing in HA (adds `options.*` translation section for EN/DE).
+
 ## [0.2.4] - 2026-02-08
 ### Fixed
 - German UI: Options/fields now show proper labels (adds `translations/de.json`).
