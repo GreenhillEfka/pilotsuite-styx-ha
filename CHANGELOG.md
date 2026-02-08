@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [copilot_core-v0.2.4] - 2026-02-08
+### Added
+- Brain Graph skeleton (v0.1): `GET /api/v1/graph/state` and `GET /api/v1/graph/snapshot.svg` (placeholder).
+
+### Changed
+- Events ingest is now idempotent (TTL+LRU dedupe). Retries will not create duplicate stored events.
+- `/api/v1/capabilities` advertises idempotency support and settings.
+
 ## [copilot_core-v0.2.3] - 2026-02-08
 ### Added
 - Startup log line includes the listening port.
