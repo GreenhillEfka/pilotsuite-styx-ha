@@ -13,9 +13,11 @@ from .const import (
     CONF_DEVLOG_PUSH_ENABLED,
     CONF_MEDIA_MUSIC_PLAYERS,
     CONF_MEDIA_TV_PLAYERS,
+    CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     DEFAULT_DEVLOG_PUSH_ENABLED,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
     DEFAULT_MEDIA_TV_PLAYERS,
+    DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
 )
 from .habitus_zones_store import async_get_zones
 from .pilotsuite_dashboard_store import PilotSuiteDashboardState, async_get_state, async_set_state
@@ -146,11 +148,28 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
         "button.ai_home_copilot_reload_config_entry",
         "button.ai_home_copilot_forwarder_status",
         "button.ai_home_copilot_fetch_ha_errors",
-        "button.ai_home_copilot_safety_backup_create",
-        "button.ai_home_copilot_safety_backup_status",
-        "button.ai_home_copilot_generate_config_snapshot",
-        "button.ai_home_copilot_download_config_snapshot",
     ]
+
+    show_safety_backup = bool(
+        cfg.get(
+            CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+            DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+        )
+    )
+    if show_safety_backup:
+        operations_entities.extend(
+            [
+                "button.ai_home_copilot_safety_backup_create",
+                "button.ai_home_copilot_safety_backup_status",
+            ]
+        )
+
+    operations_entities.extend(
+        [
+            "button.ai_home_copilot_generate_config_snapshot",
+            "button.ai_home_copilot_download_config_snapshot",
+        ]
+    )
 
     # Generate reicht: die Dashboards referenzieren jeweils die stabile `*_latest.yaml` Datei.
     # Download/Publish ist nur für /local-Downloads nötig.
@@ -162,6 +181,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     core_entities = [
         "button.ai_home_copilot_fetch_core_capabilities",
         "button.ai_home_copilot_fetch_core_events",
+        "button.ai_home_copilot_fetch_core_graph_state",
     ]
 
     habitus_entities = [
