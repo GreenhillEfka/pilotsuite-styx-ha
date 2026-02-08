@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-02-08
+### Fixed
+- Events forwarder reliability: schedule tasks strictly on the event loop and record send status (sending/sent/error/cancelled).
+
 ## [0.2.10] - 2026-02-08
 ### Changed
 - Forwarder status now shows: last seen event + queue length (helps debug why events are not reaching Core).

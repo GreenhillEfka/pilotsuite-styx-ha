@@ -104,15 +104,19 @@ class EventsForwarderModule:
         max_batch = int(cfg.get(CONF_EVENTS_FORWARDER_MAX_BATCH, DEFAULT_EVENTS_FORWARDER_MAX_BATCH))
         max_batch = max(1, min(max_batch, 500))
 
-        def _schedule(coro) -> None:
-            # Some HA callbacks may execute outside the event loop thread.
-            # Use call_soon_threadsafe to avoid non-thread-safe warnings/crashes.
-            try:
-                hass.loop.call_soon_threadsafe(hass.async_create_task, coro)
-            except Exception:  # noqa: BLE001
-                # Best effort fallback.
-                hass.async_create_task(coro)
+        def _schedule_task(coro_fn) -> None:
+            """Schedule a coroutine function on the HA event loop.
 
+            Avoid creating coroutine objects outside the loop thread.
+            """
+
+            def _run() -> None:
+                hass.async_create_task(coro_fn())
+
+            try:
+                hass.loop.call_soon_threadsafe(_run)
+            except Exception:  # noqa: BLE001
+                _run()
         async def _refresh_subscriptions() -> None:
             zones = await async_get_zones(hass, entry.entry_id)
             entity_to_zone: dict[str, list[str]] = {}
@@ -193,7 +197,7 @@ class EventsForwarderModule:
 
                     # Flush immediately on size.
                     if len(st.queue or []) >= max_batch:
-                        _schedule(_flush_now())
+                        _schedule_task(_flush_now)
 
                 except Exception as e:  # noqa: BLE001
                     _LOGGER.debug("Events forwarder state handler failed: %s", e)
@@ -217,6 +221,12 @@ class EventsForwarderModule:
             if not items:
                 return
 
+            data["events_forwarder_last"] = {
+                "sent": 0,
+                "time": _now_iso(),
+                "status": "sending",
+            }
+
             payload = {"items": items}
             try:
                 await api.async_post("/api/v1/events", payload)
@@ -224,18 +234,28 @@ class EventsForwarderModule:
                 data["events_forwarder_last"] = {
                     "sent": len(items),
                     "time": _now_iso(),
+                    "status": "sent",
                 }
+            except asyncio.CancelledError:
+                # Cancellation should not happen during normal runtime; record it for debugging.
+                data["events_forwarder_last"] = {
+                    "sent": 0,
+                    "time": _now_iso(),
+                    "status": "cancelled",
+                }
+                return
             except Exception as err:  # noqa: BLE001
                 data["events_forwarder_last"] = {
                     "sent": 0,
                     "time": _now_iso(),
+                    "status": "error",
                     "error": str(err),
                 }
                 _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s", err)
 
         def _flush_timer(_now) -> None:
             # callback from async_call_later (sync context)
-            _schedule(_flush_now())
+            _schedule_task(_flush_now)
 
         # initial subscriptions + listen for zone updates
         await _refresh_subscriptions()
@@ -243,7 +263,7 @@ class EventsForwarderModule:
         def _zones_updated(updated_entry_id: str) -> None:
             if updated_entry_id != entry.entry_id:
                 return
-            _schedule(_refresh_subscriptions())
+            _schedule_task(_refresh_subscriptions)
 
         st.unsub_zones = async_dispatcher_connect(hass, SIGNAL_HABITUS_ZONES_UPDATED, _zones_updated)
         data["unsub_events_forwarder"] = self._unsub_factory(hass, entry.entry_id)
