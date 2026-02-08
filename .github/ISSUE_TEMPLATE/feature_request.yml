@@ -1,0 +1,19 @@
+name: Feature request
+description: Propose an API/module improvement for Copilot Core
+labels: [enhancement]
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe desired behavior and safety constraints.
+    validations:
+      required: true
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy / governance
+      description: What data is needed? What is the consent model?
+    validations:
+      required: true
