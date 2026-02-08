@@ -7,17 +7,17 @@ Ziel: Du sollst jederzeit sehen können, woran gerade gearbeitet wird – **ohne
   - Releases entstehen als Tags `vX.Y.Z`.
   - Das ist der Branch, den HACS typischerweise über Releases installiert.
 
-- **`dev`**: „Work in progress“ (WIP)
+- **`development`**: „Work in progress“ (WIP)
   - Hier landen Änderungen **vor** dem nächsten Release.
   - Kann vorübergehend unfertig sein (aber soll immer buildbar bleiben).
   - Keine Garantie, dass jede Commit-Serie schon eine saubere Migration hat.
 
 ## Wie du nachschaust
-- GitHub → Branch `dev` öffnen → Commits/Diffs ansehen.
+- GitHub → Branch `development` öffnen → Commits/Diffs ansehen.
 
 ## Wie wir releasen
 - Wenn ein Feature fertig + getestet ist:
-  1) Merge `dev` → `main`
+  1) Merge `development` → `main`
   2) Tag `vX.Y.Z`
   3) GitHub Release Notes
 
