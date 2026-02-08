@@ -39,6 +39,7 @@ from .button_safety_backup import (
 from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
 from .button_update_rollback import CopilotUpdateRollbackReportButton
 from .brain_graph_viz import async_publish_brain_graph_viz
+from .button_ops_runbook import CopilotOpsRunbookPreflightButton
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -83,6 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
             CopilotTagRegistrySyncLabelsNowButton(coordinator),
             CopilotUpdateRollbackReportButton(coordinator),
+            CopilotOpsRunbookPreflightButton(coordinator, entry),
         ],
         True,
     )

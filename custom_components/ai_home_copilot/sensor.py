@@ -42,7 +42,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotInventoryLastRunSensor(coordinator),
         BrainGraphNodeCountSensor(coordinator),
         BrainGraphEdgeCountSensor(coordinator),
+        OpsRunbookPreflightSensor(coordinator),
     ]
+
+    # Store ops_runbook sensor ref for button-driven updates.
+    if isinstance(data, dict):
+        data["ops_runbook_sensor"] = entities[-1]
 
     # Events Forwarder quality sensors (v0.1 kernel)
     if isinstance(data, dict) and data.get("events_forwarder_state") is not None:
