@@ -1,10 +1,13 @@
 import os
+import io
 import json
 import re
 from datetime import datetime, timezone
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from waitress import serve
+
+from diagnostics_contract import build_bundle_zip
 
 APP_VERSION = os.environ.get("COPILOT_VERSION", "0.1.1")
 
@@ -156,7 +159,7 @@ def index():
     return (
         "AI Home CoPilot Core (MVP)\n"
         "Endpoints: /health, /version, /api/v1/echo\n"
-        "Dev: /api/v1/dev/status, /api/v1/dev/logs (POST/GET), /api/v1/dev/support_bundle (stub)\n"
+        "Dev: /api/v1/dev/status, /api/v1/dev/logs (POST/GET), /api/v1/dev/support_bundle (zip)\n"
         "Note: This is a scaffold. Neuron/Mood/Synapse engines come next.\n"
     )
 
@@ -198,22 +201,50 @@ def dev_support_bundle():
     if not _require_token():
         return jsonify({"error": "unauthorized", "error_key": "unauthorized"}), 401
 
-    # v0.1 stub: do not generate or persist bundles yet.
-    return jsonify(
-        {
-            "ok": True,
-            "time": _now_iso(),
-            "not_implemented": True,
-            "notes": [
-                "Support bundle generation is intentionally stubbed in v0.1.",
-                "Use Home Assistant diagnostics download + /api/v1/dev/logs export instead.",
-            ],
-            "would_include": [
-                "core /version and /health",
-                "dev log tail (sanitized)",
-                "(later) event store tail",
-            ],
-        }
+    level = str(request.args.get("level", "standard")).strip().lower()
+    if level not in ("minimal", "standard", "deep"):
+        level = "standard"
+
+    # Window defaults per diagnostics_contract v0.1
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    if level == "minimal":
+        default_from = now_ms - 60 * 60 * 1000
+    elif level == "deep":
+        default_from = now_ms - 48 * 60 * 60 * 1000
+    else:
+        default_from = now_ms - 6 * 60 * 60 * 1000
+
+    try:
+        from_ts_ms = int(request.args.get("from_ts_ms", str(default_from)))
+    except Exception:
+        from_ts_ms = default_from
+
+    try:
+        to_ts_ms = int(request.args.get("to_ts_ms", str(now_ms)))
+    except Exception:
+        to_ts_ms = now_ms
+
+    # Clamp deep to max 48h, standard to 6h, minimal to 60m
+    max_window_ms = 48 * 60 * 60 * 1000 if level == "deep" else (6 * 60 * 60 * 1000 if level == "standard" else 60 * 60 * 1000)
+    if to_ts_ms - from_ts_ms > max_window_ms:
+        from_ts_ms = to_ts_ms - max_window_ms
+
+    zip_bytes, _manifest = build_bundle_zip(
+        level=level,
+        window_from_ts_ms=from_ts_ms,
+        window_to_ts_ms=to_ts_ms,
+        core_version=APP_VERSION,
+        dev_log_items=_DEV_LOG_CACHE,
+        focus={"incident_id": request.args.get("incident_id"), "module": request.args.get("module")},
+    )
+
+    fname = f"diagnostics_{now_ms}_{level}.zip"
+    return send_file(
+        io.BytesIO(zip_bytes),
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=fname,
+        max_age=0,
     )
 
 
