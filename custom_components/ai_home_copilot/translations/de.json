@@ -55,7 +55,8 @@
           "devlog_push_max_chars": "Dev: max. Zeichen pro Snippet",
           "ha_errors_digest_enabled": "Ops: HA Fehler-Digest als Benachrichtigung (Opt-in)",
           "ha_errors_digest_interval_seconds": "Ops: HA Fehler-Digest Intervall (Sekunden)",
-          "ha_errors_digest_max_lines": "Ops: HA Fehler-Digest: letzte N Log-Zeilen lesen"
+          "ha_errors_digest_max_lines": "Ops: HA Fehler-Digest: letzte N Log-Zeilen lesen",
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: Safety-Backup Buttons anzeigen"
         }
       },
       "habitus_zones": {

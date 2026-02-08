@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.21] - 2026-02-08
+### Changed
+- PilotSuite: Safety-Backup Buttons werden standardmäßig nicht im Dashboard gezeigt (Option in den Integration-Settings), damit Updates/Neustarts nicht versehentlich durch laufende Backups blockiert werden.
+
 ## [0.2.20] - 2026-02-08
 ### Added
 - Events forwarder: optionale **persistente Queue** (unsent Events über HA-Restarts behalten), bounded + drop-oldest.
