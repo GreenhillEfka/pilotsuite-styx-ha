@@ -67,10 +67,13 @@ async def async_generate_config_snapshot(hass: HomeAssistant, entry: ConfigEntry
         },
     }
 
+    def _write_json(path: str, obj: dict[str, Any]) -> None:
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(obj, fh, ensure_ascii=False, indent=2)
+
     fname = f"ai_home_copilot_snapshot_{_now_stamp()}.json"
     path = os.path.join(EXPORT_DIR, fname)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(snapshot, fh, ensure_ascii=False, indent=2)
+    await hass.async_add_executor_job(_write_json, path, snapshot)
 
     await async_set_last_generated(hass, path)
 
@@ -93,7 +96,7 @@ async def async_publish_last_config_snapshot(hass: HomeAssistant) -> str:
     os.makedirs(PUBLISH_DIR, exist_ok=True)
     base = os.path.basename(src)
     dst = os.path.join(PUBLISH_DIR, base)
-    shutil.copyfile(src, dst)
+    await hass.async_add_executor_job(shutil.copyfile, src, dst)
 
     await async_set_last_published(hass, dst)
 

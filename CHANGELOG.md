@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-02-08
+### Fixed
+- Events forwarder queue bug: events were not enqueued when the queue was empty (prevented any POST to Core).
+- Removed Habitus zones bulk TextEntity from the `text` platform (HA state length limit caused errors). Bulk edit remains in OptionsFlow.
+- Config snapshot export/publish moved to executor (avoids blocking I/O in event loop warnings).
+
 ## [0.2.12] - 2026-02-08
 ### Added
 - Habitus zones: optional categorized `entities:` mapping (named signals like brightness/heating/humidity/co2/cover/lock/door/window/media).

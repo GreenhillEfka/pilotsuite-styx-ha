@@ -179,7 +179,9 @@ class EventsForwarderModule:
                         },
                     }
 
-                    (st.queue or []).append(item)
+                    if st.queue is None:
+                        st.queue = []
+                    st.queue.append(item)
 
                     # Debug stats for operator UX
                     data["events_forwarder_seen"] = {
@@ -189,7 +191,7 @@ class EventsForwarderModule:
                         "new_state": new_state,
                         "zones": zone_ids,
                     }
-                    data["events_forwarder_queue_len"] = len(st.queue or [])
+                    data["events_forwarder_queue_len"] = len(st.queue)
 
                     # Schedule flush if this was the first in an empty queue.
                     if st.unsub_timer is None:
@@ -215,7 +217,9 @@ class EventsForwarderModule:
                 st.unsub_timer()
             st.unsub_timer = None
 
-            items = list(st.queue or [])
+            if st.queue is None:
+                st.queue = []
+            items = list(st.queue)
             st.queue = []
             data["events_forwarder_queue_len"] = 0
             if not items:
