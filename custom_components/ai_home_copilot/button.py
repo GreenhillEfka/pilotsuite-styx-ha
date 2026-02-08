@@ -26,6 +26,7 @@ from .pilotsuite_dashboard import (
     async_publish_last_pilotsuite_dashboard,
 )
 from .core_v1 import async_fetch_core_capabilities
+from .ha_errors_digest import async_show_ha_errors_digest
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -49,6 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogsFetchButton(coordinator, entry),
             CopilotCoreCapabilitiesFetchButton(coordinator, entry),
             CopilotCoreEventsFetchButton(coordinator, entry),
+            CopilotHaErrorsFetchButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
             CopilotGenerateHabitusDashboardButton(coordinator, entry),
             CopilotDownloadHabitusDashboardButton(coordinator, entry),
@@ -392,6 +394,20 @@ class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
             title="AI Home CoPilot Core events (last 20)",
             notification_id="ai_home_copilot_core_events",
         )
+
+
+class CopilotHaErrorsFetchButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot fetch HA errors"
+    _attr_unique_id = "ai_home_copilot_fetch_ha_errors"
+    _attr_icon = "mdi:alert-circle-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_show_ha_errors_digest(self.hass, self._entry)
 
 
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):

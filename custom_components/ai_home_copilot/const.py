@@ -24,6 +24,11 @@ CONF_DEVLOG_PUSH_ENABLED = "devlog_push_enabled"
 CONF_EVENTS_FORWARDER_ENABLED = "events_forwarder_enabled"
 CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS = "events_forwarder_flush_interval_seconds"
 CONF_EVENTS_FORWARDER_MAX_BATCH = "events_forwarder_max_batch"
+
+# HA log digest (local): surface relevant errors/warnings in HA (opt-in).
+CONF_HA_ERRORS_DIGEST_ENABLED = "ha_errors_digest_enabled"
+CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS = "ha_errors_digest_interval_seconds"
+CONF_HA_ERRORS_DIGEST_MAX_LINES = "ha_errors_digest_max_lines"
 CONF_DEVLOG_PUSH_INTERVAL_SECONDS = "devlog_push_interval_seconds"
 CONF_DEVLOG_PUSH_PATH = "devlog_push_path"
 CONF_DEVLOG_PUSH_MAX_LINES = "devlog_push_max_lines"
@@ -58,6 +63,10 @@ DEFAULT_DEVLOG_PUSH_MAX_CHARS = 6000
 DEFAULT_EVENTS_FORWARDER_ENABLED = False
 DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS = 5
 DEFAULT_EVENTS_FORWARDER_MAX_BATCH = 50
+
+DEFAULT_HA_ERRORS_DIGEST_ENABLED = False
+DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS = 300
+DEFAULT_HA_ERRORS_DIGEST_MAX_LINES = 800
 
 DEFAULT_SUGGESTION_SEED_ENTITIES: list[str] = []
 DEFAULT_SEED_ALLOWED_DOMAINS: list[str] = []

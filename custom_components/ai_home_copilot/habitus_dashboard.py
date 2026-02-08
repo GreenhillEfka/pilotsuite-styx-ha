@@ -77,8 +77,10 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
 
     out_dir = Path(hass.config.path("ai_home_copilot"))
     out_path = out_dir / f"habitus_zones_dashboard_{ts}.yaml"
+    latest_path = out_dir / "habitus_zones_dashboard_latest.yaml"
 
     await hass.async_add_executor_job(_write_text, out_path, content)
+    await hass.async_add_executor_job(_write_text, latest_path, content)
 
     st = await async_get_state(hass)
     st.last_path = str(out_path)
@@ -86,7 +88,10 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
 
     persistent_notification.async_create(
         hass,
-        f"Generated Habitus zones dashboard YAML at: {out_path}",
+        (
+            f"Generated Habitus zones dashboard YAML at:\n{out_path}\n\n"
+            f"Latest (stable):\n{latest_path}"
+        ),
         title="AI Home CoPilot Habitus dashboard",
         notification_id="ai_home_copilot_habitus_dashboard",
     )
@@ -102,12 +107,19 @@ async def async_publish_last_habitus_dashboard(hass: HomeAssistant) -> str:
         # Nothing generated yet.
         raise FileNotFoundError("No Habitus dashboard generated yet")
 
-    src = Path(st.last_path)
+    # Publish stable latest file, and keep timestamped archive locally.
+    out_dir = Path(hass.config.path("ai_home_copilot"))
+    latest_src = out_dir / "habitus_zones_dashboard_latest.yaml"
+    if latest_src.exists():
+        src = latest_src
+    else:
+        src = Path(st.last_path)
+
     if not src.exists():
         raise FileNotFoundError(str(src))
 
     www_dir = Path(hass.config.path("www")) / "ai_home_copilot"
-    dst = www_dir / src.name
+    dst = www_dir / "habitus_zones_dashboard_latest.yaml"
 
     await hass.async_add_executor_job(_copy, src, dst)
 
@@ -117,7 +129,7 @@ async def async_publish_last_habitus_dashboard(hass: HomeAssistant) -> str:
     url = f"/local/ai_home_copilot/{dst.name}"
     persistent_notification.async_create(
         hass,
-        f"Habitus dashboard published. Open: {url}",
+        f"Habitus dashboard published (stable). Open: {url}",
         title="AI Home CoPilot Habitus dashboard download",
         notification_id="ai_home_copilot_habitus_dashboard_download",
     )

@@ -47,7 +47,10 @@
           "devlog_push_interval_seconds": "Dev: push interval (seconds)",
           "devlog_push_path": "Dev: Core endpoint path",
           "devlog_push_max_lines": "Dev: read last N log lines",
-          "devlog_push_max_chars": "Dev: max chars per snippet"
+          "devlog_push_max_chars": "Dev: max chars per snippet",
+          "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
+          "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
+          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines"
         }
       },
       "habitus_zones": {
@@ -217,7 +220,10 @@
           "devlog_push_interval_seconds": "Dev: push interval (seconds)",
           "devlog_push_path": "Dev: Core endpoint path",
           "devlog_push_max_lines": "Dev: read last N log lines",
-          "devlog_push_max_chars": "Dev: max chars per snippet"
+          "devlog_push_max_chars": "Dev: max chars per snippet",
+          "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
+          "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
+          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines"
         }
       },
       "habitus_zones": {

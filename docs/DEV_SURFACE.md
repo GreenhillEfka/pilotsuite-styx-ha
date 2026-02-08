@@ -13,7 +13,13 @@ Goal: make development safe and fast without breaking the core principles.
   - analyze logs
   - reload
 
-### 2) DevLogs pipeline (HA → Core)
+### 2) HA error digest (local)
+- Optional operator tool: read and filter the last lines of `/config/home-assistant.log` and show only relevant errors/warnings as a persistent notification.
+- Supports:
+  - Manual button: `fetch HA errors`
+  - Auto-digest (opt-in): every N seconds (default 300)
+
+### 3) DevLogs pipeline (HA → Core)
 - Browser access to `/devlogs` may show `unauthorized` when `auth_token` is set.
 - The recommended operator workflow is:
   1) press `devlog push test`

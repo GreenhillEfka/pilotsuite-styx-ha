@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-02-08
+### Added
+- Ops: HA error digest (manual button + optional auto-digest every N seconds).
+- Dashboards: keep a stable "latest" filename on generate/publish, while still writing timestamped archives.
+
 ## [0.2.7] - 2026-02-08
 ### Fixed
 - Events forwarder thread-safety: avoid calling `hass.async_create_task` outside the event loop (prevents HA warnings/crash risk).

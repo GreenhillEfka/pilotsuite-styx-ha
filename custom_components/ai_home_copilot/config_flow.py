@@ -30,6 +30,9 @@ from .const import (
     CONF_EVENTS_FORWARDER_ENABLED,
     CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
     CONF_EVENTS_FORWARDER_MAX_BATCH,
+    CONF_HA_ERRORS_DIGEST_ENABLED,
+    CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
+    CONF_HA_ERRORS_DIGEST_MAX_LINES,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
@@ -53,6 +56,9 @@ from .const import (
     DEFAULT_EVENTS_FORWARDER_ENABLED,
     DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
     DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
+    DEFAULT_HA_ERRORS_DIGEST_ENABLED,
+    DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
+    DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
     DOMAIN,
 )
 
@@ -237,6 +243,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     default=data.get(
                         CONF_EVENTS_FORWARDER_MAX_BATCH,
                         DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
+                    ),
+                ): int,
+
+                # Local HA log digest (opt-in): show relevant warnings/errors as notifications.
+                vol.Optional(
+                    CONF_HA_ERRORS_DIGEST_ENABLED,
+                    default=data.get(CONF_HA_ERRORS_DIGEST_ENABLED, DEFAULT_HA_ERRORS_DIGEST_ENABLED),
+                ): bool,
+                vol.Optional(
+                    CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
+                    default=data.get(
+                        CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
+                        DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_HA_ERRORS_DIGEST_MAX_LINES,
+                    default=data.get(
+                        CONF_HA_ERRORS_DIGEST_MAX_LINES,
+                        DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
                     ),
                 ): int,
 

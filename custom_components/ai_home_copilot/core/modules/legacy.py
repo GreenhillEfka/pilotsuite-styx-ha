@@ -7,6 +7,7 @@ from ...blueprints import async_install_blueprints
 from ...const import DOMAIN
 from ...coordinator import CopilotDataUpdateCoordinator
 from ...devlog_push import async_setup_devlog_push
+from ...ha_errors_digest import async_setup_ha_errors_digest
 from ...seed_adapter import async_setup_seed_adapter
 from ...media_setup import async_setup_media_context, async_unload_media_context
 from ...webhook import async_register_webhook, async_unregister_webhook
@@ -41,10 +42,14 @@ class LegacyModule:
             hass, entry, coordinator_api=coordinator.api
         )
 
+        # Local HA log digest (opt-in): surfaces relevant warnings/errors via notifications.
+        unsub_ha_errors = await async_setup_ha_errors_digest(hass, entry)
+
         hass.data[DOMAIN][entry.entry_id] = {
             "coordinator": coordinator,
             "webhook_id": webhook_id,
             "unsub_devlog_push": unsub_devlog_push,
+            "unsub_ha_errors": unsub_ha_errors,
         }
 
         # Core API v1: capabilities ping (best-effort, read-only).
@@ -82,6 +87,10 @@ class LegacyModule:
             unsub_devlog = data.get("unsub_devlog_push") if isinstance(data, dict) else None
             if callable(unsub_devlog):
                 unsub_devlog()
+
+            unsub_ha_errors = data.get("unsub_ha_errors") if isinstance(data, dict) else None
+            if callable(unsub_ha_errors):
+                unsub_ha_errors()
 
             await async_unload_media_context(hass, entry)
 
