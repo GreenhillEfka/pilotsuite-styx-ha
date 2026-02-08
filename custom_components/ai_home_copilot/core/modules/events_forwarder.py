@@ -142,6 +142,7 @@ class _ForwarderState:
     entity_ids: list[str] | None = None
     entity_to_zone_ids: dict[str, list[str]] | None = None
 
+    # bounded in-memory queue (drop-oldest policy enforced by our enqueue helpers)
     queue: list[dict[str, Any]] | None = None
 
     # best-effort idempotency (in-memory, optionally persisted)
@@ -153,7 +154,18 @@ class _ForwarderState:
     persistent_dirty: bool = False
     persistent_flush_interval: int = 5
     persistent_max_size: int = 500
+
+    # stats / observability
     dropped_total: int = 0
+    sent_total: int = 0
+    error_total: int = 0
+    error_streak: int = 0
+    last_success_ts: float | None = None
+    first_error_ts: float | None = None
+    last_error_ts: float | None = None
+
+    # concurrency guard (avoid overlapping flush tasks)
+    flushing: bool = False
 
 
 def _entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
@@ -354,6 +366,8 @@ class EventsForwarderModule:
 
         def _persist_timer(_now) -> None:
             # callback from async_call_later (sync context)
+            # clear timer handle so future dirty writes can be scheduled
+            st.unsub_persist_timer = None
             _schedule_task(_persist_save)
 
         def _persist_mark_dirty() -> None:
@@ -393,8 +407,9 @@ class EventsForwarderModule:
                 st.queue = []
             st.queue.append(item)
 
-            # Enforce persistent max size (drop-oldest). If max_size==0, treat as "no limit".
-            if st.persistent_enabled and st.persistent_max_size > 0:
+            # Enforce bounded queue (drop-oldest). If max_size==0, treat as "no limit".
+            # We apply this even when persistence is disabled to avoid unbounded RAM growth.
+            if st.persistent_max_size > 0:
                 overflow = len(st.queue) - st.persistent_max_size
                 if overflow > 0:
                     del st.queue[:overflow]
@@ -561,6 +576,11 @@ class EventsForwarderModule:
                 _LOGGER.debug("Events forwarder call_service handler failed: %s", e)
 
         async def _flush_now() -> None:
+            # Avoid overlapping flush tasks; keep queue semantics predictable.
+            if st.flushing:
+                return
+            st.flushing = True
+
             # Cancel pending timer if any
             if callable(st.unsub_timer):
                 st.unsub_timer()
@@ -572,6 +592,7 @@ class EventsForwarderModule:
             if not st.queue:
                 data["events_forwarder_queue_len"] = 0
                 data["events_forwarder_persistent_queue_len"] = 0
+                st.flushing = False
                 return
 
             # Take up to max_batch items, keep remainder.
@@ -623,6 +644,7 @@ class EventsForwarderModule:
                 data["events_forwarder_queue_len"] = len(st.queue)
                 data["events_forwarder_persistent_queue_len"] = len(st.queue)
                 _persist_mark_dirty()
+                st.flushing = False
                 return
             except Exception as err:  # noqa: BLE001
                 st.error_total += 1
@@ -649,7 +671,7 @@ class EventsForwarderModule:
                 st.queue = items + (st.queue or [])
 
                 # Enforce bounds after re-queue.
-                if st.persistent_enabled and st.persistent_max_size > 0:
+                if st.persistent_max_size > 0:
                     overflow = len(st.queue) - st.persistent_max_size
                     if overflow > 0:
                         del st.queue[:overflow]
@@ -660,6 +682,8 @@ class EventsForwarderModule:
                 data["events_forwarder_persistent_queue_len"] = len(st.queue)
 
                 _persist_mark_dirty()
+
+            st.flushing = False
 
         def _flush_timer(_now) -> None:
             # callback from async_call_later (sync context)
