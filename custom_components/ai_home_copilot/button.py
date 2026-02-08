@@ -16,6 +16,7 @@ from .const import (
 from .entity import CopilotBaseEntity
 from .inventory import async_generate_ha_overview
 from .inventory_publish import async_publish_last_overview
+from .inventory_kernel import async_generate_and_publish_inventory
 from .config_snapshot import async_generate_config_snapshot, async_publish_last_config_snapshot
 from .systemhealth_report import async_generate_and_publish_systemhealth_report
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
@@ -36,6 +37,7 @@ from .button_safety_backup import (
     CopilotSafetyBackupStatusButton,
 )
 from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
+from .button_update_rollback import CopilotUpdateRollbackReportButton
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -51,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotRollbackLastFixButton(coordinator),
             CopilotGenerateOverviewButton(coordinator),
             CopilotDownloadOverviewButton(coordinator),
+            CopilotGenerateInventoryButton(coordinator),
             CopilotSystemHealthReportButton(coordinator),
             CopilotGenerateConfigSnapshotButton(coordinator, entry),
             CopilotDownloadConfigSnapshotButton(coordinator),
@@ -77,6 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
             CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
             CopilotTagRegistrySyncLabelsNowButton(coordinator),
+            CopilotUpdateRollbackReportButton(coordinator),
         ],
         True,
     )
@@ -160,6 +164,17 @@ class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_publish_last_overview(self.hass)
+
+
+class CopilotGenerateInventoryButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot generate inventory"
+    _attr_unique_id = "ai_home_copilot_generate_inventory"
+    _attr_icon = "mdi:clipboard-list"
+
+    async def async_press(self) -> None:
+        await async_generate_and_publish_inventory(self.hass)
 
 
 class CopilotSystemHealthReportButton(CopilotBaseEntity, ButtonEntity):

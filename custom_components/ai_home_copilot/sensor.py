@@ -24,6 +24,7 @@ from .forwarder_quality_entities import (
     EventsForwarderErrorStreakSensor,
     EventsForwarderQueueDepthSensor,
 )
+from .inventory_entities import CopilotInventoryLastRunSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -36,6 +37,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusZonesCountSensor(coordinator, entry),
         SystemHealthEntityCountSensor(coordinator),
         SystemHealthSqliteDbSizeSensor(coordinator),
+        CopilotInventoryLastRunSensor(coordinator),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)
