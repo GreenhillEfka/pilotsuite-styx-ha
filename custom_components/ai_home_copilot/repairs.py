@@ -122,6 +122,7 @@ class SeedRepairFlow(RepairsFlow):
         source: str,
         entities: str,
         excerpt: str,
+        issue_data: dict | None = None,
         issue_id: str | None = None,
     ) -> None:
         self.hass = hass
@@ -130,6 +131,7 @@ class SeedRepairFlow(RepairsFlow):
         self._source = source
         self._entities = entities
         self._excerpt = excerpt
+        self._issue_data = issue_data or {}
         self._issue_id = issue_id
 
     async def _maybe_delete_issue(self) -> None:
@@ -152,9 +154,37 @@ class SeedRepairFlow(RepairsFlow):
             if user_input["decision"] == "defer":
                 return await self.async_step_defer()
 
+            # Accept
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
             )
+
+            # Special-case: graph edge candidates can be applied to the Core graph (governance-first).
+            if self._issue_data.get("candidate_type") == "graph_edge_candidate":
+                from_id = self._issue_data.get("from")
+                to_id = self._issue_data.get("to")
+                edge_type = self._issue_data.get("edge_type")
+                if isinstance(from_id, str) and isinstance(to_id, str) and isinstance(edge_type, str):
+                    try:
+                        data = self.hass.data.get(DOMAIN, {}).get(self._entry_id)
+                        co = data.get("coordinator") if isinstance(data, dict) else None
+                        api = getattr(co, "api", None) if co is not None else None
+                        if api is not None:
+                            await api.async_post(
+                                "/api/v1/graph/ops",
+                                {
+                                    "op": "touch_edge",
+                                    "from": from_id,
+                                    "to": to_id,
+                                    "type": edge_type,
+                                    "delta": 1.0,
+                                    "idempotency_key": self._candidate_id,
+                                },
+                            )
+                    except Exception:  # noqa: BLE001
+                        # Best-effort only; decision is still recorded.
+                        pass
+
             await self._maybe_delete_issue()
             return self.async_create_entry(title="", data={"result": "accepted"})
 
@@ -256,6 +286,7 @@ async def async_create_fix_flow(
                 source=source,
                 entities=entities_str,
                 excerpt=excerpt,
+                issue_data=data,
                 issue_id=issue_id,
             )
 

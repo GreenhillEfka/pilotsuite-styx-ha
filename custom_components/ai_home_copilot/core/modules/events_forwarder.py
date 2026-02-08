@@ -256,10 +256,18 @@ class EventsForwarderModule:
         if persistent_enabled:
             st.store = Store(hass, version=1, key=_store_key(entry.entry_id))
 
-        # Operator visibility
+        # Operator visibility / observability (read by sensors + diagnostics)
         data["events_forwarder_persistent_enabled"] = persistent_enabled
         data["events_forwarder_persistent_queue_len"] = 0
+        data["events_forwarder_queue_len"] = 0
         data["events_forwarder_dropped_total"] = 0
+        data["events_forwarder_sent_total"] = 0
+        data["events_forwarder_error_total"] = 0
+        data["events_forwarder_error_streak"] = 0
+        data["events_forwarder_last_success_at"] = None
+        data["events_forwarder_last_success_ts"] = None
+        data["events_forwarder_last_error_at"] = None
+        data["events_forwarder_last_error_ts"] = None
 
         def _schedule_task(coro_fn) -> None:
             """Schedule a coroutine function on the HA event loop.
@@ -585,12 +593,23 @@ class EventsForwarderModule:
             payload = {"items": items}
             try:
                 await api.async_post("/api/v1/events", payload)
+
+                st.sent_total += len(items)
+                st.error_streak = 0
+                st.last_success_ts = time.time()
+                st.first_error_ts = None
+
                 # store last stats for diagnostics
                 data["events_forwarder_last"] = {
                     "sent": len(items),
                     "time": _now_iso(),
                     "status": "sent",
                 }
+                data["events_forwarder_sent_total"] = st.sent_total
+                data["events_forwarder_error_streak"] = st.error_streak
+                data["events_forwarder_last_success_at"] = data["events_forwarder_last"]["time"]
+                data["events_forwarder_last_success_ts"] = st.last_success_ts
+
                 _persist_mark_dirty()
             except asyncio.CancelledError:
                 # Cancellation should not happen during normal runtime; record it for debugging.
@@ -606,12 +625,24 @@ class EventsForwarderModule:
                 _persist_mark_dirty()
                 return
             except Exception as err:  # noqa: BLE001
+                st.error_total += 1
+                st.error_streak += 1
+                now_ts = time.time()
+                st.last_error_ts = now_ts
+                if st.first_error_ts is None:
+                    st.first_error_ts = now_ts
+
                 data["events_forwarder_last"] = {
                     "sent": 0,
                     "time": _now_iso(),
                     "status": "error",
                     "error": str(err),
                 }
+                data["events_forwarder_error_total"] = st.error_total
+                data["events_forwarder_error_streak"] = st.error_streak
+                data["events_forwarder_last_error_at"] = data["events_forwarder_last"]["time"]
+                data["events_forwarder_last_error_ts"] = st.last_error_ts
+
                 _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s", err)
 
                 # Re-queue items (front), keep order.

@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .entity import CopilotBaseEntity
 from .media_entities import MusicActiveBinarySensor, TvActiveBinarySensor
+from .forwarder_quality_entities import EventsForwarderConnectedBinarySensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -14,6 +15,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     coordinator = data["coordinator"]
 
     entities = [CopilotOnlineBinarySensor(coordinator)]
+
+    # Events Forwarder quality binary sensor (v0.1 kernel)
+    if isinstance(data, dict) and data.get("events_forwarder_state") is not None:
+        entities.append(EventsForwarderConnectedBinarySensor(coordinator, entry))
 
     media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
     if media_coordinator is not None:
