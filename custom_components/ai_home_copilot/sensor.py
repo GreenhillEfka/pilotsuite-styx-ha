@@ -19,6 +19,11 @@ from .habitus_zones_store import async_get_zones
 from .habitus_zone_aggregates import build_zone_average_sensors
 from .core_v1_entities import CoreApiV1StatusSensor
 from .systemhealth_entities import SystemHealthEntityCountSensor, SystemHealthSqliteDbSizeSensor
+from .forwarder_quality_entities import (
+    EventsForwarderDroppedTotalSensor,
+    EventsForwarderErrorStreakSensor,
+    EventsForwarderQueueDepthSensor,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):

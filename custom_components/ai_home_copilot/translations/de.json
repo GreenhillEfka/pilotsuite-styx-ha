@@ -179,6 +179,10 @@
     "log_blocking_import_module": {
       "title": "Blocking call erkannt: import_module",
       "description": "Home Assistant hat einen blockierenden import_module Call im Event Loop erkannt. Aktualisiere/ersetze die verantwortliche Integration."
+    },
+    "events_forwarder_unhealthy": {
+      "title": "Events-Forwarder liefert keine Events",
+      "description": "CoPilot queued Events, kann sie aber nicht an Core zustellen. Das deutet meist darauf hin, dass Core offline ist, Host/Port/Token falsch sind oder das Netzwerk blockiert.\n\nAktuelle Queue-Tiefe: {queue_len}\nFehler-Serie: {error_streak}\nDrops gesamt: {dropped_total}\n\nPrüfe: ist Core online, stimmen Host/Port/Token in der Integration, und gibt es Verbindungsfehler in den Logs?"
     }
   },
   "options": {
