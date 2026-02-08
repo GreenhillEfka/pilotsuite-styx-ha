@@ -15,6 +15,8 @@ from .media_entities import (
     TvSourceSensor,
 )
 from .habitus_zones_entities import HabitusZonesCountSensor
+from .habitus_zones_store import async_get_zones
+from .habitus_zone_aggregates import build_zone_average_sensors
 from .core_v1_entities import CoreApiV1StatusSensor
 
 
@@ -40,6 +42,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 TvActiveCountSensor(media_coordinator),
             ]
         )
+
+    # Add optional Habitus zone aggregate sensors (e.g., Temperatur Ø / Luftfeuchte Ø).
+    try:
+        zones = await async_get_zones(hass, entry.entry_id)
+        for z in zones:
+            entities.extend(
+                build_zone_average_sensors(
+                    hass=hass,
+                    coordinator=coordinator,
+                    zone_id=z.zone_id,
+                    zone_name=z.name,
+                    entities_by_role=z.entities,
+                )
+            )
+    except Exception:  # noqa: BLE001
+        # Best-effort: never break setup because of aggregates.
+        pass
 
     async_add_entities(entities, True)
 

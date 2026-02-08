@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-02-08
+### Improved
+- Habitus-Dashboard UX (Deutsch): weniger redundante Überschriften, mehr Messwert-Graphen (Helligkeit/Temperatur/Luftfeuchte/CO₂/Lärm/Luftdruck), Motion zeigt „letzte Änderung“.
+- Licht: Sammelschalter (Header-Toggle) + „alle umschalten“-Button.
+- Optional: Habitus-Zonen Durchschnitts-Sensoren (Temperatur Ø / Luftfeuchte Ø), wenn >2 Quellen in der Zone vorhanden sind.
+- Duplikate in „Weitere Entitäten“ reduziert (keine Doppelanzeigen bei gemischter `entity_ids` + `entities` Konfiguration).
+- PilotSuite (Deutsch): Quicklinks, Generate-only Fokus (Download bleibt optional), Dev/Fehler-Buttons gebündelt.
+- PilotSuite: optionaler Block „Systemressourcen“ (CPU/RAM/Load/Disk), falls entsprechende Sensoren existieren.
+
 ## [0.2.13] - 2026-02-08
 ### Fixed
 - Events forwarder queue bug: events were not enqueued when the queue was empty (prevented any POST to Core).

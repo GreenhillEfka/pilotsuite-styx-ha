@@ -57,6 +57,12 @@ _ROLE_ALIASES: dict[str, str] = {
     "fenster": "window",
     "media": "media",
     "volume": "media",
+    # power/energy
+    "power": "power",
+    "leistung": "power",
+    "strom": "power",
+    "energy": "energy",
+    "energie": "energy",
     "other": "other",
 }
 
@@ -96,6 +102,17 @@ def _parse_entities_mapping(raw: Any) -> dict[str, list[str]] | None:
             uniq.append(e)
         out[key] = uniq
 
+    # Prevent cross-role duplicates in `other`.
+    if "other" in out:
+        assigned: set[str] = set()
+        for k, items in out.items():
+            if k == "other":
+                continue
+            assigned.update(items)
+        out["other"] = [e for e in out.get("other", []) if e not in assigned]
+        if not out["other"]:
+            out.pop("other", None)
+
     return out or None
 
 
@@ -122,12 +139,15 @@ def _normalize_zone(obj: dict[str, Any]) -> HabitusZone | None:
     )
     ent_map = _parse_entities_mapping(ent_map_raw)
 
-    # If both exist, keep flat entities under "other".
-    if flat_list:
-        if ent_map is None:
-            ent_map = None
-        else:
-            ent_map.setdefault("other", []).extend([e for e in flat_list if e])
+    # If both exist, treat flat entities as "unclassified extras".
+    # Only add those that are not already assigned to any role to avoid duplicates in dashboards.
+    if flat_list and isinstance(ent_map, dict):
+        assigned: set[str] = set()
+        for items in ent_map.values():
+            assigned.update(items)
+        extras = [e for e in flat_list if e and e not in assigned]
+        if extras:
+            ent_map.setdefault("other", []).extend(extras)
 
     # Union entity_ids for runtime consumers.
     all_ids: list[str] = []
