@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from datetime import datetime, timezone
 
 from flask import Flask, request, jsonify
@@ -14,6 +15,37 @@ app = Flask(__name__)
 
 # In-memory ring buffer of recent dev logs.
 _DEV_LOG_CACHE: list[dict] = []
+
+# Minimal error-code registry (v0.1). Keep keys stable.
+ERROR_REGISTRY: dict[str, dict[str, str]] = {
+    "unauthorized": {
+        "title": "Unauthorized",
+        "hint": "Check the shared token configuration (Home Assistant add-on options).",
+    },
+    "bad_request": {
+        "title": "Bad request",
+        "hint": "Verify request JSON shape.",
+    },
+    "internal": {
+        "title": "Internal error",
+        "hint": "Retry; if it persists, attach diagnostics/dev logs.",
+    },
+}
+
+_RE_JWT = re.compile(r"(?<![A-Za-z0-9_-])(eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})")
+_RE_BEARER = re.compile(r"(?i)(bearer\s+)(\S+)")
+_RE_URL_CREDS = re.compile(r"(?i)(https?://)([^\s:/]+):([^\s@/]+)@")
+
+_TO_REDACT_KEYS = {
+    "token",
+    "auth_token",
+    "access_token",
+    "refresh_token",
+    "password",
+    "api_key",
+    "key",
+    "secret",
+}
 
 
 def _now_iso():
@@ -57,6 +89,40 @@ def _require_token() -> bool:
     return False
 
 
+def _sanitize_str(s: str, *, max_chars: int = 4000) -> str:
+    s = _RE_URL_CREDS.sub(r"\1**REDACTED**:**REDACTED**@", s)
+    s = _RE_BEARER.sub(r"\1**REDACTED**", s)
+    s = _RE_JWT.sub("**REDACTED_JWT**", s)
+    if len(s) > max_chars:
+        s = s[: max_chars - 50] + "...(truncated)..."
+    return s
+
+
+def _sanitize_payload(obj):
+    """Best-effort sanitation for dev log payloads.
+
+    Privacy-first: avoid persisting obvious secrets.
+    """
+
+    if isinstance(obj, str):
+        return _sanitize_str(obj)
+
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in list(obj.items())[:200]:
+            ks = str(k)
+            if ks.lower() in _TO_REDACT_KEYS:
+                out[ks] = "**REDACTED**" if v else ""
+            else:
+                out[ks] = _sanitize_payload(v)
+        return out
+
+    if isinstance(obj, list):
+        return [_sanitize_payload(v) for v in obj[:200]]
+
+    return obj
+
+
 def _append_dev_log(entry: dict) -> None:
     os.makedirs(os.path.dirname(DEV_LOG_PATH), exist_ok=True)
     with open(DEV_LOG_PATH, "a", encoding="utf-8") as fh:
@@ -90,7 +156,7 @@ def index():
     return (
         "AI Home CoPilot Core (MVP)\n"
         "Endpoints: /health, /version, /api/v1/echo\n"
-        "Dev: /api/v1/dev/logs (POST/GET)\n"
+        "Dev: /api/v1/dev/status, /api/v1/dev/logs (POST/GET), /api/v1/dev/support_bundle (stub)\n"
         "Note: This is a scaffold. Neuron/Mood/Synapse engines come next.\n"
     )
 
@@ -105,29 +171,75 @@ def version():
     return jsonify({"version": APP_VERSION, "time": _now_iso()})
 
 
+@app.get("/api/v1/dev/status")
+def dev_status():
+    if not _require_token():
+        return jsonify({"error": "unauthorized", "error_key": "unauthorized"}), 401
+
+    token_set = bool(_get_token())
+    return jsonify(
+        {
+            "ok": True,
+            "time": _now_iso(),
+            "version": APP_VERSION,
+            "auth": {"enabled": token_set},
+            "dev_logs": {
+                "cache_count": len(_DEV_LOG_CACHE),
+                "max_cache": DEV_LOG_MAX_CACHE,
+                "path": DEV_LOG_PATH,
+            },
+            "error_registry": ERROR_REGISTRY,
+        }
+    )
+
+
+@app.get("/api/v1/dev/support_bundle")
+def dev_support_bundle():
+    if not _require_token():
+        return jsonify({"error": "unauthorized", "error_key": "unauthorized"}), 401
+
+    # v0.1 stub: do not generate or persist bundles yet.
+    return jsonify(
+        {
+            "ok": True,
+            "time": _now_iso(),
+            "not_implemented": True,
+            "notes": [
+                "Support bundle generation is intentionally stubbed in v0.1.",
+                "Use Home Assistant diagnostics download + /api/v1/dev/logs export instead.",
+            ],
+            "would_include": [
+                "core /version and /health",
+                "dev log tail (sanitized)",
+                "(later) event store tail",
+            ],
+        }
+    )
+
+
 @app.post("/api/v1/echo")
 def echo():
     if not _require_token():
-        return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"error": "unauthorized", "error_key": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
-    return jsonify({"time": _now_iso(), "received": payload})
+    return jsonify({"time": _now_iso(), "received": _sanitize_payload(payload)})
 
 
 @app.post("/api/v1/dev/logs")
 def ingest_dev_logs():
     if not _require_token():
-        return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"error": "unauthorized", "error_key": "unauthorized"}), 401
 
     payload = request.get_json(silent=True) or {}
     entry = {
         "received": _now_iso(),
-        "payload": payload,
+        "payload": _sanitize_payload(payload),
     }
 
     try:
         _append_dev_log(entry)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e), "error_key": "internal"}), 500
 
     return jsonify({"ok": True, "stored": True})
 
@@ -135,7 +247,7 @@ def ingest_dev_logs():
 @app.get("/api/v1/dev/logs")
 def get_dev_logs():
     if not _require_token():
-        return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"error": "unauthorized", "error_key": "unauthorized"}), 401
 
     try:
         limit = int(request.args.get("limit", "50"))
@@ -143,11 +255,13 @@ def get_dev_logs():
         limit = 50
     limit = max(1, min(limit, DEV_LOG_MAX_CACHE))
 
-    return jsonify({
-        "ok": True,
-        "count": min(limit, len(_DEV_LOG_CACHE)),
-        "items": _DEV_LOG_CACHE[-limit:],
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "count": min(limit, len(_DEV_LOG_CACHE)),
+            "items": _DEV_LOG_CACHE[-limit:],
+        }
+    )
 
 
 if __name__ == "__main__":
