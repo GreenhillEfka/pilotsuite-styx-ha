@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-02-08
+### Added
+- Graph-Candidates: "Accept" (bei `graph_edge_candidate`) schreibt jetzt best-effort via Core API `/api/v1/graph/ops` die Edge in den Brain Graph (idempotent). Unterstützt `observed_with` + `controls`.
+
 ## [0.3.1] - 2026-02-08
 ### Fixed
 - Repairs/Issues: `seed_suggestion` Platzhalter werden jetzt vollständig gesetzt (u.a. `excerpt`), um UI-/Flow-Fehler (500) zu vermeiden.
