@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.20] - 2026-02-08
+### Added
+- Events forwarder: optionale **persistente Queue** (unsent Events über HA-Restarts behalten), bounded + drop-oldest.
+- Forwarder-Status zeigt persistente Queue-Länge + Drop-Zähler.
+
+### Fixed
+- Forwarder-Reliability: bei POST-Fehlern wird der Batch wieder in die Queue gelegt (geht nicht verloren).
+
 ## [0.2.19] - 2026-02-08
 ### Added
 - Core Graph: neuer Button "fetch core graph state" (zeigt `/api/v1/graph/state` als Notification), um Brain-Graph Feeding leicht zu verifizieren.
