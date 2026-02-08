@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-08
+### Added
+- Governance-Kern: **Candidates Store** (persistenter Lifecycle: new/offered/deferred/accepted/dismissed, bounded, anti-nagging).
+- **Dev Surface v0.1**: Diagnostics-Snapshot (devlogs excerpt + error digest), Core-Ping + Debug-Toggle (30m) + Clear Digest (Buttons, optional in PilotSuite).
+- **Diagnostics Contract v0.1** (privacy-first, bounded): HA diagnostics payload contract-shaped.
+- **Tag Registry v0.1** (minimal): Tag-Registry Store + Services + Sync-Button (HA Labels materialisieren; learned/candidate nur nach Bestätigung).
+- **Graph→Candidates Bridge v0.1**: Buttons zum Preview/Offer von Graph-Kandidaten (Core Endpoint erforderlich).
+- **Repairs→Blueprint Apply v0.1**: confirm-first Flow, installiert shipped Blueprint (A→B safe) und kann daraus eine Automation erstellen; TX-Log (bounded) für Audit.
+
+### Notes
+- Einige Features (Graph→Candidates) benötigen ein passendes Core-Update (siehe Core Release Notes).
+- HACS Update erfordert Home Assistant Neustart.
+
 ## [0.2.21] - 2026-02-08
 ### Changed
 - PilotSuite: Safety-Backup Buttons werden standardmäßig nicht im Dashboard gezeigt (Option in den Integration-Settings), damit Updates/Neustarts nicht versehentlich durch laufende Backups blockiert werden.
