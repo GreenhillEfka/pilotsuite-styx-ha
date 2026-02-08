@@ -57,7 +57,8 @@
           "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
           "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
           "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
-          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons"
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons"
         }
       },
       "habitus_zones": {
