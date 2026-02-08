@@ -88,7 +88,8 @@ async def async_fetch_core_capabilities(
         "data": state.data,
     }
 
-    async_dispatcher_send(hass, SIGNAL_CORE_CAPABILITIES_UPDATED, entry.entry_id)
+    # Thread-safe dispatch: ensure callbacks run on the event loop.
+    hass.loop.call_soon_threadsafe(async_dispatcher_send, hass, SIGNAL_CORE_CAPABILITIES_UPDATED, entry.entry_id)
     return state
 
 

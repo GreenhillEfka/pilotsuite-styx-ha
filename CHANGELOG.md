@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-02-08
+### Fixed
+- HA 2026.x thread-safety: Core API v1 status sensor updates are now scheduled on the event loop (prevents async_write_ha_state warnings/crash risk).
+
+### Added
+- Forwarder status button: shows subscribed entity count + last send/error.
+
 ## [0.2.8] - 2026-02-08
 ### Added
 - Ops: HA error digest (manual button + optional auto-digest every N seconds).

@@ -189,6 +189,10 @@ class EventsForwarderModule:
                     _LOGGER.debug("Events forwarder state handler failed: %s", e)
 
             st.unsub_state = async_track_state_change_event(hass, all_entities, _handle_state)
+            data["events_forwarder_subscribed"] = {
+                "count": len(all_entities),
+                "time": _now_iso(),
+            }
             _LOGGER.info("Events forwarder subscribed to %d entities", len(all_entities))
 
         async def _flush_now() -> None:

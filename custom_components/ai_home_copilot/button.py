@@ -50,6 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogsFetchButton(coordinator, entry),
             CopilotCoreCapabilitiesFetchButton(coordinator, entry),
             CopilotCoreEventsFetchButton(coordinator, entry),
+            CopilotForwarderStatusButton(coordinator, entry),
             CopilotHaErrorsFetchButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
             CopilotGenerateHabitusDashboardButton(coordinator, entry),
@@ -393,6 +394,46 @@ class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
             msg,
             title="AI Home CoPilot Core events (last 20)",
             notification_id="ai_home_copilot_core_events",
+        )
+
+
+class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot forwarder status"
+    _attr_unique_id = "ai_home_copilot_forwarder_status"
+    _attr_icon = "mdi:transit-connection-variant"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id)
+        if not isinstance(data, dict):
+            msg = "No entry data found."
+        else:
+            sub = data.get("events_forwarder_subscribed")
+            last = data.get("events_forwarder_last")
+            msg_lines = []
+            if isinstance(sub, dict):
+                msg_lines.append(f"subscribed: {sub.get('count')} entities @ {sub.get('time')}")
+            else:
+                msg_lines.append("subscribed: (unknown)")
+
+            if isinstance(last, dict):
+                msg_lines.append(f"last send: sent={last.get('sent')} @ {last.get('time')}")
+                if last.get("error"):
+                    msg_lines.append(f"error: {last.get('error')}")
+            else:
+                msg_lines.append("last send: (none)")
+
+            msg = "\n".join(msg_lines)
+
+        persistent_notification.async_create(
+            self.hass,
+            msg,
+            title="AI Home CoPilot forwarder status",
+            notification_id="ai_home_copilot_forwarder_status",
         )
 
 

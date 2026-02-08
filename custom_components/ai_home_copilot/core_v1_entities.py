@@ -44,7 +44,8 @@ class CoreApiV1StatusSensor(CopilotBaseEntity, SensorEntity):
     def _on_update(self, entry_id: str) -> None:
         if entry_id != self._entry.entry_id:
             return
-        self._refresh_from_cache()
+        # Dispatcher callbacks may be invoked from non-eventloop threads.
+        self.hass.loop.call_soon_threadsafe(self._refresh_from_cache)
 
     def _refresh_from_cache(self) -> None:
         cap = get_cached_core_capabilities(self.hass, self._entry.entry_id) or {}
