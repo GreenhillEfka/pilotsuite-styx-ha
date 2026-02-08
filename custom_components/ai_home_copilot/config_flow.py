@@ -32,6 +32,9 @@ from .const import (
     CONF_EVENTS_FORWARDER_MAX_BATCH,
     CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
     CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_ENABLED,
     CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_MAX_LINES,
@@ -60,6 +63,9 @@ from .const import (
     DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
     DEFAULT_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
     DEFAULT_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+    DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+    DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+    DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_ENABLED,
     DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
@@ -261,6 +267,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     default=data.get(
                         CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
                         DEFAULT_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+                    ),
+                ): int,
+
+                # Events forwarder persistent queue (optional): store unsent events across HA restarts.
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+                        DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+                        DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+                        DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
                     ),
                 ): int,
 

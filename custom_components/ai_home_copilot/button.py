@@ -502,6 +502,11 @@ class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
             seen = data.get("events_forwarder_seen")
             qlen = data.get("events_forwarder_queue_len")
 
+            persisted_enabled = data.get("events_forwarder_persistent_enabled")
+            persisted_qlen = data.get("events_forwarder_persistent_queue_len")
+            drops = data.get("events_forwarder_dropped_total")
+            persisted_at = data.get("events_forwarder_persisted_at")
+
             msg_lines = []
             if isinstance(sub, dict):
                 msg_lines.append(f"subscribed: {sub.get('count')} entities @ {sub.get('time')}")
@@ -518,6 +523,15 @@ class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
 
             if qlen is not None:
                 msg_lines.append(f"queue_len: {qlen}")
+
+            if persisted_enabled is not None:
+                msg_lines.append(f"persistent_queue: {bool(persisted_enabled)}")
+            if persisted_qlen is not None:
+                msg_lines.append(f"persisted_queue_len: {persisted_qlen}")
+            if drops is not None:
+                msg_lines.append(f"drops_total: {drops}")
+            if persisted_at:
+                msg_lines.append(f"persisted_at: {persisted_at}")
 
             if isinstance(last, dict):
                 msg_lines.append(f"last send: sent={last.get('sent')} @ {last.get('time')}")
