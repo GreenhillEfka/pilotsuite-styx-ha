@@ -15,11 +15,13 @@ from .const import (
     CONF_MEDIA_TV_PLAYERS,
     CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+    CONF_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
     DEFAULT_DEVLOG_PUSH_ENABLED,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
     DEFAULT_MEDIA_TV_PLAYERS,
     DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+    DEFAULT_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
 )
 from .habitus_zones_store import async_get_zones
 from .pilotsuite_dashboard_store import PilotSuiteDashboardState, async_get_state, async_set_state
@@ -179,6 +181,20 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
                 "button.ai_home_copilot_enable_debug_30m",
                 "button.ai_home_copilot_disable_debug",
                 "button.ai_home_copilot_clear_error_digest",
+            ]
+        )
+
+    show_graph_bridge = bool(
+        cfg.get(
+            CONF_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
+            DEFAULT_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
+        )
+    )
+    if show_graph_bridge:
+        operations_entities.extend(
+            [
+                "button.ai_home_copilot_preview_graph_candidates",
+                "button.ai_home_copilot_offer_graph_candidates",
             ]
         )
 
