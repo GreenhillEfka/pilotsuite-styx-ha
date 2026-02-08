@@ -1,0 +1,4 @@
+
+# ignore python bytecode
+__pycache__/
+*.pyc
