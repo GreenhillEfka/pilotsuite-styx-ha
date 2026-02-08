@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.16] - 2026-02-08
 ### Added
-- Events forwarder: optional forwarding of `call_service` events (privacy-first; only when targets match Habitus zone entities).
+- Events forwarder: optional forwarding of `call_service` events (privacy-first; only when targets match Habitus zone entities; strict domain allowlist).
 - Events forwarder: best-effort event idempotency (event `id` = `event_type:context.id` when available) + configurable in-memory TTL.
 
 ### Changed

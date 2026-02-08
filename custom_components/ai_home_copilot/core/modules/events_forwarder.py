@@ -71,6 +71,28 @@ def _ensure_list_entity_ids(value: Any) -> list[str]:
     return []
 
 
+# `call_service` forwarding is **intent** forwarding, not payload forwarding.
+# Keep it strict by default.
+_ALLOWED_CALL_SERVICE_DOMAINS: set[str] = {
+    "light",
+    "media_player",
+    "climate",
+    "cover",
+    "lock",
+    "switch",
+    "scene",
+    "script",
+}
+
+_BLOCKED_CALL_SERVICE_DOMAINS: set[str] = {
+    # Typical high-risk egress / payload carriers.
+    "notify",
+    "rest_command",
+    "shell_command",
+    "tts",
+}
+
+
 def _allowed_state_attrs(entity_id: str, state_obj: Any) -> dict[str, Any]:
     """Privacy-first allowlist of HA state attributes.
 
@@ -326,6 +348,13 @@ class EventsForwarderModule:
             try:
                 dom = str(event.data.get("domain") or "")
                 svc = str(event.data.get("service") or "")
+
+                if dom in _BLOCKED_CALL_SERVICE_DOMAINS:
+                    return
+
+                # Strict allowlist: only forward safe-ish intent domains.
+                if dom not in _ALLOWED_CALL_SERVICE_DOMAINS:
+                    return
                 svc_data = event.data.get("service_data")
                 if not dom or not svc or not isinstance(svc_data, dict):
                     return
