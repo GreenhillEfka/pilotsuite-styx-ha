@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.17] - 2026-02-08
+### Added
+- Safety Backup ("Safety Point"): neue Buttons zum Starten eines HA-Backups (bevor Updates/Experimente laufen) + Statusanzeige.
+  - Nutzt bevorzugt `backup.create_automatic` (HA OS/supervised), fallback `backup.create`.
+
 ## [0.2.16] - 2026-02-08
 ### Added
 - Events forwarder: optional forwarding of `call_service` events (privacy-first; only when targets match Habitus zone entities; strict domain allowlist).

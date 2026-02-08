@@ -146,6 +146,8 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
         "button.ai_home_copilot_reload_config_entry",
         "button.ai_home_copilot_forwarder_status",
         "button.ai_home_copilot_fetch_ha_errors",
+        "button.ai_home_copilot_safety_backup_create",
+        "button.ai_home_copilot_safety_backup_status",
         "button.ai_home_copilot_generate_config_snapshot",
         "button.ai_home_copilot_download_config_snapshot",
     ]
