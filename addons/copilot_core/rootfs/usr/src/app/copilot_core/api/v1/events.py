@@ -18,6 +18,8 @@ def _store() -> EventStore:
         cache_max=int(getattr(cfg, "events_cache_max", 500)),
         persist=bool(getattr(cfg, "events_persist", False)),
         jsonl_path=str(getattr(cfg, "events_jsonl_path", "/data/events.jsonl")),
+        idempotency_ttl_seconds=int(getattr(cfg, "events_idempotency_ttl_seconds", 20 * 60)),
+        idempotency_lru_max=int(getattr(cfg, "events_idempotency_lru_max", 10_000)),
     )
     return _STORE
 
@@ -34,8 +36,15 @@ def ingest_event():
     if not isinstance(payload, dict):
         return jsonify({"ok": False, "error": "expected JSON object"}), 400
 
-    evt = _store().append(payload)
-    return jsonify({"ok": True, "event": evt})
+    idem = (
+        request.headers.get("Idempotency-Key")
+        or request.headers.get("X-Idempotency-Key")
+        or request.headers.get("X-Event-Id")
+        or ""
+    )
+
+    evt, stored = _store().append(payload, idempotency_key=str(idem))
+    return jsonify({"ok": True, "stored": stored, "deduped": (not stored), "event": evt})
 
 
 @bp.get("")

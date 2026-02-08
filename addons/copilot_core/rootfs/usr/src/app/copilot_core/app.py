@@ -16,7 +16,7 @@ def _now_iso() -> str:
 
 @dataclass(frozen=True)
 class CopilotConfig:
-    version: str = os.environ.get("COPILOT_VERSION", "0.2.3")
+    version: str = os.environ.get("COPILOT_VERSION", "0.2.4")
 
     # Logging
     log_level: str = "info"
@@ -32,6 +32,10 @@ class CopilotConfig:
     events_jsonl_path: str = "/data/events.jsonl"
     events_cache_max: int = 500
 
+    # Events: idempotency/deduping
+    events_idempotency_ttl_seconds: int = 20 * 60
+    events_idempotency_lru_max: int = 10_000
+
     # Candidates: minimal persistence; defaults to memory-only.
     candidates_persist: bool = False
     candidates_json_path: str = "/data/candidates.json"
@@ -39,6 +43,12 @@ class CopilotConfig:
 
     # Mood scaffolding
     mood_window_seconds: int = 3600
+
+    # Brain graph (v0.1)
+    brain_graph_persist: bool = True
+    brain_graph_json_path: str = "/data/brain_graph.json"
+    brain_graph_nodes_max: int = 500
+    brain_graph_edges_max: int = 1500
 
 
 def _load_options_json(path: str = "/data/options.json") -> dict[str, Any]:
@@ -63,11 +73,19 @@ def _build_config() -> CopilotConfig:
     events_jsonl_path = str(opts.get("events_jsonl_path", os.path.join(data_dir, "events.jsonl")))
     events_cache_max = int(opts.get("events_cache_max", 500))
 
+    events_idempotency_ttl_seconds = int(opts.get("events_idempotency_ttl_seconds", 20 * 60))
+    events_idempotency_lru_max = int(opts.get("events_idempotency_lru_max", 10_000))
+
     candidates_persist = bool(opts.get("candidates_persist", False))
     candidates_json_path = str(opts.get("candidates_json_path", os.path.join(data_dir, "candidates.json")))
     candidates_max = int(opts.get("candidates_max", 500))
 
     mood_window_seconds = int(opts.get("mood_window_seconds", 3600))
+
+    brain_graph_persist = bool(opts.get("brain_graph_persist", True))
+    brain_graph_json_path = str(opts.get("brain_graph_json_path", os.path.join(data_dir, "brain_graph.json")))
+    brain_graph_nodes_max = int(opts.get("brain_graph_nodes_max", 500))
+    brain_graph_edges_max = int(opts.get("brain_graph_edges_max", 1500))
 
     return CopilotConfig(
         log_level=log_level,
@@ -76,10 +94,16 @@ def _build_config() -> CopilotConfig:
         events_persist=events_persist,
         events_jsonl_path=events_jsonl_path,
         events_cache_max=max(1, min(events_cache_max, 10_000)),
+        events_idempotency_ttl_seconds=max(10, min(events_idempotency_ttl_seconds, 24 * 3600)),
+        events_idempotency_lru_max=max(0, min(events_idempotency_lru_max, 200_000)),
         candidates_persist=candidates_persist,
         candidates_json_path=candidates_json_path,
         candidates_max=max(1, min(candidates_max, 10_000)),
         mood_window_seconds=max(60, min(mood_window_seconds, 24 * 3600)),
+        brain_graph_persist=brain_graph_persist,
+        brain_graph_json_path=brain_graph_json_path,
+        brain_graph_nodes_max=max(10, min(brain_graph_nodes_max, 10_000)),
+        brain_graph_edges_max=max(10, min(brain_graph_edges_max, 50_000)),
     )
 
 
@@ -145,6 +169,17 @@ def create_app() -> Flask:
                         "enabled": True,
                         "persist": cfg.events_persist,
                         "cache_max": cfg.events_cache_max,
+                        "idempotency": {
+                            "supported": True,
+                            "ttl_seconds": cfg.events_idempotency_ttl_seconds,
+                            "lru_max": cfg.events_idempotency_lru_max,
+                            "key_sources": [
+                                "Idempotency-Key header",
+                                "idempotency_key payload field",
+                                "event_id payload field",
+                                "id payload field",
+                            ],
+                        },
                     },
                     "candidates": {
                         "enabled": True,
@@ -152,6 +187,13 @@ def create_app() -> Flask:
                         "max": cfg.candidates_max,
                     },
                     "mood": {"enabled": True, "window_seconds": cfg.mood_window_seconds},
+                    "brain_graph": {
+                        "enabled": True,
+                        "persist": cfg.brain_graph_persist,
+                        "json_path": cfg.brain_graph_json_path,
+                        "nodes_max": cfg.brain_graph_nodes_max,
+                        "edges_max": cfg.brain_graph_edges_max,
+                    },
                 },
             }
         )
