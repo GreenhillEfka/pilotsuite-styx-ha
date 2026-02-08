@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-02-08
+### Added
+- Habitus zones: optional categorized `entities:` mapping (named signals like brightness/heating/humidity/co2/cover/lock/door/window/media).
+
+### Changed
+- Habitus zones wizard now stores `entities` roles (motion/lights/other) for better UX.
+- Habitus zones dashboard generator uses named sections (Helligkeit, Heizung, Luftfeuchte, Schloss, Tür/Fenster, Rollo, Media/Lautstärke, CO₂, …).
+
 ## [0.2.11] - 2026-02-08
 ### Fixed
 - Events forwarder reliability: schedule tasks strictly on the event loop and record send status (sending/sent/error/cancelled).

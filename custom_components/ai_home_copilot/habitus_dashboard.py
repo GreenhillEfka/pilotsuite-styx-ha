@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .habitus_dashboard_store import HabitusDashboardState, async_get_state, async_set_state
-from .habitus_zones_store import async_get_zones
+from .habitus_zones_store import async_get_zones, HabitusZone
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,50 +74,96 @@ def _logbook_yaml(title: str, entities: list[str]) -> str:
     return "\n".join(lines)
 
 
-def _lovelace_yaml_for_zone(zone_id: str, zone_name: str, entity_ids: list[str]) -> str:
+def _lovelace_yaml_for_zone(z: HabitusZone) -> str:
     """Return a YAML snippet for one Lovelace view.
 
-    UX goal: small, readable grouping by domain (no custom cards).
+    UX goal: sensible, named sections for common "extra" entities:
+    Helligkeit, Heizung, Luftfeuchte, Schloss, Tür/Fenster, Rollo, Lautstärke/Media, CO₂, etc.
+
+    Zones may optionally provide a categorized mapping via `zone.entities`.
     """
 
-    groups: dict[str, list[str]] = {
+    zone_id = z.zone_id
+    zone_name = z.name
+
+    # Categorized entities (role -> list)
+    roles: dict[str, list[str]] = {}
+    if isinstance(getattr(z, "entities", None), dict):
+        for k, v in z.entities.items():
+            if isinstance(v, list) and v:
+                roles[str(k)] = [str(x) for x in v if str(x)]
+
+    assigned: set[str] = set()
+    for items in roles.values():
+        assigned.update(items)
+
+    # Fallback groups by domain for any unassigned entities
+    domain_groups: dict[str, list[str]] = {
         "binary_sensor": [],
         "light": [],
         "cover": [],
         "climate": [],
+        "lock": [],
         "media_player": [],
         "sensor": [],
         "other": [],
     }
 
-    for eid in entity_ids:
+    for eid in z.entity_ids:
+        if eid in assigned:
+            continue
         d = _domain(eid)
-        if d in groups:
-            groups[d].append(eid)
+        if d in domain_groups:
+            domain_groups[d].append(eid)
         else:
-            groups["other"].append(eid)
+            domain_groups["other"].append(eid)
 
-    # Key signals for history/logbook: motion + lights + media + climate.
-    key_signals = (
-        groups["binary_sensor"][:2]
-        + groups["light"][:6]
-        + groups["media_player"][:4]
-        + groups["climate"][:2]
-    )
+    # Fill common roles if missing
+    roles.setdefault("motion", domain_groups["binary_sensor"])
+    roles.setdefault("lights", domain_groups["light"])
+    roles.setdefault("cover", domain_groups["cover"])
+    roles.setdefault("heating", domain_groups["climate"])
+    roles.setdefault("lock", domain_groups["lock"])
+    roles.setdefault("media", domain_groups["media_player"])
+
+    # Remaining sensors/other
+    roles.setdefault("sensor", domain_groups["sensor"])
+    roles.setdefault("other", domain_groups["other"])
+
+    # Display order + naming
+    ordered: list[tuple[str, str]] = [
+        ("lights", "Licht"),
+        ("cover", "Rollo / Cover"),
+        ("lock", "Schloss"),
+        ("heating", "Heizung"),
+        ("media", "Media / Lautstärke"),
+        ("motion", "Motion / Präsenz"),
+        ("door", "Türsensor"),
+        ("window", "Fenstersensor"),
+        ("brightness", "Helligkeit"),
+        ("temperature", "Temperatur"),
+        ("humidity", "Luftfeuchte"),
+        ("co2", "CO₂"),
+        ("noise", "Lärm"),
+        ("pressure", "Luftdruck"),
+        ("sensor", "Weitere Sensoren"),
+        ("other", "Weitere Entitäten"),
+    ]
 
     cards: list[str] = []
-    cards.append(_entities_card_yaml(f"{zone_name} — Lights", groups["light"]))
-    cards.append(_entities_card_yaml(f"{zone_name} — Presence/Motion", groups["binary_sensor"]))
-    if groups["media_player"]:
-        cards.append(_entities_card_yaml(f"{zone_name} — Media", groups["media_player"]))
-    if groups["climate"]:
-        cards.append(_entities_card_yaml(f"{zone_name} — Climate", groups["climate"]))
-    if groups["cover"]:
-        cards.append(_entities_card_yaml(f"{zone_name} — Covers", groups["cover"]))
-    if groups["sensor"]:
-        cards.append(_entities_card_yaml(f"{zone_name} — Sensors", groups["sensor"]))
-    if groups["other"]:
-        cards.append(_entities_card_yaml(f"{zone_name} — Other", groups["other"]))
+
+    for key, title in ordered:
+        ents = roles.get(key) or []
+        if not ents:
+            continue
+        cards.append(_entities_card_yaml(f"{zone_name} — {title}", ents))
+
+    # Key signals for history/logbook
+    key_signals = []
+    key_signals.extend((roles.get("motion") or [])[:2])
+    key_signals.extend((roles.get("lights") or [])[:6])
+    key_signals.extend((roles.get("media") or [])[:4])
+    key_signals.extend((roles.get("heating") or [])[:2])
 
     cards.append(_history_graph_yaml(f"{zone_name} — History (24h)", key_signals))
     cards.append(_logbook_yaml(f"{zone_name} — Logbook (24h)", key_signals))
@@ -140,7 +186,7 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
 
     views = []
     for z in zones:
-        views.append(_lovelace_yaml_for_zone(z.zone_id, z.name, list(z.entity_ids)))
+        views.append(_lovelace_yaml_for_zone(z))
 
     content = (
         "# Generated by AI Home CoPilot (Habitus zones)\n"

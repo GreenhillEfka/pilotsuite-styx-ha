@@ -13,18 +13,70 @@ Think: **"my real rooms as I live in them"** (habitus), not necessarily HA Areas
 - **Governance-first:** CoPilot may *suggest* assignments/tags; it must not silently rewrite HA metadata.
 - **Safe defaults:** if no zones are configured, nothing changes.
 
-## Data model (proposal)
+## Data model
 A Habituszone contains:
 - `id` (stable key): e.g. `wohnbereich`
 - `name` (display): e.g. "Wohnbereich"
-- `entity_ids` (explicit allowlist)
-- optional `tags` / `labels` (if HA Labels are available) used as inclusion rules
-- optional `kinds` to structure UX panels:
-  - `presence` (motion/presence)
-  - `climate` (temp/humidity)
-  - `light` (brightness/lights)
-  - `media` (sonos/spotify/tv)
-  - `energy` (power meters)
+
+### Option A (simple): flat allowlist
+- `entity_ids`: list of entity_ids
+
+### Option B (recommended): categorized entities (named signals)
+- `entities`: mapping of **role → entity_ids**
+
+Required roles:
+- `motion`: motion/presence entity (at least 1)
+- `lights`: light entities (at least 1)
+
+Common optional roles (examples):
+- `brightness` (Helligkeit)
+- `heating` (Heizung / climate)
+- `humidity` (Luftfeuchte)
+- `temperature` (Temperatur)
+- `co2` (CO₂)
+- `noise` (Lärm)
+- `pressure` (Luftdruck)
+- `cover` (Rollo)
+- `door` (Türsensor)
+- `window` (Fenstersensor)
+- `lock` (Schloss)
+- `media` (Media / Lautstärke)
+- `other`
+
+Example:
+```yaml
+- id: wohnbereich
+  name: Wohnbereich
+  entities:
+    motion:
+      - binary_sensor.bewegung_wohnzimmer
+    lights:
+      - light.deckenlicht
+      - light.beleuchtung_durchgangsbereich
+    brightness:
+      - sensor.helligkeit_wohnzimmer
+    heating:
+      - climate.thermostat_wohnzimmer_links
+      - climate.thermostat_wohnzimmer_rechts
+    humidity:
+      - sensor.thermostat_wohnzimmer_links_luftfeuchtigkeit
+      - sensor.thermostat_wohnzimmer_rechts_luftfeuchtigkeit
+    temperature:
+      - sensor.thermostat_wohnzimmer_links_temperatur
+      - sensor.thermostat_wohnzimmer_rechts_temperatur
+    co2:
+      - sensor.co2_wohnbereich_messstation
+    cover:
+      - cover.rollo_terrassentur
+    media:
+      - media_player.wohnbereich
+      - media_player.fernseher_im_wohnzimmer
+      - media_player.apple_tv_wohnzimmer
+```
+
+Notes:
+- `entity_ids` is still supported for backwards compatibility.
+- Internally, CoPilot will always keep a union list (`entity_ids`) so other modules can consume zones easily.
 
 ## Configuration UX (incremental)
 ### Phase 1 (fast, robust)

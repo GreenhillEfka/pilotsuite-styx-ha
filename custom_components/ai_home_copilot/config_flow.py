@@ -348,7 +348,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         from .habitus_zones_store import async_get_zones, async_set_zones_from_raw
 
         zones = await async_get_zones(self.hass, self._entry.entry_id)
-        current = [{"id": z.zone_id, "name": z.name, "entity_ids": z.entity_ids} for z in zones]
+        current = []
+        for z in zones:
+            item = {"id": z.zone_id, "name": z.name, "entity_ids": z.entity_ids}
+            if isinstance(getattr(z, "entities", None), dict) and z.entities:
+                item["entities"] = z.entities
+            current.append(item)
 
         if user_input is not None:
             raw_text = str(user_input.get("zones") or "").strip()
@@ -394,7 +399,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             step_id="bulk_edit",
             data_schema=schema,
             description_placeholders={
-                "hint": "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires motion/presence + light.",
+                "hint": (
+                    "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires motion/presence + light.\n\n"
+                    "Optional: use a categorized structure via `entities:` (role -> list of entity_ids), e.g.\n"
+                    "- entities: {motion: [...], lights: [...], brightness: [...], heating: [...], humidity: [...], co2: [...], cover: [...], door: [...], window: [...], lock: [...], media: [...], other: [...]}"
+                ),
             },
         )
 
@@ -414,7 +423,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         if zone_id and zone_id in existing:
             z = existing[zone_id]
         else:
-            z = HabitusZone(zone_id="", name="", entity_ids=[])
+            z = HabitusZone(zone_id="", name="", entity_ids=[], entities=None)
 
         if user_input is not None:
             zid = str(user_input.get("zone_id") or "").strip()
@@ -440,7 +449,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 seen.add(e)
                 uniq.append(e)
 
-            new_zone = HabitusZone(zone_id=zid, name=name or zid, entity_ids=uniq)
+            ent_map = {
+                "motion": [motion] if motion else [],
+                "lights": [str(x).strip() for x in lights if str(x).strip()],
+                "other": [str(x).strip() for x in optional if str(x).strip()],
+            }
+            # drop empty roles
+            ent_map = {k: v for k, v in ent_map.items() if v}
+
+            new_zone = HabitusZone(zone_id=zid, name=name or zid, entity_ids=uniq, entities=ent_map or None)
 
             # Replace / insert
             new_list = [zz for zz in zones if zz.zone_id != zid]
@@ -454,14 +471,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         default_lights: list[str] = []
         default_optional: list[str] = []
 
-        # Best-effort prefill from existing zone
-        for eid in z.entity_ids:
-            if eid.startswith("light."):
-                default_lights.append(eid)
-            elif eid.startswith("binary_sensor.") and default_motion is None:
-                default_motion = eid
-            else:
-                default_optional.append(eid)
+        # Best-effort prefill from existing zone.
+        ent_map = getattr(z, "entities", None)
+        if isinstance(ent_map, dict):
+            motion_list = ent_map.get("motion") or []
+            lights_list = ent_map.get("lights") or []
+            other_list = ent_map.get("other") or []
+
+            if motion_list:
+                default_motion = str(motion_list[0])
+            default_lights = [str(x) for x in lights_list]
+            default_optional = [str(x) for x in other_list]
+        else:
+            for eid in z.entity_ids:
+                if eid.startswith("light."):
+                    default_lights.append(eid)
+                elif eid.startswith("binary_sensor.") and default_motion is None:
+                    default_motion = eid
+                else:
+                    default_optional.append(eid)
 
         schema = vol.Schema(
             {

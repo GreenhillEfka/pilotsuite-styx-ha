@@ -20,35 +20,132 @@ class HabitusZone:
     zone_id: str
     name: str
     entity_ids: list[str]
+    # Optional categorized entities (role -> entity_ids). If present, this drives UX.
+    entities: dict[str, list[str]] | None = None
+
+
+_ROLE_ALIASES: dict[str, str] = {
+    # required
+    "motion": "motion",
+    "presence": "motion",
+    "occupancy": "motion",
+    "lights": "lights",
+    "light": "lights",
+    # common extras
+    "brightness": "brightness",
+    "illuminance": "brightness",
+    "heating": "heating",
+    "climate": "heating",
+    "humidity": "humidity",
+    "luftfeuchte": "humidity",
+    "temperature": "temperature",
+    "temperatur": "temperature",
+    "co2": "co2",
+    "carbon_dioxide": "co2",
+    "noise": "noise",
+    "larm": "noise",
+    "pressure": "pressure",
+    "luftdruck": "pressure",
+    "cover": "cover",
+    "rollo": "cover",
+    "shutter": "cover",
+    "lock": "lock",
+    "schloss": "lock",
+    "door": "door",
+    "tuer": "door",
+    "window": "window",
+    "fenster": "window",
+    "media": "media",
+    "volume": "media",
+    "other": "other",
+}
+
+
+def _as_list(val: Any) -> list[str]:
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return [str(x).strip() for x in val if str(x).strip()]
+    if isinstance(val, str) and val.strip():
+        return [p.strip() for p in val.replace("\n", ",").split(",") if p.strip()]
+    return []
+
+
+def _parse_entities_mapping(raw: Any) -> dict[str, list[str]] | None:
+    if not isinstance(raw, dict):
+        return None
+
+    out: dict[str, list[str]] = {}
+    for k, v in raw.items():
+        key = str(k).strip().lower()
+        if not key:
+            continue
+        key = _ROLE_ALIASES.get(key, key)
+        items = _as_list(v)
+        if items:
+            out.setdefault(key, []).extend(items)
+
+    # De-dupe per role
+    for key, items in list(out.items()):
+        seen: set[str] = set()
+        uniq: list[str] = []
+        for e in items:
+            if e in seen:
+                continue
+            seen.add(e)
+            uniq.append(e)
+        out[key] = uniq
+
+    return out or None
 
 
 def _normalize_zone(obj: dict[str, Any]) -> HabitusZone | None:
     zid = str(obj.get("id") or obj.get("zone_id") or "").strip()
     name = str(obj.get("name") or zid).strip()
-    ent = obj.get("entity_ids")
-    if ent is None:
-        ent = obj.get("entities")
 
     if not zid:
         return None
 
-    entity_ids: list[str] = []
-    if isinstance(ent, list):
-        entity_ids = [str(x).strip() for x in ent if str(x).strip()]
-    elif isinstance(ent, str) and ent.strip():
-        # allow comma-separated convenience
-        entity_ids = [p.strip() for p in ent.replace("\n", ",").split(",") if p.strip()]
+    # Legacy flat allowlist
+    ent_flat = obj.get("entity_ids")
+    if ent_flat is None:
+        ent_flat = obj.get("entity_id")
+
+    flat_list = _as_list(ent_flat)
+
+    # Structured allowlist
+    ent_map_raw = (
+        obj.get("entities")
+        or obj.get("roles")
+        or obj.get("signals")
+        or obj.get("kinds")
+    )
+    ent_map = _parse_entities_mapping(ent_map_raw)
+
+    # If both exist, keep flat entities under "other".
+    if flat_list:
+        if ent_map is None:
+            ent_map = None
+        else:
+            ent_map.setdefault("other", []).extend([e for e in flat_list if e])
+
+    # Union entity_ids for runtime consumers.
+    all_ids: list[str] = []
+    all_ids.extend(flat_list)
+    if isinstance(ent_map, dict):
+        for items in ent_map.values():
+            all_ids.extend(items)
 
     # De-dupe while keeping order
     seen: set[str] = set()
     uniq: list[str] = []
-    for e in entity_ids:
-        if e in seen:
+    for e in all_ids:
+        if not e or e in seen:
             continue
         seen.add(e)
         uniq.append(e)
 
-    return HabitusZone(zone_id=zid, name=name or zid, entity_ids=uniq)
+    return HabitusZone(zone_id=zid, name=name or zid, entity_ids=uniq, entities=ent_map)
 
 
 def _store(hass: HomeAssistant) -> Store:
@@ -87,7 +184,13 @@ async def async_set_zones(hass: HomeAssistant, entry_id: str, zones: list[Habitu
         data["entries"] = entries
 
     entries[entry_id] = [
-        {"id": z.zone_id, "name": z.name, "entity_ids": list(z.entity_ids)} for z in zones
+        {
+            "id": z.zone_id,
+            "name": z.name,
+            "entity_ids": list(z.entity_ids),
+            **({"entities": z.entities} if isinstance(z.entities, dict) and z.entities else {}),
+        }
+        for z in zones
     ]
 
     await st.async_save(data)
@@ -128,8 +231,26 @@ def _validate_zone_requirements(hass: HomeAssistant, z: HabitusZone) -> None:
     - at least one light entity
     """
 
-    has_motion = any(_is_motion_or_presence_entity(hass, eid) for eid in z.entity_ids)
-    has_light = any(_is_light_entity(eid) for eid in z.entity_ids)
+    # Prefer explicit roles if present.
+    motion_candidates: list[str] = []
+    light_candidates: list[str] = []
+
+    if isinstance(z.entities, dict):
+        motion_candidates.extend(z.entities.get("motion") or [])
+        light_candidates.extend(z.entities.get("lights") or [])
+
+    # Fallback: scan flat allowlist.
+    motion_scan = any(_is_motion_or_presence_entity(hass, eid) for eid in z.entity_ids)
+    light_scan = any(_is_light_entity(eid) for eid in z.entity_ids)
+
+    has_motion = (
+        any(_is_motion_or_presence_entity(hass, eid) for eid in motion_candidates)
+        if motion_candidates
+        else motion_scan
+    )
+    has_light = (
+        any(_is_light_entity(eid) for eid in light_candidates) if light_candidates else light_scan
+    )
 
     if not has_motion or not has_light:
         raise ValueError(

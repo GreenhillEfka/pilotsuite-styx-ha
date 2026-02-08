@@ -45,10 +45,15 @@ class HabitusZonesJsonText(CopilotBaseEntity, TextEntity):
 
     async def _reload_value(self) -> None:
         zones = await async_get_zones(self.hass, self._entry.entry_id)
-        raw = [
-            {"id": z.zone_id, "name": z.name, "entity_ids": z.entity_ids} for z in zones
-        ]
-        self._value = json.dumps(raw, ensure_ascii=False, indent=2)
+        raw = []
+        for z in zones:
+            item = {"id": z.zone_id, "name": z.name, "entity_ids": z.entity_ids}
+            if isinstance(getattr(z, "entities", None), dict) and z.entities:
+                item["entities"] = z.entities
+            raw.append(item)
+
+        # Prefer YAML for multiline/bulk editing.
+        self._value = yaml.safe_dump(raw, allow_unicode=True, sort_keys=False)
         self.async_write_ha_state()
 
     @property
@@ -119,7 +124,11 @@ class HabitusZonesCountSensor(CopilotBaseEntity, SensorEntity):
     def _on_update(self, entry_id: str) -> None:
         if entry_id != self._entry.entry_id:
             return
-        self.hass.async_create_task(self._refresh())
+
+        def _run() -> None:
+            self.hass.async_create_task(self._refresh())
+
+        self.hass.loop.call_soon_threadsafe(_run)
 
     @property
     def native_value(self) -> int | None:
