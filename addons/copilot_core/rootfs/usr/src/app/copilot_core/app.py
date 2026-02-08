@@ -40,6 +40,12 @@ class CopilotConfig:
     # Mood scaffolding
     mood_window_seconds: int = 3600
 
+    # Brain graph (v0.1)
+    brain_graph_persist: bool = True
+    brain_graph_json_path: str = "/data/brain_graph.json"
+    brain_graph_nodes_max: int = 500
+    brain_graph_edges_max: int = 1500
+
 
 def _load_options_json(path: str = "/data/options.json") -> dict[str, Any]:
     try:
@@ -69,6 +75,11 @@ def _build_config() -> CopilotConfig:
 
     mood_window_seconds = int(opts.get("mood_window_seconds", 3600))
 
+    brain_graph_persist = bool(opts.get("brain_graph_persist", True))
+    brain_graph_json_path = str(opts.get("brain_graph_json_path", os.path.join(data_dir, "brain_graph.json")))
+    brain_graph_nodes_max = int(opts.get("brain_graph_nodes_max", 500))
+    brain_graph_edges_max = int(opts.get("brain_graph_edges_max", 1500))
+
     return CopilotConfig(
         log_level=log_level,
         auth_token=token,
@@ -80,6 +91,10 @@ def _build_config() -> CopilotConfig:
         candidates_json_path=candidates_json_path,
         candidates_max=max(1, min(candidates_max, 10_000)),
         mood_window_seconds=max(60, min(mood_window_seconds, 24 * 3600)),
+        brain_graph_persist=brain_graph_persist,
+        brain_graph_json_path=brain_graph_json_path,
+        brain_graph_nodes_max=max(10, min(brain_graph_nodes_max, 10_000)),
+        brain_graph_edges_max=max(10, min(brain_graph_edges_max, 50_000)),
     )
 
 
@@ -152,6 +167,13 @@ def create_app() -> Flask:
                         "max": cfg.candidates_max,
                     },
                     "mood": {"enabled": True, "window_seconds": cfg.mood_window_seconds},
+                    "brain_graph": {
+                        "enabled": True,
+                        "persist": cfg.brain_graph_persist,
+                        "json_path": cfg.brain_graph_json_path,
+                        "nodes_max": cfg.brain_graph_nodes_max,
+                        "edges_max": cfg.brain_graph_edges_max,
+                    },
                 },
             }
         )
