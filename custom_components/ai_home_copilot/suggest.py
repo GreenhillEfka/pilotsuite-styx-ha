@@ -59,7 +59,22 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
     ):
         return
 
-    placeholders = candidate.translation_placeholders or {"title": candidate.title}
+    # IMPORTANT: placeholders must cover all keys used in strings.json for the translation_key.
+    # Otherwise HA may fail rendering the Repairs issue UI.
+    placeholders = dict(candidate.translation_placeholders or {"title": candidate.title})
+
+    if candidate.translation_key == "seed_suggestion":
+        src = str(candidate.seed_source or "")
+        ents = candidate.seed_entities or []
+        ents_str = ", ".join([e for e in ents if isinstance(e, str)])
+        excerpt = str(candidate.seed_text or "").strip().replace("\n", " ")
+        if len(excerpt) > 160:
+            excerpt = excerpt[:159] + "…"
+        if len(ents_str) > 120:
+            ents_str = ents_str[:119] + "…"
+        placeholders.setdefault("source", src)
+        placeholders.setdefault("entities", ents_str)
+        placeholders.setdefault("excerpt", excerpt)
     issue_data: dict[str, Any] = {
         "entry_id": entry_id,
         "candidate_id": candidate.candidate_id,

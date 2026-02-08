@@ -260,6 +260,7 @@ async def async_process_seed_entity(hass: HomeAssistant, entry: ConfigEntry, ent
                 "title": seed.title,
                 "source": entity_id,
                 "entities": _truncate(entities_str, 120),
+                "excerpt": _truncate(seed.text.strip().replace("\n", " "), 160),
             },
             data={
                 "kind": "seed",

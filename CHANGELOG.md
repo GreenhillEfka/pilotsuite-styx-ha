@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-02-08
+### Fixed
+- Repairs/Issues: `seed_suggestion` Platzhalter werden jetzt vollständig gesetzt (u.a. `excerpt`), um UI-/Flow-Fehler (500) zu vermeiden.
+
 ## [0.3.0] - 2026-02-08
 ### Added
 - Governance-Kern: **Candidates Store** (persistenter Lifecycle: new/offered/deferred/accepted/dismissed, bounded, anti-nagging).
