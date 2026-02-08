@@ -4,6 +4,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 
 from .const import (
     CONF_DEVLOG_PUSH_PATH,
@@ -27,6 +28,7 @@ from .pilotsuite_dashboard import (
 )
 from .core_v1 import async_fetch_core_capabilities
 from .ha_errors_digest import async_show_ha_errors_digest
+from .core.modules.dev_surface import _async_ping
 from .button_safety_backup import (
     CopilotSafetyBackupCreateButton,
     CopilotSafetyBackupStatusButton,
@@ -57,6 +59,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotCoreGraphStateFetchButton(coordinator, entry),
             CopilotForwarderStatusButton(coordinator, entry),
             CopilotHaErrorsFetchButton(coordinator, entry),
+            CopilotPingCoreButton(coordinator, entry),
+            CopilotEnableDebug30mButton(coordinator, entry.entry_id),
+            CopilotDisableDebugButton(coordinator, entry.entry_id),
+            CopilotClearErrorDigestButton(coordinator, entry.entry_id),
             CopilotSafetyBackupCreateButton(coordinator, entry),
             CopilotSafetyBackupStatusButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
@@ -562,6 +568,118 @@ class CopilotHaErrorsFetchButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_show_ha_errors_digest(self.hass, self._entry)
+
+
+class CopilotPingCoreButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot ping core"
+    _attr_unique_id = "ai_home_copilot_ping_core"
+    _attr_icon = "mdi:access-point-network"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        try:
+            res = await _async_ping(self.hass, self._entry)
+            dt = res.get("duration_ms")
+            persistent_notification.async_create(
+                self.hass,
+                f"Core ping ok (duration_ms={dt}).",
+                title="AI Home CoPilot core ping",
+                notification_id="ai_home_copilot_core_ping",
+            )
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Core ping failed: {err}",
+                title="AI Home CoPilot core ping",
+                notification_id="ai_home_copilot_core_ping",
+            )
+
+
+class CopilotEnableDebug30mButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot enable debug for 30m"
+    _attr_unique_id = "ai_home_copilot_enable_debug_30m"
+    _attr_icon = "mdi:bug"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "enable_debug_for",
+            {"entry_id": self._entry_id, "minutes": 30},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "Debug enabled for 30 minutes (auto-disable).",
+            title="AI Home CoPilot debug",
+            notification_id="ai_home_copilot_debug",
+        )
+
+
+class CopilotDisableDebugButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot disable debug"
+    _attr_unique_id = "ai_home_copilot_disable_debug"
+    _attr_icon = "mdi:bug-off"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "disable_debug",
+            {"entry_id": self._entry_id},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "Debug disabled.",
+            title="AI Home CoPilot debug",
+            notification_id="ai_home_copilot_debug",
+        )
+
+
+class CopilotClearErrorDigestButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot clear error digest"
+    _attr_unique_id = "ai_home_copilot_clear_error_digest"
+    _attr_icon = "mdi:broom"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "clear_error_digest",
+            {"entry_id": self._entry_id},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "Error digest cleared.",
+            title="AI Home CoPilot dev surface",
+            notification_id="ai_home_copilot_dev_surface",
+        )
 
 
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
