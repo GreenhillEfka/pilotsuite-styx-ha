@@ -217,15 +217,10 @@ async def async_publish_brain_graph_viz(hass: HomeAssistant, coordinator) -> Pat
     )
 
     latest_path = Path("/config/www/ai_home_copilot/brain_graph_latest.html")
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    archive_path = Path(f"/config/www/ai_home_copilot/archive/brain_graph_{ts}.html")
 
+    # No archive by default (avoid clutter). If you want history later,
+    # we can add an opt-in archive option.
     await hass.async_add_executor_job(_write_text, latest_path, html)
-    # Best-effort archive, ignore failures.
-    try:
-        await hass.async_add_executor_job(_write_text, archive_path, html)
-    except Exception:  # noqa: BLE001
-        pass
 
     url_local = "/local/ai_home_copilot/brain_graph_latest.html"
     msg = "\n".join(

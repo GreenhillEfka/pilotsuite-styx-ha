@@ -533,7 +533,7 @@ class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
 class CopilotPublishBrainGraphVizButton(CopilotBaseEntity, ButtonEntity):
     """Publish a minimal local HTML/SVG brain-graph preview."""
 
-    _attr_entity_registry_enabled_default = False
+    _attr_entity_registry_enabled_default = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot publish brain graph viz"
