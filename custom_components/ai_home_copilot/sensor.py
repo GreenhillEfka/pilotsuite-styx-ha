@@ -18,6 +18,7 @@ from .habitus_zones_entities import HabitusZonesCountSensor
 from .habitus_zones_store import async_get_zones
 from .habitus_zone_aggregates import build_zone_average_sensors
 from .core_v1_entities import CoreApiV1StatusSensor
+from .systemhealth_entities import SystemHealthEntityCountSensor, SystemHealthSqliteDbSizeSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -28,7 +29,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotVersionSensor(coordinator),
         CoreApiV1StatusSensor(coordinator, entry),
         HabitusZonesCountSensor(coordinator, entry),
+        SystemHealthEntityCountSensor(coordinator),
+        SystemHealthSqliteDbSizeSensor(coordinator),
     ]
+
+    # Events Forwarder quality sensors (v0.1 kernel)
+    if isinstance(data, dict) and data.get("events_forwarder_state") is not None:
+        entities.extend(
+            [
+                EventsForwarderQueueDepthSensor(coordinator, entry),
+                EventsForwarderDroppedTotalSensor(coordinator, entry),
+                EventsForwarderErrorStreakSensor(coordinator, entry),
+            ]
+        )
 
     media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
     if media_coordinator is not None:
