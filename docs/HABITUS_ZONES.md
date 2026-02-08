@@ -41,6 +41,8 @@ Common optional roles (examples):
 - `window` (Fenstersensor)
 - `lock` (Schloss)
 - `media` (Media / Lautstärke)
+- `power` (Leistung / W)
+- `energy` (Energie / kWh)
 - `other`
 
 Example:

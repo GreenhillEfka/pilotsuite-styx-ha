@@ -350,9 +350,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         zones = await async_get_zones(self.hass, self._entry.entry_id)
         current = []
         for z in zones:
-            item = {"id": z.zone_id, "name": z.name, "entity_ids": z.entity_ids}
+            # UX: if a zone has structured `entities`, prefer emitting that only.
+            # Emitting both `entity_ids` + `entities` leads to confusion and duplicates.
+            item = {"id": z.zone_id, "name": z.name}
             if isinstance(getattr(z, "entities", None), dict) and z.entities:
                 item["entities"] = z.entities
+            else:
+                item["entity_ids"] = z.entity_ids
             current.append(item)
 
         if user_input is not None:

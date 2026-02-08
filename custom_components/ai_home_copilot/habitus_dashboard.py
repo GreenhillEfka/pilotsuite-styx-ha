@@ -28,19 +28,42 @@ def _domain(entity_id: str) -> str:
     return entity_id.split(".", 1)[0] if "." in entity_id else ""
 
 
-def _entities_card_yaml(title: str, entities: list[str]) -> str:
+def _entities_card_yaml(
+    title: str,
+    entities: list[str],
+    *,
+    secondary_info: str | None = None,
+    show_header_toggle: bool = False,
+) -> str:
+    """Create an Entities card.
+
+    If `secondary_info` is provided, it is applied to all rows.
+    Example: secondary_info="last-changed".
+    """
+
+    # De-dupe while keeping order.
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for e in entities:
+        if not e or e in seen:
+            continue
+        seen.add(e)
+        uniq.append(e)
+
     lines = [
         "      - type: entities",
         f"        title: {title}",
-        "        show_header_toggle: false",
+        f"        show_header_toggle: {'true' if show_header_toggle else 'false'}",
         "        entities:",
     ]
-    if not entities:
+    if not uniq:
         lines.append("          - type: section")
-        lines.append("            label: (none)")
+        lines.append("            label: (keine)")
     else:
-        for eid in entities:
+        for eid in uniq:
             lines.append(f"          - entity: {eid}")
+            if secondary_info:
+                lines.append(f"            secondary_info: {secondary_info}")
     return "\n".join(lines)
 
 
@@ -74,7 +97,34 @@ def _logbook_yaml(title: str, entities: list[str]) -> str:
     return "\n".join(lines)
 
 
-def _lovelace_yaml_for_zone(z: HabitusZone) -> str:
+def _service_button_yaml(title: str, icon: str, service: str, entity_ids: list[str]) -> str:
+    # Simple built-in button card (no custom cards).
+    # Note: this is a stateless control; it will always be tappable.
+    ent_list = [e for e in entity_ids if e]
+    target = "[]" if not ent_list else (
+        "[" + ", ".join([f"'{e}'" for e in ent_list]) + "]"
+    )
+    return (
+        "      - type: button\n"
+        f"        name: {title}\n"
+        f"        icon: {icon}\n"
+        "        tap_action:\n"
+        "          action: call-service\n"
+        f"          service: {service}\n"
+        "          target:\n"
+        f"            entity_id: {target}\n"
+    )
+
+
+def _entity_card_yaml(title: str, entity_id: str) -> str:
+    return (
+        "      - type: entity\n"
+        f"        entity: {entity_id}\n"
+        f"        name: {title}\n"
+    )
+
+
+def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZone) -> str:
     """Return a YAML snippet for one Lovelace view.
 
     UX goal: sensible, named sections for common "extra" entities:
@@ -130,43 +180,118 @@ def _lovelace_yaml_for_zone(z: HabitusZone) -> str:
     roles.setdefault("sensor", domain_groups["sensor"])
     roles.setdefault("other", domain_groups["other"])
 
-    # Display order + naming
-    ordered: list[tuple[str, str]] = [
-        ("lights", "Licht"),
-        ("cover", "Rollo / Cover"),
-        ("lock", "Schloss"),
-        ("heating", "Heizung"),
-        ("media", "Media / Lautstärke"),
-        ("motion", "Motion / Präsenz"),
-        ("door", "Türsensor"),
-        ("window", "Fenstersensor"),
-        ("brightness", "Helligkeit"),
-        ("temperature", "Temperatur"),
-        ("humidity", "Luftfeuchte"),
-        ("co2", "CO₂"),
-        ("noise", "Lärm"),
-        ("pressure", "Luftdruck"),
-        ("sensor", "Weitere Sensoren"),
-        ("other", "Weitere Entitäten"),
-    ]
+    # Optional roles for energy/power
+    roles.setdefault("power", [])
+    roles.setdefault("energy", [])
+
+    def _avg_entity_id(metric: str) -> str:
+        # Stable entity_id created by the integration (if enabled/available).
+        return f"sensor.ai_home_copilot_hz_{zone_id}_{metric}_avg"
+
+    def _maybe_avg_card(metric: str, title: str, sources: list[str]) -> list[str]:
+        # Policy: only show average if there are >2 source entities.
+        if len(sources) <= 2:
+            return []
+        eid = _avg_entity_id(metric)
+        if hass.states.get(eid) is None:
+            return []
+        return [_entity_card_yaml(title, eid)]
 
     cards: list[str] = []
 
-    for key, title in ordered:
-        ents = roles.get(key) or []
-        if not ents:
-            continue
-        cards.append(_entities_card_yaml(f"{zone_name} — {title}", ents))
+    # Licht
+    lights = roles.get("lights") or []
+    if lights:
+        if len(lights) > 1:
+            cards.append(
+                _service_button_yaml(
+                    "Licht (alle) umschalten",
+                    "mdi:lightbulb-group",
+                    "light.toggle",
+                    lights,
+                )
+            )
+        cards.append(_entities_card_yaml("Licht", lights, show_header_toggle=True))
 
-    # Key signals for history/logbook
-    key_signals = []
-    key_signals.extend((roles.get("motion") or [])[:2])
-    key_signals.extend((roles.get("lights") or [])[:6])
+    # Cover / Schloss / Heizung / Media
+    if roles.get("cover"):
+        cards.append(_entities_card_yaml("Rollo / Cover", roles.get("cover") or []))
+    if roles.get("lock"):
+        cards.append(_entities_card_yaml("Schloss", roles.get("lock") or []))
+    if roles.get("heating"):
+        cards.append(_entities_card_yaml("Heizung", roles.get("heating") or []))
+    if roles.get("media"):
+        cards.append(_entities_card_yaml("Media / Lautstärke", roles.get("media") or []))
+
+    # Motion/Präsenz (mit letzter Änderung)
+    motion = roles.get("motion") or []
+    if motion:
+        cards.append(_entities_card_yaml("Motion / Präsenz", motion, secondary_info="last-changed"))
+
+    # Tür/Fenster
+    if roles.get("door"):
+        cards.append(_entities_card_yaml("Türsensor", roles.get("door") or []))
+    if roles.get("window"):
+        cards.append(_entities_card_yaml("Fenstersensor", roles.get("window") or []))
+
+    # Messwerte (mit mehr Graphen)
+    brightness = roles.get("brightness") or []
+    if brightness:
+        cards.append(_entities_card_yaml("Helligkeit", brightness))
+        cards.append(_history_graph_yaml("Helligkeit — Verlauf (24h)", brightness))
+
+    temperature = roles.get("temperature") or []
+    if temperature:
+        cards.extend(_maybe_avg_card("temperature", "Temperatur Ø", temperature))
+        cards.append(_entities_card_yaml("Temperatur", temperature))
+        cards.append(_history_graph_yaml("Temperatur — Verlauf (24h)", temperature))
+
+    humidity = roles.get("humidity") or []
+    if humidity:
+        cards.extend(_maybe_avg_card("humidity", "Luftfeuchte Ø", humidity))
+        cards.append(_entities_card_yaml("Luftfeuchte", humidity))
+        cards.append(_history_graph_yaml("Luftfeuchte — Verlauf (24h)", humidity))
+
+    co2 = roles.get("co2") or []
+    if co2:
+        cards.append(_entities_card_yaml("CO₂", co2))
+        cards.append(_history_graph_yaml("CO₂ — Verlauf (24h)", co2))
+
+    noise = roles.get("noise") or []
+    if noise:
+        cards.append(_entities_card_yaml("Lärm", noise))
+        cards.append(_history_graph_yaml("Lärm — Verlauf (24h)", noise))
+
+    pressure = roles.get("pressure") or []
+    if pressure:
+        cards.append(_entities_card_yaml("Luftdruck", pressure))
+        cards.append(_history_graph_yaml("Luftdruck — Verlauf (24h)", pressure))
+
+    power = roles.get("power") or []
+    if power:
+        cards.append(_entities_card_yaml("Strom (Leistung)", power))
+        cards.append(_history_graph_yaml("Strom — Verlauf (24h)", power))
+
+    energy = roles.get("energy") or []
+    if energy:
+        cards.append(_entities_card_yaml("Energie", energy))
+        cards.append(_history_graph_yaml("Energie — Verlauf (24h)", energy))
+
+    # Rest
+    if roles.get("sensor"):
+        cards.append(_entities_card_yaml("Weitere Sensoren", roles.get("sensor") or []))
+    if roles.get("other"):
+        cards.append(_entities_card_yaml("Weitere Entitäten", roles.get("other") or []))
+
+    # Key signals for history/logbook (kuratiert)
+    key_signals: list[str] = []
+    key_signals.extend((motion or [])[:2])
+    key_signals.extend((lights or [])[:6])
     key_signals.extend((roles.get("media") or [])[:4])
     key_signals.extend((roles.get("heating") or [])[:2])
 
-    cards.append(_history_graph_yaml(f"{zone_name} — History (24h)", key_signals))
-    cards.append(_logbook_yaml(f"{zone_name} — Logbook (24h)", key_signals))
+    cards.append(_history_graph_yaml("Übersicht — Verlauf (24h)", key_signals))
+    cards.append(_logbook_yaml("Übersicht — Logbuch (24h)", key_signals))
 
     return (
         f"  - title: {zone_name}\n"
@@ -186,12 +311,13 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
 
     views = []
     for z in zones:
-        views.append(_lovelace_yaml_for_zone(z))
+        views.append(_lovelace_yaml_for_zone(hass, z))
 
     content = (
-        "# Generated by AI Home CoPilot (Habitus zones)\n"
-        "# Import this as a YAML dashboard or copy views into an existing dashboard.\n\n"
-        "title: Habitus Zones\n"
+        "# Generiert von AI Home CoPilot (Habitus-Zonen)\n"
+        "# Governance-first: Diese Datei wird NICHT automatisch in Lovelace importiert.\n"
+        "# Sie wird von den Buttons aktualisiert (Generate).\n\n"
+        "title: Habitus-Zonen\n"
         "views:\n"
         + ("\n".join(views) if views else "  - title: Habitus Zones\n    path: habitus-zones\n    icon: mdi:layers-outline\n    cards: []\n")
     )
