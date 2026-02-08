@@ -146,21 +146,22 @@ class EventsForwarderModule:
 
                     zone_ids = (st.entity_to_zone_ids or {}).get(eid) or []
 
+                    # Note: Core stores a canonical event envelope and keeps extra data in `attributes`.
+                    # Put zone_ids/old/new state into attributes to avoid being dropped.
                     item: dict[str, Any] = {
                         "id": "",
                         "ts": _now_iso(),
                         "type": "state_changed",
                         "source": "home_assistant",
                         "entity_id": eid,
-                        "domain": _domain(eid),
-                        "zone_ids": zone_ids,
-                        "old_state": old_state,
-                        "new_state": new_state,
-                        # Keep attributes minimal (privacy/perf). Add more later behind opt-in.
                         "attributes": {
+                            "domain": _domain(eid),
+                            "zone_ids": zone_ids,
+                            "old_state": old_state,
+                            "new_state": new_state,
                             "device_class": getattr(new, "attributes", {}).get("device_class")
                             if hasattr(new, "attributes")
-                            else None
+                            else None,
                         },
                     }
 

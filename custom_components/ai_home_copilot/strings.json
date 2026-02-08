@@ -57,7 +57,15 @@
           "create_zone": "Create zone",
           "edit_zone": "Edit zone",
           "delete_zone": "Delete zone",
+          "bulk_edit": "Bulk edit (YAML/JSON)",
           "back": "Back"
+        }
+      },
+      "bulk_edit": {
+        "title": "Bulk edit Habitus zones",
+        "description": "{hint}",
+        "data": {
+          "zones": "Zones (YAML or JSON)"
         }
       },
       "backup_restore": {

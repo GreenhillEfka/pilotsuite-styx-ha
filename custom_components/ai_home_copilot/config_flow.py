@@ -272,7 +272,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     async def async_step_habitus_zones(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="habitus_zones",
-            menu_options=["create_zone", "edit_zone", "delete_zone", "back"],
+            menu_options=["create_zone", "edit_zone", "delete_zone", "bulk_edit", "back"],
         )
 
     async def async_step_back(self, user_input: dict | None = None) -> FlowResult:
@@ -312,6 +312,65 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         remain = [z for z in zones if z.zone_id != zid]
         await async_set_zones(self.hass, self._entry.entry_id, remain)
         return await self.async_step_habitus_zones()
+
+    async def async_step_bulk_edit(self, user_input: dict | None = None) -> FlowResult:
+        """Bulk editor to paste YAML/JSON (no 255-char limit) with validation."""
+        from homeassistant.helpers import selector
+        import yaml
+        import json
+
+        from .habitus_zones_store import async_get_zones, async_set_zones_from_raw
+
+        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        current = [{"id": z.zone_id, "name": z.name, "entity_ids": z.entity_ids} for z in zones]
+
+        if user_input is not None:
+            raw_text = str(user_input.get("zones") or "").strip()
+            if not raw_text:
+                raw_text = "[]"
+
+            try:
+                try:
+                    raw = json.loads(raw_text)
+                except Exception:  # noqa: BLE001
+                    raw = yaml.safe_load(raw_text)
+
+                await async_set_zones_from_raw(self.hass, self._entry.entry_id, raw)
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="bulk_edit",
+                    data_schema=vol.Schema(
+                        {
+                            vol.Required(
+                                "zones",
+                                default=raw_text,
+                            ): selector.TextSelector(
+                                selector.TextSelectorConfig(multiline=True)
+                            )
+                        }
+                    ),
+                    errors={"base": "invalid_json"},
+                    description_placeholders={"hint": f"Parse/validation error: {err}"},
+                )
+
+            return await self.async_step_habitus_zones()
+
+        default = yaml.safe_dump(current, allow_unicode=True, sort_keys=False)
+        schema = vol.Schema(
+            {
+                vol.Required("zones", default=default): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                )
+            }
+        )
+
+        return self.async_show_form(
+            step_id="bulk_edit",
+            data_schema=schema,
+            description_placeholders={
+                "hint": "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires motion/presence + light.",
+            },
+        )
 
     async def _async_step_zone_form(
         self,

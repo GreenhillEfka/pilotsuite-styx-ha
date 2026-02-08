@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import yaml
+
 from homeassistant.components.button import ButtonEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.text import TextEntity
@@ -22,13 +24,15 @@ from .habitus_zones_store import (
 
 
 class HabitusZonesJsonText(CopilotBaseEntity, TextEntity):
-    # Advanced / debug editor; wizard is the primary UX.
+    # Advanced / bulk editor; wizard is the primary UX.
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot habitus zones (json)"
+    _attr_name = "AI Home CoPilot habitus zones (bulk editor)"
     _attr_unique_id = "ai_home_copilot_habitus_zones_json"
     _attr_icon = "mdi:layers-outline"
-    _attr_mode = "text"
+    _attr_mode = "text"  # multiline
+    # Remove the default 255-char limit.
+    _attr_native_max = 65535
 
     def __init__(self, coordinator, entry: ConfigEntry):
         super().__init__(coordinator)
@@ -57,12 +61,17 @@ class HabitusZonesJsonText(CopilotBaseEntity, TextEntity):
             value = "[]"
 
         try:
-            raw = json.loads(value)
+            try:
+                raw = json.loads(value)
+            except Exception:  # noqa: BLE001
+                # Also accept YAML for better multiline UX.
+                raw = yaml.safe_load(value)
+
             zones = await async_set_zones_from_raw(self.hass, self._entry.entry_id, raw)
         except Exception as err:  # noqa: BLE001
             persistent_notification.async_create(
                 self.hass,
-                f"Invalid Habitus zones JSON: {err}",
+                f"Invalid Habitus zones YAML/JSON: {err}",
                 title="AI Home CoPilot Habitus zones",
                 notification_id="ai_home_copilot_habitus_zones",
             )

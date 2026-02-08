@@ -21,6 +21,10 @@ from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
 from .habitus_zones_entities import HabitusZonesValidateButton
 from .habitus_dashboard import async_generate_habitus_zones_dashboard, async_publish_last_habitus_dashboard
+from .pilotsuite_dashboard import (
+    async_generate_pilotsuite_dashboard,
+    async_publish_last_pilotsuite_dashboard,
+)
 from .core_v1 import async_fetch_core_capabilities
 
 
@@ -44,9 +48,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogPushLatestButton(coordinator, entry),
             CopilotDevLogsFetchButton(coordinator, entry),
             CopilotCoreCapabilitiesFetchButton(coordinator, entry),
+            CopilotCoreEventsFetchButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
             CopilotGenerateHabitusDashboardButton(coordinator, entry),
             CopilotDownloadHabitusDashboardButton(coordinator, entry),
+            CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
+            CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
         ],
         True,
     )
@@ -316,6 +323,77 @@ class CopilotCoreCapabilitiesFetchButton(CopilotBaseEntity, ButtonEntity):
         )
 
 
+class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot fetch core events"
+    _attr_unique_id = "ai_home_copilot_fetch_core_events"
+    _attr_icon = "mdi:clipboard-list-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        url = "/api/v1/events?limit=20"
+        try:
+            data = await self.coordinator.api.async_get(url)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to fetch core events: {err}",
+                title="AI Home CoPilot Core events",
+                notification_id="ai_home_copilot_core_events",
+            )
+            return
+
+        items = data.get("items") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            items = []
+
+        lines: list[str] = []
+        for it in items[-20:]:
+            if not isinstance(it, dict):
+                continue
+
+            received = str(it.get("received") or it.get("ts") or "")
+            entity_id = it.get("entity_id")
+            typ = it.get("type")
+            attrs = it.get("attributes") if isinstance(it.get("attributes"), dict) else {}
+
+            header = f"- {received}".strip()
+
+            meta: list[str] = []
+            if typ:
+                meta.append(str(typ))
+            if entity_id:
+                meta.append(f"entity={entity_id}")
+
+            zone_ids = attrs.get("zone_ids")
+            if isinstance(zone_ids, list) and zone_ids:
+                meta.append("zones=" + ",".join([str(z) for z in zone_ids][:5]))
+
+            new_state = attrs.get("new_state")
+            old_state = attrs.get("old_state")
+            if new_state is not None:
+                meta.append(f"new={new_state}")
+            if old_state is not None:
+                meta.append(f"old={old_state}")
+
+            if meta:
+                header += " (" + ", ".join(meta) + ")"
+
+            lines.append(header)
+
+        msg = "\n".join(lines) if lines else "No core events returned."
+
+        persistent_notification.async_create(
+            self.hass,
+            msg,
+            title="AI Home CoPilot Core events (last 20)",
+            notification_id="ai_home_copilot_core_events",
+        )
+
+
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot generate habitus dashboard"
@@ -349,4 +427,40 @@ class CopilotDownloadHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
                 f"Failed to publish habitus dashboard: {err}",
                 title="AI Home CoPilot Habitus dashboard",
                 notification_id="ai_home_copilot_habitus_dashboard_download",
+            )
+
+
+class CopilotGeneratePilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot generate PilotSuite dashboard"
+    _attr_unique_id = "ai_home_copilot_generate_pilotsuite_dashboard"
+    _attr_icon = "mdi:view-dashboard"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_generate_pilotsuite_dashboard(self.hass, self._entry)
+
+
+class CopilotDownloadPilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot download PilotSuite dashboard"
+    _attr_unique_id = "ai_home_copilot_download_pilotsuite_dashboard"
+    _attr_icon = "mdi:download"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        try:
+            await async_publish_last_pilotsuite_dashboard(self.hass)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to publish PilotSuite dashboard: {err}",
+                title="AI Home CoPilot PilotSuite dashboard",
+                notification_id="ai_home_copilot_pilotsuite_dashboard_download",
             )

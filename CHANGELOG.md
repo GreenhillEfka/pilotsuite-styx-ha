@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-02-08
+### Added
+- Habitus zones bulk editor (OptionsFlow): paste YAML/JSON to create/update zones quickly.
+- Core events fetch button: shows last 20 `/api/v1/events` items in a persistent notification.
+- PilotSuite dashboard generator (governance-first): generate + download a multi-view YAML dashboard.
+
+### Fixed
+- Event forwarder now stores zone_ids + old/new state inside event attributes so Core keeps the data.
+
 ## [0.2.5] - 2026-02-08
 ### Fixed
 - OptionsFlow menu labels missing in HA (adds `options.*` translation section for EN/DE).

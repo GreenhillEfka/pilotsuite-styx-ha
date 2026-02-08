@@ -57,7 +57,8 @@
           "create_zone": "Zone erstellen",
           "edit_zone": "Zone bearbeiten",
           "delete_zone": "Zone löschen",
-          "back": "Zurück"
+          "back": "Zurück",
+          "bulk_edit": "Bulk-Edit (YAML/JSON)"
         }
       },
       "backup_restore": {
@@ -125,6 +126,13 @@
         "title": "Habituszone löschen",
         "data": {
           "zone_id": "Zone"
+        }
+      },
+      "bulk_edit": {
+        "title": "Habituszonen Bulk-Edit",
+        "description": "{hint}",
+        "data": {
+          "zones": "Zonen (YAML oder JSON)"
         }
       }
     },
@@ -219,7 +227,8 @@
           "create_zone": "Zone erstellen",
           "edit_zone": "Zone bearbeiten",
           "delete_zone": "Zone löschen",
-          "back": "Zurück"
+          "back": "Zurück",
+          "bulk_edit": "Bulk-Edit (YAML/JSON)"
         }
       },
       "backup_restore": {
@@ -287,6 +296,13 @@
         "title": "Habituszone löschen",
         "data": {
           "zone_id": "Zone"
+        }
+      },
+      "bulk_edit": {
+        "title": "Habituszonen Bulk-Edit",
+        "description": "{hint}",
+        "data": {
+          "zones": "Zonen (YAML oder JSON)"
         }
       }
     },
