@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -21,18 +22,22 @@ from .const import (
     DOMAIN,
 )
 
-
-def _redact_cfg(cfg: dict[str, Any]) -> dict[str, Any]:
-    out = dict(cfg)
-    if CONF_TOKEN in out:
-        out[CONF_TOKEN] = "**REDACTED**" if out.get(CONF_TOKEN) else ""
-    return out
+TO_REDACT = {
+    CONF_TOKEN,
+    "token",
+    "access_token",
+    "refresh_token",
+    "password",
+    "api_key",
+}
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry.
 
-    Keep this privacy-first. Do not include tokens. Keep payload small.
+    Privacy-first:
+    - best-effort redaction
+    - bounded sizes
 
     Docs: https://developers.home-assistant.io/docs/core/diagnostics/
     """
@@ -43,8 +48,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
 
     cfg = entry.data | entry.options
 
-    core_status = None
-    core_devlogs = None
+    core_status: dict[str, Any] | None = None
+    core_devlogs: Any = None
 
     if coordinator is not None:
         try:
@@ -59,7 +64,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         except Exception as err:  # noqa: BLE001
             core_devlogs = {"error": str(err)}
 
-    media_state = None
+    media_state: dict[str, Any] | None = None
     if media_coordinator is not None and getattr(media_coordinator, "data", None) is not None:
         d = media_coordinator.data
         media_state = {
@@ -89,15 +94,38 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         CONF_TOKEN: cfg.get(CONF_TOKEN),
     }
 
+    # v0.1 dev_surface kernel (optional).
+    dev_surface = None
+    k = data.get("dev_surface") if isinstance(data, dict) else None
+    if isinstance(k, dict):
+        devlog = k.get("devlog")
+        errors = k.get("errors")
+
+        dev_surface = {
+            "debug": bool(k.get("debug")),
+            "debug_until": k.get("debug_until"),
+            "last_success": k.get("last_success"),
+            "devlogs_excerpt": devlog.tail(200) if hasattr(devlog, "tail") else [],
+            "error_digest": errors.as_dict() if hasattr(errors, "as_dict") else None,
+        }
+
     return {
+        "privacy": {
+            "redaction": "best_effort",
+            "notes": [
+                "Tokens/credentials are redacted by key and by best-effort pattern matching.",
+                "DevLogs are bounded (ring buffer) and may be truncated.",
+            ],
+        },
         "entry": {
             "entry_id": entry.entry_id,
             "title": entry.title,
         },
-        "config": _redact_cfg(cfg_public),
+        "config": async_redact_data(cfg_public, TO_REDACT),
         "core": {
             "status": core_status,
             "devlogs": core_devlogs,
         },
         "media_context": media_state,
+        "dev_surface": dev_surface,
     }
