@@ -16,6 +16,8 @@ class CopilotSafetyBackupCreateButton(CopilotBaseEntity, ButtonEntity):
     def __init__(self, coordinator, entry: ConfigEntry):
         super().__init__(coordinator)
         self._entry = entry
+        # Ensure stable entity_id (PilotSuite dashboard references this).
+        self.entity_id = "button.ai_home_copilot_safety_backup_create"
 
     async def async_press(self) -> None:
         await async_create_safety_backup(self.hass)
@@ -30,6 +32,8 @@ class CopilotSafetyBackupStatusButton(CopilotBaseEntity, ButtonEntity):
     def __init__(self, coordinator, entry: ConfigEntry):
         super().__init__(coordinator)
         self._entry = entry
+        # Ensure stable entity_id (PilotSuite dashboard references this).
+        self.entity_id = "button.ai_home_copilot_safety_backup_status"
 
     async def async_press(self) -> None:
         await async_show_safety_backup_status(self.hass)
