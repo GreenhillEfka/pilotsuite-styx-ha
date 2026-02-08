@@ -1,5 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 
+from copilot_core.brain_graph.feeding import feed_events_to_graph
+from copilot_core.brain_graph.provider import get_graph_service
 from copilot_core.storage.events import EventStore
 
 bp = Blueprint("events", __name__, url_prefix="/events")
@@ -28,14 +30,23 @@ def ingest_event():
 
     # Accept either a single event or a batch: {items:[...]}
     if isinstance(payload, dict) and isinstance(payload.get("items"), list):
-        n = _store().extend([x for x in payload["items"] if isinstance(x, dict)])
-        return jsonify({"ok": True, "ingested": n})
+        items = [x for x in payload["items"] if isinstance(x, dict)]
+        n, stored_events = _store().extend(items)
+
+        # Graph feeding happens *after* dedupe: only use stored events.
+        graph_stats = feed_events_to_graph(get_graph_service(), stored_events)
+        return jsonify({"ok": True, "ingested": n, "graph": graph_stats})
 
     if not isinstance(payload, dict):
         return jsonify({"ok": False, "error": "expected JSON object"}), 400
 
-    evt = _store().append(payload)
-    return jsonify({"ok": True, "event": evt})
+    evt, stored = _store().append(payload)
+    if stored:
+        graph_stats = feed_events_to_graph(get_graph_service(), [evt])
+    else:
+        graph_stats = {"nodes_touched": 0, "edges_touched": 0, "observed_with_pairs": 0}
+
+    return jsonify({"ok": True, "stored": stored, "event": evt, "graph": graph_stats})
 
 
 @bp.get("")

@@ -29,10 +29,10 @@ class TestGraphApi(unittest.TestCase):
         )
 
         # Reset lazy singleton between tests
-        from copilot_core.api.v1 import graph as graph_api
+        from copilot_core.brain_graph import provider
 
-        graph_api._STORE = None
-        graph_api._SVC = None
+        provider._STORE = None
+        provider._SVC = None
 
         client = app.test_client()
         r = client.get("/api/v1/graph/state")

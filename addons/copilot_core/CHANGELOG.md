@@ -3,6 +3,10 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 0.2.5
+- Brain Graph is now fed from ingested `/api/v1/events` batches (privacy-first, bounded).
+- Capabilities expose `brain_graph.feeding_enabled`.
+
 ## 0.2.3
 - Logs the listening port on startup.
 - `/health` includes the effective port.

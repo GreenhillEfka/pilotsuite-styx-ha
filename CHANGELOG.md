@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [copilot_core-v0.2.5] - 2026-02-08
+### Added
+- Brain Graph feeding on `POST /api/v1/events` after idempotency/dedupe (privacy-first).
+  - `state_changed` touches `ha.entity:<entity_id>` and `zone:<zone_id>` nodes and adds `in_zone` edges.
+  - `call_service` touches `ha.intent:<domain>.<service>` nodes and adds `controls` edges to entities/zones.
+  - Optional bounded `observed_with` edges between entities that co-occur in the same ingest batch.
+- Capabilities now expose `brain_graph.feeding_enabled`.
+
 ## [copilot_core-v0.2.3] - 2026-02-08
 ### Added
 - Startup log line includes the listening port.

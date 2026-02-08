@@ -16,7 +16,7 @@ def _now_iso() -> str:
 
 @dataclass(frozen=True)
 class CopilotConfig:
-    version: str = os.environ.get("COPILOT_VERSION", "0.2.3")
+    version: str = os.environ.get("COPILOT_VERSION", "0.2.5")
 
     # Logging
     log_level: str = "info"
@@ -173,6 +173,7 @@ def create_app() -> Flask:
                         "json_path": cfg.brain_graph_json_path,
                         "nodes_max": cfg.brain_graph_nodes_max,
                         "edges_max": cfg.brain_graph_edges_max,
+                        "feeding_enabled": True,
                     },
                 },
             }
