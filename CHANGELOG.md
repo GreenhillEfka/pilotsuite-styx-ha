@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.18] - 2026-02-08
+## [0.2.21] - 2026-02-08
+### Changed
+- PilotSuite: Safety-Backup Buttons werden standardmäßig nicht im Dashboard gezeigt (Option in den Integration-Settings), damit Updates/Neustarts nicht versehentlich durch laufende Backups blockiert werden.
+
+## [0.2.20] - 2026-02-08
 ### Added
-- Events forwarder: optional **persistent queue** (store unsent events across HA restarts) with bounded size + drop-oldest policy.
-- Events forwarder: forwarder status now shows persisted queue length + total drops.
+- Events forwarder: optionale **persistente Queue** (unsent Events über HA-Restarts behalten), bounded + drop-oldest.
+- Forwarder-Status zeigt persistente Queue-Länge + Drop-Zähler.
 
 ### Fixed
-- Events forwarder reliability: on send errors, the batch is re-queued instead of being lost.
+- Forwarder-Reliability: bei POST-Fehlern wird der Batch wieder in die Queue gelegt (geht nicht verloren).
+
+## [0.2.19] - 2026-02-08
+### Added
+- Core Graph: neuer Button "fetch core graph state" (zeigt `/api/v1/graph/state` als Notification), um Brain-Graph Feeding leicht zu verifizieren.
+
+## [0.2.18] - 2026-02-08
+### Fixed
+- PilotSuite: Safety-Backup Buttons haben jetzt stabile Entity-IDs (behebt "Entität nicht gefunden" Warnungen im Dashboard).
+
 
 ## [0.2.17] - 2026-02-08
 ### Added

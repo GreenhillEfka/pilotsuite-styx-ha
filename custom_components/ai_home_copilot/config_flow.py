@@ -38,6 +38,7 @@ from .const import (
     CONF_HA_ERRORS_DIGEST_ENABLED,
     CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_MAX_LINES,
+    CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
@@ -69,6 +70,7 @@ from .const import (
     DEFAULT_HA_ERRORS_DIGEST_ENABLED,
     DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
+    DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     DOMAIN,
 )
 
@@ -292,6 +294,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                         DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
                     ),
                 ): int,
+
+                # PilotSuite UX knobs (safe defaults).
+                vol.Optional(
+                    CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+                    default=data.get(
+                        CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+                        DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+                    ),
+                ): bool,
 
                 # Local HA log digest (opt-in): show relevant warnings/errors as notifications.
                 vol.Optional(
