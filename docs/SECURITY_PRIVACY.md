@@ -22,3 +22,14 @@
 ## Reporting
 - Reports are generated locally.
 - Publishing a report to `/local/…` is an explicit button action.
+
+## Core v1: Events forwarder (opt-in)
+If enabled, the integration can forward a **privacy-first allowlist** of events to Copilot-Core.
+
+- `state_changed`: only for entities included in Habitus zones.
+  - Only forwards the state change + a tiny allowlist of state attributes:
+    - `light`: `brightness`, `color_temp`, `hs_color`
+    - `media_player`: `volume_level`
+- `call_service` (optional): forwards intent-like service calls **only when** they target Habitus zone entities.
+  - Service data is stripped (only the domain/service name and the targeted entity_ids are kept).
+- Event `id` uses `event_type:context.id` when available to support best-effort idempotency.

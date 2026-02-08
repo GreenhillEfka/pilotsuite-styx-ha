@@ -30,6 +30,8 @@ from .const import (
     CONF_EVENTS_FORWARDER_ENABLED,
     CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
     CONF_EVENTS_FORWARDER_MAX_BATCH,
+    CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
+    CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
     CONF_HA_ERRORS_DIGEST_ENABLED,
     CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_MAX_LINES,
@@ -56,6 +58,8 @@ from .const import (
     DEFAULT_EVENTS_FORWARDER_ENABLED,
     DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
     DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
+    DEFAULT_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
+    DEFAULT_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_ENABLED,
     DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
@@ -243,6 +247,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     default=data.get(
                         CONF_EVENTS_FORWARDER_MAX_BATCH,
                         DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
+                        DEFAULT_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
+                        DEFAULT_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
                     ),
                 ): int,
 

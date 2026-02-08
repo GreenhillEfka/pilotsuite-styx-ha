@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.16] - 2026-02-08
+### Added
+- Events forwarder: optional forwarding of `call_service` events (privacy-first; only when targets match Habitus zone entities).
+- Events forwarder: best-effort event idempotency (event `id` = `event_type:context.id` when available) + configurable in-memory TTL.
+
+### Changed
+- Events forwarder (state_changed): allowlist state attributes (lights: brightness/color_temp/hs_color; media_player: volume_level). All other state attributes remain stripped.
+
 ## [0.2.15] - 2026-02-08
 ### Fixed
 - HA errors digest: zeigt jetzt vollständige Log-Entries inkl. multiline Tracebacks (statt nur "Traceback…" Zeilen) und fokussiert auf ai_home_copilot-relevante Fehler.

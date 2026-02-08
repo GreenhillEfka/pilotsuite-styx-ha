@@ -43,6 +43,8 @@
           "events_forwarder_enabled": "Core v1: forward Habitus zone events to Core (opt-in)",
           "events_forwarder_flush_interval_seconds": "Core v1: forwarder flush interval (seconds)",
           "events_forwarder_max_batch": "Core v1: forwarder max batch size",
+          "events_forwarder_forward_call_service": "Core v1: also forward call_service events (opt-in)",
+          "events_forwarder_idempotency_ttl_seconds": "Core v1: event idempotency TTL (seconds)",
           "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
           "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
           "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
