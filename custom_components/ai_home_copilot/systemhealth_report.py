@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 import shutil
 from collections import Counter
 from datetime import datetime, timezone
@@ -10,6 +9,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
 
 from .systemhealth_store import async_get_state, async_set_last_generated, async_set_last_published
+from .privacy import sanitize_path, sanitize_text
 
 EXPORT_DIR = "/config/ai_home_copilot/exports"
 PUBLISH_DIR = "/config/www/ai_home_copilot"
@@ -35,18 +35,10 @@ def _fmt_bytes(n: int | None) -> str:
     return f"{v:.1f} {units[i]}"
 
 
-_REDACT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
-    # Best-effort redactions (privacy-first).
-    (re.compile(r"(?i)(token|access_token|auth_token|api_key|password)\s*[:=]\s*[^\s,;]+"), r"\1=<redacted>"),
-    (re.compile(r"(?i)bearer\s+[a-z0-9\-\._~\+\/]+=*"), "Bearer <redacted>"),
-]
-
 
 def _redact_line(line: str) -> str:
-    out = line
-    for pat, repl in _REDACT_PATTERNS:
-        out = pat.sub(repl, out)
-    return out
+    # Centralized sanitization kernel (security_privacy v0.1).
+    return sanitize_text(line, max_chars=400)
 
 
 def _read_tail_lines(path: str, *, max_lines: int = 500) -> list[str]:
@@ -165,10 +157,10 @@ async def async_generate_systemhealth_report(hass: HomeAssistant) -> str:
         lines.append(f"- recorder_db: sqlite ({_fmt_bytes(db_size)}) (risk={db_risk})")
         if db_mtime:
             lines.append(f"  - mtime_utc: {db_mtime}")
-        lines.append(f"  - path: {db_path}")
+        lines.append(f"  - path: {sanitize_path(db_path)}")
     else:
         lines.append("- recorder_db: sqlite file not found at default path")
-        lines.append(f"  - checked: {db_path}")
+        lines.append(f"  - checked: {sanitize_path(db_path)}")
         lines.append("  - note: this usually means an external DB is configured, or HA is not using SQLite")
     lines.append("")
 
