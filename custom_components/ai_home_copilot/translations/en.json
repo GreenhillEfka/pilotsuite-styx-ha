@@ -150,7 +150,8 @@
       "cannot_connect": "Failed to connect",
       "cannot_read": "Could not read snapshot file",
       "invalid_json": "Invalid JSON",
-      "confirm_required": "Please confirm"
+      "confirm_required": "Please confirm",
+      "invalid": "Invalid input"
     }
   },
   "issues": {

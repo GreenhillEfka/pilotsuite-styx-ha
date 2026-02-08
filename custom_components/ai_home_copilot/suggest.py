@@ -99,10 +99,16 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
 
 async def async_offer_demo_candidate(hass: HomeAssistant, entry_id: str) -> None:
     # Demo suggestion to validate the governance UX end-to-end.
+    # Inputs are intentionally minimal; the Repairs flow can prompt for missing ones.
     cand = Candidate(
         candidate_id="demo_a_to_b",
         kind="blueprint",
         title="A→B: Wenn A passiert, führe B aus (sicherer Blueprint)",
         blueprint_url=None,
+        data={
+            "blueprint_id": "ai_home_copilot/a_to_b_safe.yaml",
+            "blueprint_inputs": {},
+            "risk": "medium",
+        },
     )
     await async_offer_candidate(hass, entry_id, cand)
