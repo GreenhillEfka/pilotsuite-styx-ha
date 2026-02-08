@@ -14,10 +14,12 @@ from .const import (
     CONF_MEDIA_MUSIC_PLAYERS,
     CONF_MEDIA_TV_PLAYERS,
     CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+    CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
     DEFAULT_DEVLOG_PUSH_ENABLED,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
     DEFAULT_MEDIA_TV_PLAYERS,
     DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
+    DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
 )
 from .habitus_zones_store import async_get_zones
 from .pilotsuite_dashboard_store import PilotSuiteDashboardState, async_get_state, async_set_state
@@ -161,6 +163,22 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
             [
                 "button.ai_home_copilot_safety_backup_create",
                 "button.ai_home_copilot_safety_backup_status",
+            ]
+        )
+
+    show_dev_surface = bool(
+        cfg.get(
+            CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+            DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
+        )
+    )
+    if show_dev_surface:
+        operations_entities.extend(
+            [
+                "button.ai_home_copilot_ping_core",
+                "button.ai_home_copilot_enable_debug_30m",
+                "button.ai_home_copilot_disable_debug",
+                "button.ai_home_copilot_clear_error_digest",
             ]
         )
 
