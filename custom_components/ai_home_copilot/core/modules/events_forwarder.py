@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import logging
 from typing import Any
+import asyncio
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant
@@ -103,6 +104,15 @@ class EventsForwarderModule:
         max_batch = int(cfg.get(CONF_EVENTS_FORWARDER_MAX_BATCH, DEFAULT_EVENTS_FORWARDER_MAX_BATCH))
         max_batch = max(1, min(max_batch, 500))
 
+        def _schedule(coro) -> None:
+            # Some HA callbacks may execute outside the event loop thread.
+            # Use call_soon_threadsafe to avoid non-thread-safe warnings/crashes.
+            try:
+                hass.loop.call_soon_threadsafe(hass.async_create_task, coro)
+            except Exception:  # noqa: BLE001
+                # Best effort fallback.
+                hass.async_create_task(coro)
+
         async def _refresh_subscriptions() -> None:
             zones = await async_get_zones(hass, entry.entry_id)
             entity_to_zone: dict[str, list[str]] = {}
@@ -173,7 +183,7 @@ class EventsForwarderModule:
 
                     # Flush immediately on size.
                     if len(st.queue or []) >= max_batch:
-                        hass.async_create_task(_flush_now())
+                        _schedule(_flush_now())
 
                 except Exception as e:  # noqa: BLE001
                     _LOGGER.debug("Events forwarder state handler failed: %s", e)
@@ -210,15 +220,15 @@ class EventsForwarderModule:
 
         def _flush_timer(_now) -> None:
             # callback from async_call_later (sync context)
-            hass.async_create_task(_flush_now())
+            _schedule(_flush_now())
 
         # initial subscriptions + listen for zone updates
         await _refresh_subscriptions()
 
-        async def _zones_updated(updated_entry_id: str) -> None:
+        def _zones_updated(updated_entry_id: str) -> None:
             if updated_entry_id != entry.entry_id:
                 return
-            await _refresh_subscriptions()
+            _schedule(_refresh_subscriptions())
 
         st.unsub_zones = async_dispatcher_connect(hass, SIGNAL_HABITUS_ZONES_UPDATED, _zones_updated)
         data["unsub_events_forwarder"] = self._unsub_factory(hass, entry.entry_id)
