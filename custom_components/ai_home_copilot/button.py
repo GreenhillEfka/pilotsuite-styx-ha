@@ -414,11 +414,25 @@ class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
         else:
             sub = data.get("events_forwarder_subscribed")
             last = data.get("events_forwarder_last")
+            seen = data.get("events_forwarder_seen")
+            qlen = data.get("events_forwarder_queue_len")
+
             msg_lines = []
             if isinstance(sub, dict):
                 msg_lines.append(f"subscribed: {sub.get('count')} entities @ {sub.get('time')}")
             else:
                 msg_lines.append("subscribed: (unknown)")
+
+            if isinstance(seen, dict):
+                msg_lines.append(
+                    "last seen: "
+                    + f"{seen.get('time')} entity={seen.get('entity_id')} old={seen.get('old_state')} new={seen.get('new_state')} zones={seen.get('zones')}"
+                )
+            else:
+                msg_lines.append("last seen: (none)")
+
+            if qlen is not None:
+                msg_lines.append(f"queue_len: {qlen}")
 
             if isinstance(last, dict):
                 msg_lines.append(f"last send: sent={last.get('sent')} @ {last.get('time')}")

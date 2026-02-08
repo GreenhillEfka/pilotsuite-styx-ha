@@ -177,6 +177,16 @@ class EventsForwarderModule:
 
                     (st.queue or []).append(item)
 
+                    # Debug stats for operator UX
+                    data["events_forwarder_seen"] = {
+                        "time": _now_iso(),
+                        "entity_id": eid,
+                        "old_state": old_state,
+                        "new_state": new_state,
+                        "zones": zone_ids,
+                    }
+                    data["events_forwarder_queue_len"] = len(st.queue or [])
+
                     # Schedule flush if this was the first in an empty queue.
                     if st.unsub_timer is None:
                         st.unsub_timer = async_call_later(hass, flush_interval, _flush_timer)
@@ -203,6 +213,7 @@ class EventsForwarderModule:
 
             items = list(st.queue or [])
             st.queue = []
+            data["events_forwarder_queue_len"] = 0
             if not items:
                 return
 
