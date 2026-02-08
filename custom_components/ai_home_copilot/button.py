@@ -27,6 +27,10 @@ from .pilotsuite_dashboard import (
 )
 from .core_v1 import async_fetch_core_capabilities
 from .ha_errors_digest import async_show_ha_errors_digest
+from .button_safety_backup import (
+    CopilotSafetyBackupCreateButton,
+    CopilotSafetyBackupStatusButton,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -52,6 +56,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotCoreEventsFetchButton(coordinator, entry),
             CopilotForwarderStatusButton(coordinator, entry),
             CopilotHaErrorsFetchButton(coordinator, entry),
+            CopilotSafetyBackupCreateButton(coordinator, entry),
+            CopilotSafetyBackupStatusButton(coordinator, entry),
             HabitusZonesValidateButton(coordinator, entry),
             CopilotGenerateHabitusDashboardButton(coordinator, entry),
             CopilotDownloadHabitusDashboardButton(coordinator, entry),
