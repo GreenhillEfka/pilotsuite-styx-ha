@@ -78,23 +78,87 @@ async def _save_state(hass: HomeAssistant, data: dict[str, Any]) -> None:
 
 
 _MATCH_SUBSTRINGS = [
+    # direct signal
     "ai_home_copilot",
-    "RuntimeError",
-    "UpdateFailed",
+    "custom_components.ai_home_copilot",
+    "custom integration 'ai_home_copilot'",
+    # generic HA issues we care about (only when our stack/lines are involved)
     "Detected that custom integration",
     "calls hass.async_create_task",
+    "calls async_write_ha_state",
+    "Detected blocking call",
+    "UpdateFailed",
+    "RuntimeError",
     "Task exception was never retrieved",
     "Error doing job",
-    "Traceback (most recent call last)",
 ]
+
+_RE_ENTRY_START = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} ")
+
+
+def _split_log_entries(lines: list[str]) -> list[list[str]]:
+    """Split raw log lines into entries (timestamp line + continuation).
+
+    Home Assistant writes multiline tracebacks without timestamps on continuation lines.
+    """
+
+    entries: list[list[str]] = []
+    cur: list[str] = []
+
+    for ln in lines:
+        if _RE_ENTRY_START.match(ln):
+            if cur:
+                entries.append(cur)
+            cur = [ln]
+        else:
+            if not cur:
+                # Skip preamble/noise.
+                continue
+            cur.append(ln)
+
+    if cur:
+        entries.append(cur)
+
+    return entries
+
+
+def _is_relevant_entry(entry: list[str]) -> bool:
+    text = "\n".join(entry)
+
+    # Prefer entries clearly tied to our integration.
+    if any(s in text for s in ("ai_home_copilot", "custom_components.ai_home_copilot")):
+        return True
+
+    # Allow some generic HA problems *only* if the stack points to our files.
+    if "custom_components/ai_home_copilot" in text:
+        return True
+
+    return False
+
+
+def _format_entry(entry: list[str]) -> str:
+    # Keep tracebacks intact but bounded.
+    # Strip trailing empty lines.
+    while entry and not entry[-1].strip():
+        entry.pop()
+    return "\n".join(entry)
 
 
 def _filter_relevant(lines: list[str]) -> list[str]:
-    out: list[str] = []
-    for ln in lines:
-        if any(s in ln for s in _MATCH_SUBSTRINGS):
-            out.append(ln)
-    return out
+    """Return a list of formatted, relevant log entries."""
+
+    entries = _split_log_entries(lines)
+    hits: list[str] = []
+
+    for e in entries:
+        text = "\n".join(e)
+        if not any(s in text for s in _MATCH_SUBSTRINGS):
+            continue
+        if not _is_relevant_entry(e):
+            continue
+        hits.append(_format_entry(list(e)))
+
+    return hits
 
 
 async def async_fetch_ha_errors_digest(
@@ -122,12 +186,13 @@ async def async_fetch_ha_errors_digest(
     if not hits:
         return (
             "AI Home CoPilot HA errors",
-            f"No matching errors/warnings found in the last {max_lines} log lines.",
+            f"Keine passenden Fehler/Warnungen in den letzten {max_lines} Log-Zeilen gefunden.",
         )
 
     # Keep the tail of the hits to focus on latest problems.
-    tail = hits[-80:]
-    text = "\n".join(tail)
+    tail = hits[-12:]
+
+    text = "\n\n---\n\n".join(tail)
     text = _sanitize(text, max_chars=8000)
     return ("AI Home CoPilot HA errors (digest)", text)
 

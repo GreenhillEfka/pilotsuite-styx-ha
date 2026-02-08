@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-02-08
+### Fixed
+- HA errors digest: zeigt jetzt vollständige Log-Entries inkl. multiline Tracebacks (statt nur "Traceback…" Zeilen) und fokussiert auf ai_home_copilot-relevante Fehler.
+
 ## [0.2.14] - 2026-02-08
 ### Improved
 - Habitus-Dashboard UX (Deutsch): weniger redundante Überschriften, mehr Messwert-Graphen (Helligkeit/Temperatur/Luftfeuchte/CO₂/Lärm/Luftdruck), Motion zeigt „letzte Änderung“.
