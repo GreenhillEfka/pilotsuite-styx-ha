@@ -36,6 +36,7 @@ from .button_safety_backup import (
     CopilotSafetyBackupStatusButton,
 )
 from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
+from .button_update_rollback import CopilotUpdateRollbackReportButton
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -77,6 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
             CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
             CopilotTagRegistrySyncLabelsNowButton(coordinator),
+            CopilotUpdateRollbackReportButton(coordinator),
         ],
         True,
     )
