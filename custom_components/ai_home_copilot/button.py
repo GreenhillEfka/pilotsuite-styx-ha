@@ -17,6 +17,7 @@ from .entity import CopilotBaseEntity
 from .inventory import async_generate_ha_overview
 from .inventory_publish import async_publish_last_overview
 from .config_snapshot import async_generate_config_snapshot, async_publish_last_config_snapshot
+from .systemhealth_report import async_generate_and_publish_systemhealth_report
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
@@ -50,6 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotRollbackLastFixButton(coordinator),
             CopilotGenerateOverviewButton(coordinator),
             CopilotDownloadOverviewButton(coordinator),
+            CopilotSystemHealthReportButton(coordinator),
             CopilotGenerateConfigSnapshotButton(coordinator, entry),
             CopilotDownloadConfigSnapshotButton(coordinator),
             CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
@@ -158,6 +160,24 @@ class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_publish_last_overview(self.hass)
+
+
+class CopilotSystemHealthReportButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "SystemHealth report"
+    _attr_unique_id = "ai_home_copilot_systemhealth_report"
+    _attr_icon = "mdi:stethoscope"
+
+    async def async_press(self) -> None:
+        try:
+            await async_generate_and_publish_systemhealth_report(self.hass)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to generate SystemHealth report: {err}",
+                title="AI Home CoPilot SystemHealth",
+                notification_id="ai_home_copilot_systemhealth",
+            )
 
 
 class CopilotGenerateConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
