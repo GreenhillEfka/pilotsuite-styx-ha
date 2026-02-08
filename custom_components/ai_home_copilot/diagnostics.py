@@ -186,6 +186,23 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             if isinstance(v, str):
                 core_devlogs[k] = _sanitize_text(v, stats=red_stats)
 
+    events_forwarder = None
+    if isinstance(data, dict):
+        # bounded, privacy-first counters only (no payload)
+        events_forwarder = {
+            "enabled": bool(data.get("events_forwarder_state")),
+            "persistent_enabled": bool(data.get("events_forwarder_persistent_enabled")),
+            "queue_len": int(data.get("events_forwarder_queue_len") or 0),
+            "dropped_total": int(data.get("events_forwarder_dropped_total") or 0),
+            "sent_total": int(data.get("events_forwarder_sent_total") or 0),
+            "error_total": int(data.get("events_forwarder_error_total") or 0),
+            "error_streak": int(data.get("events_forwarder_error_streak") or 0),
+            "last": data.get("events_forwarder_last"),
+            "last_success_at": data.get("events_forwarder_last_success_at"),
+            "last_error_at": data.get("events_forwarder_last_error_at"),
+            "health": data.get("events_forwarder_health"),
+        }
+
     return {
         "contract": CONTRACT,
         "contract_version": CONTRACT_VERSION,
@@ -217,5 +234,6 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "devlogs": core_devlogs,
         },
         "media_context": media_state,
+        "events_forwarder": events_forwarder,
         "dev_surface": dev_surface,
     }
