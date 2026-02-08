@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import shutil
 from collections import Counter
 from dataclasses import asdict, dataclass
@@ -17,6 +16,7 @@ from homeassistant.helpers import area_registry, device_registry, entity_registr
 from homeassistant.util import dt as dt_util
 
 from .inventory_store import InventoryState, async_get_inventory_state, async_set_inventory_state
+from .privacy import sanitize_text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,26 +28,10 @@ def _now_stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-_RE_EMAIL = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
-_RE_URL = re.compile(r"\bhttps?://[^\s]+\b", re.IGNORECASE)
-_RE_IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-_RE_PHONE = re.compile(r"\b\+?\d[\d\s().-]{6,}\d\b")
-
 
 def _redact_text(s: str, *, max_len: int = 64) -> str:
-    s = (s or "").strip()
-    if not s:
-        return ""
-
-    s = _RE_URL.sub("[REDACTED_URL]", s)
-    s = _RE_EMAIL.sub("[REDACTED_EMAIL]", s)
-    s = _RE_IPV4.sub("[REDACTED_IP]", s)
-    s = _RE_PHONE.sub("[REDACTED_PHONE]", s)
-
-    s = " ".join(s.split())
-    if len(s) > max_len:
-        s = s[: max_len - 1] + "…"
-    return s
+    # Centralized sanitization kernel (security_privacy v0.1).
+    return sanitize_text(s, max_chars=max_len)
 
 
 def _default_publish(domain: str) -> tuple[str, str]:
