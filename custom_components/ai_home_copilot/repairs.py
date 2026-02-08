@@ -5,7 +5,9 @@ import voluptuous as vol
 from homeassistant import data_entry_flow
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 
+from .const import DOMAIN
 from .log_fixer import async_disable_custom_integration_for_manifest_error
 from .log_store import FindingType
 from .log_store import async_get_log_fixer_state
@@ -49,10 +51,27 @@ STEP_DISABLE_INTEGRATION = vol.Schema(
 
 
 class CandidateRepairFlow(RepairsFlow):
-    def __init__(self, hass: HomeAssistant, *, entry_id: str, candidate_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        *,
+        entry_id: str,
+        candidate_id: str,
+        issue_id: str | None = None,
+    ) -> None:
         self.hass = hass
         self._entry_id = entry_id
         self._candidate_id = candidate_id
+        self._issue_id = issue_id
+
+    async def _maybe_delete_issue(self) -> None:
+        # Best-effort cleanup to avoid UI leftovers.
+        if not self._issue_id:
+            return
+        try:
+            ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
+        except Exception:  # noqa: BLE001
+            return
 
     async def async_step_init(self, user_input=None) -> data_entry_flow.FlowResult:
         if user_input is not None:
@@ -60,6 +79,7 @@ class CandidateRepairFlow(RepairsFlow):
                 await async_set_candidate_state(
                     self.hass, self._entry_id, self._candidate_id, CandidateState.DISMISSED
                 )
+                await self._maybe_delete_issue()
                 return self.async_create_entry(title="", data={"result": "dismissed"})
 
             if user_input["decision"] == "defer":
@@ -68,6 +88,7 @@ class CandidateRepairFlow(RepairsFlow):
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
             )
+            await self._maybe_delete_issue()
             return self.async_create_entry(title="", data={"result": "accepted"})
 
         return self.async_show_form(step_id="init", data_schema=STEP_CHOICE)
@@ -84,7 +105,9 @@ class CandidateRepairFlow(RepairsFlow):
                 self._candidate_id,
                 until_ts=until,
             )
-            return self.async_create_entry(title="", data={"result": "deferred", "days": days})
+            return self.async_create_entry(
+                title="", data={"result": "deferred", "days": days}
+            )
 
         return self.async_show_form(step_id="defer", data_schema=STEP_DEFER)
 
@@ -99,6 +122,7 @@ class SeedRepairFlow(RepairsFlow):
         source: str,
         entities: str,
         excerpt: str,
+        issue_id: str | None = None,
     ) -> None:
         self.hass = hass
         self._entry_id = entry_id
@@ -106,6 +130,15 @@ class SeedRepairFlow(RepairsFlow):
         self._source = source
         self._entities = entities
         self._excerpt = excerpt
+        self._issue_id = issue_id
+
+    async def _maybe_delete_issue(self) -> None:
+        if not self._issue_id:
+            return
+        try:
+            ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
+        except Exception:  # noqa: BLE001
+            return
 
     async def async_step_init(self, user_input=None) -> data_entry_flow.FlowResult:
         if user_input is not None:
@@ -113,6 +146,7 @@ class SeedRepairFlow(RepairsFlow):
                 await async_set_candidate_state(
                     self.hass, self._entry_id, self._candidate_id, CandidateState.DISMISSED
                 )
+                await self._maybe_delete_issue()
                 return self.async_create_entry(title="", data={"result": "dismissed"})
 
             if user_input["decision"] == "defer":
@@ -121,6 +155,7 @@ class SeedRepairFlow(RepairsFlow):
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
             )
+            await self._maybe_delete_issue()
             return self.async_create_entry(title="", data={"result": "accepted"})
 
         return self.async_show_form(
@@ -145,7 +180,9 @@ class SeedRepairFlow(RepairsFlow):
                 self._candidate_id,
                 until_ts=until,
             )
-            return self.async_create_entry(title="", data={"result": "deferred", "days": days})
+            return self.async_create_entry(
+                title="", data={"result": "deferred", "days": days}
+            )
 
         return self.async_show_form(step_id="defer", data_schema=STEP_DEFER)
 
@@ -218,16 +255,25 @@ async def async_create_fix_flow(
                 source=source,
                 entities=entities_str,
                 excerpt=excerpt,
+                issue_id=issue_id,
             )
 
-        return CandidateRepairFlow(hass, entry_id=entry_id, candidate_id=candidate_id)
+        return CandidateRepairFlow(
+            hass,
+            entry_id=entry_id,
+            candidate_id=candidate_id,
+            issue_id=issue_id,
+        )
 
     # 2) Log findings
     finding_id = data.get("finding_id")
     if isinstance(finding_id, str) and issue_id.startswith("log_"):
         state = await async_get_log_fixer_state(hass)
         finding = (state.get("findings") or {}).get(finding_id)
-        if isinstance(finding, dict) and finding.get("finding_type") == FindingType.MANIFEST_PARSE_ERROR:
+        if (
+            isinstance(finding, dict)
+            and finding.get("finding_type") == FindingType.MANIFEST_PARSE_ERROR
+        ):
             integration = (finding.get("details") or {}).get("integration")
             if isinstance(integration, str) and integration:
                 return DisableCustomIntegrationRepairFlow(
