@@ -54,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             CopilotDevLogsFetchButton(coordinator, entry),
             CopilotCoreCapabilitiesFetchButton(coordinator, entry),
             CopilotCoreEventsFetchButton(coordinator, entry),
+            CopilotCoreGraphStateFetchButton(coordinator, entry),
             CopilotForwarderStatusButton(coordinator, entry),
             CopilotHaErrorsFetchButton(coordinator, entry),
             CopilotSafetyBackupCreateButton(coordinator, entry),
@@ -400,6 +401,84 @@ class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
             msg,
             title="AI Home CoPilot Core events (last 20)",
             notification_id="ai_home_copilot_core_events",
+        )
+
+
+class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot fetch core graph state"
+    _attr_unique_id = "ai_home_copilot_fetch_core_graph_state"
+    _attr_icon = "mdi:graph"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        url = "/api/v1/graph/state?limitNodes=120&limitEdges=240"
+        try:
+            data = await self.coordinator.api.async_get(url)
+        except Exception as err:  # noqa: BLE001
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to fetch core graph state: {err}",
+                title="AI Home CoPilot Core graph",
+                notification_id="ai_home_copilot_core_graph_state",
+            )
+            return
+
+        nodes = data.get("nodes") if isinstance(data, dict) else None
+        edges = data.get("edges") if isinstance(data, dict) else None
+        if not isinstance(nodes, list):
+            nodes = []
+        if not isinstance(edges, list):
+            edges = []
+
+        # Compact summary
+        lines: list[str] = []
+        lines.append(f"nodes: {len(nodes)}")
+        lines.append(f"edges: {len(edges)}")
+
+        # Show a few interesting nodes
+        sample_nodes: list[str] = []
+        for n in nodes[:12]:
+            if not isinstance(n, dict):
+                continue
+            nid = n.get("id")
+            if isinstance(nid, str) and nid:
+                sample_nodes.append(nid)
+        if sample_nodes:
+            lines.append("")
+            lines.append("sample nodes:")
+            lines.extend([f"- {x}" for x in sample_nodes])
+
+        # Show a few edges
+        sample_edges: list[str] = []
+        for e in edges[:12]:
+            if not isinstance(e, dict):
+                continue
+            t = e.get("type")
+            frm = e.get("from")
+            to = e.get("to")
+            if isinstance(frm, str) and isinstance(to, str) and frm and to:
+                if isinstance(t, str) and t:
+                    sample_edges.append(f"{frm} -[{t}]-> {to}")
+                else:
+                    sample_edges.append(f"{frm} -> {to}")
+        if sample_edges:
+            lines.append("")
+            lines.append("sample edges:")
+            lines.extend([f"- {x}" for x in sample_edges])
+
+        msg = "\n".join(lines)
+        if len(msg) > 8000:
+            msg = msg[:7950] + "\n...(truncated)..."
+
+        persistent_notification.async_create(
+            self.hass,
+            msg,
+            title="AI Home CoPilot Core graph (state)",
+            notification_id="ai_home_copilot_core_graph_state",
         )
 
 
