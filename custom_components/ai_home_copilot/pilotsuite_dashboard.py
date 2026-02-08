@@ -162,6 +162,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     core_entities = [
         "button.ai_home_copilot_fetch_core_capabilities",
         "button.ai_home_copilot_fetch_core_events",
+        "button.ai_home_copilot_fetch_core_graph_state",
     ]
 
     habitus_entities = [

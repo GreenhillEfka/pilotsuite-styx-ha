@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.19] - 2026-02-08
+### Added
+- Core Graph: neuer Button "fetch core graph state" (zeigt `/api/v1/graph/state` als Notification), um Brain-Graph Feeding leicht zu verifizieren.
+
 ## [0.2.18] - 2026-02-08
 ### Fixed
 - PilotSuite: Safety-Backup Buttons haben jetzt stabile Entity-IDs (behebt "Entität nicht gefunden" Warnungen im Dashboard).
