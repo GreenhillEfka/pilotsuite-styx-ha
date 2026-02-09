@@ -10,12 +10,13 @@ from ...devlog_push import async_setup_devlog_push
 from ...ha_errors_digest import async_setup_ha_errors_digest
 from ...seed_adapter import async_setup_seed_adapter
 from ...media_setup import async_setup_media_context, async_unload_media_context
+from ...media_context_v2_setup import async_setup_media_context_v2, async_unload_media_context_v2
 from ...webhook import async_register_webhook, async_unregister_webhook
 from ...core_v1 import async_fetch_core_capabilities
 from ..module import ModuleContext
 
 
-PLATFORMS: list[str] = ["binary_sensor", "sensor", "button", "text", "number"]
+PLATFORMS: list[str] = ["binary_sensor", "sensor", "button", "text", "number", "select"]
 
 
 class LegacyModule:
@@ -58,6 +59,9 @@ class LegacyModule:
 
         # Read-only media context (music vs TV/other).
         await async_setup_media_context(hass, entry)
+        
+        # Enhanced media context v2 (zone mapping + volume control).
+        await async_setup_media_context_v2(hass, entry)
 
         # Optional: ingest suggestion seeds from other sensor entities.
         await async_setup_seed_adapter(hass, entry)
@@ -93,6 +97,7 @@ class LegacyModule:
                 unsub_ha_errors()
 
             await async_unload_media_context(hass, entry)
+            await async_unload_media_context_v2(hass, entry)
 
             hass.data[DOMAIN].pop(entry.entry_id, None)
 

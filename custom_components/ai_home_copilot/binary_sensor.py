@@ -28,6 +28,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 TvActiveBinarySensor(media_coordinator),
             ]
         )
+    
+    # Media Context v2 doesn't have binary sensor entities currently
 
     async_add_entities(entities, True)
 

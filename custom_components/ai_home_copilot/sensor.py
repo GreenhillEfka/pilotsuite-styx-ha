@@ -14,6 +14,13 @@ from .media_entities import (
     TvPrimaryAreaSensor,
     TvSourceSensor,
 )
+from .media_context_v2_entities import (
+    ActiveModeSensor,
+    ActiveTargetSensor,
+    ActiveZoneSensor,
+    ConfigValidationSensor,
+    DebugInfoSensor,
+)
 from .habitus_zones_entities import HabitusZonesCountSensor
 from .habitus_zones_store import async_get_zones
 from .habitus_zone_aggregates import build_zone_average_sensors
@@ -60,6 +67,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 TvSourceSensor(media_coordinator),
                 MusicActiveCountSensor(media_coordinator),
                 TvActiveCountSensor(media_coordinator),
+            ]
+        )
+    
+    # Media Context v2 sensor entities
+    media_coordinator_v2 = data.get("media_coordinator_v2") if isinstance(data, dict) else None
+    if media_coordinator_v2 is not None:
+        entities.extend(
+            [
+                ActiveModeSensor(media_coordinator_v2),
+                ActiveTargetSensor(media_coordinator_v2),
+                ActiveZoneSensor(media_coordinator_v2),
+                ConfigValidationSensor(media_coordinator_v2),
+                DebugInfoSensor(media_coordinator_v2),
             ]
         )
 

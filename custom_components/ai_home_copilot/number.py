@@ -14,6 +14,7 @@ from .const import (
     DOMAIN,
 )
 from .entity import CopilotBaseEntity
+from .media_context_v2_entities import VolumeControlNumber
 
 
 class _BaseConfigNumber(CopilotBaseEntity, NumberEntity):
@@ -60,40 +61,45 @@ class _BaseConfigNumber(CopilotBaseEntity, NumberEntity):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data["coordinator"]
 
-    async_add_entities(
-        [
-            _BaseConfigNumber(
-                coordinator,
-                entry,
-                key=CONF_SEED_MAX_OFFERS_PER_HOUR,
-                name="AI Home CoPilot seed max offers per hour",
-                unique_id="ai_home_copilot_seed_max_per_hour",
-                default=DEFAULT_SEED_MAX_OFFERS_PER_HOUR,
-                min_value=0,
-                max_value=200,
-            ),
-            _BaseConfigNumber(
-                coordinator,
-                entry,
-                key=CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
-                name="AI Home CoPilot seed min seconds between offers",
-                unique_id="ai_home_copilot_seed_min_seconds_between",
-                default=DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS,
-                min_value=0,
-                max_value=3600,
-            ),
-            _BaseConfigNumber(
-                coordinator,
-                entry,
-                key=CONF_SEED_MAX_OFFERS_PER_UPDATE,
-                name="AI Home CoPilot seed max offers per update",
-                unique_id="ai_home_copilot_seed_max_per_update",
-                default=DEFAULT_SEED_MAX_OFFERS_PER_UPDATE,
-                min_value=1,
-                max_value=50,
-            ),
-        ],
-        True,
-    )
+    entities = [
+        _BaseConfigNumber(
+            coordinator,
+            entry,
+            key=CONF_SEED_MAX_OFFERS_PER_HOUR,
+            name="AI Home CoPilot seed max offers per hour",
+            unique_id="ai_home_copilot_seed_max_per_hour",
+            default=DEFAULT_SEED_MAX_OFFERS_PER_HOUR,
+            min_value=0,
+            max_value=200,
+        ),
+        _BaseConfigNumber(
+            coordinator,
+            entry,
+            key=CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+            name="AI Home CoPilot seed min seconds between offers",
+            unique_id="ai_home_copilot_seed_min_seconds_between",
+            default=DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS,
+            min_value=0,
+            max_value=3600,
+        ),
+        _BaseConfigNumber(
+            coordinator,
+            entry,
+            key=CONF_SEED_MAX_OFFERS_PER_UPDATE,
+            name="AI Home CoPilot seed max offers per update",
+            unique_id="ai_home_copilot_seed_max_per_update",
+            default=DEFAULT_SEED_MAX_OFFERS_PER_UPDATE,
+            min_value=1,
+            max_value=50,
+        ),
+    ]
+    
+    # Media Context v2 volume control
+    media_coordinator_v2 = data.get("media_coordinator_v2") if isinstance(data, dict) else None
+    if media_coordinator_v2 is not None:
+        entities.append(VolumeControlNumber(media_coordinator_v2))
+
+    async_add_entities(entities, True)

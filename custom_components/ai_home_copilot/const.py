@@ -17,6 +17,9 @@ CONF_WATCHDOG_INTERVAL_SECONDS = "watchdog_interval_seconds"
 CONF_MEDIA_MUSIC_PLAYERS = "media_music_players"
 CONF_MEDIA_TV_PLAYERS = "media_tv_players"
 
+# MediaContext v2 (zone mapping + volume control)
+CONF_MEDIA_CONTEXT_V2_ENABLED = "media_context_v2_enabled"
+
 # Dev/Debug: push sanitized HA log snippets to Copilot-Core (opt-in).
 CONF_DEVLOG_PUSH_ENABLED = "devlog_push_enabled"
 

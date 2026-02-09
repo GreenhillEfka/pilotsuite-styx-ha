@@ -6,12 +6,14 @@ from homeassistant.core import HomeAssistant, ServiceCall
 import voluptuous as vol
 
 from .const import DOMAIN
+from .media_context_v2_setup import MediaContextV2ConfigManager
 from .blueprints import async_install_blueprints
 from .core.runtime import CopilotRuntime
 from .core.modules.legacy import LegacyModule
 from .core.modules.events_forwarder import EventsForwarderModule
 from .core.modules.dev_surface import DevSurfaceModule
 from .core.modules.performance_scaling import PerformanceScalingModule
+from .core.modules.habitus_miner import HabitusMinerModule
 from .tag_registry import (
     async_confirm_tag,
     async_set_assignment,
@@ -101,6 +103,77 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             DOMAIN,
             "tag_registry_sync_labels_now",
             _handle_sync,
+        )
+
+    # Media Context v2 services
+    if not hass.services.has_service(DOMAIN, "media_context_v2_suggest_zone_mapping"):
+
+        async def _handle_suggest_zone_mapping(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            if not entry_id:
+                return
+            
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id == entry_id:
+                    manager = MediaContextV2ConfigManager(hass, entry)
+                    suggestions = await manager.async_get_zone_suggestions()
+                    # Could store suggestions in a sensor or fire an event
+                    hass.bus.async_fire(
+                        f"{DOMAIN}_media_context_v2_zone_suggestions",
+                        {
+                            "entry_id": entry_id,
+                            "suggestions": suggestions,
+                        }
+                    )
+                    break
+
+        hass.services.async_register(
+            DOMAIN,
+            "media_context_v2_suggest_zone_mapping",
+            _handle_suggest_zone_mapping,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
+        )
+
+    if not hass.services.has_service(DOMAIN, "media_context_v2_apply_zone_suggestions"):
+
+        async def _handle_apply_zone_suggestions(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            if not entry_id:
+                return
+            
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id == entry_id:
+                    manager = MediaContextV2ConfigManager(hass, entry)
+                    await manager.async_apply_zone_suggestions()
+                    break
+
+        hass.services.async_register(
+            DOMAIN,
+            "media_context_v2_apply_zone_suggestions",
+            _handle_apply_zone_suggestions,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
+        )
+
+    if not hass.services.has_service(DOMAIN, "media_context_v2_clear_overrides"):
+
+        async def _handle_clear_overrides(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            if not entry_id:
+                return
+            
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id == entry_id:
+                    manager = MediaContextV2ConfigManager(hass, entry)
+                    coordinator_v2 = manager.coordinator_v2
+                    if coordinator_v2:
+                        coordinator_v2.clear_manual_overrides()
+                    break
+
+        hass.services.async_register(
+            DOMAIN,
+            "media_context_v2_clear_overrides",
+            _handle_clear_overrides,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
         )
 
     return True
