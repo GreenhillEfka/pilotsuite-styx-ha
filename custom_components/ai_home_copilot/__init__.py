@@ -15,6 +15,7 @@ from .core.modules.dev_surface import DevSurfaceModule
 from .core.modules.performance_scaling import PerformanceScalingModule
 from .core.modules.habitus_miner import HabitusMinerModule
 from .core.modules.ops_runbook import OpsRunbookModule
+from .core.modules.unifi_module import UniFiModule
 from .tag_registry import (
     async_confirm_tag,
     async_set_assignment,
@@ -252,6 +253,8 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         runtime.registry.register("habitus_miner", HabitusMinerModule)
     if "ops_runbook" not in runtime.registry.names():
         runtime.registry.register("ops_runbook", OpsRunbookModule)
+    if "unifi_module" not in runtime.registry.names():
+        runtime.registry.register("unifi_module", UniFiModule)
     return runtime
 
 
@@ -262,7 +265,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = _get_runtime(hass)
     await runtime.async_setup_entry(
         entry,
-        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface", "habitus_miner", "ops_runbook"],
+        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface", "habitus_miner", "ops_runbook", "unifi_module"],
     )
     return True
 
@@ -271,5 +274,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = _get_runtime(hass)
     return await runtime.async_unload_entry(
         entry,
-        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface", "habitus_miner", "ops_runbook"],
+        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface", "habitus_miner", "ops_runbook", "unifi_module"],
     )
