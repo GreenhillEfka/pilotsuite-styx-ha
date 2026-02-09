@@ -38,6 +38,11 @@ from .habitus_miner_entities import (
     HabitusMinerTopRuleSensor,
 )
 from .habitus_dashboard_cards_entities import HabitusDashboardCardsStatusSensor
+from .energy_module_entities import (
+    EnergyModuleAnomalyLevelSensor,
+    EnergyModuleBaseloadSensor,
+    EnergyModuleLastEventSensor,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -56,6 +61,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusMinerTopRuleSensor(coordinator),
         HabitusDashboardCardsStatusSensor(coordinator, entry),
     ]
+    
+    # Energy Module sensors (v0.1 kernel)
+    if isinstance(data, dict) and data.get("energy_module") is not None:
+        entities.extend(
+            [
+                EnergyModuleBaseloadSensor(hass, entry),
+                EnergyModuleAnomalyLevelSensor(hass, entry),
+                EnergyModuleLastEventSensor(hass, entry),
+            ]
+        )
 
     # Events Forwarder quality sensors (v0.1 kernel)
     if isinstance(data, dict) and data.get("events_forwarder_state") is not None:
