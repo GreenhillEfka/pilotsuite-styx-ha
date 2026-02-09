@@ -234,6 +234,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             schema=vol.Schema({vol.Required("checklist"): str}),
         )
 
+    # Habitus Dashboard Cards v0.1 services
+    if not hass.services.has_service(DOMAIN, "get_dashboard_patterns"):
+        from .services.habitus_dashboard_cards_service import async_setup_habitus_dashboard_cards_services
+        await async_setup_habitus_dashboard_cards_services(hass)
+
     return True
 
 
