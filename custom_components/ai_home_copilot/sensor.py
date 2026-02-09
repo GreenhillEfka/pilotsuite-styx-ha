@@ -32,6 +32,11 @@ from .forwarder_quality_entities import (
     EventsForwarderQueueDepthSensor,
 )
 from .inventory_entities import CopilotInventoryLastRunSensor
+from .habitus_miner_entities import (
+    HabitusMinerRuleCountSensor,
+    HabitusMinerStatusSensor, 
+    HabitusMinerTopRuleSensor,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -45,6 +50,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         SystemHealthEntityCountSensor(coordinator),
         SystemHealthSqliteDbSizeSensor(coordinator),
         CopilotInventoryLastRunSensor(coordinator),
+        HabitusMinerRuleCountSensor(coordinator),
+        HabitusMinerStatusSensor(coordinator),
+        HabitusMinerTopRuleSensor(coordinator),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)

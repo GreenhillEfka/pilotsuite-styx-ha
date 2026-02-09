@@ -14,6 +14,7 @@ from .core.modules.events_forwarder import EventsForwarderModule
 from .core.modules.dev_surface import DevSurfaceModule
 from .core.modules.performance_scaling import PerformanceScalingModule
 from .core.modules.habitus_miner import HabitusMinerModule
+from .core.modules.ops_runbook import OpsRunbookModule
 from .tag_registry import (
     async_confirm_tag,
     async_set_assignment,
@@ -176,6 +177,63 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             schema=vol.Schema({vol.Required("entry_id"): str}),
         )
 
+    # Ops Runbook v0.1 services
+    if not hass.services.has_service(DOMAIN, "ops_runbook_preflight_check"):
+        from .ops_runbook import async_run_preflight_check
+
+        async def _handle_preflight_check(call: ServiceCall) -> None:
+            await async_run_preflight_check(hass)
+
+        hass.services.async_register(
+            DOMAIN,
+            "ops_runbook_preflight_check",
+            _handle_preflight_check,
+        )
+
+    if not hass.services.has_service(DOMAIN, "ops_runbook_smoke_test"):
+        from .ops_runbook import async_run_smoke_test
+
+        async def _handle_smoke_test(call: ServiceCall) -> None:
+            await async_run_smoke_test(hass)
+
+        hass.services.async_register(
+            DOMAIN,
+            "ops_runbook_smoke_test",
+            _handle_smoke_test,
+        )
+
+    if not hass.services.has_service(DOMAIN, "ops_runbook_execute_action"):
+        from .ops_runbook import async_execute_runbook_action
+
+        async def _handle_execute_action(call: ServiceCall) -> None:
+            action = call.data.get("action")
+            if not action:
+                raise ValueError("Action parameter is required")
+            await async_execute_runbook_action(hass, action)
+
+        hass.services.async_register(
+            DOMAIN,
+            "ops_runbook_execute_action",
+            _handle_execute_action,
+            schema=vol.Schema({vol.Required("action"): str}),
+        )
+
+    if not hass.services.has_service(DOMAIN, "ops_runbook_run_checklist"):
+        from .ops_runbook import async_run_checklist
+
+        async def _handle_run_checklist(call: ServiceCall) -> None:
+            checklist = call.data.get("checklist")
+            if not checklist:
+                raise ValueError("Checklist parameter is required")
+            await async_run_checklist(hass, checklist)
+
+        hass.services.async_register(
+            DOMAIN,
+            "ops_runbook_run_checklist",
+            _handle_run_checklist,
+            schema=vol.Schema({vol.Required("checklist"): str}),
+        )
+
     return True
 
 
@@ -190,6 +248,10 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         runtime.registry.register("events_forwarder", EventsForwarderModule)
     if "dev_surface" not in runtime.registry.names():
         runtime.registry.register("dev_surface", DevSurfaceModule)
+    if "habitus_miner" not in runtime.registry.names():
+        runtime.registry.register("habitus_miner", HabitusMinerModule)
+    if "ops_runbook" not in runtime.registry.names():
+        runtime.registry.register("ops_runbook", OpsRunbookModule)
     return runtime
 
 
@@ -200,7 +262,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = _get_runtime(hass)
     await runtime.async_setup_entry(
         entry,
-        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface"],
+        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface", "habitus_miner", "ops_runbook"],
     )
     return True
 
@@ -209,5 +271,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = _get_runtime(hass)
     return await runtime.async_unload_entry(
         entry,
-        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface"],
+        modules=["legacy", "performance_scaling", "events_forwarder", "dev_surface", "habitus_miner", "ops_runbook"],
     )
