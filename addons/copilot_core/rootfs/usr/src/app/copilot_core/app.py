@@ -195,6 +195,15 @@ def create_app() -> Flask:
                         "edges_max": cfg.brain_graph_edges_max,
                         "feeding_enabled": True,
                     },
+                    "habitus_dashboard_cards": {
+                        "enabled": True,
+                        "version": "0.1.0",
+                        "description": "Dashboard pattern recommendations for Home Assistant Lovelace",
+                        "endpoints": [
+                            "/api/v1/habitus/dashboard_cards",
+                            "/api/v1/habitus/dashboard_cards/health"
+                        ]
+                    },
                 },
             }
         )
