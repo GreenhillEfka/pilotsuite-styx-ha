@@ -31,11 +31,12 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Governance UX: Repairs + safe blueprint shipped
 - ✅ Error analysis + reversible fixer (log scan + Repairs fix + rollback)
 - ✅ DevLogs debug pipeline (opt-in push + in-HA fetch) to keep development observable
-- 🟡 Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior
+- ✅ Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior
+- ✅ Service registration extraction (`services_setup.py`) — `__init__.py` 300→60 lines (v0.5.4)
 
 ### NEXT (make suggestions real)
 **N0 - Stable module foundation (HA side)**
-- ⏳ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update
+- ✅ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update (v0.5.4)
 - ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
 
 **N1 – Candidate lifecycle + UX polish (HA side)** ✅

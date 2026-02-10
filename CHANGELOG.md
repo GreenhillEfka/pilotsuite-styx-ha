@@ -1,5 +1,30 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.4] - 2026-02-10
+
+### 🏗️ N0 Modular Runtime Cleanup — Service Registration Extraction
+
+Pure refactor: extracted all domain-level service registrations from `__init__.py` into `services_setup.py`. No behaviour change.
+
+#### Changed
+- **`__init__.py`**: Reduced from ~300 lines to ~60 lines
+  - `async_setup()` now delegates to `async_register_all_services(hass)`
+  - `_get_runtime()` uses dict-based module registration (cleaner, DRY)
+  - `_MODULES` list defined once, shared between setup/unload
+- **`services_setup.py`** (NEW): Houses all 16 domain-level service handlers
+  - `_register_tag_registry_services()` — 5 services
+  - `_register_media_context_v2_services()` — 3 services
+  - `_register_forwarder_n3_services()` — 3 services
+  - `_register_ops_runbook_services()` — 4 services
+  - Single entry point: `async_register_all_services(hass)`
+
+#### Technical
+- Zero behaviour change — identical service registration logic, just relocated
+- Improves maintainability: each module's services are grouped and independently editable
+- Foundation for further modularisation (per-module service files in future)
+
+---
+
 ## [0.5.3] - 2026-02-10
 
 ### 📋 services.yaml — Developer Tools Auto-Discovery
