@@ -1,0 +1,22 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+.coverage
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+
+# Editor/OS noise
+.DS_Store
+.idea/
+.vscode/
+
+.venv/

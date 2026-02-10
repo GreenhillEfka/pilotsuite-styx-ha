@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 from waitress import serve
 
+from copilot_core.api.security import require_token
 # Import blueprints
 from copilot_core.api.v1 import log_fixer_tx
+from copilot_core.api.v1 import tag_system
 
 APP_VERSION = os.environ.get("COPILOT_VERSION", "0.1.1")
 
@@ -17,6 +19,7 @@ app = Flask(__name__)
 
 # Register blueprints
 app.register_blueprint(log_fixer_tx.bp)
+app.register_blueprint(tag_system.bp)
 
 # In-memory ring buffer of recent dev logs.
 _DEV_LOG_CACHE: list[dict] = []
@@ -24,44 +27,6 @@ _DEV_LOG_CACHE: list[dict] = []
 
 def _now_iso():
     return datetime.now(timezone.utc).isoformat()
-
-
-def _get_token() -> str:
-    token = os.environ.get("COPILOT_AUTH_TOKEN", "").strip()
-    if token:
-        return token
-
-    # Home Assistant add-ons provide user options at /data/options.json
-    try:
-        with open("/data/options.json", "r", encoding="utf-8") as fh:
-            opts = json.load(fh) or {}
-        token = str(opts.get("auth_token", "")).strip()
-        return token
-    except Exception:
-        return ""
-
-
-def _require_token() -> bool:
-    """Optional shared-token auth.
-
-    Accept either:
-    - X-Auth-Token: <token>
-    - Authorization: Bearer <token>
-    """
-
-    token = _get_token()
-    if not token:
-        return True
-
-    if request.headers.get("X-Auth-Token", "") == token:
-        return True
-
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer ") and auth.split(" ", 1)[1].strip() == token:
-        return True
-
-    return False
-
 
 def _append_dev_log(entry: dict) -> None:
     os.makedirs(os.path.dirname(DEV_LOG_PATH), exist_ok=True)
@@ -96,6 +61,7 @@ def index():
     return (
         "AI Home CoPilot Core (MVP)\n"
         "Endpoints: /health, /version, /api/v1/echo\n"
+        "Tag System: /api/v1/tag-system/tags, /assignments (stub)\n"
         "Dev: /api/v1/dev/logs (POST/GET)\n"
         "Note: This is a scaffold. Neuron/Mood/Synapse engines come next.\n"
     )
@@ -113,7 +79,7 @@ def version():
 
 @app.post("/api/v1/echo")
 def echo():
-    if not _require_token():
+    if not require_token(request):
         return jsonify({"error": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
     return jsonify({"time": _now_iso(), "received": payload})
@@ -121,7 +87,7 @@ def echo():
 
 @app.post("/api/v1/dev/logs")
 def ingest_dev_logs():
-    if not _require_token():
+    if not require_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     payload = request.get_json(silent=True) or {}
@@ -140,7 +106,7 @@ def ingest_dev_logs():
 
 @app.get("/api/v1/dev/logs")
 def get_dev_logs():
-    if not _require_token():
+    if not require_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     try:
