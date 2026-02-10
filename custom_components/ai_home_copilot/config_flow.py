@@ -35,6 +35,9 @@ from .const import (
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+    CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+    CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+    CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
     CONF_HA_ERRORS_DIGEST_ENABLED,
     CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_MAX_LINES,
@@ -69,6 +72,9 @@ from .const import (
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+    DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+    DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+    DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
     DEFAULT_HA_ERRORS_DIGEST_ENABLED,
     DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
@@ -177,6 +183,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             tv_csv = user_input.get(CONF_MEDIA_TV_PLAYERS)
             if isinstance(tv_csv, str):
                 user_input[CONF_MEDIA_TV_PLAYERS] = _parse_csv(tv_csv)
+
+            # Normalize additional forwarder entities (comma-separated list -> list[str])
+            additional_entities_csv = user_input.get(CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES)
+            if isinstance(additional_entities_csv, str):
+                user_input[CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES] = _parse_csv(additional_entities_csv)
 
             # Token handling: if empty string provided, explicitly remove token
             if CONF_TOKEN in user_input:
@@ -314,6 +325,28 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                         DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
                     ),
                 ): int,
+                # Entity allowlist options for events forwarder
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+                        DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+                        DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                    default=_as_csv(data.get(
+                        CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                        DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                    )),
+                ): str,
 
                 # PilotSuite UX knobs (safe defaults).
                 vol.Optional(

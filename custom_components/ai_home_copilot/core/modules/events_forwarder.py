@@ -24,6 +24,9 @@ from ...const import (
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+    CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+    CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+    CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
     DEFAULT_EVENTS_FORWARDER_ENABLED,
     DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
     DEFAULT_EVENTS_FORWARDER_MAX_BATCH,
@@ -32,9 +35,17 @@ from ...const import (
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+    DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+    DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+    DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+    CONF_MEDIA_MUSIC_PLAYERS,
+    CONF_MEDIA_TV_PLAYERS,
+    DEFAULT_MEDIA_MUSIC_PLAYERS,
+    DEFAULT_MEDIA_TV_PLAYERS,
 )
 from ...habitus_zones_store import SIGNAL_HABITUS_ZONES_UPDATED, async_get_zones
 from ...core_v1 import async_fetch_core_capabilities
+from ...media_context import _parse_csv
 from ..module import ModuleContext
 
 
@@ -176,6 +187,63 @@ def _entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
     ent = {}
     dom[entry_id] = ent
     return ent
+
+
+async def _build_forwarder_entity_allowlist(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+) -> tuple[list[str], dict[str, list[str]]]:
+    """Build entity allowlist based on config settings.
+    
+    Returns (entity_ids, entity_to_zone_ids_map)
+    """
+    cfg = entry.data | entry.options
+    
+    all_entities: list[str] = []
+    entity_to_zone: dict[str, list[str]] = {}
+    
+    # 1. Include Habitus zone entities if enabled
+    include_habitus = cfg.get(
+        CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES, 
+        DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES
+    )
+    if include_habitus:
+        zones = await async_get_zones(hass, entry.entry_id)
+        for z in zones:
+            for eid in z.entity_ids:
+                entity_to_zone.setdefault(eid, []).append(z.zone_id)
+    
+    # 2. Include media players if enabled
+    include_media = cfg.get(
+        CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+        DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS
+    )
+    if include_media:
+        music_players = _parse_csv(cfg.get(CONF_MEDIA_MUSIC_PLAYERS, DEFAULT_MEDIA_MUSIC_PLAYERS))
+        tv_players = _parse_csv(cfg.get(CONF_MEDIA_TV_PLAYERS, DEFAULT_MEDIA_TV_PLAYERS))
+        
+        for eid in music_players + tv_players:
+            if eid and eid not in entity_to_zone:
+                # Mark as media zone for better categorization
+                entity_to_zone[eid] = ["media"]
+    
+    # 3. Include additional entities from config
+    additional_entities = cfg.get(
+        CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+        DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES
+    )
+    if isinstance(additional_entities, list):
+        for eid in additional_entities:
+            if isinstance(eid, str) and eid.strip():
+                entity_id = eid.strip()
+                if entity_id not in entity_to_zone:
+                    entity_to_zone[entity_id] = ["additional"]
+    
+    # Build final sorted entity list
+    for eid in sorted(entity_to_zone.keys()):
+        all_entities.append(eid)
+    
+    return all_entities, entity_to_zone
 
 
 class EventsForwarderModule:
@@ -430,17 +498,8 @@ class EventsForwarderModule:
                 _schedule_task(_flush_now)
 
         async def _refresh_subscriptions() -> None:
-            zones = await async_get_zones(hass, entry.entry_id)
-            entity_to_zone: dict[str, list[str]] = {}
-            all_entities: list[str] = []
-
-            for z in zones:
-                for eid in z.entity_ids:
-                    entity_to_zone.setdefault(eid, []).append(z.zone_id)
-
-            # stable order
-            for eid in sorted(entity_to_zone.keys()):
-                all_entities.append(eid)
+            # Use configurable entity allowlist (Habitus zones + MediaContext + additional)
+            all_entities, entity_to_zone = await _build_forwarder_entity_allowlist(hass, entry)
 
             st.entity_ids = all_entities
             st.entity_to_zone_ids = entity_to_zone

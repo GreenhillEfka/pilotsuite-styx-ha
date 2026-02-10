@@ -1,5 +1,31 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.5] - 2026-02-10
+
+### 🎯 Configurable Event Forwarder Entity Allowlist
+
+Enhanced the events forwarder with configurable entity filtering for better privacy and performance control.
+
+#### Enhanced
+- **Flexible Entity Selection**: Choose which entity types to forward (Habitus zones, media players, additional entities)
+- **Media Player Integration**: Automatically include configured music and TV media players in forwarder allowlist
+- **Additional Entities**: Add custom entity IDs via comma-separated configuration field
+- **Better Zone Mapping**: Media players automatically mapped to "media" zone for enhanced categorization
+- **Privacy Controls**: Fine-grained control over which Home Assistant entities are shared with Core
+
+#### Technical
+- **Configurable Allowlist**: Three new config options for entity filtering control
+- **Zone-aware Categorization**: Entities properly mapped to zones (Habitus, media, additional) for better context
+- **Backwards Compatible**: Existing behavior preserved with sensible defaults (Habitus zones + media players enabled)
+- **Performance Optimized**: Only subscribe to state changes for explicitly allowed entities
+
+#### Added
+- `events_forwarder_include_habitus_zones` (default: true) - Include entities from Habitus zones
+- `events_forwarder_include_media_players` (default: true) - Include configured music/TV media players  
+- `events_forwarder_additional_entities` - CSV list of additional entity IDs to forward
+
+This enhancement provides users with granular control over data privacy while maintaining the intelligent defaults that work well for most setups.
+
 ## [0.4.4] - 2026-02-10
 
 ### 🔧 Enhanced Error Handling & Diagnostics
