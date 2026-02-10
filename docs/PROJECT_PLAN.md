@@ -38,10 +38,10 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ⏳ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update
 - ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
 
-**N1 – Candidate lifecycle + UX polish (HA side)**
+**N1 – Candidate lifecycle + UX polish (HA side)** ✅
 - ✅ Candidate states: add `defer` (with "offer again after X days")
-- ⏳ Better Repairs fix flow text + link to Blueprint UI
-- ✅ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text
+- ✅ Better Repairs fix flow text + link to Blueprint UI (v0.4.9)
+- ✅ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text (v0.4.8)
 
 **N2 - Core API v1 minimal**
 - ⏳ `POST /api/v1/events` (batch)
