@@ -1,5 +1,27 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.2] - 2026-02-10
+
+### 🚨 Improved Error Diagnostics
+
+Enhanced HA Errors Digest with better traceback analysis and grouping for cleaner debugging experience.
+
+#### Enhanced
+- **Intelligent Error Grouping**: Similar errors are now grouped by type and location to reduce noise
+- **Traceback Signatures**: Automatic detection of error patterns for better deduplication
+- **Frequency Counters**: Shows how often each error type occurs (e.g., "RuntimeError@api.py (3x)")
+- **Summary Headers**: Clear overview of total errors and unique types in digest
+- **Better Formatting**: Markdown formatting with collapsible code blocks for cleaner notifications
+
+#### Technical
+- **Enhanced `_parse_traceback_signature()`**: Extracts error type and source file location
+- **New `_group_entries()`**: Groups similar errors by signature for deduplication
+- **Improved `_format_grouped_entries()`**: Clean presentation with counts and latest examples
+- **Increased tail size**: Now processes last 20 entries (up from 12) for better pattern detection
+- **Maintained privacy**: All existing token/secret redaction remains intact
+
+This improves debugging workflow by highlighting the most critical and frequent issues first.
+
 ## [0.4.1] - 2026-02-10
 
 ### 🧠 Brain Graph Sync Integration
