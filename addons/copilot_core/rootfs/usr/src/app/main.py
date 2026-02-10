@@ -15,6 +15,8 @@ from copilot_core.brain_graph.api import brain_graph_bp, init_brain_graph_api
 from copilot_core.brain_graph.service import BrainGraphService
 from copilot_core.brain_graph.render import GraphRenderer
 from copilot_core.ingest.event_processor import EventProcessor
+from copilot_core.dev_surface.api import dev_surface_bp, init_dev_surface_api
+from copilot_core.dev_surface.service import dev_surface
 
 APP_VERSION = os.environ.get("COPILOT_VERSION", "0.1.1")
 
@@ -28,6 +30,9 @@ brain_graph_service = BrainGraphService()
 graph_renderer = GraphRenderer()
 init_brain_graph_api(brain_graph_service, graph_renderer)
 
+# Initialize dev surface
+init_dev_surface_api(brain_graph_service)
+
 # Initialize event processor: EventStore → BrainGraph pipeline
 event_processor = EventProcessor(brain_graph_service=brain_graph_service)
 set_post_ingest_callback(event_processor.process_events)
@@ -37,6 +42,7 @@ app.register_blueprint(log_fixer_tx.bp)
 app.register_blueprint(tag_system.bp)
 app.register_blueprint(events_ingest.bp)
 app.register_blueprint(brain_graph_bp)
+app.register_blueprint(dev_surface_bp)
 
 # In-memory ring buffer of recent dev logs.
 _DEV_LOG_CACHE: list[dict] = []

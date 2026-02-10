@@ -8,6 +8,7 @@ the brain graph with real-time smart home state and relationships.
 import logging
 from typing import Dict, Any, Optional, Callable, List
 from ..brain_graph.service import BrainGraphService
+from ..dev_surface.service import dev_surface
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,14 @@ class EventProcessor:
                 stats["processed"] += 1
             except Exception as e:
                 logger.error(f"Error processing event {event.get('id', 'unknown')}: {e}")
+                dev_surface.error("event_processor", f"Failed to process event {event.get('id', 'unknown')}", error=e, context={"event": event})
                 stats["errors"] += 1
+        
+        # Track processed events for metrics
+        dev_surface.increment_events_processed(stats["processed"])
+        
+        if stats["processed"] > 0:
+            dev_surface.debug("event_processor", f"Processed {stats['processed']} events successfully")
         
         return stats
     
