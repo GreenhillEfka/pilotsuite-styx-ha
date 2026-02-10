@@ -2,6 +2,7 @@
 Brain Graph API endpoints.
 """
 
+import time
 from flask import Blueprint, request, jsonify, Response
 from typing import Dict, Any
 
@@ -170,6 +171,23 @@ def prune_graph() -> Response:
         return jsonify({
             "message": "Graph pruned successfully",
             "stats": stats
+        })
+    except Exception as e:
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+
+@brain_graph_bp.route('/patterns', methods=['GET'])
+@require_api_key
+def get_patterns() -> Response:
+    """Get inferred patterns from the graph."""
+    if not _brain_graph_service:
+        return jsonify({"error": "Brain graph service not initialized"}), 503
+    
+    try:
+        patterns = _brain_graph_service.infer_patterns()
+        return jsonify({
+            "version": 1,
+            "generated_at_ms": int(time.time() * 1000),
+            "patterns": patterns
         })
     except Exception as e:
         return jsonify({"error": f"Internal error: {str(e)}"}), 500

@@ -1,5 +1,22 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.3] - 2026-02-10
+
+### Enhanced
+- **Brain Graph Intelligence** — erweiterte Zone-Inferenz und Intent-Tracking basierend auf Alpha Worker N3/N4 Spezifikation:
+  - **Zone-Inferenz**: Multi-Source Zone-Erkennung (state values, friendly_name patterns, entity_id patterns) mit konfidenz-basierter Gewichtung
+  - **Intentional Actions**: Service Calls erhalten erhöhte Salienz (2.0x) + stärkere Edges zu betroffenen Entities (1.5x weight)
+  - **Spatial Intent**: Service → Entity → Zone Ketten für räumliche Kontext-Ableitung  
+  - **Trigger Inference**: Context parent_id basierte Kausalitäts-Erkennung zwischen Events
+  - **Pattern API**: Neuer `/api/v1/graph/patterns` Endpunkt für häufig kontrollierte Entities und Zone-Activity-Hubs
+  - **Device Integration**: device_id → Entity Verknüpfungen für Hardware-Context
+
+### Technical Details
+- Implementiert Alpha Worker N3 "Forwarder Quality" + N4 "Brain Graph Core" Empfehlungen
+- Erhöhte Salience für interaktive Domains (light, switch, cover, media_player)  
+- Confidence-weighted zone links: Direct state (1.0) > Friendly name (0.7) > Entity name (0.5)
+- Pattern inference für Automation-Hints und UI-Priorisierung
+
 ## [0.4.2] - 2026-02-10
 
 ### Added

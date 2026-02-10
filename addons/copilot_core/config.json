@@ -2,7 +2,7 @@
   "name": "AI Home CoPilot Core (MVP)",
   "slug": "copilot_core",
   "description": "MVP Core Service for AI Home CoPilot (health/version endpoints; scaffold for neurons/moods/synapses).",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": ["amd64", "aarch64"],
   "startup": "services",

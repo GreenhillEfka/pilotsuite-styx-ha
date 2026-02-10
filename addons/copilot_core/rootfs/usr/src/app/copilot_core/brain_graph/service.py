@@ -258,39 +258,238 @@ class BrainGraphService:
     
     def process_ha_event(self, event_data: Dict[str, Any]):
         """Process a Home Assistant event and update the graph."""
-        # This is a placeholder for event processing logic
-        # Will be implemented when we wire the event forwarder
-        
         event_type = event_data.get("event_type", "")
         
         if event_type == "state_changed":
             self._process_state_change(event_data)
         elif event_type == "call_service":
             self._process_service_call(event_data)
+        
+        # Trigger inference: look for causal relationships between recent events
+        self._infer_triggers(event_data)
+    
+    def _infer_triggers(self, event_data: Dict[str, Any]):
+        """Infer causal relationships between events based on timing."""
+        event_type = event_data.get("event_type", "")
+        timestamp_ms = int(time.time() * 1000)
+        
+        if event_type != "state_changed":
+            return  # Only infer triggers for state changes
+            
+        entity_id = event_data.get("data", {}).get("entity_id", "")
+        context_id = event_data.get("context", {}).get("id", "")
+        parent_id = event_data.get("context", {}).get("parent_id", "")
+        
+        if not entity_id:
+            return
+            
+        # Look for service calls in the last 10 seconds that might have caused this
+        # This would ideally query recent events, but for now we'll use a simple heuristic
+        # based on the context parent_id (HA provides this for triggered events)
+        
+        if parent_id:
+            # This state change was likely triggered by a service call
+            trigger_node_id = f"ha.trigger:{parent_id[:8]}"  # Shortened for privacy
+            
+            self.touch_node(
+                node_id=trigger_node_id,
+                kind="event",
+                label=f"Trigger {parent_id[:8]}",
+                source={"system": "ha", "name": "context_inference"},
+                tags=["trigger", "causal"]
+            )
+            
+            # Link trigger to affected entity
+            self.link(
+                from_node=trigger_node_id,
+                edge_type="triggered_by",
+                to_node=f"ha.entity:{entity_id}",
+                evidence={"kind": "context_parent", "ref": parent_id[:8]}
+            )
+    
+    def infer_patterns(self) -> Dict[str, Any]:
+        """Infer common patterns from the current graph state."""
+        now_ms = int(time.time() * 1000)
+        
+        # Get all nodes and edges
+        all_nodes = self.store.get_nodes(limit=None)
+        all_edges = self.store.get_edges()
+        
+        patterns = {
+            "frequently_controlled_entities": [],
+            "zone_activity_hubs": [],
+            "service_usage_patterns": [],
+            "trigger_chains": []
+        }
+        
+        # Pattern 1: Most controlled entities (high service call correlation)
+        entity_control_scores = {}
+        for edge in all_edges:
+            if (edge.edge_type == "affects" and 
+                edge.from_node.startswith("ha.service:") and 
+                edge.to_node.startswith("ha.entity:")):
+                
+                entity_id = edge.to_node
+                score = edge.effective_weight(now_ms, self.edge_half_life_hours)
+                entity_control_scores[entity_id] = entity_control_scores.get(entity_id, 0) + score
+        
+        top_controlled = sorted(entity_control_scores.items(), key=lambda x: x[1], reverse=True)[:5]
+        patterns["frequently_controlled_entities"] = [
+            {"entity_id": entity_id.replace("ha.entity:", ""), "control_score": score}
+            for entity_id, score in top_controlled
+        ]
+        
+        # Pattern 2: Zone activity (entities + triggers in zones)
+        zone_activity = {}
+        for edge in all_edges:
+            if edge.edge_type == "in_zone" and edge.to_node.startswith("zone:"):
+                zone_id = edge.to_node
+                weight = edge.effective_weight(now_ms, self.edge_half_life_hours)
+                zone_activity[zone_id] = zone_activity.get(zone_id, 0) + weight
+        
+        top_zones = sorted(zone_activity.items(), key=lambda x: x[1], reverse=True)[:3]
+        patterns["zone_activity_hubs"] = [
+            {"zone_id": zone_id.replace("zone:", ""), "activity_score": score}
+            for zone_id, score in top_zones
+        ]
+        
+        return patterns
     
     def _process_state_change(self, event_data: Dict[str, Any]):
-        """Process a state change event."""
+        """Process a state change event with enhanced zone inference."""
         # Extract entity info
         entity_id = event_data.get("data", {}).get("entity_id", "")
         if not entity_id:
             return
             
-        # Create/update entity node
+        new_state = event_data.get("data", {}).get("new_state", {})
+        state_value = new_state.get("state", "")
         domain = entity_id.split(".")[0] if "." in entity_id else "unknown"
         
-        self.touch_node(
+        # Create/update entity node with higher salience for interactive entities
+        salience_boost = 1.5 if domain in ['light', 'switch', 'cover', 'media_player'] else 1.0
+        
+        entity_node = self.touch_node(
             node_id=f"ha.entity:{entity_id}",
             kind="entity",
             label=entity_id.split(".")[-1].replace("_", " ").title(),
             domain=domain,
-            source={"system": "ha", "name": "state_changed"}
+            source={"system": "ha", "name": "state_changed"},
+            delta=salience_boost
         )
         
-        # Extract zone/area info if available
-        # This would need HA area registry integration
+        # Enhanced zone inference from state values and attributes
+        self._infer_and_link_zones(entity_id, state_value, new_state.get("attributes", {}))
+        
+        # Link to device if device_id is available
+        device_id = new_state.get("attributes", {}).get("device_id")
+        if device_id:
+            device_node = self.touch_node(
+                node_id=f"ha.device:{device_id}",
+                kind="device",
+                label=f"Device {device_id[:8]}",
+                source={"system": "ha", "name": "device_registry"}
+            )
+            
+            self.link(
+                from_node=f"ha.entity:{entity_id}",
+                edge_type="controls",
+                to_node=f"ha.device:{device_id}",
+                evidence={"kind": "device_registry", "ref": entity_id}
+            )
+    
+    def _infer_and_link_zones(self, entity_id: str, state_value: str, attributes: Dict[str, Any]):
+        """Infer zone relationships from entity state and attributes."""
+        domain = entity_id.split(".")[0]
+        entity_node_id = f"ha.entity:{entity_id}"
+        
+        # Method 1: Direct zone from state (person, device_tracker)
+        if domain in ['person', 'device_tracker'] and state_value:
+            if state_value not in ['unknown', 'unavailable', '']:
+                zone_id = f"zone:{state_value}"
+                zone_label = state_value.replace("_", " ").title()
+                
+                # Create/update zone node
+                self.touch_node(
+                    node_id=zone_id,
+                    kind="zone", 
+                    label=zone_label,
+                    source={"system": "ha", "name": "zone_inference"}
+                )
+                
+                # Link entity to zone
+                self.link(
+                    from_node=entity_node_id,
+                    edge_type="in_zone",
+                    to_node=zone_id,
+                    evidence={"kind": "state_inference", "ref": f"state={state_value}"}
+                )
+        
+        # Method 2: Area from friendly_name patterns
+        friendly_name = attributes.get("friendly_name", "")
+        if friendly_name:
+            # Extract potential area/room from friendly name
+            # Common patterns: "Kitchen Light", "Living Room TV", "Bedroom Fan"
+            words = friendly_name.lower().split()
+            potential_zones = []
+            
+            # Look for common room/area words
+            room_indicators = [
+                'kitchen', 'bedroom', 'bathroom', 'living', 'dining', 'office',
+                'garage', 'basement', 'attic', 'hallway', 'entryway', 'patio',
+                'balcony', 'study', 'guest', 'master', 'kids', 'family'
+            ]
+            
+            for word in words:
+                if word in room_indicators:
+                    potential_zones.append(word)
+            
+            # Create zone links for detected areas
+            for zone_name in potential_zones:
+                zone_id = f"zone:{zone_name}"
+                zone_label = zone_name.title()
+                
+                self.touch_node(
+                    node_id=zone_id,
+                    kind="zone",
+                    label=zone_label,
+                    source={"system": "ha", "name": "friendly_name_inference"}
+                )
+                
+                self.link(
+                    from_node=entity_node_id,
+                    edge_type="in_zone", 
+                    to_node=zone_id,
+                    initial_weight=0.7,  # Lower confidence than direct state
+                    evidence={"kind": "name_inference", "ref": f"friendly_name={friendly_name}"}
+                )
+        
+        # Method 3: Entity ID patterns (e.g., "light.kitchen_main")
+        entity_name = entity_id.split(".")[-1] if "." in entity_id else entity_id
+        name_parts = entity_name.replace("_", " ").split()
+        
+        for part in name_parts:
+            if part.lower() in ['kitchen', 'bedroom', 'bathroom', 'living', 'dining', 'office', 'garage']:
+                zone_id = f"zone:{part.lower()}"
+                zone_label = part.title()
+                
+                self.touch_node(
+                    node_id=zone_id,
+                    kind="zone",
+                    label=zone_label,
+                    source={"system": "ha", "name": "entity_name_inference"}
+                )
+                
+                self.link(
+                    from_node=entity_node_id,
+                    edge_type="in_zone",
+                    to_node=zone_id,
+                    initial_weight=0.5,  # Lowest confidence
+                    evidence={"kind": "entity_name_inference", "ref": f"entity_id={entity_id}"}
+                )
         
     def _process_service_call(self, event_data: Dict[str, Any]):
-        """Process a service call event."""
+        """Process a service call event with enhanced intentional action tracking."""
         service_data = event_data.get("data", {})
         domain = service_data.get("domain", "")
         service = service_data.get("service", "")
@@ -298,25 +497,85 @@ class BrainGraphService:
         if not domain or not service:
             return
             
-        # Create/update service node
+        # Create/update service node with high salience (intentional actions matter more)
         service_id = f"{domain}.{service}"
-        self.touch_node(
+        service_node = self.touch_node(
             node_id=f"ha.service:{service_id}",
             kind="concept", 
             label=f"{domain.title()} {service.replace('_', ' ').title()}",
-            source={"system": "ha", "name": "call_service"}
+            source={"system": "ha", "name": "call_service"},
+            delta=2.0,  # Higher salience for intentional actions
+            tags=["service_call", domain]
         )
         
-        # Link to target entities if present
-        target_entities = service_data.get("service_data", {}).get("entity_id", [])
-        if isinstance(target_entities, str):
-            target_entities = [target_entities]
-            
+        # Extract and link target entities
+        call_data = service_data.get("service_data", {})
+        target_entities = self._extract_target_entities(call_data)
+        
+        # Create stronger links to affected entities (intentional correlation)
         for entity_id in target_entities:
+            # Boost entity salience when explicitly controlled
+            self.touch_node(
+                node_id=f"ha.entity:{entity_id}",
+                delta=1.2,  # Boost controlled entities
+                source={"system": "ha", "name": "service_target"}
+            )
+            
+            # Create strong intentional edge
+            self.link(
+                from_node=f"ha.service:{service_id}",
+                edge_type="affects",
+                to_node=f"ha.entity:{entity_id}",
+                initial_weight=1.5,  # Stronger than passive correlations
+                evidence={"kind": "service_call", "ref": service_id, "summary": f"{service} → {entity_id}"}
+            )
+            
+            # If entity has known zones, link service to zones too (spatial intent)
+            entity_edges = self.store.get_edges(from_node=f"ha.entity:{entity_id}")
+            for edge in entity_edges:
+                if edge.edge_type == "in_zone" and edge.to_node.startswith("zone:"):
+                    self.link(
+                        from_node=f"ha.service:{service_id}",
+                        edge_type="affects",
+                        to_node=edge.to_node,
+                        initial_weight=0.8,  # Lower than direct entity link
+                        evidence={"kind": "spatial_inference", "ref": f"via {entity_id}"}
+                    )
+    
+    def _extract_target_entities(self, service_data: Dict[str, Any]) -> List[str]:
+        """Extract target entity IDs from service call data."""
+        targets = []
+        
+        # Method 1: Direct entity_id parameter
+        entity_id = service_data.get("entity_id")
+        if entity_id:
             if isinstance(entity_id, str):
-                self.link(
-                    from_node=f"ha.service:{service_id}",
-                    edge_type="affects",
-                    to_node=f"ha.entity:{entity_id}",
-                    evidence={"kind": "service_call", "ref": service_id}
-                )
+                targets.append(entity_id)
+            elif isinstance(entity_id, list):
+                targets.extend([e for e in entity_id if isinstance(e, str)])
+        
+        # Method 2: area_id (would target all entities in area)
+        area_id = service_data.get("area_id")
+        if area_id:
+            # This would require HA area registry integration
+            # For now, we'll create an area concept node
+            area_node_id = f"ha.area:{area_id}"
+            self.touch_node(
+                node_id=area_node_id,
+                kind="zone",
+                label=f"Area {area_id}",
+                source={"system": "ha", "name": "area_registry"}
+            )
+        
+        # Method 3: device_id (would target entities of that device)
+        device_id = service_data.get("device_id")
+        if device_id:
+            device_node_id = f"ha.device:{device_id}"
+            self.touch_node(
+                node_id=device_node_id,
+                kind="device", 
+                label=f"Device {device_id[:8]}",
+                source={"system": "ha", "name": "device_registry"}
+            )
+        
+        return targets
