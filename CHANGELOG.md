@@ -1,5 +1,21 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.4] - 2026-02-10
+
+### Added  
+- **Candidate Storage System** — vollständige Automation-Vorschlag-Lifecycle-Verwaltung:
+  - **REST API**: `/api/v1/candidates` für Create/Read/Update von Suggestion-Kandidaten
+  - **Persistence**: JSON-basierte lokale Speicherung mit atomischen Schreibvorgängen
+  - **Lifecycle States**: pending → offered → accepted/dismissed/deferred mit Retry-Logic
+  - **Evidence Tracking**: Support/Confidence/Lift Metriken für jede Suggestion  
+  - **Cleanup**: Automatische Entfernung alter accepted/dismissed Kandidaten
+
+### Technical Details
+- Candidate Store: `/data/candidates.json` mit atomischen Updates via temp files
+- API Endpoints: GET/POST `/api/v1/candidates`, GET/PUT `/api/v1/candidates/{id}`, GET `/api/v1/candidates/stats`
+- Privacy-First: Alle Daten bleiben lokal, keine externe Übertragung
+- N2 Core API Milestone: Candidate storage foundations für HA Repairs Integration
+
 ## [0.4.3] - 2026-02-10
 
 ### Enhanced
