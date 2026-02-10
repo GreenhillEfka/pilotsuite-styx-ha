@@ -43,11 +43,11 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Better Repairs fix flow text + link to Blueprint UI (v0.4.9)
 - ✅ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text (v0.4.8)
 
-**N2 - Core API v1 minimal**
-- ⏳ `POST /api/v1/events` (batch)
-- ⏳ `GET /api/v1/events` (debug window / support tooling)
-- ⏳ Candidate store endpoints (for HA UX + future ranking)
-- ⏳ Habitus miner A→B (Δt window, debounce, support/confidence/lift)
+**N2 - Core API v1 minimal** ✅
+- ✅ `POST /api/v1/events` (batch) — v0.4.3 Core
+- ✅ `GET /api/v1/events` (debug window / support tooling) — v0.4.3 Core
+- ✅ Candidate store endpoints (for HA UX + future ranking) — v0.4.4 Core
+- ✅ Habitus miner A→B (Δt window, debounce, support/confidence/lift) — v0.4.5 Core
 
 **N3 - HA → Core event forwarder**
 - ✅ Capabilities ping (`GET /api/v1/capabilities`) and clear "Core supports v1?" status
@@ -66,6 +66,13 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Privacy-first bounded storage (max 500 nodes, 1500 edges)
 - ✅ First view: static SVG + summary table (HA-friendly, low maintenance)
 - 💡 Later: interactive graph panel (optional)
+
+**N5 - Core ↔ HA Integration Bridge**
+- ✅ CandidatePollerModule: HA polls Core `/api/v1/candidates?state=pending` every 5 min (v0.5.0)
+- ✅ Auto-offer via Repairs with evidence display + pre-populated Blueprint inputs (v0.5.0)
+- ✅ Bidirectional state sync: offered/accepted/dismissed states sent back to Core (v0.5.0)
+- ⏳ Decision sync-back: when user accepts/dismisses in HA, update Core candidate state
+- ⏳ Habitus trigger: HA can request a mining run on-demand via Core API
 
 ### LATER (expansion modules)
 - 💡 Mood vector v0.1 (comfort/frugality/joy) and ranking

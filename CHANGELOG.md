@@ -1,5 +1,31 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.0] - 2026-02-10
+
+### 🔌 Candidate Poller – Core → HA Integration Bridge
+
+Connects the Core Add-on's pattern mining pipeline to HA's Repairs UI. This is the key integration piece that closes the end-to-end loop: **mine → candidate → offer → user decision**.
+
+#### Added
+- **CandidatePollerModule**: New runtime module that periodically polls Core's `/api/v1/candidates?state=pending` (every 5 min)
+- **Automatic Repairs creation**: Pending candidates from Core are converted into HA Repairs issues with evidence display (support/confidence/lift)
+- **Bidirectional state sync**: After offering a candidate, marks it as `offered` in Core to prevent duplicate offers
+- **Ready-deferred support**: Also picks up deferred candidates whose retry window has passed
+- **Pre-populated Blueprint inputs**: Trigger/target entities from the pattern metadata are pre-filled in the Blueprint apply flow
+- **30s startup delay**: First poll waits for Core Add-on to be ready before querying
+
+#### Technical
+- New module: `core/modules/candidate_poller.py`
+- Registered in CopilotRuntime alongside existing modules
+- Uses shared `CopilotApiClient` from coordinator — no additional auth setup needed
+- Poll count tracked in `hass.data` for diagnostics
+- Privacy-first: all data stays local between Core and HA
+
+#### Milestone
+- 🎯 **v0.5.0 marks the first end-to-end integration release**: Core mines patterns → creates candidates → HA polls → offers via Repairs → user decides
+
+---
+
 ## [0.4.9] - 2026-02-10
 
 ### 🔗 N1 Enhanced Blueprint Flow UX (Better Repairs Text)
