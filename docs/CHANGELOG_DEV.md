@@ -44,6 +44,37 @@ Dieses Dokument listet **Work-in-progress** Änderungen, die noch **nicht** als 
 - Full HA integration tests require pytest + Home Assistant test framework (deferred to CI phase).
 - Pairs with Core v0.4.0-rc.1 or later.
 
+### Just Completed (2026-02-10 04:09 CET)
+
+#### Added: N3 Event Forwarder (Privacy-First HA→Core Event Pipeline)
+- **`forwarder_n3.py`**: Complete implementation per N3 Worker specification.
+  - **Privacy-first envelope**: Stable schema v1 with domain projections, redaction policy, zone enrichment.
+  - **Minimal attribute projections**: Only actionable attributes forwarded (brightness, temperature, etc.), no metadata leakage.
+  - **Automatic redaction**: GPS coordinates, tokens, context IDs truncated, friendly names opt-out by default.
+  - **Zone mapping**: Entity→zone_id enrichment from HA area registry.
+  - **Batching & persistence**: Configurable batch size (default 50), flush interval (500ms), persistent queue across HA restarts.
+  - **Idempotency**: Context-based deduplication with configurable TTL (default 120s).
+
+- **Dual event support**: 
+  - `state_changed`: Full state delta with old/new projections.
+  - `call_service`: Intent forwarding for safe domains (light, climate, etc.), blocked egress domains (notify, rest_command).
+
+- **Services integration**: 
+  - `forwarder_n3_start`: Initialize N3 forwarder for config entry.
+  - `forwarder_n3_stop`: Gracefully shutdown with state persistence.
+  - `forwarder_n3_stats`: Runtime statistics (queue sizes, zone mappings, throughput).
+
+#### Tests
+- Unit test scaffolding: `test_forwarder_n3_simple.py` (11 tests covering projections, redaction, envelope creation).
+- Compilation: `python3 -m compileall custom_components/ai_home_copilot/forwarder_n3.py` ✓.
+
+#### Why This Step
+The existing EventsForwarderModule used legacy envelope format. N3 forwarder implements the privacy-first specification from Worker N3 report, completing the HA→Core data pipeline with proper redaction and governance policies.
+
+#### Next
+- Integration testing with Core `/api/v1/events` endpoint.
+- Performance validation under high-frequency events.
+
 ### In Arbeit
 - Repairs/Blueprints: governance-first Apply-Flow (confirm-first) + Transaction-Log (WIP)
 - dev_surface: UI Buttons + PilotSuite toggle (WIP integriert)

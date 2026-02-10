@@ -192,6 +192,85 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             schema=vol.Schema({vol.Required("entry_id"): str}),
         )
 
+    # N3 Forwarder services
+    if not hass.services.has_service(DOMAIN, "forwarder_n3_start"):
+        from .forwarder_n3 import N3EventForwarder
+
+        async def _handle_forwarder_start(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            if not entry_id:
+                return
+            
+            # Get core URL and token from config entry
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id == entry_id:
+                    config = {
+                        "core_url": entry.data.get("core_url", "http://localhost:8099"),
+                        "api_token": entry.data.get("api_token", ""),
+                        "enabled_domains": ["light", "climate", "media_player", "binary_sensor", "sensor", "cover", "lock", "person", "device_tracker", "weather"],
+                        "batch_size": 50,
+                        "flush_interval": 0.5,
+                        "forward_call_service": True,
+                    }
+                    
+                    # Create and start forwarder
+                    forwarder = N3EventForwarder(hass, config)
+                    await forwarder.async_start()
+                    
+                    # Store in hass data for later access
+                    hass.data.setdefault(DOMAIN, {})[f"n3_forwarder_{entry_id}"] = forwarder
+                    break
+
+        hass.services.async_register(
+            DOMAIN,
+            "forwarder_n3_start",
+            _handle_forwarder_start,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
+        )
+
+    if not hass.services.has_service(DOMAIN, "forwarder_n3_stop"):
+        
+        async def _handle_forwarder_stop(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            if not entry_id:
+                return
+                
+            forwarder_key = f"n3_forwarder_{entry_id}"
+            forwarder = hass.data.get(DOMAIN, {}).get(forwarder_key)
+            if forwarder:
+                await forwarder.async_stop()
+                hass.data[DOMAIN].pop(forwarder_key, None)
+
+        hass.services.async_register(
+            DOMAIN,
+            "forwarder_n3_stop",
+            _handle_forwarder_stop,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
+        )
+
+    if not hass.services.has_service(DOMAIN, "forwarder_n3_stats"):
+        
+        async def _handle_forwarder_stats(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            if not entry_id:
+                return
+                
+            forwarder_key = f"n3_forwarder_{entry_id}"
+            forwarder = hass.data.get(DOMAIN, {}).get(forwarder_key)
+            if forwarder:
+                stats = await forwarder.async_get_stats()
+                hass.bus.async_fire(
+                    f"{DOMAIN}_forwarder_n3_stats",
+                    {"entry_id": entry_id, "stats": stats}
+                )
+
+        hass.services.async_register(
+            DOMAIN,
+            "forwarder_n3_stats",
+            _handle_forwarder_stats,
+            schema=vol.Schema({vol.Required("entry_id"): str}),
+        )
+
     # Ops Runbook v0.1 services
     if not hass.services.has_service(DOMAIN, "ops_runbook_preflight_check"):
         from .ops_runbook import async_run_preflight_check
