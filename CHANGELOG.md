@@ -1,5 +1,35 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.6] - 2026-02-10
+
+### 🧠 Brain Dashboard Summary Button
+
+New diagnostic button to fetch comprehensive brain graph health summary from Core Add-on.
+
+#### Added
+- **Brain Dashboard Summary Button** (`button.ai_home_copilot_brain_dashboard_summary`):
+  - Fetches brain graph health metrics via new `/api/v1/dashboard/brain-summary` Core API
+  - Displays consolidated summary: node/edge counts, 24h activity, health score (0-100)
+  - Shows actionable recommendations for improving brain graph data collection
+  - Enabled by default in diagnostic entity category
+
+#### Enhanced
+- **Better Brain Graph Visibility**: Users can quickly assess brain graph health without technical details
+- **Actionable Insights**: Recommendations guide users on entity allowlist optimization
+- **Health Scoring**: Clear 0-100 health score with status indicators (Healthy/Active/Learning/Initializing)
+
+#### Technical Implementation
+- Integrates with Core Add-on v0.4.9 dashboard APIs
+- Uses existing `async_call_core_api` infrastructure for Core communication
+- Formats technical data into user-friendly notification summaries
+- Graceful error handling with informative error messages
+
+#### Quality Assurance
+- ✅ Full py_compile validation for button.py changes
+- ✅ Backwards compatible with existing Core API infrastructure
+- ✅ Error handling for Core Add-on unavailable scenarios
+- ✅ Clear notification format with health status and recommendations
+
 ## [0.4.5] - 2026-02-10
 
 ### 🎯 Configurable Event Forwarder Entity Allowlist

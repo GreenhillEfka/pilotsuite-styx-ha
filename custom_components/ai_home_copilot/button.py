@@ -75,6 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotCoreGraphCandidatesPreviewButton(coordinator, entry),
         CopilotCoreGraphCandidatesOfferButton(coordinator, entry),
         CopilotPublishBrainGraphVizButton(coordinator, entry),
+        CopilotBrainDashboardSummaryButton(coordinator, entry),
         CopilotForwarderStatusButton(coordinator, entry),
         CopilotHaErrorsFetchButton(coordinator, entry),
         CopilotPingCoreButton(coordinator, entry),
@@ -942,4 +943,78 @@ class CopilotDownloadPilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
                 f"Failed to publish PilotSuite dashboard: {err}",
                 title="AI Home CoPilot PilotSuite dashboard",
                 notification_id="ai_home_copilot_pilotsuite_dashboard_download",
+            )
+
+
+class CopilotBrainDashboardSummaryButton(CopilotBaseEntity, ButtonEntity):
+    """Fetch brain graph dashboard summary from Core Add-on."""
+
+    _attr_entity_registry_enabled_default = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot brain dashboard summary"
+    _attr_unique_id = "ai_home_copilot_brain_dashboard_summary"
+    _attr_icon = "mdi:brain"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        """Fetch brain dashboard summary and display it."""
+        from .core_v1 import async_call_core_api
+
+        try:
+            # Fetch dashboard summary
+            dashboard_data = await async_call_core_api(
+                self.hass, 
+                self._entry, 
+                "GET", 
+                "/api/v1/dashboard/brain-summary"
+            )
+            
+            if not dashboard_data:
+                raise Exception("No response from Core Add-on")
+
+            # Format summary for notification
+            brain_stats = dashboard_data.get("brain_graph", {})
+            activity = dashboard_data.get("activity", {})
+            health = dashboard_data.get("health", {})
+            recommendations = dashboard_data.get("recommendations", [])
+            
+            nodes = brain_stats.get("nodes", 0)
+            edges = brain_stats.get("edges", 0)
+            events_24h = activity.get("events_24h", 0)
+            active_entities = activity.get("active_entities", 0)
+            health_score = health.get("score", 0)
+            status = health.get("status", "Unknown")
+            
+            # Build summary message
+            summary_lines = [
+                f"**Brain Graph Status: {status} ({health_score}/100)**",
+                f"📊 Nodes: {nodes}, Edges: {edges}",
+                f"⚡ Activity: {events_24h} events, {active_entities} entities (24h)",
+            ]
+            
+            if recommendations:
+                summary_lines.append("**Recommendations:**")
+                for rec in recommendations[:3]:  # Show top 3
+                    summary_lines.append(f"• {rec}")
+            
+            summary_text = "\n".join(summary_lines)
+            
+            # Show notification
+            persistent_notification.async_create(
+                self.hass,
+                summary_text,
+                title=f"🧠 Brain Dashboard Summary",
+                notification_id="ai_home_copilot_brain_dashboard_summary",
+            )
+            
+        except Exception as err:
+            persistent_notification.async_create(
+                self.hass,
+                f"Failed to fetch brain dashboard summary: {str(err)}",
+                title="AI Home CoPilot Brain Dashboard",
+                notification_id="ai_home_copilot_brain_dashboard_error",
             )
