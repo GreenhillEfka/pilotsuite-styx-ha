@@ -1,5 +1,29 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.2] - 2026-02-10
+
+### 🩺 Pipeline Health + On-Demand Mining — N0 Observability
+
+New sensor and service for operational visibility into the full CoPilot pipeline.
+
+#### Added
+- **`sensor.ai_home_copilot_pipeline_health`**: Consolidated health sensor showing overall pipeline state (`healthy` / `degraded` / `offline`)
+  - Deep-checks Core endpoints: Candidates API, Habitus Mining, Brain Graph, Capabilities
+  - Attributes expose per-component status for debugging
+  - Updates on coordinator poll cycle
+- **`ai_home_copilot.trigger_mining`**: On-demand service to request a mining run from Core
+  - Optional parameters: `min_confidence`, `min_support`, `min_lift`
+  - Fires `ai_home_copilot_mining_result` event with results
+  - Automatically polls for new candidates after mining completes
+  - Enables "analyze now" button in HA automations and dashboards
+
+#### Technical
+- Pipeline Health sensor leverages existing `CopilotApiClient` — no new dependencies
+- Mining trigger wired into CandidatePollerModule for seamless candidate → Repairs flow
+- Service removed cleanly on unload (last-entry check)
+
+---
+
 ## [0.5.1] - 2026-02-10
 
 ### 🔄 Decision Sync-Back — Close the Feedback Loop

@@ -37,6 +37,7 @@ from .habitus_miner_entities import (
     HabitusMinerStatusSensor, 
     HabitusMinerTopRuleSensor,
 )
+from .pipeline_health_entities import PipelineHealthSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -53,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusMinerRuleCountSensor(coordinator),
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
+        PipelineHealthSensor(coordinator),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)

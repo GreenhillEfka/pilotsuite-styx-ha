@@ -20,6 +20,10 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.config_entries import ConfigEntry
 
+import voluptuous as vol
+
+from homeassistant.core import ServiceCall
+
 from ...api import CopilotApiClient, CopilotApiError
 from ...const import DOMAIN
 from ...suggest import Candidate as SuggestCandidate, async_offer_candidate
@@ -165,6 +169,9 @@ class CandidatePollerModule:
 
         self._unsub = async_track_time_interval(ctx.hass, _tick, DEFAULT_POLL_INTERVAL)
 
+        # Register on-demand mining trigger service.
+        await self._register_mining_service(ctx.hass, ctx.entry)
+
         # Run first poll after a short delay (give Core time to start).
         async def _initial_poll() -> None:
             await asyncio.sleep(30)
@@ -173,10 +180,73 @@ class CandidatePollerModule:
         ctx.hass.async_create_task(_initial_poll())
         _LOGGER.info("CandidatePoller: started (interval=%s)", DEFAULT_POLL_INTERVAL)
 
+    async def _register_mining_service(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Register ``ai_home_copilot.trigger_mining`` service (on-demand Core mining run)."""
+
+        if hass.services.has_service(DOMAIN, "trigger_mining"):
+            return
+
+        async def _handle_trigger_mining(call: ServiceCall) -> None:
+            """Request a mining run from Core and immediately poll for new candidates."""
+            api = self._get_api(hass, entry)
+            if api is None:
+                _LOGGER.error("trigger_mining: no Core API client available")
+                return
+
+            payload: dict[str, Any] = {}
+            if call.data.get("min_confidence"):
+                payload["min_confidence"] = call.data["min_confidence"]
+            if call.data.get("min_support"):
+                payload["min_support"] = call.data["min_support"]
+            if call.data.get("min_lift"):
+                payload["min_lift"] = call.data["min_lift"]
+
+            try:
+                result = await api.async_post("/api/v1/habitus/mine", payload)
+                _LOGGER.info(
+                    "trigger_mining: Core returned %d pattern(s)",
+                    result.get("discovered", result.get("patterns_found", 0)),
+                )
+            except CopilotApiError as err:
+                _LOGGER.error("trigger_mining: Core API error: %s", err)
+                hass.bus.async_fire(
+                    f"{DOMAIN}_mining_result",
+                    {"ok": False, "error": str(err)},
+                )
+                return
+
+            # Fire event so automations / UI can react.
+            hass.bus.async_fire(
+                f"{DOMAIN}_mining_result",
+                {"ok": True, "result": result},
+            )
+
+            # Immediately poll for newly created candidates.
+            await self._poll_once(hass, entry)
+
+        hass.services.async_register(
+            DOMAIN,
+            "trigger_mining",
+            _handle_trigger_mining,
+            schema=vol.Schema(
+                {
+                    vol.Optional("min_confidence"): vol.Coerce(float),
+                    vol.Optional("min_support"): vol.Coerce(float),
+                    vol.Optional("min_lift"): vol.Coerce(float),
+                }
+            ),
+        )
+        _LOGGER.info("Registered service %s.trigger_mining", DOMAIN)
+
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         if self._unsub:
             self._unsub()
             self._unsub = None
+
+        # Remove mining service if this is the last entry.
+        entry_count = len(list(ctx.hass.config_entries.async_entries(DOMAIN)))
+        if entry_count <= 1 and ctx.hass.services.has_service(DOMAIN, "trigger_mining"):
+            ctx.hass.services.async_remove(DOMAIN, "trigger_mining")
 
         ent_data = ctx.hass.data.get(DOMAIN, {}).get(ctx.entry.entry_id)
         if isinstance(ent_data, dict):

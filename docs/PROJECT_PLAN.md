@@ -72,7 +72,8 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Auto-offer via Repairs with evidence display + pre-populated Blueprint inputs (v0.5.0)
 - ✅ Bidirectional state sync: offered/accepted/dismissed states sent back to Core (v0.5.0)
 - ✅ Decision sync-back: accept/dismiss/defer synced to Core via PUT (v0.5.1)
-- ⏳ Habitus trigger: HA can request a mining run on-demand via Core API
+- ✅ Habitus trigger: `ai_home_copilot.trigger_mining` service calls `POST /api/v1/habitus/mine` on-demand (v0.5.2)
+- ✅ Pipeline Health sensor: `sensor.ai_home_copilot_pipeline_health` consolidates Core component status (v0.5.2)
 
 ### LATER (expansion modules)
 - 💡 Mood vector v0.1 (comfort/frugality/joy) and ranking
