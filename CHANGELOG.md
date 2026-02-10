@@ -1,5 +1,31 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.8] - 2026-02-10
+
+### 📊 N1 Enhanced Evidence Display (Transparency)
+
+Implements PROJECT_PLAN N1 requirement to display evidence information in Repairs UI for better suggestion transparency.
+
+#### Added
+- **Evidence in Suggestion UI**: Candidate suggestions now display statistical confidence metrics
+  - Support percentage: How often this pattern was observed
+  - Confidence: Statistical confidence in the pattern recognition  
+  - Lift: How much more likely this pattern is compared to random
+  - Example: "CoPilot Vorschlag: A→B Pattern (Support: 85% | Konfidenz: 92% | Lift: 3.2)"
+
+#### Enhanced
+- **Transparent Automation Suggestions**: Users can now see the statistical basis behind CoPilot recommendations
+- **Better UX Flow**: Evidence data is seamlessly integrated into existing Repairs and Blueprint workflows
+- **Multilingual Support**: Evidence display works in both German and English interfaces
+
+#### Technical
+- Enhanced `suggest.py` to extract and format evidence data from candidate snapshots
+- Updated translation strings (de.json, en.json, strings.json) with evidence placeholders
+- Evidence formatting handles missing data gracefully (empty string when no evidence available)
+- Maintains backward compatibility with candidates without evidence data
+
+This enhancement addresses governance and transparency requirements by making the AI decision-making process more visible to users.
+
 ## [0.4.7] - 2026-02-10
 
 ### 🫀 N3 Forwarder Quality Enhancements

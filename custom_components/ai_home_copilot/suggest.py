@@ -62,6 +62,23 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
     # IMPORTANT: placeholders must cover all keys used in strings.json for the translation_key.
     # Otherwise HA may fail rendering the Repairs issue UI.
     placeholders = dict(candidate.translation_placeholders or {"title": candidate.title})
+    
+    # N1 Enhancement: Add evidence information for transparency
+    evidence_text = ""
+    if candidate.data and "evidence" in candidate.data:
+        evidence = candidate.data["evidence"]
+        if isinstance(evidence, dict):
+            parts = []
+            if "support" in evidence and evidence["support"] is not None:
+                parts.append(f"Support: {evidence['support']:.0%}")
+            if "confidence" in evidence and evidence["confidence"] is not None:
+                parts.append(f"Konfidenz: {evidence['confidence']:.0%}")
+            if "lift" in evidence and evidence["lift"] is not None:
+                parts.append(f"Lift: {evidence['lift']:.1f}")
+            if parts:
+                evidence_text = f" ({' | '.join(parts)})"
+    
+    placeholders["evidence"] = evidence_text
 
     if candidate.translation_key == "seed_suggestion":
         src = str(candidate.seed_source or "")

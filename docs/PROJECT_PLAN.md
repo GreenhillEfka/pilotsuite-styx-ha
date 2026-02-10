@@ -1,10 +1,10 @@
-# AI Home CoPilot – Project Plan (Canvas + Kanban)
+# AI Home CoPilot - Project Plan (Canvas + Kanban)
 
 ## 0) Project Canvas (1 page)
 **Mission**
 Turn Home Assistant usage patterns into *governed*, *privacy-first* automation suggestions that users can accept via Repairs + Blueprints.
 
-**Non‑negotiables**
+**Non-negotiables**
 - Privacy-first: no log shipping; no personal defaults in repo; tokens never logged.
 - Governance-first: no silent automation creation; every change requires explicit confirmation.
 - Prefer push/event driven; polling only as fallback (watchdog).
@@ -34,29 +34,37 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - 🟡 Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior
 
 ### NEXT (make suggestions real)
-**N0 – Stable module foundation (HA side)**
+**N0 - Stable module foundation (HA side)**
 - ⏳ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update
 - ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
 
-**N1 – Candidate lifecycle + UX polish (HA side)**
-- ⏳ Candidate states: add `defer` (with “offer again after X days”)
+**N1 - Candidate lifecycle + UX polish (HA side)**
+- ⏳ Candidate states: add `defer` (with "offer again after X days")
 - ⏳ Better Repairs fix flow text + link to Blueprint UI
 - ⏳ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text
 
-**N2 – Core API v1 minimal**
+**N2 - Core API v1 minimal**
 - ⏳ `POST /api/v1/events` (batch)
 - ⏳ `GET /api/v1/events` (debug window / support tooling)
 - ⏳ Candidate store endpoints (for HA UX + future ranking)
 - ⏳ Habitus miner A→B (Δt window, debounce, support/confidence/lift)
 
 **N3 – HA → Core event forwarder**
-- ⏳ Capabilities ping (`GET /api/v1/capabilities`) and clear “Core supports v1?” status
-- ⏳ Allowlist which HA entities we forward (default: Habitus zones; optional: MediaContext lists)
-- ⏳ Token-protected calls, rate limits, and redaction rules
+- ✅ Capabilities ping (`GET /api/v1/capabilities`) and clear "Core supports v1?" status
+- ✅ Allowlist which HA entities we forward (default: Habitus zones; optional: MediaContext lists)
+- ✅ Token-protected calls, rate limits, and redaction rules
+- ✅ Heartbeat monitoring for Core health (60s interval, configurable)
+- ✅ Enhanced zone inference for person/device_tracker entities
+- ✅ Privacy-first redaction (GPS, tokens, PII) per Alpha Worker N3 spec
 
 **N4 – Brain Graph (Dev surface)**
-- 💡 Co-activity graph (neurons + synapses) generated from forwarded events
-- 💡 First view: static SVG + summary table (HA-friendly, low maintenance)
+- ✅ Co-activity graph (neurons + synapses) generated from forwarded events
+- ✅ Multi-source zone inference with confidence weighting
+- ✅ Enhanced intentional action tracking (service calls 2x salience)
+- ✅ Spatial intent chains and trigger inference using HA context
+- ✅ `/api/v1/graph/patterns` endpoint for automation hints
+- ✅ Privacy-first bounded storage (max 500 nodes, 1500 edges)
+- ✅ First view: static SVG + summary table (HA-friendly, low maintenance)
 - 💡 Later: interactive graph panel (optional)
 
 ### LATER (expansion modules)
@@ -87,5 +95,5 @@ If we track work in GitHub:
 ---
 
 ## 4) Where this lives
-- This file should be the single “source of truth” overview.
+- This file should be the single "source of truth" overview.
 - Detailed specs live in `docs/` (API draft, concept v0.2, model v0.1).
