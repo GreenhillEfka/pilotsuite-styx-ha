@@ -10,15 +10,31 @@ Endpoints:
 """
 from __future__ import annotations
 
+import logging
 from flask import Blueprint, request, jsonify
 
 from copilot_core.api.security import require_token
 from copilot_core.ingest.event_store import EventStore
 
+logger = logging.getLogger(__name__)
+
 bp = Blueprint("events_ingest", __name__)
 
 # Singleton store – initialized on first request or by main.py
 _store: EventStore | None = None
+
+# Post-ingest callback – called with list of accepted events after each batch
+_post_ingest_callback = None
+
+
+def set_post_ingest_callback(callback) -> None:
+    """Register a callback invoked after each successful ingest batch.
+
+    The callback receives a list of accepted (normalized) event dicts.
+    Exceptions in the callback are logged but do not fail the HTTP response.
+    """
+    global _post_ingest_callback
+    _post_ingest_callback = callback
 
 
 def get_store() -> EventStore:
@@ -63,6 +79,14 @@ def ingest_events():
 
     store = get_store()
     result = store.ingest_batch(items)
+
+    # Fire post-ingest callback (e.g. EventProcessor → Brain Graph)
+    accepted_events = result.pop("accepted_events", [])
+    if accepted_events and _post_ingest_callback:
+        try:
+            _post_ingest_callback(accepted_events)
+        except Exception as exc:
+            logger.error("Post-ingest callback error: %s", exc, exc_info=True)
 
     status = 200 if result["rejected"] == 0 else 207  # Multi-Status if partial
     return jsonify(result), status

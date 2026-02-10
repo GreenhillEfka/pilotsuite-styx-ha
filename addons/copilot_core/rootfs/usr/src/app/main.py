@@ -10,9 +10,11 @@ from copilot_core.api.security import require_token
 from copilot_core.api.v1 import log_fixer_tx
 from copilot_core.api.v1 import tag_system
 from copilot_core.api.v1 import events_ingest
+from copilot_core.api.v1.events_ingest import set_post_ingest_callback
 from copilot_core.brain_graph.api import brain_graph_bp, init_brain_graph_api
 from copilot_core.brain_graph.service import BrainGraphService
 from copilot_core.brain_graph.render import GraphRenderer
+from copilot_core.ingest.event_processor import EventProcessor
 
 APP_VERSION = os.environ.get("COPILOT_VERSION", "0.1.1")
 
@@ -25,6 +27,10 @@ app = Flask(__name__)
 brain_graph_service = BrainGraphService()
 graph_renderer = GraphRenderer()
 init_brain_graph_api(brain_graph_service, graph_renderer)
+
+# Initialize event processor: EventStore → BrainGraph pipeline
+event_processor = EventProcessor(brain_graph_service=brain_graph_service)
+set_post_ingest_callback(event_processor.process_events)
 
 # Register blueprints
 app.register_blueprint(log_fixer_tx.bp)

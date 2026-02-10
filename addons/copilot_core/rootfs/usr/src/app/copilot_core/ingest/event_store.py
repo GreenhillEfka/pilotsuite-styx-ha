@@ -170,12 +170,14 @@ class EventStore:
     def ingest_batch(self, items: list[dict[str, Any]]) -> dict[str, Any]:
         """Ingest a batch of event envelopes.
 
-        Returns summary dict with accepted/rejected/deduped counts.
+        Returns summary dict with accepted/rejected/deduped counts
+        and the list of accepted (normalized) events.
         """
         accepted = 0
         rejected = 0
         deduped = 0
         errors: list[dict[str, Any]] = []
+        accepted_events: list[dict[str, Any]] = []
 
         with self._lock:
             for i, item in enumerate(items):
@@ -205,12 +207,14 @@ class EventStore:
 
                 accepted += 1
                 self.accepted_total += 1
+                accepted_events.append(normalized)
 
         return {
             "accepted": accepted,
             "rejected": rejected,
             "deduped": deduped,
             "errors": errors[:10],  # cap error details
+            "accepted_events": accepted_events,
         }
 
     def _normalize(self, event: dict[str, Any], dedup_key: str) -> dict[str, Any]:
