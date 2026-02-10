@@ -1,5 +1,25 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.3] - 2026-02-10
+
+### 🔑 Enhanced Token Management UX
+
+Improved user experience for OpenClaw Gateway authentication token management in configuration flow.
+
+#### Enhanced
+- **Clear Token Guidance**: Better hints showing whether a token is currently set or empty
+- **Token Clear Functionality**: Explicitly clear tokens by leaving field empty during reconfiguration
+- **Helpful Descriptions**: Clear placeholder text for both initial setup and ongoing management
+- **Visual Feedback**: Shows "** AKTUELL GESETZT **" when a token exists vs helpful hints when empty
+
+#### Technical
+- **Smart Token Handling**: Empty/whitespace-only input explicitly removes existing tokens
+- **Better UX Flow**: Initial setup shows helpful guidance for optional token field
+- **Improved Options Flow**: Configuration changes properly handle token clear operations
+- **Privacy Maintained**: No token values displayed in UI, only status indicators
+
+This makes token management more intuitive and reduces confusion during initial setup and ongoing configuration.
+
 ## [0.4.2] - 2026-02-10
 
 ### 🚨 Improved Error Diagnostics

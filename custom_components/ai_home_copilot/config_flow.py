@@ -124,9 +124,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-                vol.Optional(CONF_TOKEN): str,
+                vol.Optional(CONF_TOKEN, description={"suggested_value": "Optional: OpenClaw Gateway Auth Token"}): str,
                 # Use a plain string to maximize compatibility (no selector).
-                vol.Optional(CONF_TEST_LIGHT, default=""): str,
+                vol.Optional(CONF_TEST_LIGHT, default="", description={"suggested_value": "Optional: light.example_entity_id for connectivity test"}): str,
             }
         )
 
@@ -172,6 +172,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             if isinstance(tv_csv, str):
                 user_input[CONF_MEDIA_TV_PLAYERS] = _parse_csv(tv_csv)
 
+            # Token handling: if empty string provided, explicitly remove token
+            if CONF_TOKEN in user_input:
+                token = user_input.get(CONF_TOKEN, "").strip()
+                if not token:  # Empty or whitespace-only = clear token
+                    user_input[CONF_TOKEN] = ""
+
             # Keep allow/block domains as the raw string; seed adapter parses both list and str.
             return self.async_create_entry(title="", data=user_input)
 
@@ -183,12 +189,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             f"/api/webhook/{webhook_id}" if webhook_id else "(generated after first setup)"
         )
 
+        # Token helper text
+        current_token = data.get(CONF_TOKEN, "")
+        token_hint = "** AKTUELL GESETZT **" if current_token else "Leer lassen um Token zu löschen"
+        
         schema = vol.Schema(
             {
                 vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): str,
                 vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
                 vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): int,
-                vol.Optional(CONF_TOKEN, default=data.get(CONF_TOKEN, "")): str,
+                vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
                 vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): str,
                 vol.Optional(
                     CONF_MEDIA_MUSIC_PLAYERS,
