@@ -1,5 +1,31 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.3] - 2026-02-10
+
+### 📋 services.yaml — Developer Tools Auto-Discovery
+
+All 28+ services are now discoverable in HA Developer Tools → Services with full descriptions, field schemas, and selectors.
+
+#### Added
+- **`services.yaml`**: Complete service definitions for all registered services
+  - Tag Registry (5 services): upsert, assign, confirm, sync, pull
+  - Media Context v2 (3 services): suggest zones, apply suggestions, clear overrides
+  - N3 Event Forwarder (3 services): start, stop, stats
+  - Ops Runbook (4 services): preflight, smoke test, execute action, run checklist
+  - Dev Surface (4 services): enable debug, disable debug, clear errors, ping
+  - Candidate Poller (1 service): trigger mining with slider selectors
+  - UniFi Module (2 services): diagnostics, get report
+  - Habitus Miner (4 services): mine rules, get rules, reset cache, configure mining
+  - Proper HA selectors (number sliders, entity pickers, text inputs, booleans)
+  - Bilingual descriptions (German primary, service names English)
+
+#### Technical
+- HA auto-discovers services from `services.yaml` alongside the `manifest.json`
+- Enables autocomplete in HA automations, scripts, and Developer Tools
+- No runtime changes — purely declarative metadata
+
+---
+
 ## [0.5.2] - 2026-02-10
 
 ### 🩺 Pipeline Health + On-Demand Mining — N0 Observability
