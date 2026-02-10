@@ -14,6 +14,7 @@ from homeassistant.helpers.event import async_call_later
 
 from ...const import DOMAIN
 from ..module import CopilotModule, ModuleContext
+from ..error_helpers import format_error_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -133,6 +134,29 @@ class ErrorDigest:
         }
         self.last_error = rec
         self.counters[key] += 1
+        self.recent.append(rec)
+
+    def record_exception(self, error: Exception, operation: str, context: dict[str, Any] | None = None) -> None:
+        """Record an exception with enhanced context and traceback info."""
+        error_data = format_error_context(error, operation, context, include_traceback=True, max_frames=5)
+        
+        # Classify the exception type
+        error_key = _classify_exception(error)
+        
+        # Create enhanced record with traceback summary
+        rec = {
+            "time": error_data["timestamp"],
+            "error_key": error_key,
+            "message": error_data["error_message"],
+            "where": operation,
+            "hint": ERROR_REGISTRY.get(error_key, {}).get("hint"),
+            "error_type": error_data["error_type"],
+            "context": error_data.get("context", {}),
+            "traceback_summary": error_data.get("traceback_summary"),
+        }
+        
+        self.last_error = rec
+        self.counters[error_key] += 1
         self.recent.append(rec)
 
     def as_dict(self) -> dict[str, Any]:

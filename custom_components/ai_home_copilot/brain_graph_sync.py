@@ -25,6 +25,7 @@ from homeassistant.const import (
 )
 
 from .const import DOMAIN
+from .core.error_helpers import log_error_with_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,7 +84,10 @@ class BrainGraphSync:
             return True
             
         except Exception as err:
-            _LOGGER.error("Failed to start Brain Graph sync: %s", err)
+            log_error_with_context(
+                _LOGGER, err, "Brain Graph sync startup",
+                {"host": self._host, "port": self._port}
+            )
             if self._session:
                 await self._session.close()
             return False
@@ -113,7 +117,10 @@ class BrainGraphSync:
                     _LOGGER.error("Brain Graph stats returned status %s", resp.status)
                     return False
         except Exception as err:
-            _LOGGER.error("Brain Graph connection test failed: %s", err)
+            log_error_with_context(
+                _LOGGER, err, "Brain Graph connection test",
+                {"endpoint": f"{self._base_url}/api/v1/graph/stats"}
+            )
             return False
     
     async def _sync_initial_graph(self):
@@ -136,7 +143,10 @@ class BrainGraphSync:
             _LOGGER.info("Initial Brain Graph sync completed")
             
         except Exception as err:
-            _LOGGER.error("Initial Brain Graph sync failed: %s", err)
+            log_error_with_context(
+                _LOGGER, err, "Initial Brain Graph sync",
+                {"num_areas": len(self._area_reg.areas), "num_entities": len(self._entity_reg.entities)}
+            )
     
     async def _sync_areas(self):
         """Sync HA areas as zone nodes in Brain Graph."""
@@ -289,7 +299,11 @@ class BrainGraphSync:
             await self._send_edge_update(edge_data)
             
         except Exception as err:
-            _LOGGER.debug("Failed to sync state for %s: %s", entity_id, err)
+            log_error_with_context(
+                _LOGGER, err, f"Brain Graph state sync for {entity_id}",
+                {"entity_id": entity_id, "state": str(new_state.state) if new_state else None},
+                level=logging.DEBUG
+            )
     
     async def _handle_state_changed(self, event: Event):
         """Handle HA state change events."""
@@ -374,7 +388,11 @@ class BrainGraphSync:
                 if resp.status != 200:
                     _LOGGER.debug("Brain Graph node update failed: status %s", resp.status)
         except Exception as err:
-            _LOGGER.debug("Brain Graph node update failed: %s", err)
+            log_error_with_context(
+                _LOGGER, err, "Brain Graph node update",
+                {"node_type": node_data.get("type"), "node_id": node_data.get("id", "unknown")},
+                level=logging.DEBUG
+            )
     
     async def _send_edge_update(self, edge_data: Dict[str, Any]):
         """Send an edge update to Core Brain Graph."""
@@ -386,7 +404,11 @@ class BrainGraphSync:
                 if resp.status != 200:
                     _LOGGER.debug("Brain Graph edge update failed: status %s", resp.status)
         except Exception as err:
-            _LOGGER.debug("Brain Graph edge update failed: %s", err)
+            log_error_with_context(
+                _LOGGER, err, "Brain Graph edge update",
+                {"edge_type": edge_data.get("type"), "from": edge_data.get("from"), "to": edge_data.get("to")},
+                level=logging.DEBUG
+            )
     
     async def get_graph_stats(self) -> Optional[Dict[str, Any]]:
         """Get Brain Graph statistics."""
@@ -395,7 +417,11 @@ class BrainGraphSync:
                 if resp.status == 200:
                     return await resp.json()
         except Exception as err:
-            _LOGGER.debug("Failed to get Brain Graph stats: %s", err)
+            log_error_with_context(
+                _LOGGER, err, "Brain Graph stats retrieval",
+                {"endpoint": f"{self._base_url}/api/v1/graph/stats"},
+                level=logging.DEBUG
+            )
         return None
     
     async def get_graph_snapshot_url(self) -> str:

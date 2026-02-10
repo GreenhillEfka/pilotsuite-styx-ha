@@ -114,7 +114,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 await _validate_input(self.hass, user_input)
-            except Exception:  # noqa: BLE001
+            except Exception as err:  # noqa: BLE001
+                # Log detailed error for debugging
+                import logging
+                _LOGGER = logging.getLogger(__name__)
+                _LOGGER.error("Config validation failed for %s:%s - %s", 
+                             user_input.get(CONF_HOST), user_input.get(CONF_PORT), str(err))
+                _LOGGER.debug("Config validation error details", exc_info=True)
                 errors["base"] = "cannot_connect"
             else:
                 title = f"AI Home CoPilot ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"

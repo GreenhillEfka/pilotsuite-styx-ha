@@ -1,5 +1,27 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.4] - 2026-02-10
+
+### 🔧 Enhanced Error Handling & Diagnostics
+
+Improved error handling throughout the integration with better diagnostics and debugging information.
+
+#### Enhanced
+- **Structured Error Tracking**: New error handling framework with privacy-first traceback capture
+- **Better Diagnostics**: Enhanced error digest with traceback summaries and context information
+- **Improved Logging**: Context-aware error logging with sanitized tracebacks for easier debugging
+- **Config Flow Debug**: Better error reporting during initial setup and configuration validation
+
+#### Technical
+- **Privacy-Safe Tracebacks**: Automatic path sanitization and sensitive data redaction in error logs
+- **Error Classification**: Smart categorization of network, auth, and parsing errors with helpful hints
+- **Diagnostic Integration**: Errors automatically captured in dev_surface error digest for support
+- **Convenient API**: Simple `track_error()` function for consistent error handling across modules
+
+#### Bug Fixes
+- **Brain Graph Sync**: Better error context for connection failures and API timeouts
+- **Config Validation**: More detailed logging when connection tests fail during setup
+
 ## [0.4.3] - 2026-02-10
 
 ### 🔑 Enhanced Token Management UX
