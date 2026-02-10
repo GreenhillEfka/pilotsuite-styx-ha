@@ -1,5 +1,29 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.1] - 2026-02-10
+
+### 🧠 Brain Graph Sync Integration
+
+Completes the HA↔Core integration with real-time knowledge graph synchronization.
+
+#### Added
+- **Brain Graph Sync Module**: Real-time synchronization of HA entities and relationships with Core Brain Graph
+  - Automatically syncs areas (zones), devices, entities to Core `/api/v1/graph` endpoints
+  - Real-time tracking of `state_changed` and `call_service` events as graph nodes and edges
+  - Privacy-first design: essential metadata only, no sensitive data in graph
+  - Complete initial sync of HA registries plus continuous event processing
+  - Background operation with deduplication and bounded memory usage
+  - Integration with runtime module system for proper lifecycle management
+
+#### Technical
+- **API Integration**: Consumes Core endpoints `/api/v1/graph/state`, `/stats`, `/snapshot.svg`
+- **Event Processing**: Structured entity relationships (entity→device→area) in knowledge graph
+- **Service Events**: Action nodes for significant service calls (light, climate, media_player)
+- **Resilience**: Auto-reconnection, error handling, graceful degradation
+- **Testing**: Syntax validation and module structure tests
+
+This completes the full data pipeline: HA Events → Core Ingest → Brain Graph ← HA Sync
+
 ## [0.4.0] - 2026-02-10
 
 ### 🎉 Major Release: Tag System + Event Forwarding
