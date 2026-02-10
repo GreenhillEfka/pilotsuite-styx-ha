@@ -71,7 +71,7 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ CandidatePollerModule: HA polls Core `/api/v1/candidates?state=pending` every 5 min (v0.5.0)
 - ✅ Auto-offer via Repairs with evidence display + pre-populated Blueprint inputs (v0.5.0)
 - ✅ Bidirectional state sync: offered/accepted/dismissed states sent back to Core (v0.5.0)
-- ⏳ Decision sync-back: when user accepts/dismisses in HA, update Core candidate state
+- ✅ Decision sync-back: accept/dismiss/defer synced to Core via PUT (v0.5.1)
 - ⏳ Habitus trigger: HA can request a mining run on-demand via Core API
 
 ### LATER (expansion modules)

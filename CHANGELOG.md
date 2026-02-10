@@ -1,5 +1,27 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.1] - 2026-02-10
+
+### 🔄 Decision Sync-Back — Close the Feedback Loop
+
+When a user accepts, dismisses, or defers a candidate in HA Repairs, the decision is now synced back to the Core Add-on. This closes the full feedback loop: Core knows which patterns the user found useful.
+
+#### Added
+- **`async_sync_decision_to_core()`**: Best-effort sync of accept/dismiss/defer decisions to Core via `PUT /api/v1/candidates/{id}`
+- **`_put_json()` in CopilotApiClient**: New HTTP PUT method for Core API calls
+- **All Repairs flows updated**: `CandidateRepairFlow` and `SeedRepairFlow` now sync decisions on accept, dismiss, and defer actions
+- **`core_` prefix handling**: Automatically strips the HA-side `core_` prefix to recover the Core UUID
+
+#### Technical
+- Sync is best-effort (fire-and-forget with logging) — HA Repairs UX is never blocked by Core connectivity
+- Deferred decisions include `retry_after_days` for Core to schedule re-offer
+- Uses shared `CopilotApiClient` from coordinator — no additional auth config needed
+
+#### Milestone
+- ✅ **Full feedback loop complete**: Mine → Candidate → Offer → User Decision → Core learns
+
+---
+
 ## [0.5.0] - 2026-02-10
 
 ### 🔌 Candidate Poller – Core → HA Integration Bridge
