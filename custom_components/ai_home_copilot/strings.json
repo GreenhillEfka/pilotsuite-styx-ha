@@ -152,7 +152,7 @@
   "issues": {
     "candidate_suggestion": {
       "title": "CoPilot suggestion: {title}",
-      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\nClick Fix to confirm after you've created the automation via a blueprint."
+      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings → Automations & Scenes → Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\n🔗 **Blueprint link:** [CoPilot A→B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
       "title": "CoPilot seed: {title}",

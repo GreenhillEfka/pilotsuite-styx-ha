@@ -79,6 +79,10 @@ async def async_offer_candidate(hass: HomeAssistant, entry_id: str, candidate: C
                 evidence_text = f" ({' | '.join(parts)})"
     
     placeholders["evidence"] = evidence_text
+    
+    # Add blueprint_url for candidate_suggestion
+    if candidate.translation_key == "candidate_suggestion" and candidate.blueprint_url:
+        placeholders["blueprint_url"] = candidate.blueprint_url
 
     if candidate.translation_key == "seed_suggestion":
         src = str(candidate.seed_source or "")

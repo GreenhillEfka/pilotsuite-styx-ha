@@ -1,5 +1,28 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.9] - 2026-02-10
+
+### 🔗 N1 Enhanced Blueprint Flow UX (Better Repairs Text)
+
+Completes PROJECT_PLAN N1 UX improvements for the automation suggestion workflow.
+
+#### Enhanced
+- **Step-by-step Blueprint Instructions**: Repairs now provide clear numbered steps to implement suggestions
+  1. Go to Settings → Automations & Scenes → Blueprints
+  2. Import CoPilot blueprint using the provided link
+  3. Configure automation
+  4. Return and click Fix to complete
+- **Direct Blueprint Links**: Each suggestion includes a clickable link to the CoPilot A→B Blueprint
+- **Improved UX Flow**: Clearer guidance reduces confusion and makes automation creation more straightforward
+- **Multilingual Support**: Enhanced instructions available in German and English
+
+#### Technical
+- `suggest.py`: Added blueprint_url to placeholders for candidate_suggestion 
+- Updated translation files (de.json, en.json, strings.json) with enhanced Repairs text
+- Better integration between Repairs UI and Blueprint workflow
+
+This completes the N1 milestone for evidence display and Blueprint flow improvements.
+
 ## [0.4.8] - 2026-02-10
 
 ### 📊 N1 Enhanced Evidence Display (Transparency)

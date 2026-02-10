@@ -158,7 +158,7 @@
   "issues": {
     "candidate_suggestion": {
       "title": "CoPilot Vorschlag: {title}",
-      "description": "CoPilot hat ein wiederverwendbares Muster gefunden und schlägt vor, daraus eine Automation zu machen.{evidence}\n\nKlicke auf Fix, nachdem du die Automation via Blueprint erstellt hast."
+      "description": "CoPilot hat ein wiederverwendbares Muster gefunden und schlägt vor, daraus eine Automation zu machen.{evidence}\n\n**Nächste Schritte:**\n1. Gehe zu [Einstellungen → Automatisierungen & Szenen → Blaupausen](HA_BLUEPRINTS_URL)\n2. Importiere die CoPilot-Blaupause über den Link unten\n3. Konfiguriere deine Automation\n4. Komm hier zurück und klicke **Fix** um diesen Vorschlag abzuschließen\n\n🔗 **Blaupausen-Link:** [CoPilot A→B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
       "title": "CoPilot Seed: {title}",
