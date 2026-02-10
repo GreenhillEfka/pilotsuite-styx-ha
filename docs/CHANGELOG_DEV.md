@@ -7,6 +7,21 @@ Dieses Dokument listet **Work-in-progress** Änderungen, die noch **nicht** als 
 
 ## Unreleased (development)
 
+### WIP: v0.4.1 (Brain Graph Sync Integration)
+**Status:** Implementation complete, compile-clean, integration ready.
+
+#### Added
+- **🧠 Brain Graph Sync Module**: Real-time synchronization of HA entities, relationships, and state transitions with Core Brain Graph
+  - Syncs areas (zones), devices, entities, and their relationships to Core `/api/v1/graph` endpoints
+  - Tracks state changes and service calls as graph nodes and edges  
+  - Privacy-first design with essential metadata only and anonymized state patterns
+  - Background synchronization with Core Brain Graph knowledge representation system
+  - Complete initial sync of HA registries (area, device, entity) plus real-time event handling
+  - Automatic deduplication and bounded event tracking to prevent memory leaks
+  - Integration with existing runtime module system
+  - API: `/api/v1/graph/stats`, `/api/v1/graph/state`, `/snapshot.svg` endpoints consumed
+- **Module Framework Extension**: Added `brain_graph_sync` to standard module list with proper lifecycle management
+
 ### Candidate: v0.3.2-rc.1 (Tag System v0.1 HA Integration)
 **Status:** Release-ready for approval (code-complete, compile-clean, integration tests scaffolding ready).
 
