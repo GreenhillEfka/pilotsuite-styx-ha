@@ -38,10 +38,10 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ⏳ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update
 - ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
 
-**N1 - Candidate lifecycle + UX polish (HA side)**
-- ⏳ Candidate states: add `defer` (with "offer again after X days")
+**N1 – Candidate lifecycle + UX polish (HA side)**
+- ✅ Candidate states: add `defer` (with "offer again after X days")
 - ⏳ Better Repairs fix flow text + link to Blueprint UI
-- ⏳ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text
+- ✅ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text
 
 **N2 - Core API v1 minimal**
 - ⏳ `POST /api/v1/events` (batch)
@@ -49,7 +49,7 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ⏳ Candidate store endpoints (for HA UX + future ranking)
 - ⏳ Habitus miner A→B (Δt window, debounce, support/confidence/lift)
 
-**N3 – HA → Core event forwarder**
+**N3 - HA → Core event forwarder**
 - ✅ Capabilities ping (`GET /api/v1/capabilities`) and clear "Core supports v1?" status
 - ✅ Allowlist which HA entities we forward (default: Habitus zones; optional: MediaContext lists)
 - ✅ Token-protected calls, rate limits, and redaction rules
@@ -57,7 +57,7 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Enhanced zone inference for person/device_tracker entities
 - ✅ Privacy-first redaction (GPS, tokens, PII) per Alpha Worker N3 spec
 
-**N4 – Brain Graph (Dev surface)**
+**N4 - Brain Graph (Dev surface)**
 - ✅ Co-activity graph (neurons + synapses) generated from forwarded events
 - ✅ Multi-source zone inference with confidence weighting
 - ✅ Enhanced intentional action tracking (service calls 2x salience)
