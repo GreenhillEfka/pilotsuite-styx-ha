@@ -1,5 +1,27 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.5] - 2026-02-10
+
+### 🎵 N0 MediaContext v0.1 — Read-Only Media Player Signals
+
+New modular MediaContext module that provides a clean, read-only snapshot of all configured media players. Foundation for Mood, Habitus, and Entertain modules.
+
+#### Added
+- **`media_context_module.py`**: New-style CoPilot module tracking configured music + TV players
+- **`MediaContextSnapshot`**: Aggregated state with `music_active`, `tv_active`, primary player, area, now-playing
+- **`MediaPlayerSnapshot`**: Per-player state (entity_id, role, state, media_title, media_artist, app_name, source, area)
+- Real-time state change tracking via `async_track_state_change_event`
+- Area resolution from HA entity/device/area registries
+- Module self-registers at `hass.data[DOMAIN][entry_id]["media_context_module"]` for cross-module access
+
+#### Privacy
+- Only entity_id, state, media_type, title, artist, app_name, source, and area exposed
+- No album art URLs, playback positions, or user account information
+
+#### Configuration
+- Uses existing `media_music_players` and `media_tv_players` config options (already in OptionsFlow)
+- Module starts idle when no players configured (zero overhead)
+
 ## [0.5.4] - 2026-02-10
 
 ### 🏗️ N0 Modular Runtime Cleanup — Service Registration Extraction

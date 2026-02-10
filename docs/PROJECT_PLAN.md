@@ -37,7 +37,7 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 ### NEXT (make suggestions real)
 **N0 - Stable module foundation (HA side)**
 - ✅ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update (v0.5.4)
-- ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
+- ✅ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain (v0.5.5)
 
 **N1 – Candidate lifecycle + UX polish (HA side)** ✅
 - ✅ Candidate states: add `defer` (with "offer again after X days")
