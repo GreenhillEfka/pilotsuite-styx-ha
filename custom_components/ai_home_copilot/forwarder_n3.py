@@ -99,6 +99,10 @@ class N3EventForwarder:
         self._flush_interval = config.get("flush_interval", 0.5)
         self._max_queue_size = config.get("max_queue_size", 1000)
         
+        # Heartbeat configuration
+        self._heartbeat_interval = config.get("heartbeat_interval", 60)  # seconds
+        self._heartbeat_enabled = config.get("heartbeat_enabled", True)
+        
         # Enabled domains
         self._enabled_domains = set(config.get("enabled_domains", list(DOMAIN_PROJECTIONS.keys())))
         
@@ -139,6 +143,11 @@ class N3EventForwarder:
         # Start flush task
         self._flush_task = asyncio.create_task(self._flush_loop())
         
+        # Start heartbeat task if enabled
+        self._heartbeat_task = None
+        if self._heartbeat_enabled and self._heartbeat_interval > 0:
+            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+        
         _LOGGER.info("N3 Event Forwarder started successfully")
 
     async def async_stop(self):
@@ -154,11 +163,18 @@ class N3EventForwarder:
             self._unsub_call_service_listener()
             self._unsub_call_service_listener = None
         
-        # Cancel flush task
+        # Cancel background tasks
         if self._flush_task and not self._flush_task.done():
             self._flush_task.cancel()
             try:
                 await self._flush_task
+            except asyncio.CancelledError:
+                pass
+                
+        if self._heartbeat_task and not self._heartbeat_task.done():
+            self._heartbeat_task.cancel()
+            try:
+                await self._heartbeat_task
             except asyncio.CancelledError:
                 pass
         
@@ -285,7 +301,7 @@ class N3EventForwarder:
             "kind": "state_changed",
             "entity_id": entity_id,
             "domain": domain,
-            "zone_id": self._entity_to_zone.get(entity_id),
+            "zone_id": self._get_zone_for_entity(entity_id, domain, new_state),
         }
         
         # Add timing from HA state object
@@ -508,6 +524,24 @@ class N3EventForwarder:
 
         _LOGGER.info("Built zone mapping for %d entities", len(self._entity_to_zone))
 
+    def _get_zone_for_entity(self, entity_id: str, domain: str, state_obj) -> Optional[str]:
+        """Get zone for entity, with special handling for person/device_tracker state-based zones."""
+        # First try static mapping
+        static_zone = self._entity_to_zone.get(entity_id)
+        
+        # For person/device_tracker, state value may indicate zone
+        if domain in ("person", "device_tracker") and state_obj and hasattr(state_obj, 'state'):
+            state_value = state_obj.state
+            # Common zone states that HA uses
+            if state_value and state_value not in ("unknown", "unavailable", "not_home"):
+                # If state looks like a zone name, use it (with fallback to static)
+                if state_value != "home" and len(state_value) > 1:
+                    return state_value
+                elif state_value == "home" and not static_zone:
+                    return "home"
+        
+        return static_zone
+
     async def _enqueue_event(self, envelope: Dict[str, Any]):
         """Add event to pending queue."""
         self._pending_events.append(envelope)
@@ -533,6 +567,63 @@ class N3EventForwarder:
             raise
         except Exception as e:
             _LOGGER.exception("Error in flush loop: %s", e)
+
+    async def _heartbeat_loop(self):
+        """Background task to send heartbeat envelopes periodically."""
+        try:
+            while True:
+                await asyncio.sleep(self._heartbeat_interval)
+                await self._send_heartbeat()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            _LOGGER.exception("Error in heartbeat loop: %s", e)
+
+    async def _send_heartbeat(self):
+        """Send heartbeat envelope to Core for health monitoring."""
+        if not self._session:
+            return
+            
+        try:
+            now_utc = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            
+            # Count entities by domain in our zone mapping
+            domain_counts = defaultdict(int)
+            for entity_id in self._entity_to_zone.keys():
+                domain = entity_id.split(".", 1)[0]
+                if domain in self._enabled_domains:
+                    domain_counts[domain] += 1
+            
+            heartbeat_envelope = {
+                "v": ENVELOPE_VERSION,
+                "ts": now_utc,
+                "src": "ha",
+                "kind": "heartbeat",
+                "entity_count": sum(domain_counts.values()),
+                "domain_counts": dict(domain_counts),
+                "pending_events": len(self._pending_events),
+                "enabled_domains": list(self._enabled_domains),
+            }
+            
+            url = f"{self._core_url}/api/v1/events"
+            headers = {
+                "Authorization": f"Bearer {self._api_token}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {"events": [heartbeat_envelope]}
+            
+            async with self._session.post(url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    _LOGGER.debug("Sent heartbeat to Core successfully")
+                else:
+                    _LOGGER.warning(
+                        "Failed to send heartbeat to Core: %s %s", 
+                        response.status, response.reason
+                    )
+                    
+        except Exception as e:
+            _LOGGER.exception("Exception sending heartbeat to Core: %s", e)
 
     async def _flush_events(self):
         """Send pending events to CoPilot Core."""
@@ -623,4 +714,6 @@ class N3EventForwarder:
             "flush_interval": self._flush_interval,
             "forward_call_service": self._forward_call_service,
             "idempotency_ttl": self._idempotency_ttl,
+            "heartbeat_enabled": self._heartbeat_enabled,
+            "heartbeat_interval": self._heartbeat_interval,
         }

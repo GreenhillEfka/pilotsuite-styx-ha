@@ -1,5 +1,34 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.4.7] - 2026-02-10
+
+### 🫀 N3 Forwarder Quality Enhancements
+
+Enhanced N3 event forwarder with heartbeat monitoring and improved zone inference per Alpha Worker specification.
+
+#### Added
+- **Heartbeat Envelopes**: Periodic health monitoring messages sent to Core every 60 seconds
+  - Contains entity counts by domain, pending events, and system health indicators
+  - Configurable interval via `heartbeat_interval` (default: 60s)
+  - Can be disabled via `heartbeat_enabled: false`
+- **State-based Zone Inference**: Improved zone detection for `person` and `device_tracker` entities
+  - Uses state value (e.g., "bedroom", "office") as zone when no static mapping exists
+  - Handles common HA zone states like "home", "not_home" intelligently
+  - Falls back to device/area-based static mapping
+
+#### Technical
+- Follows N3 specification for Core health monitoring
+- Heartbeat envelope format: `{"v":1,"kind":"heartbeat","ts":"...","src":"ha","entity_count":142}`
+- Enhanced statistics include heartbeat configuration
+- Maintains backward compatibility with existing configurations
+
+#### Configuration
+```yaml
+forwarder:
+  heartbeat_enabled: true    # Enable heartbeat monitoring (default: true)  
+  heartbeat_interval: 60     # Heartbeat interval in seconds (default: 60)
+```
+
 ## [0.4.6] - 2026-02-10
 
 ### 🧠 Brain Dashboard Summary Button
