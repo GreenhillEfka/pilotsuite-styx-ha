@@ -22,6 +22,7 @@ from .tag_registry import (
     async_sync_labels_now,
     async_upsert_tag,
 )
+from .tag_sync import async_pull_tag_system_snapshot
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -105,6 +106,19 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             DOMAIN,
             "tag_registry_sync_labels_now",
             _handle_sync,
+        )
+
+    if not hass.services.has_service(DOMAIN, "tag_registry_pull_from_core"):
+
+        async def _handle_pull(call: ServiceCall) -> None:
+            entry_id = call.data.get("entry_id")
+            await async_pull_tag_system_snapshot(hass, entry_id=entry_id)
+
+        hass.services.async_register(
+            DOMAIN,
+            "tag_registry_pull_from_core",
+            _handle_pull,
+            schema=vol.Schema({vol.Optional("entry_id"): str}),
         )
 
     # Media Context v2 services
