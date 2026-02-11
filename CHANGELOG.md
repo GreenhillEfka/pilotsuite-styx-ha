@@ -1,5 +1,36 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.7] - 2026-02-11
+
+### 🎯 Mood Context Integration — LATER Milestone Option A Complete
+
+Context-aware suggestion weighting using Core Mood Module v0.1.
+
+#### Added
+- **`MoodContextModule`**: Polls Core `/api/v1/mood` API continuously
+  * Per-zone comfort/frugality/joy snapshots
+  * Exponential smoothing for stable mood values
+  * 30s polling interval (configurable)
+  * Graceful fallback if Core unreachable
+- **Suggestion Contextualization**:
+  * `should_suppress_energy_saving(zone_id)`: Don't suggest energy-saving during entertainment
+  * `get_suggestion_context(zone_id)`: Return relevance multipliers per suggestion type
+  * Energy-saving suppressed if joy > 0.6 or (comfort > 0.7 and frugality < 0.5)
+- **Debug Summary**: `get_summary()` returns aggregated mood stats across all zones
+- **Module Integration**: Registered in CopilotRuntime alongside MediaContext
+
+#### Use Cases
+- "Don't suggest 'turn off lights' during movie night"
+- Contextualize comfort automations by user comfort preference
+- Weight security suggestions independently (always relevant)
+- Adjust energy-saving aggressiveness by occupancy + time-of-day
+
+#### Technical Details
+- Async polling loop with cancellation support
+- Timeouts + error handling for Core API resilience
+- Suggestion multipliers: energy_saving=(1-joy)*frugality, comfort, entertainment, security
+- Ready for repairs.py integration to use mood context when offering suggestions
+
 ## [0.5.6] - 2026-02-11
 
 ### 🧪 Integration Stability & E2E Testing
