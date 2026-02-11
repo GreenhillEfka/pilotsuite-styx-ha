@@ -1,5 +1,28 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.6] - 2026-02-11
+
+### 🧪 Integration Stability & E2E Testing
+
+End-to-end pipeline validation and integration fixes with Core v0.4.6.
+
+#### Fixed
+- **Core API Compatibility**: Updated for new `require_api_key` Decorator pattern in Core v0.4.6
+- **Candidate Poller**: Full API integration tested with Core Candidate endpoints
+- **Decision Sync**: Verified feedback loop (accept/dismiss/defer → Core sync) 
+- **End-to-End Pipeline**: Events → Forwarder → Core → Mining → Candidates → HA Repairs → Decision confirmed working
+
+#### Testing
+- All candidate CRUD operations validated (add/update/persist)
+- Repairs workflow tested for offer → user decision → Core sync
+- Pipeline health sensor confirmed operational
+- On-demand mining trigger validated
+
+#### Status
+- ✅ Full integration pipeline validated
+- ✅ All NEXT milestones complete
+- ✅ Ready for extended user testing
+
 ## [0.5.5] - 2026-02-10
 
 ### 🎵 N0 MediaContext v0.1 — Read-Only Media Player Signals
