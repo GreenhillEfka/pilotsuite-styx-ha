@@ -76,8 +76,32 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Habitus trigger: `ai_home_copilot.trigger_mining` service calls `POST /api/v1/habitus/mine` on-demand (v0.5.2)
 - ✅ Pipeline Health sensor: `sensor.ai_home_copilot_pipeline_health` consolidates Core component status (v0.5.2)
 
-### LATER (expansion modules)
-- 💡 Mood vector v0.1 (comfort/frugality/joy) and ranking
+### ✅ LATER Milestone A (Mood Context) — Complete! (v0.4.7 + v0.5.7)
+
+**Option A: Mood vector v0.1 — Context-aware suggestion weighting** ✅
+- ✅ **Core Mood Module (v0.4.7)**: Per-zone comfort/frugality/joy scoring
+  * `update_from_media_context()`: Music/TV activity → joy boost
+  * `update_from_habitus()`: Time-of-day + patterns → comfort/frugality/joy baselines
+  * Exponential smoothing (α=0.3) for smooth transitions
+  * `should_suppress_energy_saving()`: Don't suggest energy-saving if joy > 0.6 or comfort > 0.7
+  * `get_suggestion_relevance_multiplier()`: Weight suggestions by zone mood
+  * REST API: GET `/api/v1/mood`, POST `/update-media`, POST `/update-habitus`
+- ✅ **HA Mood Context Module (v0.5.7)**: Polls Core mood API continuously
+  * Async polling (30s interval) with graceful fallback
+  * Cache per-zone moods with exponential smoothing
+  * `should_suppress_energy_saving()`: Mirror Core logic locally
+  * `get_suggestion_context()`: Relevance multipliers for repairs.py integration
+  * Ready for repairs.py integration to weight suggestions
+
+**Use Cases**:
+- "Don't suggest 'turn off lights' during movie night" (joy > 0.6)
+- "Suppress energy-saving if comfort is priority" (comfort > 0.7, frugality < 0.5)
+- "Weight comfort automations by user comfort preference"
+- "Security suggestions always weighted 1.0 (always relevant)"
+
+### LATER (remaining expansion modules)
+- 💡 **Option B**: Core Add-on modular cleanup (v0.4.8) — Extract `main.py` blueprint registration
+- 💡 **Option C**: HA Integration test suite — Mock HA Repairs API, test polling/sync
 - 💡 SystemHealth neuron (Zigbee/Z-Wave/Mesh, recorder, slow updates)
 - 💡 UniFi neuron (WAN loss/jitter, client roams, baselines)
 - 💡 Energy neuron (anomalies, load shifting, explainability)
