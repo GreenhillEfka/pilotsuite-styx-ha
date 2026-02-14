@@ -7,11 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.2] - 2026-02-08
-### Added
-- Graph-Candidates: "Accept" (bei `graph_edge_candidate`) schreibt jetzt best-effort via Core API `/api/v1/graph/ops` die Edge in den Brain Graph (idempotent). Unterstützt `observed_with` + `controls`.
+## [0.6.6] - 2026-02-14
+### Fixed
+- **Token UX verbessert**: Token-Feld zeigt nur neuen Token an (leer = bestehender Token wird behalten)
+- **Clear Token**: Checkbox hinzugefügt um Token explizit zu löschen
+- **Privacy**: Token wird nicht mehr im Formular angezeigt wenn bereits gesetzt (verhindert Copy/Paste Fehler)
 
-## [0.3.1] - 2026-02-08
+## [0.6.5] - 2026-02-14
+### Added
+- **Error Grouping v0.6.5**: Automatische Fehler-Gruppierung für bessere Diagnostik
+- Gruppierung basierend auf Exception-Typ + Operation
+- Tracks first_seen, last_seen, occurrence_count pro Gruppe
+- Neue `get_error_groups(min_count)` Methode für wiederkehrende Fehler-Analyse
+
+## [0.3.2] - 2026-02-08
 ### Fixed
 - Repairs/Issues: `seed_suggestion` Platzhalter werden jetzt vollständig gesetzt (u.a. `excerpt`), um UI-/Flow-Fehler (500) zu vermeiden.
 
