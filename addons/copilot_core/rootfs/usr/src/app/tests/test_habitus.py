@@ -292,5 +292,225 @@ class TestHabitusService(unittest.TestCase):
         self.assertEqual(result, [])
 
 
+class TestHabitusZonesV2(unittest.TestCase):
+    """Test Habitus Zones v2 functionality - zone-aware pattern mining."""
+
+    def setUp(self):
+        import tempfile, os
+        self._tmpdir = tempfile.mkdtemp()
+        db_path = os.path.join(self._tmpdir, "test_graph.db")
+        self.store = GraphStore(db_path=db_path)
+        self.brain = BrainGraphService(store=self.store)
+        cand_path = os.path.join(self._tmpdir, "test_candidates.json")
+        self.candidate_store = CandidateStore(storage_path=cand_path)
+        self.miner = HabitusMiner(
+            brain_service=self.brain,
+            min_confidence=0.3,
+            min_support=0.01,
+            min_lift=0.5
+        )
+        self.service = HabitusService(
+            brain_service=self.brain,
+            candidate_store=self.candidate_store,
+            miner_config={"min_confidence": 0.3, "min_support": 0.01, "min_lift": 0.5},
+        )
+
+    def tearDown(self):
+        """Cleanup temp directory."""
+        import shutil, os
+        if hasattr(self, '_tmpdir') and os.path.exists(self._tmpdir):
+            shutil.rmtree(self._tmpdir)
+
+    def _add_zone_with_entities(self, zone_name: str, entities: list, now_ms: int):
+        """Helper to create a zone with entities for testing."""
+        zone_id = f"zone:{zone_name}"
+        
+        # Create zone node
+        self.store.upsert_node(GraphNode(
+            id=zone_id,
+            kind="zone",
+            label=zone_name.title(),
+            updated_at_ms=now_ms,
+            score=0.8,
+            domain=None
+        ))
+        
+        # Create entity nodes and zone edges
+        for entity_id in entities:
+            entity_node_id = f"ha.entity:{entity_id}"
+            self.store.upsert_node(GraphNode(
+                id=entity_node_id,
+                kind="entity",
+                label=entity_id.split(".")[-1].replace("_", " ").title(),
+                updated_at_ms=now_ms,
+                score=0.5,
+                domain=entity_id.split(".")[0] if "." in entity_id else None
+            ))
+            
+            # Link entity to zone
+            self.store.upsert_edge(GraphEdge(
+                id=GraphEdge.create_id(entity_node_id, "in_zone", zone_id),
+                from_node=entity_node_id,
+                to_node=zone_id,
+                edge_type="in_zone",
+                updated_at_ms=now_ms,
+                weight=0.7
+            ))
+
+    def _add_service_action(self, service: str, entity: str, timestamp_ms: int, weight: float = 1.0):
+        """Helper to add a service action edge."""
+        service_node = f"ha.service:{service}"
+        entity_node = f"ha.entity:{entity}"
+        self.store.upsert_edge(GraphEdge(
+            id=GraphEdge.create_id(service_node, "affects", entity_node),
+            from_node=service_node,
+            to_node=entity_node,
+            edge_type="affects",
+            updated_at_ms=timestamp_ms,
+            weight=weight
+        ))
+
+    def test_get_zones_returns_all_zones(self):
+        """get_zones should return all discovered zones."""
+        now_ms = int(time.time() * 1000)
+        
+        # Create two zones
+        self._add_zone_with_entities("kitchen", ["light.kitchen", "switch.kitchen_fan"], now_ms)
+        self._add_zone_with_entities("bedroom", ["light.bedroom", "switch.bedroom_lamp"], now_ms)
+        
+        zones = self.brain.get_zones()
+        
+        self.assertEqual(len(zones), 2)
+        zone_ids = {z["id"] for z in zones}
+        self.assertIn("zone:kitchen", zone_ids)
+        self.assertIn("zone:bedroom", zone_ids)
+
+    def test_get_zones_includes_entity_count(self):
+        """get_zones should include entity count for each zone."""
+        now_ms = int(time.time() * 1000)
+        
+        self._add_zone_with_entities("kitchen", ["light.kitchen", "switch.kitchen_fan", "media.player"], now_ms)
+        
+        zones = self.brain.get_zones()
+        
+        self.assertEqual(len(zones), 1)
+        self.assertEqual(zones[0]["entity_count"], 3)
+
+    def test_get_zone_entities_returns_entities_in_zone(self):
+        """get_zone_entities should return only entities in the specified zone."""
+        now_ms = int(time.time() * 1000)
+        
+        # Create kitchen and bedroom zones
+        self._add_zone_with_entities("kitchen", ["light.kitchen", "switch.kitchen_fan"], now_ms)
+        self._add_zone_with_entities("bedroom", ["light.bedroom"], now_ms)
+        
+        result = self.brain.get_zone_entities("kitchen")
+        
+        self.assertNotIn("error", result)
+        self.assertEqual(result["zone"]["id"], "zone:kitchen")
+        self.assertEqual(result["entity_count"], 2)
+        
+        entity_ids = {e["id"] for e in result["entities"]}
+        self.assertIn("ha.entity:light.kitchen", entity_ids)
+        self.assertIn("ha.entity:switch.kitchen_fan", entity_ids)
+        self.assertNotIn("ha.entity:light.bedroom", entity_ids)
+
+    def test_get_zone_entities_normalizes_zone_id(self):
+        """get_zone_entities should normalize zone IDs without 'zone:' prefix."""
+        now_ms = int(time.time() * 1000)
+        
+        self._add_zone_with_entities("kitchen", ["light.kitchen"], now_ms)
+        
+        # Should work with or without zone: prefix
+        result1 = self.brain.get_zone_entities("zone:kitchen")
+        result2 = self.brain.get_zone_entities("kitchen")
+        
+        self.assertNotIn("error", result1)
+        self.assertNotIn("error", result2)
+
+    def test_get_zone_entities_returns_error_for_nonexistent_zone(self):
+        """get_zone_entities should return error for unknown zones."""
+        result = self.brain.get_zone_entities("nonexistent_zone")
+        
+        self.assertIn("error", result)
+        self.assertIn("not found", result["error"].lower())
+
+    def test_mine_patterns_with_zone_filter(self):
+        """mine_patterns should filter patterns to specific zone."""
+        now_ms = int(time.time() * 1000)
+        lookback_hours = 1
+        
+        # Create kitchen zone with entities
+        self._add_zone_with_entities("kitchen", ["light.kitchen", "switch.kitchen_fan"], now_ms)
+        
+        # Add actions in kitchen (should be included)
+        self._add_service_action("light.turn_on", "light.kitchen", now_ms, weight=1.0)
+        self._add_service_action("switch.turn_on", "switch.kitchen_fan", now_ms + 5000, weight=1.0)
+        
+        # Add actions outside kitchen (should be excluded when zone=kitchen)
+        self._add_service_action("light.turn_on", "light.bedroom", now_ms + 1000, weight=1.0)
+        
+        # Mine without zone filter
+        patterns_all = self.miner.mine_patterns(lookback_hours=lookback_hours)
+        
+        # Mine with zone filter
+        patterns_kitchen = self.miner.mine_patterns(lookback_hours=lookback_hours, zone="kitchen")
+        
+        # Kitchen patterns should be a subset of all patterns (or equal)
+        self.assertGreaterEqual(len(patterns_all), len(patterns_kitchen))
+        
+        # Verify zone filter only includes entities in kitchen
+        if patterns_kitchen:
+            for pattern_id, pattern_data in patterns_kitchen.items():
+                ant_entity = pattern_data["antecedent"].split(":")[-1] if ":" in pattern_data["antecedent"] else pattern_data["antecedent"]
+                cons_entity = pattern_data["consequent"].split(":")[-1] if ":" in pattern_data["consequent"] else pattern_data["consequent"]
+                # Both entities should be in kitchen
+                self.assertIn(ant_entity, ["light.kitchen", "switch.kitchen_fan"])
+                self.assertIn(cons_entity, ["light.kitchen", "switch.kitchen_fan"])
+
+    def test_mine_patterns_with_nonexistent_zone_returns_empty(self):
+        """mine_patterns with nonexistent zone should return empty dict."""
+        patterns = self.miner.mine_patterns(lookback_hours=1, zone="nonexistent_zone")
+        
+        self.assertEqual(patterns, {})
+
+    def test_mine_and_create_candidates_with_zone(self):
+        """mine_and_create_candidates should support zone parameter."""
+        now_ms = int(time.time() * 1000)
+        
+        # Create zone and add actions
+        self._add_zone_with_entities("living_room", ["tv.living_room", "light.living_room"], now_ms)
+        self._add_service_action("media_player.turn_on", "tv.living_room", now_ms, weight=1.5)
+        self._add_service_action("light.turn_on", "light.living_room", now_ms + 3000, weight=1.5)
+        
+        # Run mining with zone filter
+        result = self.service.mine_and_create_candidates(
+            lookback_hours=1,
+            force=True,
+            zone="living_room"
+        )
+        
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["zone"], "living_room")
+
+    def test_candidate_metadata_includes_zone_filter(self):
+        """Created candidates should include zone filter in metadata."""
+        now_ms = int(time.time() * 1000)
+        
+        # Create zone and add action pattern
+        self._add_zone_with_entities("office", ["light.office", "switch.office_fan"], now_ms)
+        self._add_service_action("light.turn_on", "light.office", now_ms, weight=2.0)
+        self._add_service_action("switch.turn_on", "switch.office_fan", now_ms + 2000, weight=2.0)
+        
+        # Run mining with zone filter
+        self.service.mine_and_create_candidates(lookback_hours=1, force=True, zone="office")
+        
+        # Check that candidates have zone metadata
+        candidates = self.candidate_store.list_candidates()
+        for candidate in candidates:
+            self.assertEqual(candidate.metadata.get("zone_filter"), "office")
+            self.assertEqual(candidate.metadata.get("discovery_method"), "habitus_miner_v2")
+
+
 if __name__ == "__main__":
     unittest.main()

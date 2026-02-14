@@ -69,23 +69,32 @@ class HabitusMiner:
         self.delta_window_ms = delta_window_minutes * 60 * 1000
         self.debounce_ms = debounce_minutes * 60 * 1000
         
-    def mine_patterns(self, lookback_hours: int = 72) -> Dict[str, Dict[str, Any]]:
+    def mine_patterns(
+        self, 
+        lookback_hours: int = 72,
+        zone: Optional[str] = None
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Mine A→B automation patterns from recent brain graph activity.
         
         Args:
             lookback_hours: How far back to analyze (default 72h)
+            zone: Optional zone ID to filter patterns (e.g., "kitchen" or "zone:kitchen")
+                  When specified, only patterns where both antecedent and consequent
+                  entities belong to this zone will be mined.
             
         Returns:
             Dict mapping pattern_id to pattern details with evidence
         """
-        logger.info(f"Starting habitus mining with {lookback_hours}h lookback")
+        logger.info(f"Starting habitus mining with {lookback_hours}h lookback, zone={zone}")
         
         # Extract action sequences from brain graph
-        sequences = self._extract_action_sequences(lookback_hours)
+        sequences = self._extract_action_sequences(lookback_hours, zone=zone)
         
         if not sequences:
             logger.info("No action sequences found for pattern mining")
+            if zone:
+                logger.info(f"Zone '{zone}' may have no activity or does not exist")
             return {}
             
         logger.info(f"Extracted {len(sequences)} action sequences")
@@ -114,8 +123,18 @@ class HabitusMiner:
         logger.info(f"Found {len(evidence_patterns)} qualifying patterns")
         return evidence_patterns
         
-    def _extract_action_sequences(self, lookback_hours: int) -> List[List[Dict[str, Any]]]:
-        """Extract time-ordered action sequences from brain graph."""
+    def _extract_action_sequences(
+        self, 
+        lookback_hours: int,
+        zone: Optional[str] = None
+    ) -> List[List[Dict[str, Any]]]:
+        """Extract time-ordered action sequences from brain graph.
+        
+        Args:
+            lookback_hours: Time window for extraction
+            zone: Optional zone ID to filter entities (e.g., "kitchen" or "zone:kitchen")
+                  When specified, only entities belonging to this zone are included.
+        """
         cutoff_ms = int((time.time() - lookback_hours * 3600) * 1000)
         
         # Get all service call edges (intentional actions) within time window
@@ -126,6 +145,27 @@ class HabitusMiner:
                 edge.from_node.startswith("ha.service:") and
                 edge.updated_at_ms >= cutoff_ms)
         ]
+        
+        if not service_edges:
+            return []
+        
+        # Zone filtering: get entities in the specified zone
+        zone_entities: Set[str] = set()
+        if zone:
+            zone_id = zone if zone.startswith("zone:") else f"zone:{zone}"
+            zone_info = self.brain_service.get_zone_entities(zone_id)
+            if "error" not in zone_info:
+                for entity in zone_info.get("entities", []):
+                    zone_entities.add(f"ha.entity:{entity['id']}")
+                logger.info(f"Zone filtering: found {len(zone_entities)} entities in zone '{zone}'")
+            else:
+                logger.warning(f"Zone '{zone}' not found: {zone_info.get('error')}")
+        
+        # If zone filtering is active, filter out entities not in zone
+        if zone and zone_entities:
+            original_count = len(service_edges)
+            service_edges = [e for e in service_edges if e.to_node in zone_entities]
+            logger.info(f"Filtered {original_count - len(service_edges)} edges outside zone")
         
         if not service_edges:
             return []

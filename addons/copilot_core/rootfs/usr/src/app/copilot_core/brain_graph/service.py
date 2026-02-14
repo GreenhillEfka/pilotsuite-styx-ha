@@ -355,6 +355,99 @@ class BrainGraphService:
         
         return patterns
     
+    def get_zone_entities(self, zone_id: str) -> Dict[str, Any]:
+        """
+        Get all entities in a specific zone.
+        
+        Args:
+            zone_id: Zone identifier (e.g., "zone:kitchen" or "kitchen")
+            
+        Returns:
+            Dict with entities, edges, and zone info
+        """
+        now_ms = int(time.time() * 1000)
+        
+        # Normalize zone_id
+        if not zone_id.startswith("zone:"):
+            zone_id = f"zone:{zone_id}"
+        
+        # Get zone node
+        zone_node = self.store.get_node(zone_id)
+        if not zone_node:
+            return {"error": f"Zone not found: {zone_id}"}
+        
+        # Get all edges from/to zone
+        zone_edges = self.store.get_edges(to_node=zone_id, edge_types=["in_zone"])
+        entity_node_ids = set()
+        
+        for edge in zone_edges:
+            if edge.from_node.startswith("ha.entity:"):
+                entity_node_ids.add(edge.from_node)
+        
+        # Get entity nodes
+        entities = []
+        for node_id in entity_node_ids:
+            node = self.store.get_node(node_id)
+            if node:
+                entities.append({
+                    "id": node.id,
+                    "label": node.label,
+                    "kind": node.kind,
+                    "domain": node.domain,
+                    "score": node.effective_score(now_ms, self.node_half_life_hours),
+                    "updated_at_ms": node.updated_at_ms
+                })
+        
+        # Sort by score
+        entities.sort(key=lambda x: x["score"], reverse=True)
+        
+        return {
+            "zone": {
+                "id": zone_node.id,
+                "label": zone_node.label,
+                "score": zone_node.effective_score(now_ms, self.node_half_life_hours)
+            },
+            "entities": entities,
+            "entity_count": len(entities),
+            "edges": [
+                {"from": e.from_node, "to": e.to_node, "weight": e.effective_weight(now_ms)}
+                for e in zone_edges
+            ]
+        }
+    
+    def get_zones(self) -> List[Dict[str, Any]]:
+        """
+        Get all zones from the brain graph.
+        
+        Returns:
+            List of zone dictionaries with metadata
+        """
+        now_ms = int(time.time() * 1000)
+        
+        all_nodes = self.store.get_nodes(kinds=["zone"])
+        zones = []
+        
+        for node in all_nodes:
+            # Get entity count for this zone
+            zone_edges = self.store.get_edges(to_node=node.id, edge_types=["in_zone"])
+            entity_count = len([
+                e for e in zone_edges 
+                if e.from_node.startswith("ha.entity:")
+            ])
+            
+            zones.append({
+                "id": node.id,
+                "label": node.label,
+                "score": node.effective_score(now_ms, self.node_half_life_hours),
+                "entity_count": entity_count,
+                "updated_at_ms": node.updated_at_ms
+            })
+        
+        # Sort by score (activity level)
+        zones.sort(key=lambda x: x["score"], reverse=True)
+        
+        return zones
+    
     def _process_state_change(self, event_data: Dict[str, Any]):
         """Process a state change event with enhanced zone inference."""
         # Extract entity info

@@ -8,23 +8,27 @@ Provides HTTP API for habitus pattern discovery and candidate management:
 """
 import time
 import logging
+from typing import Optional
 from flask import Blueprint, request, jsonify, Response
 
 from .service import HabitusService
 from ..api.security import require_api_key
+from ..brain_graph import BrainGraphService
 
 logger = logging.getLogger(__name__)
 
 # Create blueprint
 habitus_bp = Blueprint('habitus', __name__, url_prefix='/api/v1/habitus')
 
-# Global service instance (will be initialized in main.py)
+# Global service instances (will be initialized in main.py)
 _habitus_service: HabitusService = None
+_brain_graph_service: BrainGraphService = None
 
-def init_habitus_api(service: HabitusService):
+def init_habitus_api(service: HabitusService, brain_service: Optional[BrainGraphService] = None):
     """Initialize the habitus API with service instance."""
-    global _habitus_service
+    global _habitus_service, _brain_graph_service
     _habitus_service = service
+    _brain_graph_service = brain_service
 
 @habitus_bp.route('/mine', methods=['POST'])
 @require_api_key
@@ -35,7 +39,8 @@ def trigger_mining() -> Response:
     Optional JSON body:
     {
         "lookback_hours": 72,  // How far back to analyze (default 72)
-        "force": false        // Force run even if recent (default false)
+        "force": false,        // Force run even if recent (default false)
+        "zone": "kitchen"      // Zone ID to filter patterns (optional)
     }
     """
     if not _habitus_service:
@@ -46,6 +51,7 @@ def trigger_mining() -> Response:
         data = request.get_json() or {}
         lookback_hours = data.get("lookback_hours", 72)
         force = data.get("force", False)
+        zone = data.get("zone")  # New: Zone filter parameter
         
         # Validate parameters
         if not isinstance(lookback_hours, int) or lookback_hours < 1 or lookback_hours > 168:
@@ -54,10 +60,16 @@ def trigger_mining() -> Response:
         if not isinstance(force, bool):
             return jsonify({"error": "force must be boolean"}), 400
             
-        logger.info(f"Mining request: lookback_hours={lookback_hours}, force={force}")
+        if zone is not None and not isinstance(zone, str):
+            return jsonify({"error": "zone must be a string"}), 400
+            
+        if zone is not None and len(zone) > 100:
+            return jsonify({"error": "zone must be less than 100 characters"}), 400
+            
+        logger.info(f"Mining request: lookback_hours={lookback_hours}, force={force}, zone={zone}")
         
         # Run mining
-        results = _habitus_service.mine_and_create_candidates(lookback_hours, force)
+        results = _habitus_service.mine_and_create_candidates(lookback_hours, force, zone=zone)
         
         return jsonify(results)
         
@@ -143,3 +155,29 @@ def health_check() -> Response:
             "status": "error", 
             "message": f"Service error: {str(e)}"
         }), 500
+
+@habitus_bp.route('/zones', methods=['GET'])
+@require_api_key
+def get_zones() -> Response:
+    """
+    Get available zones for zone-filtered pattern mining.
+    
+    Returns a list of zones discovered in the brain graph.
+    These zones can be used with the /mine endpoint's zone parameter.
+    """
+    if not _brain_graph_service:
+        return jsonify({"error": "Brain graph service not initialized"}), 503
+        
+    try:
+        zones = _brain_graph_service.get_zones()
+        
+        return jsonify({
+            "version": 1,
+            "timestamp": int(time.time() * 1000),
+            "count": len(zones),
+            "zones": zones
+        })
+        
+    except Exception as e:
+        logger.error(f"Zones endpoint error: {e}")
+        return jsonify({"error": f"Internal error: {str(e)}"}), 500

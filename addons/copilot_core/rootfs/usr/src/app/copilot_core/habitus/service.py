@@ -51,13 +51,20 @@ class HabitusService:
         self.miner = HabitusMiner(**miner_params)
         self.last_mining_run = 0
         
-    def mine_and_create_candidates(self, lookback_hours: int = 72, force: bool = False) -> Dict[str, Any]:
+    def mine_and_create_candidates(
+        self, 
+        lookback_hours: int = 72,
+        force: bool = False,
+        zone: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Run pattern mining and create candidates for qualifying patterns.
         
         Args:
             lookback_hours: How far back to analyze patterns
             force: If True, run even if recently executed
+            zone: Optional zone ID to filter patterns (e.g., "kitchen")
+                  When specified, only patterns within this zone are mined.
             
         Returns:
             Results summary with patterns found and candidates created
@@ -72,16 +79,17 @@ class HabitusService:
                 "last_run_ago": int(now - self.last_mining_run)
             }
             
-        logger.info(f"Starting habitus mining run (lookback: {lookback_hours}h, force: {force})")
+        logger.info(f"Starting habitus mining run (lookback: {lookback_hours}h, force: {force}, zone: {zone})")
         
         try:
-            # Discover patterns
-            patterns = self.miner.mine_patterns(lookback_hours)
+            # Discover patterns (optionally zone-filtered)
+            patterns = self.miner.mine_patterns(lookback_hours, zone=zone)
             
             results = {
                 "status": "completed",
                 "timestamp": int(now * 1000),
                 "lookback_hours": lookback_hours,
+                "zone": zone,
                 "patterns_found": len(patterns),
                 "candidates_created": 0,
                 "patterns": patterns
@@ -94,7 +102,7 @@ class HabitusService:
                 existing = self._find_existing_candidate(pattern_id)
                 
                 if not existing:
-                    candidate = self._create_candidate_from_pattern(pattern_id, pattern_data)
+                    candidate = self._create_candidate_from_pattern(pattern_id, pattern_data, zone=zone)
                     new_candidates.append(candidate)
                     logger.info(f"Created candidate {candidate.candidate_id} for pattern {pattern_id}")
                     
@@ -159,7 +167,12 @@ class HabitusService:
                         return candidate
         return None
         
-    def _create_candidate_from_pattern(self, pattern_id: str, pattern_data: Dict[str, Any]) -> Candidate:
+    def _create_candidate_from_pattern(
+        self, 
+        pattern_id: str, 
+        pattern_data: Dict[str, Any],
+        zone: Optional[str] = None
+    ) -> Candidate:
         """Create a new candidate from a discovered pattern."""
         # Parse antecedent and consequent
         antecedent = pattern_data["antecedent"]  # e.g., "light.turn_on:light.living_room"
@@ -186,7 +199,8 @@ class HabitusService:
                 "full": consequent
             },
             "discovered_at": pattern_data["discovered_at"],
-            "discovery_method": "habitus_miner_v1"
+            "discovery_method": "habitus_miner_v2",
+            "zone_filter": zone  # Track which zone this was filtered by
         }
         
         candidate_id = self.candidate_store.add_candidate(
