@@ -19,6 +19,7 @@ from .core.modules.media_context_module import MediaContextModule
 from .core.modules.mood_context_module import MoodContextModule
 from .core.modules.energy_context_module import EnergyContextModule
 from .core.modules.unifi_context_module import UnifiContextModule
+from .core.modules.weather_context_module import WeatherContextModule
 from .services_setup import async_register_all_services
 
 _MODULES = [
@@ -35,6 +36,7 @@ _MODULES = [
     "mood_context",
     "energy_context",
     "unifi_context",
+    "weather_context",
 ]
 
 
@@ -60,6 +62,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "mood_context": MoodContextModule,
         "energy_context": EnergyContextModule,
         "unifi_context": UnifiContextModule,
+        "weather_context": WeatherContextModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():

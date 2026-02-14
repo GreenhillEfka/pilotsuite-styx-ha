@@ -1,5 +1,56 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.2] - 2026-02-14
+
+### ☀️ Weather Context Module — PV Forecasting Integration
+
+Weather data module for PV production estimation and energy optimization.
+
+#### Added
+- **`weather_context.py`**: Coordinator for fetching weather data from Core Add-on API
+  - `/api/v1/weather` snapshot endpoint (current conditions, UV, sunrise/sunset)
+  - `/api/v1/weather/forecast` for multi-day forecast
+  - `/api/v1/weather/pv-recommendations` for PV-based energy recommendations
+  - Graceful error handling for Core Add-on unavailability
+
+- **`weather_context_entities.py`**: HA sensor entities for weather & PV data
+  - `sensor.ai_home_copilot_weather_condition` (enum: sunny, cloudy, rainy, etc.)
+  - `sensor.ai_home_copilot_weather_temperature` (°C)
+  - `sensor.ai_home_copilot_weather_cloud_cover` (%)
+  - `sensor.ai_home_copilot_weather_uv_index` (UV)
+  - `sensor.ai_home_copilot_pv_forecast_kwh` (kWh, today's PV production forecast)
+  - `sensor.ai_home_copilot_pv_recommendation` (enum: optimal_charging, moderate_usage, etc.)
+  - `sensor.ai_home_copilot_pv_surplus_kwh` (kWh, expected surplus after home consumption)
+
+- **`core/modules/weather_context_module.py`**: New-style CoPilot module
+  - Connects to Core Add-on Weather service API
+  - Exposes `get_snapshot()`, `get_forecast(days)`, `get_pv_recommendations()` for other modules
+  - Used by Energy module for PV production estimation
+  - Full error handling and logging
+
+#### Use Cases
+- PV production forecasting based on weather conditions
+- Weather-based energy recommendations (optimal charging, defer loads, grid usage)
+- Dashboard overview of expected solar production
+- Smart charging suggestions for EV/home battery systems
+
+#### Sensors Summary
+| Entity | Type | Description |
+|--------|------|-------------|
+| `sensor.ai_home_copilot_weather_condition` | Sensor | Current weather (sunny, cloudy, etc.) |
+| `sensor.ai_home_copilot_weather_temperature` | Sensor | Temperature (°C) |
+| `sensor.ai_home_copilot_weather_cloud_cover` | Sensor | Cloud cover (%) |
+| `sensor.ai_home_copilot_weather_uv_index` | Sensor | UV index |
+| `sensor.ai_home_copilot_pv_forecast_kwh` | Sensor | PV production forecast (kWh) |
+| `sensor.ai_home_copilot_pv_recommendation` | Sensor | Energy recommendation |
+| `sensor.ai_home_copilot_pv_surplus_kwh` | Sensor | Expected PV surplus (kWh) |
+
+#### Privacy
+- Only aggregated weather data, no precise location
+- PV recommendations are advisory, never automatic actions
+- User retains full control over energy decisions
+
+
 ## [0.6.1] - 2026-02-14
 
 ### 🌐 UniFi Context Module — Core Add-on Integration
