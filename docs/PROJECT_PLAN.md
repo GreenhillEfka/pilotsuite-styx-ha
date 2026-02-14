@@ -100,8 +100,8 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - "Security suggestions always weighted 1.0 (always relevant)"
 
 ### LATER (remaining expansion modules)
-- 💡 **Option B**: Core Add-on modular cleanup (v0.4.8) — Extract `main.py` blueprint registration
-- 💡 **Option C**: HA Integration test suite — Mock HA Repairs API, test polling/sync
+- ✅ **Option B**: Core Add-on modular cleanup (v0.4.8) — Extract `main.py` blueprint registration
+- ✅ **Option C**: HA Integration test suite — Repairs workflow + decision sync tests (v0.5.8)
 - 💡 SystemHealth neuron (Zigbee/Z-Wave/Mesh, recorder, slow updates)
 - 💡 UniFi neuron (WAN loss/jitter, client roams, baselines)
 - 💡 Energy neuron (anomalies, load shifting, explainability)

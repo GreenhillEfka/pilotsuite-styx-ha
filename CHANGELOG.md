@@ -1,5 +1,36 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.8] - 2026-02-14
+
+### 🧪 Option C: HA Integration Test Suite — Complete
+
+Comprehensive test coverage for Repairs workflow and decision sync feedback loop.
+
+#### Added
+- **`tests/test_repairs_workflow.py`** (26 test functions):
+  - `CandidateRepairFlow` tests: accept/dismiss/defer decision handling
+  - `SeedRepairFlow` tests: seed candidate initialization and schema validation
+  - `RepairsBlueprintApplyFlow` tests: governance workflow (preview → configure → confirm)
+  - `async_create_fix_flow` factory tests: candidate/seed/blueprint flow creation
+  - `async_sync_decision_to_core` tests: feedback loop (accept/dismiss/defer → Core sync)
+  - Edge case tests: truncation, API errors, missing data handling
+  - Integration tests: full user workflow simulation
+
+#### Test Categories
+- **Schema validation**: STEP_CHOICE, STEP_DEFER, STEP_SEED_CHOICE, STEP_BP_INIT, STEP_BP_CONFIGURE
+- **Flow logic**: risk levels, needs_configure(), core_ prefix stripping
+- **Decision sync**: API error handling, best-effort fallback, retry_after_days
+- **Repairs UX**: issue text truncation (160 chars), entities string truncation (120 chars)
+
+#### Coverage
+- CandidateRepairFlow (3 tests)
+- SeedRepairFlow (2 tests)
+- RepairsBlueprintApplyFlow (4 tests)
+- async_sync_decision_to_core (6 tests)
+- async_create_fix_flow (4 tests)
+- Edge cases (3 tests)
+- Integration workflows (3 tests)
+
 ## [0.5.7] - 2026-02-11
 
 ### 🎯 Mood Context Integration — LATER Milestone Option A Complete
