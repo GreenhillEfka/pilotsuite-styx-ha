@@ -1,5 +1,45 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.4] - 2026-02-14
+
+### 🧪 Testing Suite v0.2 — Production-Ready Integration Tests
+
+Enhanced test coverage with real integration tests for production deployment.
+
+#### Added
+- **test_suite_v02.py**: Production-ready integration tests
+  - **Module Imports**: All modules import cleanly (energy, unifi, weather, core)
+  - **Coordinator Pattern Tests**: Verify coordinator initialization and data flow
+  - **API Mocking Tests**: Mock Core Add-on API responses for all modules
+  - **Entity Validation**: Validate entity configs against HA schema
+  - **Error Handling Tests**: API errors, missing entities, empty responses
+  - **Performance Tests**: Reasonable update intervals and batch sizes
+
+#### Test Coverage Summary
+| Category | Tests | Purpose |
+|----------|-------|---------|
+| Module Imports | 5 | Verify clean imports |
+| Coordinator Pattern | 3 | Data flow validation |
+| API Mocking | 3 | API response structure |
+| Entity Validation | 9 | HA schema compliance |
+| Error Handling | 3 | Edge cases |
+| Performance | 2 | Resource limits |
+
+#### Integration Test Classes
+1. `TestModuleImports` — Verify all modules can be imported
+2. `TestCoordinatorPattern` — Test coordinator initialization
+3. `TestAPIMocking` — Mock Core Add-on API responses
+4. `TestEntityValidation` — Validate entity configurations
+5. `TestErrorHandling` — Edge case handling
+6. `TestPerformance` — Resource considerations
+
+#### Compatibility
+- Compatible with existing test_suite_v01.py (v0.1)
+- No breaking changes to test structure
+- Both suites can run together
+
+---
+
 ## [0.6.3] - 2026-02-14
 
 ### 🧪 Testing Suite v0.1.1 — Weather Context Tests
