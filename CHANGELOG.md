@@ -1,5 +1,29 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.7.0] - 2026-02-14
+
+### 🚀 Modular Runtime Architecture v0.1
+
+Release of the modular runtime skeleton for AI Home CoPilot. All modules now share a common interface.
+
+#### Added
+- **`__init__.py` exports**: LegacyModule, CopilotModule, ModuleContext now properly exported
+- **LegacyModule**: Wraps existing integration behavior without changes (no behavior regression)
+- **CopilotModule base class**: Standard interface for all future modules
+- **ModuleContext**: Provides hass instance and config entry to all modules
+
+#### Fixed
+- **Relative import paths**: legacy.py now correctly imports from `.module` (same directory)
+- **TYPE_CHECKING import**: module.py now has correct path for type hints
+
+#### Technical
+- Modular architecture enables 20+ modules without breaking behavior
+- Each module can be independently loaded/unloaded
+- Standard lifecycle: setup_entry → unload_entry → (optional) reload_entry
+
+#### Contributors
+- Autopilot (cron:10min)
+
 ## [0.6.7] - 2026-02-14
 
 ### 🔧 Module Architecture Fix
