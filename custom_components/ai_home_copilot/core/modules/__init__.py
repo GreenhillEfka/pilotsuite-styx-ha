@@ -12,5 +12,7 @@ from __future__ import annotations
 
 from .legacy import LegacyModule
 from .module import CopilotModule, ModuleContext
+from .mood_module import MoodModule
+from .mood_context_module import MoodContextModule
 
-__all__ = ["LegacyModule", "CopilotModule", "ModuleContext"]
+__all__ = ["LegacyModule", "CopilotModule", "ModuleContext", "MoodModule", "MoodContextModule"]

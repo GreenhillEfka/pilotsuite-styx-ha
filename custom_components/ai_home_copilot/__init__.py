@@ -17,6 +17,7 @@ from .core.modules.brain_graph_sync import BrainGraphSyncModule
 from .core.modules.candidate_poller import CandidatePollerModule
 from .core.modules.media_context_module import MediaContextModule
 from .core.modules.mood_context_module import MoodContextModule
+from .core.modules.mood_module import MoodModule
 from .core.modules.energy_context_module import EnergyContextModule
 from .core.modules.unifi_context_module import UnifiContextModule
 from .core.modules.weather_context_module import WeatherContextModule
@@ -33,6 +34,7 @@ _MODULES = [
     "brain_graph_sync",
     "candidate_poller",
     "media_context",
+    "mood",
     "mood_context",
     "energy_context",
     "unifi_context",
@@ -59,6 +61,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "brain_graph_sync": BrainGraphSyncModule,
         "candidate_poller": CandidatePollerModule,
         "media_context": MediaContextModule,
+        "mood": MoodModule,
         "mood_context": MoodContextModule,
         "energy_context": EnergyContextModule,
         "unifi_context": UnifiContextModule,
