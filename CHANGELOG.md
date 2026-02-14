@@ -1,5 +1,22 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.12] - 2026-02-14
+
+### Added
+- **Brain Graph Configurable Limits**: Brain Graph module now supports runtime configuration:
+  - `max_nodes` (default: 500, range: 100-5000)
+  - `max_edges` (default: 1500, range: 300-15000)
+  - `node_half_life_hours` (default: 24.0, range: 1-168)
+  - `edge_half_life_hours` (default: 12.0, range: 1-168)
+  - `node_min_score` (default: 0.1, range: 0.01-1.0)
+  - `edge_min_weight` (default: 0.1, range: 0.01-1.0)
+
+### Technical Details
+- Config schema updated in `config.json` with validation bounds
+- `core_setup.py` now accepts optional `config` parameter for service initialization
+- Graph limits can be tuned per deployment without code changes
+- Maintains backward compatibility with existing deployments (uses defaults if not specified)
+
 ## [0.4.11] - 2026-02-14
 
 ### Added

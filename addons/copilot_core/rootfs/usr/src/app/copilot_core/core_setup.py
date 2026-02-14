@@ -12,6 +12,7 @@ from copilot_core.api.v1 import events_ingest
 from copilot_core.api.v1.events_ingest import set_post_ingest_callback
 from copilot_core.brain_graph.api import brain_graph_bp, init_brain_graph_api
 from copilot_core.brain_graph.service import BrainGraphService
+from copilot_core.brain_graph.store import GraphStore
 from copilot_core.brain_graph.render import GraphRenderer
 from copilot_core.ingest.event_processor import EventProcessor
 from copilot_core.dev_surface.api import dev_surface_bp, init_dev_surface_api
@@ -29,12 +30,13 @@ from copilot_core.energy.api import energy_bp, init_energy_api
 from copilot_core.energy.service import EnergyService
 
 
-def init_services(hass=None):
+def init_services(hass=None, config: dict = None):
     """
     Initialize all core services and return them as a dict for testing/dependency injection.
     
     Args:
         hass: Home Assistant hass instance (required for SystemHealth, UniFi, Energy)
+        config: Optional configuration dict from add-on options
     
     Returns:
         dict: Dictionary containing initialized services:
@@ -63,8 +65,18 @@ def init_services(hass=None):
     if hass:
         energy_service = EnergyService(hass)
 
-    # Initialize brain graph service
-    brain_graph_service = BrainGraphService()
+    # Parse Brain Graph configuration
+    bg_config = config.get("brain_graph", {}) if config else {}
+    brain_graph_service = BrainGraphService(
+        store=GraphStore(
+            max_nodes=bg_config.get("max_nodes", 500),
+            max_edges=bg_config.get("max_edges", 1500),
+            node_min_score=bg_config.get("node_min_score", 0.1),
+            edge_min_weight=bg_config.get("edge_min_weight", 0.1)
+        ),
+        node_half_life_hours=bg_config.get("node_half_life_hours", 24.0),
+        edge_half_life_hours=bg_config.get("edge_half_life_hours", 12.0)
+    )
     graph_renderer = GraphRenderer()
     init_brain_graph_api(brain_graph_service, graph_renderer)
 
