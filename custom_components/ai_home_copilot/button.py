@@ -874,6 +874,35 @@ class CopilotClearErrorDigestButton(CopilotBaseEntity, ButtonEntity):
         )
 
 
+class CopilotClearAllLogsButton(CopilotBaseEntity, ButtonEntity):
+    """Button to clear all log buffers (devlog and errors)."""
+
+    _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot clear all logs"
+    _attr_unique_id = "ai_home_copilot_clear_all_logs"
+    _attr_icon = "mdi:trash-can-outline"
+
+    def __init__(self, coordinator, entry_id: str):
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+
+    async def async_press(self) -> None:
+        await self.hass.services.async_call(
+            DOMAIN,
+            "clear_all_logs",
+            {"entry_id": self._entry_id},
+            blocking=False,
+        )
+        persistent_notification.async_create(
+            self.hass,
+            "All logs cleared (devlog + error digest).",
+            title="AI Home CoPilot dev surface",
+            notification_id="ai_home_copilot_dev_surface",
+        )
+
+
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot generate habitus dashboard"

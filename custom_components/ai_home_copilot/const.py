@@ -45,6 +45,13 @@ CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES = "events_forwarder_additional_entitie
 # HA log digest (local): surface relevant errors/warnings in HA (opt-in).
 CONF_HA_ERRORS_DIGEST_ENABLED = "ha_errors_digest_enabled"
 
+# Debug Level: off, light (errors only), full (all logs)
+CONF_DEBUG_LEVEL = "debug_level"
+DEBUG_LEVEL_OFF = "off"
+DEBUG_LEVEL_LIGHT = "light"
+DEBUG_LEVEL_FULL = "full"
+DEBUG_LEVELS = [DEBUG_LEVEL_OFF, DEBUG_LEVEL_LIGHT, DEBUG_LEVEL_FULL]
+
 # PilotSuite / Dashboard UX
 CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS = "pilotsuite_show_safety_backup_buttons"
 CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS = "pilotsuite_show_dev_surface_buttons"
@@ -97,6 +104,7 @@ DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS = True
 DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES: list[str] = []
 
 DEFAULT_HA_ERRORS_DIGEST_ENABLED = False
+DEFAULT_DEBUG_LEVEL = DEBUG_LEVEL_OFF
 
 DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS = False
 DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS = False
