@@ -15,7 +15,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import statistics
 
 import aiohttp

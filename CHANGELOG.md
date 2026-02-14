@@ -1,5 +1,37 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.7] - 2026-02-14
+
+### 🔧 Module Architecture Fix
+
+Fixed missing base classes for all Copilot modules.
+
+#### Fixed
+- **Created `module.py`**: Added `CopilotModule` and `ModuleContext` base classes
+- **All modules now compile**: mood_module, brain_graph_sync, unifi_module, etc.
+- **Removed unused import**: `asdict` from unifi_module.py
+
+#### Technical
+- Base classes provide standard interface for module lifecycle:
+  - `async_setup_entry(ctx)` → Module initialization
+  - `async_unload_entry(ctx)` → Cleanup
+  - `async_reload_entry(ctx)` → Optional reload
+- ModuleContext provides hass instance and config entry access
+
+### Contributors
+- Autopilot (cron:10min)
+
+## [0.6.6] - 2026-02-14
+
+### 🔑 Enhanced Token Management UX v0.4.3
+
+Improved user experience for OpenClaw Gateway authentication token management.
+
+#### Enhanced
+- Token field shows only new token (empty = keep existing)
+- Clear Token checkbox added for explicit deletion
+- Privacy: Token never displayed when already set
+
 ## [0.4.3] - 2026-02-10
 
 ### 🔑 Enhanced Token Management UX
