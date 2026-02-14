@@ -1,5 +1,48 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.5] - 2026-02-14
+
+### 🔍 Error Grouping — Improved Error Diagnostics
+
+Enhanced error tracking with automatic grouping of similar errors for easier debugging.
+
+#### Added
+- **Error Grouping**: Similar errors are now grouped together based on exception type + operation
+  - Uses `ExceptionClassName:operation` as group key
+  - Tracks first_seen, last_seen, and occurrence count per group
+  - `get_error_groups(min_count=2)` method to retrieve recurring errors
+- **Error Groups in Diagnostics**: Error digest now includes `error_groups` in output
+  - Shows groups with 2+ occurrences
+  - Includes sample error for each group
+
+#### Example Output
+```json
+{
+  "error_groups": [
+    {
+      "group_key": "TimeoutError:ping",
+      "count": 5,
+      "first_seen": "2026-02-14T12:00:00Z",
+      "last_seen": "2026-02-14T12:05:00Z",
+      "sample_error": {
+        "error_key": "network",
+        "message": "Connection timeout",
+        "where": "ping"
+      }
+    }
+  ]
+}
+```
+
+#### Technical Details
+- `_get_error_group_key()` function for stable group key generation
+- `_error_groups` dict tracks all unique error patterns
+- Group info included in `as_dict()` output
+
+#### Files Changed
+- `core/modules/dev_surface.py`: ErrorDigest class enhanced with grouping
+
+
 ## [0.6.4] - 2026-02-14
 
 ### 🧪 Testing Suite v0.2 — Production-Ready Integration Tests

@@ -123,11 +123,14 @@ class ErrorDigest:
         self.last_error: dict[str, Any] | None = None
         self.counters: Counter[str] = Counter()
         self.recent: deque[dict[str, Any]] = deque(maxlen=max_recent)
+        self._error_groups: dict[str, dict[str, Any]] = {}  # group_key -> {count, first_seen, last_seen, sample_error}
 
     def clear(self) -> None:
         self.last_error = None
         self.counters.clear()
         self.recent.clear()
+        self._error_groups.clear()
+        self._error_groups.clear()
 
     def record(self, *, error_key: str, message: str, where: str, hint: str | None = None) -> None:
         key = error_key if error_key in ERROR_REGISTRY else "unknown"
@@ -161,9 +164,42 @@ class ErrorDigest:
             "traceback_summary": error_data.get("traceback_summary"),
         }
         
+        # Track error grouping
+        group_key = _get_error_group_key(error, operation)
+        rec["group_key"] = group_key
+        
+        if group_key not in self._error_groups:
+            self._error_groups[group_key] = {
+                "count": 0,
+                "first_seen": rec["time"],
+                "last_seen": rec["time"],
+                "sample_error": {
+                    "error_key": error_key,
+                    "message": rec["message"],
+                    "where": rec["where"],
+                },
+            }
+        
+        self._error_groups[group_key]["count"] += 1
+        self._error_groups[group_key]["last_seen"] = rec["time"]
+        
         self.last_error = rec
         self.counters[error_key] += 1
         self.recent.append(rec)
+
+    def get_error_groups(self, min_count: int = 2) -> list[dict[str, Any]]:
+        """Return grouped errors with occurrence count >= min_count."""
+        return [
+            {
+                "group_key": k,
+                "count": v["count"],
+                "first_seen": v["first_seen"],
+                "last_seen": v["last_seen"],
+                "sample_error": v["sample_error"],
+            }
+            for k, v in self._error_groups.items()
+            if v["count"] >= min_count
+        ]
 
     def as_dict(self) -> dict[str, Any]:
         # Keep stable output.
@@ -171,6 +207,7 @@ class ErrorDigest:
             "last_error": self.last_error,
             "counters": dict(self.counters),
             "recent": list(self.recent),
+            "error_groups": self.get_error_groups(),
             "registry": ERROR_REGISTRY,
             "max_recent": self._max_recent,
         }
@@ -190,6 +227,13 @@ def _classify_exception(err: Exception) -> str:
     if "client error" in msg or "cannot connect" in msg or "name or service not known" in msg:
         return "network"
     return "unknown"
+
+
+def _get_error_group_key(error: Exception, operation: str) -> str:
+    """Create a stable group key for similar errors based on exception type + operation."""
+    # Use exception class name + operation as group key
+    exc_class = type(error).__name__
+    return f"{exc_class}:{operation}"
 
 
 def _entry_state(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
