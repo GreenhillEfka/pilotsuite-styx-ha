@@ -99,12 +99,41 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - "Weight comfort automations by user comfort preference"
 - "Security suggestions always weighted 1.0 (always relevant)"
 
-### LATER (remaining expansion modules)
-- ✅ **Option B**: Core Add-on modular cleanup (v0.4.8) — Extract `main.py` blueprint registration
-- ✅ **Option C**: HA Integration test suite — Repairs workflow + decision sync tests (v0.5.8)
-- 💡 SystemHealth neuron (Zigbee/Z-Wave/Mesh, recorder, slow updates)
-- 💡 UniFi neuron (WAN loss/jitter, client roams, baselines)
-- 💡 Energy neuron (anomalies, load shifting, explainability)
+### ✅ LATER Milestone B (Neurons) — Complete! (v0.4.9-v0.4.13)
+
+**SystemHealth Neuron (v0.4.9)** ✅
+- Zigbee/Z-Wave mesh monitoring (coordinator status, device count, unavailable detection)
+- Recorder database health tracking
+- System update detection (Core, OS, Supervisor)
+- Suggestion suppression when mesh unstable
+
+**UniFi Neuron (v0.4.10)** ✅
+- WAN status, latency, packet loss monitoring
+- Client management with device type detection
+- Roaming events tracking
+- Traffic baselines for anomaly detection
+
+**Energy Neuron (v0.4.11)** ✅
+- Energy consumption/production monitoring (solar/PV support)
+- Anomaly detection with severity levels
+- Load shifting opportunities detection
+- Suggestion explainability
+
+**Tag System v0.2 (v0.4.14)** ✅
+- HA Labels materialization (selected facets only)
+- Subject registry (entity, device, area, automation, scene, script, helper)
+- Suggest/confirm workflow for learned tags
+
+**Habitus Zones v2 (v0.4.15)** ✅
+- Zone-aware pattern mining
+- REST API extensions for zone-filtered operations
+
+---
+
+### NEXT UP (Future Enhancements)
+- 💡 Interactive Brain Graph panel (optional visualization upgrade)
+- 💡 Multi-user preference learning
+- 💡 Cross-home pattern sharing (opt-in, privacy-preserving)
 
 ---
 
@@ -120,10 +149,11 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 If we track work in GitHub:
 - Labels: `epic`, `core`, `ha-integration`, `ux`, `security`, `privacy`, `governance`, `bug`, `docs`
 - Milestones:
-  - `M0 Foundation` (done)
-  - `M1 Suggestions E2E` (NEXT)
-  - `M2 Mood ranking` (LATER)
-  - `M3 SystemHealth/UniFi/Energy` (LATER)
+  - `M0 Foundation` ✅ (done)
+  - `M1 Suggestions E2E` ✅ (done)
+  - `M2 Mood ranking` ✅ (done)
+  - `M3 SystemHealth/UniFi/Energy` ✅ (done)
+  - `M4 Advanced Features` (future)
 
 ---
 
