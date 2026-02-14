@@ -25,7 +25,7 @@ from copilot_core.system_health.api import system_health_bp
 from copilot_core.system_health.service import SystemHealthService
 from copilot_core.unifi.api import unifi_bp, set_unifi_service
 from copilot_core.unifi.service import UniFiService
-from copilot_core.energy.api import energy_bp, init_energy_service
+from copilot_core.energy.api import energy_bp, init_energy_api
 from copilot_core.energy.service import EnergyService
 
 
@@ -132,6 +132,6 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
             set_unifi(services["unifi_service"])
         
         # Set Energy service for API access
-        from copilot_core.energy import set_energy_service
+        from copilot_core.energy.api import init_energy_api
         if services.get("energy_service"):
-            set_energy_service(services["energy_service"])
+            init_energy_api(services["energy_service"])

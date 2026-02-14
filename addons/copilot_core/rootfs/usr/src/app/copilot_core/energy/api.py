@@ -11,8 +11,8 @@ energy_bp = Blueprint("energy", __name__)
 _energy_service: EnergyService = None
 
 
-def init_energy_service(service: EnergyService):
-    """Initialize energy service with global instance."""
+def init_energy_api(service: EnergyService):
+    """Initialize energy service with global instance (consistent with other modules)."""
     global _energy_service
     _energy_service = service
 
