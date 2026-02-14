@@ -13,7 +13,7 @@ from ...media_setup import async_setup_media_context, async_unload_media_context
 from ...media_context_v2_setup import async_setup_media_context_v2, async_unload_media_context_v2
 from ...webhook import async_register_webhook, async_unregister_webhook
 from ...core_v1 import async_fetch_core_capabilities
-from ..module import ModuleContext
+from .module import ModuleContext
 
 
 PLATFORMS: list[str] = ["binary_sensor", "sensor", "button", "text", "number", "select"]
