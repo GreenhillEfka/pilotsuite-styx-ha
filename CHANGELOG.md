@@ -1,5 +1,28 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.13] - 2026-02-14
+
+### Added
+- **UniFi Neuron v0.1 — Network Monitoring Module**:
+  - **WAN Status**: Uplink status, latency, packet loss monitoring
+  - **Client Roaming**: Recent client roam events with timestamps
+  - **Traffic Baselines**: Historical traffic patterns for anomaly detection
+  - **Integration Ready**: Plugs into Core Setup with other Neurons
+
+### REST API Endpoints
+- `GET /api/v1/unifi` — Full snapshot (WAN, clients, roaming, baselines)
+- `GET /api/v1/unifi/wan` — WAN uplink status and metrics
+- `GET /api/v1/unifi/clients` — Connected client list with details
+- `GET /api/v1/unifi/roaming` — Recent roaming events
+- `GET /api/v1/unifi/baselines` — Traffic baseline data
+- `GET /api/v1/unifi/health` — Service health status
+
+### Technical Details
+- **UniFi Network API Integration**: Reads from UniFi Network entities
+- **Caching**: 2-minute TTL for WAN/clients, 10-minute for baselines
+- **Modular Pattern**: Consistent with Mood, SystemHealth, Energy modules
+- **Privacy-First**: Local metrics only, no external transmission
+
 ## [0.4.12] - 2026-02-14
 
 ### Added
