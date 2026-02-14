@@ -51,6 +51,7 @@ See: `docs/PROJECT_PLAN.md` (canvas + kanban overview)
 Start here: `docs/START_HERE.md`
 
 - Project plan: `docs/PROJECT_PLAN.md`
+- Habitus Dashboard Cards: `docs/HABITUS_DASHBOARD_CARDS.md`
 - Ops (reload vs restart): `docs/OPERATIONS.md`
 - Dashboard template: `docs/DASHBOARD_LOVELACE.md`
 - DevLogs (debug pipeline): `docs/DEVLOGS.md`

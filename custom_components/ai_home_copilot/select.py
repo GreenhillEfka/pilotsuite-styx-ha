@@ -19,6 +19,7 @@ from .media_context_v2_entities import (
     ZoneSelectEntity,
     ManualTargetSelectEntity,
 )
+from .habitus_zones_entities_v2 import HabitusZonesV2GlobalStateSelect
 
 
 class DiagnosticLevelSelectEntity(CopilotBaseEntity, SelectEntity):
@@ -68,6 +69,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     
     entities = [
         DiagnosticLevelSelectEntity(coordinator, entry.entry_id),
+        # v2 Select
+        HabitusZonesV2GlobalStateSelect(coordinator, entry),
     ]
     
     # Media Context v2 select entities

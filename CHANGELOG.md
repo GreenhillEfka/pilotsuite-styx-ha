@@ -1,5 +1,98 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.7.3] - 2026-02-14
+
+### 📊 Habitus Dashboard Cards — Lovelace UI Cards v0.1
+
+New Lovelace UI card generators for Habitus Zones visualization.
+
+#### Added
+- **`habitus_dashboard_cards.py`**: YAML card generators
+  - `ZoneStatusData`, `ZoneTransitionData`, `MoodDistributionData` dataclasses
+  - `generate_zone_status_card_yaml()` - Zone Status Card with gauge
+  - `generate_zone_status_card_simple()` - Standalone version
+  - `generate_zone_transitions_card_yaml()` - Zone transitions history
+  - `generate_zone_transitions_card_simple()` - Standalone version
+  - `generate_mood_distribution_card_yaml()` - Mood distribution visualization
+  - `generate_mood_distribution_card_simple()` - Standalone version
+- **`habitus_dashboard_entities.py`**: Sensor entities for cards
+  - `sensor.ai_home_copilot_habitus_zone_status` - Active zone
+  - `sensor.ai_home_copilot_zone_<zone_id>_score` - Per-zone scores (0-100%)
+  - `sensor.ai_home_copilot_habitus_transitions` - JSON transitions array
+  - `sensor.ai_home_copilot_habitus_mood_distribution` - JSON mood data
+  - `sensor.ai_home_copilot_habitus_current_mood` - Current mood
+- **`text.ai_home_copilot_habitus_cards_yaml`** - Auto-generated YAML text entity
+- **`tests/test_habitus_dashboard_cards.py`**: Unit tests (13797 bytes)
+
+#### Features
+- Zone Status Card: Active zone, score gauge, zone indicators grid
+- Zone Transitions Card: History with timestamps, triggers, confidence
+- Mood Distribution Card: Mood breakdown with bar/grid visualization
+- All cards support German umlauts and special characters
+- Unicode-safe throughout
+
+#### Technical
+- Grid card with automatic column limiting (max 4 columns)
+- History graph with 24h default, 12 entity limit
+- Gauge cards with severity thresholds (green:70, yellow:40, red:20)
+- Markdown cards with proper YAML block formatting
+
+## [0.7.2] - 2026-02-14
+
+### 🏠 Habitus Zones v2 — Dashboard Wizard UI
+
+Config Flow Integration für Dashboard-Generierung und -Publishing.
+
+#### Added
+- **Config Flow Dashboard Steps**: Neue Menu-Optionen für Habitus Zones
+  - `generate_dashboard`: Generiert Lovelace YAML Dashboard für alle Zones
+  - `publish_dashboard`: Kopiert Dashboard zu `/www/ai_home_copilot/` für Download
+- **UI Integration**: Dashboard-Buttons im Options-Flow Menu
+- **Fehler-Handling**: Detaillierte Fehlermeldungen für Generation/Publishing
+
+#### Technical
+- Dashboard-Generierung: `habitus_dashboard.py::async_generate_habitus_zones_dashboard()`
+- Publishing: `habitus_dashboard.py::async_publish_last_habitus_dashboard()`
+- Ausgabe-Format: Lovelace YAML mit Entity Cards, History Graphs, Logbook
+
+## [0.7.1] - 2026-02-14
+
+### 🧠 Brain Graph Viz — HTML/SVG Visualization
+
+HTML/SVG visualization of brain graph state for dashboard integration.
+
+#### Added
+- **`brain_graph_viz.py`**: Core visualization module
+  - Circular node layout with 120 node limit
+  - Score-based node sizing and opacity
+  - SVG line rendering for edges (240 limit)
+  - Privacy-first sanitization (no meta dumps)
+  - Privacy-aware `sanitize_text()` for node labels/IDs
+- **`button.py` integration**: Publish button (`button.ai_home_copilot_publish_brain_graph_viz`)
+  - Fetches graph state from Core `/api/v1/graph/state`
+  - Generates local HTML at `/local/ai_home_copilot/brain_graph_latest.html`
+  - Lovelace iframe card example in notification
+- **Tests**: `test_brain_graph_viz_isolated.py` - all core functions verified
+
+#### Technical
+- Graph state endpoint: `GET /api/v1/graph/state?limitNodes=120&limitEdges=240`
+- HTML output: `/config/www/ai_home_copilot/brain_graph_latest.html`
+- Dashboard URL: `/local/ai_home_copilot/brain_graph_latest.html`
+- Score normalization: (value - min) / (max - min), mid emphasis for single/identical nodes
+
+#### Example Lovelace Card
+```yaml
+type: iframe
+url: /local/ai_home_copilot/brain_graph_latest.html
+aspect_ratio: 60%
+```
+
+#### Privacy
+- No meta data dumps to external services
+- Local-only visualization
+- Labels/IDs sanitized and truncated
+- No sensitive metadata exposed
+
 ## [0.7.0] - 2026-02-14
 
 ### 🚀 Modular Runtime Architecture v0.1

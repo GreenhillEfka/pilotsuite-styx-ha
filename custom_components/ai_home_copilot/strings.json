@@ -62,6 +62,8 @@
           "create_zone": "Create zone",
           "edit_zone": "Edit zone",
           "delete_zone": "Delete zone",
+          "generate_dashboard": "Generate dashboard YAML",
+          "publish_dashboard": "Publish dashboard (www)",
           "bulk_edit": "Bulk edit (YAML/JSON)",
           "back": "Back"
         }
@@ -139,6 +141,20 @@
         "data": {
           "zone_id": "Zone"
         }
+      },
+      "generate_dashboard": {
+        "title": "Generate dashboard YAML",
+        "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in `ai_home_copilot/` config folder.",
+        "data": {
+          "confirm": "Generate dashboard"
+        }
+      },
+      "publish_dashboard": {
+        "title": "Publish dashboard to www",
+        "description": "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder for easy download. This creates a stable URL for the dashboard YAML.",
+        "data": {
+          "confirm": "Publish dashboard"
+        }
       }
     },
     "error": {
@@ -146,7 +162,10 @@
       "cannot_read": "Could not read snapshot file",
       "invalid_json": "Invalid JSON",
       "confirm_required": "Please confirm",
-      "invalid": "Invalid input"
+      "invalid": "Invalid input",
+      "generation_failed": "Failed to generate dashboard: {error}",
+      "publish_failed": "Failed to publish dashboard: {error}",
+      "no_dashboard_generated": "No dashboard has been generated yet. {hint}"
     }
   },
   "issues": {

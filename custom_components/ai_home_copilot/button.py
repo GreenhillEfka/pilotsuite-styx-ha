@@ -23,6 +23,11 @@ from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .suggest import async_offer_demo_candidate
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
 from .habitus_zones_entities import HabitusZonesValidateButton
+from .habitus_zones_entities_v2 import (
+    HabitusZonesV2ValidateButton,
+    HabitusZonesV2SyncGraphButton,
+    HabitusZonesV2ReloadButton,
+)
 from .habitus_dashboard import async_generate_habitus_zones_dashboard, async_publish_last_habitus_dashboard
 from .pilotsuite_dashboard import (
     async_generate_pilotsuite_dashboard,
@@ -86,6 +91,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotSafetyBackupCreateButton(coordinator, entry),
         CopilotSafetyBackupStatusButton(coordinator, entry),
         HabitusZonesValidateButton(coordinator, entry),
+        # v2 Buttons
+        HabitusZonesV2ValidateButton(coordinator, entry),
+        HabitusZonesV2SyncGraphButton(coordinator, entry),
+        HabitusZonesV2ReloadButton(coordinator, entry),
         CopilotGenerateHabitusDashboardButton(coordinator, entry),
         CopilotDownloadHabitusDashboardButton(coordinator, entry),
         CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),

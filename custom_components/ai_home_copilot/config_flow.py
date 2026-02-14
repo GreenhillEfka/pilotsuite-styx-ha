@@ -423,7 +423,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     async def async_step_habitus_zones(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="habitus_zones",
-            menu_options=["create_zone", "edit_zone", "delete_zone", "bulk_edit", "back"],
+            menu_options=[
+                "create_zone",
+                "edit_zone",
+                "delete_zone",
+                "generate_dashboard",
+                "publish_dashboard",
+                "bulk_edit",
+                "back",
+            ],
         )
 
     async def async_step_back(self, user_input: dict | None = None) -> FlowResult:
@@ -533,6 +541,70 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     "Optional: use a categorized structure via `entities:` (role -> list of entity_ids), e.g.\n"
                     "- entities: {motion: [...], lights: [...], brightness: [...], heating: [...], humidity: [...], co2: [...], cover: [...], door: [...], window: [...], lock: [...], media: [...], other: [...]}"
                 ),
+            },
+        )
+
+    async def async_step_generate_dashboard(self, user_input: dict | None = None) -> FlowResult:
+        """Generate Lovelace dashboard YAML for all Habitus zones."""
+        from .habitus_dashboard import async_generate_habitus_zones_dashboard
+
+        if user_input is not None:
+            try:
+                path = await async_generate_habitus_zones_dashboard(self.hass, self._entry.entry_id)
+                return self.async_abort(
+                    reason="dashboard_generated",
+                    description_placeholders={"path": str(path)},
+                )
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="generate_dashboard",
+                    errors={"base": "generation_failed"},
+                    description_placeholders={"error": str(err)},
+                )
+
+        schema = vol.Schema({vol.Optional("confirm", default=True): bool})
+        return self.async_show_form(
+            step_id="generate_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. "
+                "The file is saved in the `ai_home_copilot/` configuration folder."
+            },
+        )
+
+    async def async_step_publish_dashboard(self, user_input: dict | None = None) -> FlowResult:
+        """Publish the latest generated dashboard to www folder."""
+        from .habitus_dashboard import async_publish_last_habitus_dashboard
+
+        if user_input is not None:
+            try:
+                url = await async_publish_last_habitus_dashboard(self.hass)
+                return self.async_abort(
+                    reason="dashboard_published",
+                    description_placeholders={"url": url},
+                )
+            except FileNotFoundError:
+                return self.async_show_form(
+                    step_id="publish_dashboard",
+                    errors={"base": "no_dashboard_generated"},
+                    description_placeholders={
+                        "hint": "Generate a dashboard first using 'Generate dashboard YAML'."
+                    },
+                )
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="publish_dashboard",
+                    errors={"base": "publish_failed"},
+                    description_placeholders={"error": str(err)},
+                )
+
+        schema = vol.Schema({vol.Optional("confirm", default=True): bool})
+        return self.async_show_form(
+            step_id="publish_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "description": "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder "
+                "for easy download. This creates a stable URL for the dashboard YAML."
             },
         )
 
