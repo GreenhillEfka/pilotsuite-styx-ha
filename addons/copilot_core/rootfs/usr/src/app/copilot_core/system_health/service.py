@@ -5,13 +5,9 @@ Provides health diagnostics for Home Assistant subsystems that influence
 automation quality and suggestion relevance.
 """
 
-from flask import Blueprint, jsonify
-from copilot_core.security import require_api_key
 import logging
 
 logger = logging.getLogger(__name__)
-
-system_health_bp = Blueprint('system_health', __name__)
 
 
 class SystemHealthService:
@@ -401,78 +397,3 @@ class SystemHealthService:
             'reasons': reasons,
             'overall_status': health['status']
         }
-
-
-# Flask routes
-@system_health_bp.route('/api/v1/system_health', methods=['GET'])
-@require_api_key
-def get_system_health():
-    """Get complete system health status."""
-    from copilot_core import get_system_health_service
-    service = get_system_health_service()
-    if service is None:
-        return jsonify({'error': 'SystemHealth service not initialized'}), 503
-    return jsonify(service.get_full_health())
-
-
-@system_health_bp.route('/api/v1/system_health/zigbee', methods=['GET'])
-@require_api_key
-def get_zigbee_health():
-    """Get Zigbee mesh health specifically."""
-    from copilot_core import get_system_health_service
-    service = get_system_health_service()
-    if service is None:
-        return jsonify({'error': 'SystemHealth service not initialized'}), 503
-    force = request.args.get('force', 'false').lower() == 'true'
-    return jsonify(service.get_zigbee_health(force_refresh=force))
-
-
-@system_health_bp.route('/api/v1/system_health/zwave', methods=['GET'])
-@require_api_key
-def get_zwave_health():
-    """Get Z-Wave mesh health specifically."""
-    from copilot_core import get_system_health_service
-    service = get_system_health_service()
-    if service is None:
-        return jsonify({'error': 'SystemHealth service not initialized'}), 503
-    force = request.args.get('force', 'false').lower() == 'true'
-    return jsonify(service.get_zwave_health(force_refresh=force))
-
-
-@system_health_bp.route('/api/v1/system_health/recorder', methods=['GET'])
-@require_api_key
-def get_recorder_health():
-    """Get Recorder database health specifically."""
-    from copilot_core import get_system_health_service
-    service = get_system_health_service()
-    if service is None:
-        return jsonify({'error': 'SystemHealth service not initialized'}), 503
-    force = request.args.get('force', 'false').lower() == 'true'
-    return jsonify(service.get_recorder_health(force_refresh=force))
-
-
-@system_health_bp.route('/api/v1/system_health/updates', methods=['GET'])
-@require_api_key
-def get_update_status():
-    """Get update availability specifically."""
-    from copilot_core import get_system_health_service
-    service = get_system_health_service()
-    if service is None:
-        return jsonify({'error': 'SystemHealth service not initialized'}), 503
-    force = request.args.get('force', 'false').lower() == 'true'
-    return jsonify(service.get_update_status(force_refresh=force))
-
-
-@system_health_bp.route('/api/v1/system_health/suppress', methods=['GET'])
-@require_api_key
-def get_suppress_status():
-    """Check if suggestions should be suppressed."""
-    from copilot_core import get_system_health_service
-    service = get_system_health_service()
-    if service is None:
-        return jsonify({'error': 'SystemHealth service not initialized'}), 503
-    return jsonify(service.should_suppress_suggestions())
-
-
-# Import request for query params
-from flask import request

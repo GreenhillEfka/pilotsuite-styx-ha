@@ -8,6 +8,7 @@ Provides health diagnostics for:
 - HA updates (Core, OS, Supervised)
 """
 
-from .service import SystemHealthService, system_health_bp
+from .api import system_health_bp, init_system_health_api
+from .service import SystemHealthService
 
-__all__ = ['SystemHealthService', 'system_health_bp']
+__all__ = ['SystemHealthService', 'system_health_bp', 'init_system_health_api']

@@ -7,7 +7,6 @@ Extracted from main.py to follow modular architecture pattern.
 from flask import Flask
 
 from copilot_core.api.v1 import log_fixer_tx
-from copilot_core.api.v1 import tag_system
 from copilot_core.api.v1 import events_ingest
 from copilot_core.api.v1.events_ingest import set_post_ingest_callback
 from copilot_core.brain_graph.api import brain_graph_bp, init_brain_graph_api
@@ -28,6 +27,9 @@ from copilot_core.unifi.api import unifi_bp, set_unifi_service
 from copilot_core.unifi.service import UniFiService
 from copilot_core.energy.api import energy_bp, init_energy_api
 from copilot_core.energy.service import EnergyService
+# Tag System v0.2 (Decision Matrix 2026-02-14)
+from copilot_core.tags import TagRegistry, create_tag_service
+from copilot_core.tags.api import setup_tag_api
 
 
 def init_services(hass=None, config: dict = None):
@@ -99,6 +101,9 @@ def init_services(hass=None, config: dict = None):
     event_processor = EventProcessor(brain_graph_service=brain_graph_service)
     set_post_ingest_callback(event_processor.process_events)
 
+    # Initialize Tag System v0.2 (Decision Matrix 2026-02-14)
+    tag_registry = TagRegistry()
+
     return {
         "system_health_service": system_health_service,
         "unifi_service": unifi_service,
@@ -109,6 +114,7 @@ def init_services(hass=None, config: dict = None):
         "habitus_service": habitus_service,
         "mood_service": mood_service,
         "event_processor": event_processor,
+        "tag_registry": tag_registry,
     }
 
 
@@ -121,7 +127,6 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         services: Optional services dict from init_services() for global access
     """
     app.register_blueprint(log_fixer_tx.bp)
-    app.register_blueprint(tag_system.bp)
     app.register_blueprint(events_ingest.bp)
     app.register_blueprint(brain_graph_bp)
     app.register_blueprint(dev_surface_bp)
@@ -131,6 +136,13 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     app.register_blueprint(system_health_bp)
     app.register_blueprint(unifi_bp)
     app.register_blueprint(energy_bp)
+    
+    # Register Tag System v0.2 blueprint (Decision Matrix 2026-02-14)
+    from flask import Blueprint
+    tags_bp = Blueprint("tags_v2", __name__, url_prefix="/api/v1/tags2")
+    if services and services.get("tag_registry"):
+        setup_tag_api(tags_bp, services["tag_registry"])
+    app.register_blueprint(tags_bp)
     
     # Set global service instances for API access
     if services:

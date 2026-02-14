@@ -1,6 +1,34 @@
 # CHANGELOG - AI Home CoPilot Core
 
-## [0.4.13] - 2026-02-14
+## [0.4.14] - 2026-02-14
+
+### Added
+- **Tag System v0.2 — Decision Matrix Implementation**:
+  - **Decision Matrix P1 Features**:
+    - HA-Labels materialisieren: nur ausgewählte Facetten (`role.*`, `state.*`)
+    - Subjects: alle HA-Label-Typen (`entity`, `device`, `area`, `automation`, `scene`, `script`, `helper`)
+    - Subject IDs: Mix aus Registry-ID + Fallback (`unique_id` > `device_id` > `entity_id`)
+    - Namespace: `user.*` NICHT als intern (nur HA-Labels importieren)
+    - Lokalisierung: nur `display.de` + `en`
+    - Learned Tags → HA-Labels: NIE automatisch (explizite Bestätigung nötig)
+    - Farben/Icons: HA als UI-Quelle
+    - Konflikte: existierende HA-Labels ohne `aicp.*` ignorieren
+    - Habitus-Zonen: eigene interne Objekte mit Policies
+  - **In-Memory Registry**: Einfache, schnelle Tag-Verwaltung
+  - **Suggest/Confirm Workflow**: Learned Tags brauchen explizite Bestätigung
+  - **REST API Endpoints** (unter `/api/v1/tags2`):
+    - `POST /api/v1/tags2/tags` — Tag erstellen
+    - `POST /api/v1/tags2/tags/suggest` — Learned Tag vorschlagen
+    - `POST /api/v1/tags2/tags/{id}/confirm` — Learned Tag bestätigen
+    - `GET /api/v1/tags2/tags` — Tags auflisten
+    - `POST /api/v1/tags2/subjects` — Subject registrieren
+    - `POST /api/v1/tags2/assignments` — Tag zu Subject zuweisen
+    - `GET /api/v1/tags2/labels/export` — Export für HA Labels Sync
+
+### Technical Details
+- **Privacy-First**: Learned Tags werden NIE automatisch als HA-Labels materialisiert
+- **Modular Architecture**: Integriert in Core Setup
+- **Kompatibel mit bestehendem Tag System** (YAML-basiert in `/api/v1/tag-system`)
 
 ### Added
 - **UniFi Neuron v0.1 — Network Monitoring Module**:
