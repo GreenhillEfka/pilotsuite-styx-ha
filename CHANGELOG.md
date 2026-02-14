@@ -1,5 +1,35 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.0] - 2026-02-14
+
+### 🎛️ Debug Level Control
+
+Ergänzt Debug-/Diagnose-Funktionen für besseres Troubleshooting.
+
+#### Added
+- **Select Entity**: Debug Level (off/light/full)
+  - `select.ai_home_copilot_debug_level` in HA UI
+  - Icons: `mdi:bug-check`
+  - Entity Category: CONFIG
+
+- **Services**:
+  - `ai_home_copilot.set_debug_level`: Setzt Debug-Level zur Laufzeit
+  - `ai_home_copilot.clear_all_logs`: Löscht alle Log-Puffer (devlog + errors)
+
+- **Konfiguration** (const.py):
+  - `CONF_DEBUG_LEVEL` Option
+  - `DEBUG_LEVEL_OFF` (default), `DEBUG_LEVEL_LIGHT`, `DEBUG_LEVEL_FULL`
+  - Default-Wert: `off`
+
+#### Integration
+- Integriert mit DevSurfaceModule devlog System
+- Debug-Level steuert Sichtbarkeit von Log-Meldungen im Dashboard
+- Light: Nur Fehler, Full: Alle Logs
+
+#### Privacy
+- Keine externen Daten, nur lokale Debug-Informationen
+- Kein Upload von Debug-Daten
+
 ## [0.5.9] - 2026-02-14
 
 ### ⚡ Energy Context Module — Core Add-on Integration

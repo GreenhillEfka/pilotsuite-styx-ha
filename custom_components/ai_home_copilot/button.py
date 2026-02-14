@@ -82,6 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotEnableDebug30mButton(coordinator, entry.entry_id),
         CopilotDisableDebugButton(coordinator, entry.entry_id),
         CopilotClearErrorDigestButton(coordinator, entry.entry_id),
+        CopilotClearAllLogsButton(coordinator, entry.entry_id),
         CopilotSafetyBackupCreateButton(coordinator, entry),
         CopilotSafetyBackupStatusButton(coordinator, entry),
         HabitusZonesValidateButton(coordinator, entry),
