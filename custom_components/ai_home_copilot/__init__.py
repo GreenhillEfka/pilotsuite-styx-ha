@@ -18,6 +18,7 @@ from .core.modules.candidate_poller import CandidatePollerModule
 from .core.modules.media_context_module import MediaContextModule
 from .core.modules.mood_context_module import MoodContextModule
 from .core.modules.energy_context_module import EnergyContextModule
+from .core.modules.unifi_context_module import UnifiContextModule
 from .services_setup import async_register_all_services
 
 _MODULES = [
@@ -33,6 +34,7 @@ _MODULES = [
     "media_context",
     "mood_context",
     "energy_context",
+    "unifi_context",
 ]
 
 
@@ -57,6 +59,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "media_context": MediaContextModule,
         "mood_context": MoodContextModule,
         "energy_context": EnergyContextModule,
+        "unifi_context": UnifiContextModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():

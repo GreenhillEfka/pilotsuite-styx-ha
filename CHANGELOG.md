@@ -1,5 +1,53 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.1] - 2026-02-14
+
+### 🌐 UniFi Context Module — Core Add-on Integration
+
+Network monitoring context module connecting HA Integration to Core Add-on UniFi Neuron (v0.4.10).
+
+#### Added
+- **`unifi_context.py`**: Coordinator for fetching UniFi network data from Core Add-on API
+  - `/api/v1/unifi` snapshot endpoint (WAN status, clients, roaming, baselines)
+  - `/api/v1/unifi/wan` for WAN uplink status
+  - `/api/v1/unifi/clients` for connected clients list
+  - `/api/v1/unifi/roaming` for roaming events
+  - Graceful error handling for Core Add-on unavailability
+
+- **`unifi_context_entities.py`**: HA sensor entities for network data
+  - `sensor.ai_home_copilot_unifi_clients_online` (count of online clients)
+  - `sensor.ai_home_copilot_unifi_wan_latency` (ms, latency)
+  - `sensor.ai_home_copilot_unifi_packet_loss` (%, packet loss)
+  - `sensor.ai_home_copilot_unifi_wan_online` (binary, connectivity)
+  - `sensor.ai_home_copilot_unifi_roaming` (binary, recent roaming activity)
+  - `sensor.ai_home_copilot_unifi_wan_uptime` (human-readable uptime)
+
+- **`core/modules/unifi_context_module.py`**: New-style CoPilot module
+  - Connects to Core Add-on UniFi Neuron API
+  - Exposes `get_snapshot()` for other modules
+  - Automatic entity registration on setup
+  - Full error handling and logging
+
+#### Consistency Fix
+- Connects released UniFi Neuron (v0.4.10) from Core Add-on to HA Integration
+- Follows same pattern as EnergyContext and MoodContext modules
+- Privacy-first: only aggregated network data, no packet inspection
+
+#### Use Cases
+- Dashboard overview of network health (WAN online, latency, packet loss)
+- Monitor connected clients count and roaming activity
+- Network context for CoPilot suggestions (don't suggest offline-related actions during outages)
+
+#### Sensors Summary
+| Entity | Type | Description |
+|--------|------|-------------|
+| `sensor.ai_home_copilot_unifi_clients_online` | Sensor | Online clients count |
+| `sensor.ai_home_copilot_unifi_wan_latency` | Sensor | WAN latency (ms) |
+| `sensor.ai_home_copilot_unifi_packet_loss` | Sensor | WAN packet loss (%) |
+| `binary_sensor.ai_home_copilot_unifi_wan_online` | Binary | WAN connectivity |
+| `binary_sensor.ai_home_copilot_unifi_roaming` | Binary | Recent roaming |
+| `sensor.ai_home_copilot_unifi_wan_uptime` | Sensor | WAN uptime |
+
 ## [0.6.0] - 2026-02-14
 
 ### 🎛️ Debug Level Control
