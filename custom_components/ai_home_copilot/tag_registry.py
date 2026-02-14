@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant
@@ -11,12 +12,26 @@ from .const import DOMAIN
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.tag_registry"
 
+SUPPORTED_SUBJECT_KINDS = {
+    "entity",
+    "device",
+    "area",
+    "automation",
+    "scene",
+    "script",
+    "helper",
+}
+
 
 # v0.1: governance-first, minimal schema.
 # - tags: central registry (key -> record)
 # - assignments: subject -> list[tag_key]
 # - ha_label_map: tag_key -> ha_label_id (for materialized, confirmed tags)
 # - user_aliases: user.* tag_key -> ha_label_id (read-only import of existing HA labels)
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass
@@ -272,6 +287,125 @@ async def _update_subject_labels(hass: HomeAssistant, subject: str, label_ids: s
         return False
 
     return False
+
+
+def _tag_display_name(tag: dict[str, Any]) -> str | None:
+    display = tag.get("display") if isinstance(tag.get("display"), dict) else {}
+    if not display:
+        return None
+
+    name = display.get("name")
+    if isinstance(name, str) and name:
+        return name
+
+    names = display.get("names") if isinstance(display.get("names"), dict) else {}
+    for lang in (display.get("lang"), "de", "en"):
+        if lang and isinstance(names.get(lang), str) and names[lang]:
+            return names[lang]
+    return None
+
+
+def _should_materialize(tag: dict[str, Any]) -> bool:
+    ha_cfg = tag.get("ha") if isinstance(tag.get("ha"), dict) else {}
+    if not ha_cfg:
+        return True
+    if ha_cfg.get("materializes_in_ha") is False:
+        return False
+    if ha_cfg.get("materialize_as_label") is False:
+        return False
+    return True
+
+
+async def async_import_canonical_tags(
+    hass: HomeAssistant,
+    *,
+    tags: list[dict[str, Any]],
+    schema_version: str | None = None,
+    fetched_at: str | None = None,
+) -> dict[str, int]:
+    data = await _load(hass)
+    imported = 0
+    for payload in tags:
+        if not isinstance(payload, dict):
+            continue
+        tag_id = str(payload.get("id") or "").strip()
+        if not tag_id:
+            continue
+
+        display_name = _tag_display_name(payload)
+        icon = payload.get("icon") if isinstance(payload.get("icon"), str) else None
+        color = payload.get("color") if isinstance(payload.get("color"), str) else None
+        record: dict[str, Any] = {
+            "title": display_name or tag_id,
+            "status": "confirmed" if _should_materialize(payload) else "pending",
+        }
+        if icon:
+            record["icon"] = icon
+        if color:
+            record["color"] = color
+        data["tags"][tag_id] = record
+        imported += 1
+
+    if schema_version:
+        data["registry_schema_version"] = schema_version
+    data["registry_synced_at"] = fetched_at or _now_iso()
+    await _save(hass, data)
+    return {"tags_imported": imported}
+
+
+async def async_replace_assignments_snapshot(
+    hass: HomeAssistant,
+    *,
+    assignments: list[dict[str, Any]],
+    revision: int | None = None,
+    fetched_at: str | None = None,
+) -> dict[str, int]:
+    data = await _load(hass)
+    per_subject: dict[str, list[str]] = {}
+    snapshot: dict[str, dict[str, Any]] = {}
+
+    for payload in assignments:
+        if not isinstance(payload, dict):
+            continue
+        subject_kind = str(payload.get("subject_kind") or "").strip().lower()
+        subject_id = str(payload.get("subject_id") or "").strip()
+        tag_id = str(payload.get("tag_id") or "").strip()
+        if not subject_kind or subject_kind not in SUPPORTED_SUBJECT_KINDS:
+            continue
+        if not subject_id or not tag_id:
+            continue
+        subject = f"{subject_kind}:{subject_id}"
+
+        tags = per_subject.setdefault(subject, [])
+        if tag_id not in tags:
+            tags.append(tag_id)
+
+        assignment_id = str(payload.get("assignment_id") or f"{subject}#{tag_id}")
+        snapshot[assignment_id] = {
+            "subject": subject,
+            "subject_kind": subject_kind,
+            "subject_id": subject_id,
+            "tag_id": tag_id,
+            "materialized": bool(payload.get("materialized", False)),
+            "source": payload.get("source"),
+            "confidence": payload.get("confidence"),
+            "updated_at": payload.get("updated_at"),
+        }
+
+    data["assignments"] = per_subject
+    data["assignments_snapshot"] = snapshot
+    if revision is not None:
+        try:
+            data["assignments_revision"] = int(revision)
+        except (TypeError, ValueError):
+            data["assignments_revision"] = revision
+    data["assignments_total"] = len(snapshot)
+    data["assignments_synced_at"] = fetched_at or _now_iso()
+    await _save(hass, data)
+    return {
+        "subjects": len(per_subject),
+        "assignments": len(snapshot),
+    }
 
 
 async def async_sync_labels_now(hass: HomeAssistant) -> SyncReport:

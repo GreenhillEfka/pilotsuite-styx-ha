@@ -1,10 +1,10 @@
-# AI Home CoPilot – Project Plan (Canvas + Kanban)
+# AI Home CoPilot - Project Plan (Canvas + Kanban)
 
 ## 0) Project Canvas (1 page)
 **Mission**
 Turn Home Assistant usage patterns into *governed*, *privacy-first* automation suggestions that users can accept via Repairs + Blueprints.
 
-**Non‑negotiables**
+**Non-negotiables**
 - Privacy-first: no log shipping; no personal defaults in repo; tokens never logged.
 - Governance-first: no silent automation creation; every change requires explicit confirmation.
 - Prefer push/event driven; polling only as fallback (watchdog).
@@ -31,36 +31,77 @@ Legend: ✅ done / 🟡 in progress / ⏳ next / 💡 later
 - ✅ Governance UX: Repairs + safe blueprint shipped
 - ✅ Error analysis + reversible fixer (log scan + Repairs fix + rollback)
 - ✅ DevLogs debug pipeline (opt-in push + in-HA fetch) to keep development observable
-- 🟡 Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior
+- ✅ Modular runtime skeleton (legacy wrapper) to enable 20+ modules without breaking behavior
+- ✅ Service registration extraction (`services_setup.py`) — `__init__.py` 300→60 lines (v0.5.4)
 
 ### NEXT (make suggestions real)
-**N0 – Stable module foundation (HA side)**
-- ⏳ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update
-- ⏳ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain
+**N0 - Stable module foundation (HA side)**
+- ✅ Release the modular runtime skeleton (legacy wrapper) as a no-behavior-change update (v0.5.4)
+- ✅ Add `media_players_csv` config + **MediaContext v0.1 (read-only)** to provide reliable signals (Spotify/Sonos) for Mood/Habitus/Entertain (v0.5.5)
 
-**N1 – Candidate lifecycle + UX polish (HA side)**
-- ⏳ Candidate states: add `defer` (with “offer again after X days”)
-- ⏳ Better Repairs fix flow text + link to Blueprint UI
-- ⏳ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text
+**N1 – Candidate lifecycle + UX polish (HA side)** ✅
+- ✅ Candidate states: add `defer` (with "offer again after X days")
+- ✅ Better Repairs fix flow text + link to Blueprint UI (v0.4.9)
+- ✅ Store minimal evidence payload (support/confidence/lift) and show it in Repairs text (v0.4.8)
 
-**N2 – Core API v1 minimal**
-- ⏳ `POST /api/v1/events` (batch)
-- ⏳ `GET /api/v1/events` (debug window / support tooling)
-- ⏳ Candidate store endpoints (for HA UX + future ranking)
-- ⏳ Habitus miner A→B (Δt window, debounce, support/confidence/lift)
+**N2 - Core API v1 minimal** ✅
+- ✅ `POST /api/v1/events` (batch) — v0.4.3 Core
+- ✅ `GET /api/v1/events` (debug window / support tooling) — v0.4.3 Core
+- ✅ Candidate store endpoints (for HA UX + future ranking) — v0.4.4 Core
+- ✅ Habitus miner A→B (Δt window, debounce, support/confidence/lift) — v0.4.5 Core
 
-**N3 – HA → Core event forwarder**
-- ⏳ Capabilities ping (`GET /api/v1/capabilities`) and clear “Core supports v1?” status
-- ⏳ Allowlist which HA entities we forward (default: Habitus zones; optional: MediaContext lists)
-- ⏳ Token-protected calls, rate limits, and redaction rules
+**N3 - HA → Core event forwarder**
+- ✅ Capabilities ping (`GET /api/v1/capabilities`) and clear "Core supports v1?" status
+- ✅ Allowlist which HA entities we forward (default: Habitus zones; optional: MediaContext lists)
+- ✅ Token-protected calls, rate limits, and redaction rules
+- ✅ Heartbeat monitoring for Core health (60s interval, configurable)
+- ✅ Enhanced zone inference for person/device_tracker entities
+- ✅ Privacy-first redaction (GPS, tokens, PII) per Alpha Worker N3 spec
 
-**N4 – Brain Graph (Dev surface)**
-- 💡 Co-activity graph (neurons + synapses) generated from forwarded events
-- 💡 First view: static SVG + summary table (HA-friendly, low maintenance)
+**N4 - Brain Graph (Dev surface)**
+- ✅ Co-activity graph (neurons + synapses) generated from forwarded events
+- ✅ Multi-source zone inference with confidence weighting
+- ✅ Enhanced intentional action tracking (service calls 2x salience)
+- ✅ Spatial intent chains and trigger inference using HA context
+- ✅ `/api/v1/graph/patterns` endpoint for automation hints
+- ✅ Privacy-first bounded storage (max 500 nodes, 1500 edges)
+- ✅ First view: static SVG + summary table (HA-friendly, low maintenance)
 - 💡 Later: interactive graph panel (optional)
 
-### LATER (expansion modules)
-- 💡 Mood vector v0.1 (comfort/frugality/joy) and ranking
+**N5 - Core ↔ HA Integration Bridge**
+- ✅ CandidatePollerModule: HA polls Core `/api/v1/candidates?state=pending` every 5 min (v0.5.0)
+- ✅ Auto-offer via Repairs with evidence display + pre-populated Blueprint inputs (v0.5.0)
+- ✅ Bidirectional state sync: offered/accepted/dismissed states sent back to Core (v0.5.0)
+- ✅ Decision sync-back: accept/dismiss/defer synced to Core via PUT (v0.5.1)
+- ✅ Habitus trigger: `ai_home_copilot.trigger_mining` service calls `POST /api/v1/habitus/mine` on-demand (v0.5.2)
+- ✅ Pipeline Health sensor: `sensor.ai_home_copilot_pipeline_health` consolidates Core component status (v0.5.2)
+
+### ✅ LATER Milestone A (Mood Context) — Complete! (v0.4.7 + v0.5.7)
+
+**Option A: Mood vector v0.1 — Context-aware suggestion weighting** ✅
+- ✅ **Core Mood Module (v0.4.7)**: Per-zone comfort/frugality/joy scoring
+  * `update_from_media_context()`: Music/TV activity → joy boost
+  * `update_from_habitus()`: Time-of-day + patterns → comfort/frugality/joy baselines
+  * Exponential smoothing (α=0.3) for smooth transitions
+  * `should_suppress_energy_saving()`: Don't suggest energy-saving if joy > 0.6 or comfort > 0.7
+  * `get_suggestion_relevance_multiplier()`: Weight suggestions by zone mood
+  * REST API: GET `/api/v1/mood`, POST `/update-media`, POST `/update-habitus`
+- ✅ **HA Mood Context Module (v0.5.7)**: Polls Core mood API continuously
+  * Async polling (30s interval) with graceful fallback
+  * Cache per-zone moods with exponential smoothing
+  * `should_suppress_energy_saving()`: Mirror Core logic locally
+  * `get_suggestion_context()`: Relevance multipliers for repairs.py integration
+  * Ready for repairs.py integration to weight suggestions
+
+**Use Cases**:
+- "Don't suggest 'turn off lights' during movie night" (joy > 0.6)
+- "Suppress energy-saving if comfort is priority" (comfort > 0.7, frugality < 0.5)
+- "Weight comfort automations by user comfort preference"
+- "Security suggestions always weighted 1.0 (always relevant)"
+
+### LATER (remaining expansion modules)
+- ✅ **Option B**: Core Add-on modular cleanup (v0.4.8) — Extract `main.py` blueprint registration
+- ✅ **Option C**: HA Integration test suite — Repairs workflow + decision sync tests (v0.5.8)
 - 💡 SystemHealth neuron (Zigbee/Z-Wave/Mesh, recorder, slow updates)
 - 💡 UniFi neuron (WAN loss/jitter, client roams, baselines)
 - 💡 Energy neuron (anomalies, load shifting, explainability)
@@ -87,5 +128,5 @@ If we track work in GitHub:
 ---
 
 ## 4) Where this lives
-- This file should be the single “source of truth” overview.
+- This file should be the single "source of truth" overview.
 - Detailed specs live in `docs/` (API draft, concept v0.2, model v0.1).

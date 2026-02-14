@@ -12,8 +12,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_call_later
 
-from ...const import DOMAIN
+from ...const import (
+    DEBUG_LEVEL_FULL,
+    DEBUG_LEVEL_LIGHT,
+    DEBUG_LEVEL_OFF,
+    DEBUG_LEVELS,
+    DOMAIN,
+)
 from ..module import CopilotModule, ModuleContext
+from ..error_helpers import format_error_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -133,6 +140,29 @@ class ErrorDigest:
         }
         self.last_error = rec
         self.counters[key] += 1
+        self.recent.append(rec)
+
+    def record_exception(self, error: Exception, operation: str, context: dict[str, Any] | None = None) -> None:
+        """Record an exception with enhanced context and traceback info."""
+        error_data = format_error_context(error, operation, context, include_traceback=True, max_frames=5)
+        
+        # Classify the exception type
+        error_key = _classify_exception(error)
+        
+        # Create enhanced record with traceback summary
+        rec = {
+            "time": error_data["timestamp"],
+            "error_key": error_key,
+            "message": error_data["error_message"],
+            "where": operation,
+            "hint": ERROR_REGISTRY.get(error_key, {}).get("hint"),
+            "error_type": error_data["error_type"],
+            "context": error_data.get("context", {}),
+            "traceback_summary": error_data.get("traceback_summary"),
+        }
+        
+        self.last_error = rec
+        self.counters[error_key] += 1
         self.recent.append(rec)
 
     def as_dict(self) -> dict[str, Any]:
@@ -270,6 +300,36 @@ class DevSurfaceModule(CopilotModule):
             k["errors"].clear()
             k["devlog"].add(level="info", typ="errors", msg="Error digest cleared")
 
+        async def _svc_set_debug_level(call: ServiceCall) -> None:
+            entry_id = str(call.data.get("entry_id", ""))
+            level = str(call.data.get("level", DEBUG_LEVEL_OFF))
+            k = _get_kernel(hass, entry_id)
+
+            if level == DEBUG_LEVEL_FULL:
+                k["debug"] = True
+            elif level == DEBUG_LEVEL_LIGHT:
+                k["debug"] = True  # Light still enables debug, but filters in UI
+            else:  # off
+                k["debug"] = False
+
+            k["debug_level"] = level
+            k["devlog"].add(level="info", typ="debug_level", msg=f"Debug level set to {level}", data={"level": level})
+
+        async def _svc_clear_all_logs(call: ServiceCall) -> None:
+            """Clear all log buffers (devlog and errors)."""
+            entry_id = str(call.data.get("entry_id", ""))
+            k = _get_kernel(hass, entry_id)
+
+            # Clear devlog buffer
+            if "devlog" in k:
+                k["devlog"]._dq.clear()
+
+            # Clear error digest
+            if "errors" in k:
+                k["errors"].clear()
+
+            k["devlog"].add(level="info", typ="logs", msg="All logs cleared")
+
         async def _svc_ping(call: ServiceCall) -> None:
             entry_id = str(call.data.get("entry_id", ""))
             ent = hass.config_entries.async_get_entry(entry_id)
@@ -283,6 +343,8 @@ class DevSurfaceModule(CopilotModule):
         hass.services.async_register(DOMAIN, "enable_debug_for", _svc_enable_debug)
         hass.services.async_register(DOMAIN, "disable_debug", _svc_disable_debug)
         hass.services.async_register(DOMAIN, "clear_error_digest", _svc_clear_errors)
+        hass.services.async_register(DOMAIN, "set_debug_level", _svc_set_debug_level)
+        hass.services.async_register(DOMAIN, "clear_all_logs", _svc_clear_all_logs)
         hass.services.async_register(DOMAIN, "ping", _svc_ping)
 
         global_data["dev_surface_services_registered"] = True

@@ -144,6 +144,76 @@ def _format_entry(entry: list[str]) -> str:
     return "\n".join(entry)
 
 
+def _parse_traceback_signature(entry: list[str]) -> str:
+    """Extract a signature for grouping similar tracebacks."""
+    text = "\n".join(entry)
+    
+    # Extract error type and location
+    error_type = "Unknown"
+    location = "unknown"
+    
+    # Look for Python exception patterns
+    for line in entry:
+        # Exception type at end of traceback
+        if ": " in line and any(exc in line for exc in ["Error", "Exception", "Warning"]):
+            parts = line.split(": ", 1)
+            if parts[0].strip():
+                error_type = parts[0].strip().split(".")[-1]  # Get last part of module.Error
+                break
+    
+    # Look for file location (most specific stack frame in our code)
+    for line in entry:
+        if "custom_components/ai_home_copilot" in line and "line " in line:
+            # Extract filename and line
+            if 'File "' in line:
+                try:
+                    file_part = line.split('File "')[1].split('"')[0]
+                    filename = file_part.split("/")[-1]  # Just the filename
+                    location = filename
+                    break
+                except (IndexError, AttributeError):
+                    pass
+    
+    return f"{error_type}@{location}"
+
+
+def _group_entries(entries: list[str]) -> list[tuple[str, list[str]]]:
+    """Group similar error entries by signature."""
+    groups: dict[str, list[str]] = {}
+    
+    for entry_text in entries:
+        entry_lines = entry_text.split("\n")
+        signature = _parse_traceback_signature(entry_lines)
+        
+        if signature not in groups:
+            groups[signature] = []
+        groups[signature].append(entry_text)
+    
+    # Sort by frequency (most common errors first)
+    sorted_groups = sorted(groups.items(), key=lambda x: len(x[1]), reverse=True)
+    
+    return sorted_groups
+
+
+def _format_grouped_entries(grouped: list[tuple[str, list[str]]]) -> str:
+    """Format grouped entries with counts and latest example."""
+    sections = []
+    
+    for signature, entries in grouped:
+        count = len(entries)
+        latest = entries[-1]  # Most recent occurrence
+        
+        if count == 1:
+            header = f"🔸 **{signature}**"
+        else:
+            header = f"🔸 **{signature}** ({count}x)"
+        
+        # For repeated errors, show just the latest occurrence
+        sections.append(f"{header}\n```\n{latest}\n```")
+    
+    return "\n\n".join(sections)
+
+
 def _filter_relevant(lines: list[str]) -> list[str]:
     """Return a list of formatted, relevant log entries."""
 
@@ -190,9 +260,20 @@ async def async_fetch_ha_errors_digest(
         )
 
     # Keep the tail of the hits to focus on latest problems.
-    tail = hits[-12:]
+    tail = hits[-20:]  # Increased from 12 to allow better grouping
 
-    text = "\n\n---\n\n".join(tail)
+    # Group similar errors for better readability
+    grouped = _group_entries(tail)
+    
+    # Format with grouping and counts
+    text = _format_grouped_entries(grouped)
+    
+    # Add summary header
+    total_errors = len(tail)
+    unique_types = len(grouped)
+    summary = f"**Fehler-Digest** ({total_errors} Einträge, {unique_types} Typen)\n\n"
+    text = summary + text
+    
     text = _sanitize(text, max_chars=8000)
     return ("AI Home CoPilot HA errors (digest)", text)
 
