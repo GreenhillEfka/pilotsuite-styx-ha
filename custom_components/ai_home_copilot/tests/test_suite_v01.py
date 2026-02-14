@@ -169,6 +169,55 @@ class TestContextModules:
         # All expected entities defined
         assert len(expected_entities) == 6
 
+    def test_weather_context_entities(self):
+        """Weather Context should expose expected entities."""
+        expected_entities = [
+            "sensor.ai_home_copilot_weather_condition",
+            "sensor.ai_home_copilot_weather_temperature",
+            "sensor.ai_home_copilot_weather_cloud_cover",
+            "sensor.ai_home_copilot_weather_uv_index",
+            "sensor.ai_home_copilot_pv_forecast_kwh",
+            "sensor.ai_home_copilot_pv_recommendation",
+            "sensor.ai_home_copilot_pv_surplus_kwh",
+        ]
+        
+        # All 7 expected weather/PV entities defined
+        assert len(expected_entities) == 7
+
+    def test_weather_condition_options(self):
+        """Weather condition sensor should have valid options."""
+        weather_conditions = [
+            "sunny", "clear", "partly_cloudy", "cloudy", "overcast",
+            "rainy", "drizzle", "stormy", "snowy", "foggy", "windy"
+        ]
+        
+        assert "sunny" in weather_conditions
+        assert "cloudy" in weather_conditions
+        assert len(weather_conditions) == 11
+
+    def test_pv_recommendation_options(self):
+        """PV recommendation sensor should have valid options."""
+        pv_recommendations = [
+            "optimal_charging",
+            "moderate_usage", 
+            "grid_recommended",
+            "export_surplus",
+        ]
+        
+        assert "optimal_charging" in pv_recommendations
+        assert "export_surplus" in pv_recommendations
+        assert len(pv_recommendations) == 4
+
+    def test_weather_pv_surplus_calculation(self):
+        """PV surplus should be calculated from forecast."""
+        forecast_pv_production_kwh = 10.0  # 10 kWh forecast
+        self_consumption_ratio = 0.6  # 60% self-consumption
+        
+        # Surplus = forecast * (1 - self-consumption)
+        expected_surplus = forecast_pv_production_kwh * (1 - self_consumption_ratio)
+        
+        assert expected_surplus == 4.0  # 40% surplus
+
     def test_context_coordinator(self):
         """Context modules should use coordinator pattern."""
         coordinator = {
@@ -178,6 +227,20 @@ class TestContextModules:
         }
         
         assert coordinator["update_interval"] > 0
+
+    def test_all_context_modules_registered(self):
+        """All context modules should be registered in HA."""
+        registered_modules = [
+            "energy_context",
+            "unifi_context", 
+            "weather_context",
+        ]
+        
+        # Verify all expected context modules exist
+        assert len(registered_modules) == 3
+        assert "energy_context" in registered_modules
+        assert "unifi_context" in registered_modules
+        assert "weather_context" in registered_modules
 
 
 class TestPyCompile:

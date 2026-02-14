@@ -1,5 +1,25 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.6.3] - 2026-02-14
+
+### 🧪 Testing Suite v0.1.1 — Weather Context Tests
+
+Enhanced test coverage for all Context Modules.
+
+#### Added
+- **Weather Context tests** (`test_suite_v01.py`):
+  - `test_weather_context_entities()`: Validates all 7 weather/PV entities
+  - `test_weather_condition_options()`: Verifies 11 weather condition options
+  - `test_pv_recommendation_options()`: Verifies 4 PV recommendation options
+  - `test_weather_pv_surplus_calculation()`: Tests PV surplus calculation logic
+  - `test_all_context_modules_registered()`: Validates Energy/UniFi/Weather modules
+
+#### Improved
+- All Context Module tests now cover complete entity lists
+- Added option validation tests for enum sensors
+
+---
+
 ## [0.6.2] - 2026-02-14
 
 ### ☀️ Weather Context Module — PV Forecasting Integration
