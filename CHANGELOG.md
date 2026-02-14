@@ -1,5 +1,33 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.15] - 2026-02-14
+
+### Added
+- **Habitus Zones v2 — Zone-Aware Pattern Mining**:
+  - **BrainGraphService Zone Methods**:
+    - `get_zone_entities(zone_id)`: Get all entities in a specific zone
+    - `get_zones()`: List all discovered zones with entity counts
+  - **HabitusMiner Zone Filter**:
+    - `mine_patterns(lookback_hours, zone=...)`: Filter patterns by zone
+    - Only patterns where both antecedent and consequent entities belong to the specified zone
+  - **HabitusService Integration**:
+    - Zone parameter passed through to miner and stored in candidate metadata
+    - `zone_filter` field in candidate metadata tracks zone context
+  - **REST API Extensions**:
+    - `POST /api/v1/habitus/mine`: New `zone` parameter for zone-filtered mining
+    - `GET /api/v1/habitus/zones`: New endpoint to list available zones
+
+### Technical Details
+- **Zone Normalization**: Accepts both "kitchen" and "zone:kitchen" formats
+- **Discovery Method**: Candidates created from zone-filtered mining use `habitus_miner_v2`
+- **Entity Count**: Zones endpoint includes entity count for each zone
+
+### Tests
+- 9 new unit tests covering zone functionality
+- Tests for `get_zones()`, `get_zone_entities()`, zone-filtered mining
+
+---
+
 ## [0.4.14] - 2026-02-14
 
 ### Added
