@@ -17,6 +17,7 @@ from .core.modules.brain_graph_sync import BrainGraphSyncModule
 from .core.modules.candidate_poller import CandidatePollerModule
 from .core.modules.media_context_module import MediaContextModule
 from .core.modules.mood_context_module import MoodContextModule
+from .core.modules.energy_context_module import EnergyContextModule
 from .services_setup import async_register_all_services
 
 _MODULES = [
@@ -31,6 +32,7 @@ _MODULES = [
     "candidate_poller",
     "media_context",
     "mood_context",
+    "energy_context",
 ]
 
 
@@ -54,6 +56,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "candidate_poller": CandidatePollerModule,
         "media_context": MediaContextModule,
         "mood_context": MoodContextModule,
+        "energy_context": EnergyContextModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():

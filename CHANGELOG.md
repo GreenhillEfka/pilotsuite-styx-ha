@@ -1,5 +1,42 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.5.9] - 2026-02-14
+
+### ⚡ Energy Context Module — Core Add-on Integration
+
+Energy monitoring context module connecting HA Integration to Core Add-on Energy Neuron (v0.4.11).
+
+#### Added
+- **`energy_context.py`**: Coordinator for fetching energy data from Core Add-on API
+  - `/api/v1/energy` snapshot endpoint (consumption, production, power)
+  - `/api/v1/energy/anomalies` for anomaly detection
+  - `/api/v1/energy/shifting` for load shifting opportunities
+  - Graceful error handling for Core Add-on unavailability
+
+- **`energy_context_entities.py`**: HA sensor entities for energy data
+  - `sensor.ai_home_copilot_energy_consumption_today` (kWh, device_class=energy)
+  - `sensor.ai_home_copilot_energy_production_today` (kWh, device_class=energy, solar)
+  - `sensor.ai_home_copilot_energy_current_power` (W, device_class=power)
+  - `sensor.ai_home_copilot_energy_anomalies` (count)
+  - `sensor.ai_home_copilot_energy_shifting_opportunities` (count)
+  - `binary_sensor.ai_home_copilot_energy_anomaly_alert` (problem detection)
+
+- **`core/modules/energy_context_module.py`**: New-style CoPilot module
+  - Connects to Core Add-on Energy Neuron API
+  - Exposes `get_snapshot()` for other modules
+  - Automatic entity registration on setup
+  - Full error handling and logging
+
+#### Consistency Fix
+- Connects released Energy Neuron (v0.4.11) from Core Add-on to HA Integration
+- Follows same pattern as MediaContext and MoodContext modules
+- Privacy-first: only aggregated values, no device-level data
+
+#### Use Cases
+- "Deine Waschmaschine verbraucht 40% mehr als üblich" (via anomalies)
+- "PV-Überschuss jetzt verfügbar → Geschirrspüler starten?" (via shifting)
+- Dashboard sensors for energy monitoring without HA Energy dashboard duplication
+
 ## [0.5.8] - 2026-02-14
 
 ### 🧪 Option C: HA Integration Test Suite — Complete
