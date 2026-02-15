@@ -9,17 +9,31 @@ from .assignments import (
     TagAssignmentStoreError,
     TagAssignmentValidationError,
 )
+from .zone_integration import (
+    TagZoneIntegration,
+    ZoneGovernance,
+    HabitusZoneConfig,
+    create_tag_zone_integration,
+)
 
 __all__ = [
+    # Models
     "Tag",
     "TagDisplay",
     "TagGovernance",
     "TagHAConfig",
+    # Registry
     "TagRegistry",
     "TagRegistryError",
+    # Assignments
     "ALLOWED_SUBJECT_KINDS",
     "TagAssignment",
     "TagAssignmentStore",
     "TagAssignmentStoreError",
     "TagAssignmentValidationError",
+    # Zone Integration
+    "TagZoneIntegration",
+    "ZoneGovernance",
+    "HabitusZoneConfig",
+    "create_tag_zone_integration",
 ]

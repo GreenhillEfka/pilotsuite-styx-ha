@@ -1,5 +1,32 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.30] - 2026-02-15
+
+### Added
+- **Tag → Zone Integration** (`tagging/zone_integration.py`):
+  - `TagZoneIntegration`: Automatic zone membership from place tags
+  - When entity tagged with `aicp.place.X` → auto-joins `HabitusZone("X")`
+  - Safety-critical role handling (`aicp.role.safety_critical`)
+  - Zone governance rules (confirmation required, auto-learning toggle)
+  - Pattern application checks (can_auto_apply, requires_confirmation)
+  - Zone statistics and configuration management
+
+### Philosophy
+- **HABITUS_PHILOSOPHY.md**: Core philosophy documented
+  - "Ein Smart Home ist nur so schlau wie sein Nutzer"
+  - HabitusZones = Brücke zwischen statischen Regeln und individuellen Mustern
+  - Tags geben Bedeutung, Zonen geben Kontext
+  - Vorschläge, nicht Automatik
+
+### Architecture
+```
+Tag Assignment → TagZoneIntegration → HabitusZone update
+                          ↓
+                   Habitus Miner (zone-filtered)
+```
+
+---
+
 ## [0.4.29] - 2026-02-15
 
 ### Fixed
