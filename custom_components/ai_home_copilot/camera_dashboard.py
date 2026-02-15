@@ -200,7 +200,7 @@ cards:
   - type: vertical-stack
     title: 📷 Kamera-Status
     cards:
-{y _camera_summary_yaml(motion_count, presence_count, activity_count, zone_count)}
+{_camera_summary_yaml(motion_count, presence_count, activity_count, zone_count)}
 
   - type: horizontal-stack
     cards:
