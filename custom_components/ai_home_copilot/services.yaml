@@ -403,7 +403,7 @@ mupl_learn_preference:
         object:
     zone:
       name: Zone
-      description: Optional: Zone-spezifische Präferenz.
+      description: "Optional: Zone-spezifische Präferenz."
       example: "wohnzimmer"
       selector:
         text:
@@ -465,7 +465,7 @@ mupl_get_aggregated_mood:
   fields:
     user_ids:
       name: User IDs
-      description: Optional: Liste spezifischer User-IDs (leer = alle aktiven User).
+      description: "Optional: Liste spezifischer User-IDs (leer = alle aktiven User)."
       example: '["person.efka", "person.partner"]'
       selector:
         object:
