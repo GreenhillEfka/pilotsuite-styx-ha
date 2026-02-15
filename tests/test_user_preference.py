@@ -102,7 +102,11 @@ class TestUserPreferenceModule:
     @pytest.mark.asyncio
     async def test_set_preference_creates_user(self, module):
         """Test that set_preference creates user if not exists."""
-        module._store.async_load = AsyncMock(return_value=module._data)
+        # Mock store if needed
+        if module._store is None:
+            from unittest.mock import AsyncMock
+            module._store = AsyncMock()
+            module._store.async_load = AsyncMock(return_value=module._data)
         
         await module.set_preference("person.test_user", "light_brightness_default", 0.8)
         
