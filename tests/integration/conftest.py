@@ -22,4 +22,5 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if str(item.fspath).startswith(str(import_path)):
             item.add_marker(pytest.mark.integration)
-            item.add_marker(pytest.mark.slow)
+            # Note: 'slow' marker removed - use explicit marker for slow tests
+            # item.add_marker(pytest.mark.slow)

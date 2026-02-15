@@ -2,8 +2,19 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
+from homeassistant.components import persistent_notification
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity import EntityCategory
 
+from .const import DOMAIN
 from .entity import CopilotBaseEntity
+from .inventory import async_generate_ha_overview
+from .inventory_publish import async_publish_last_overview
+from .inventory_kernel import async_generate_and_publish_inventory
+from .systemhealth_report import async_generate_and_publish_systemhealth_report
+from .config_snapshot import async_generate_config_snapshot, async_publish_last_config_snapshot
+from .habitus_dashboard import async_generate_habitus_zones_dashboard, async_publish_last_habitus_dashboard
+from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard, async_publish_last_pilotsuite_dashboard
 from .core_v1 import async_call_core_api
 
 class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):

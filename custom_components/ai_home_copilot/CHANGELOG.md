@@ -2,6 +2,50 @@
 
 All notable changes to AI Home CoPilot will be documented in this file.
 
+## [0.9.3] - 2026-02-15
+
+### Added
+- **Predictive Automation Sensors** (`sensors/predictive_automation.py`):
+  - `predictive_automation_sensor`: Shows ML-based automation suggestion count
+  - `predictive_automation_details_sensor`: Shows detailed suggestions with pattern, confidence, lift, support
+  - Integration with `repairs_enhanced.py` for enhanced UX
+
+- **Anomaly Alert Sensors** (`sensors/anomaly_alert.py`):
+  - `anomaly_alert_sensor`: Real-time anomaly detection status (healthy/active/idle)
+  - `alert_history_sensor`: Shows recent anomaly history with timestamps and scores
+  - Integration with `AnomalyDetector` from `ml/patterns/anomaly_detector.py`
+
+- **Energy Insights Sensors** (`sensors/energy_insights.py`):
+  - `energy_insight_sensor`: Shows total energy consumption (kWh) with device breakdown
+  - `energy_recommendation_sensor`: Shows active energy optimization recommendations
+  - Integration with `EnergyOptimizer` from `ml/patterns/energy_optimizer.py`
+
+- **Habit Learning v2 Sensors** (`sensors/habit_learning_v2.py`):
+  - `habit_learning_sensor`: Shows number of learned habit patterns
+  - `habit_prediction_sensor`: Shows habit predictions with confidence scores
+  - `sequence_prediction_sensor`: Shows device sequence predictions (cross-device correlation)
+  - Integration with `HabitPredictor` from `ml/patterns/habit_predictor.py`
+
+### Services
+- `predictive_automation_suggest_automation`: Suggest automation based on ML patterns
+- `anomaly_alert_check_and_alert`: Check for anomalies and send alerts
+- `anomaly_alert_clear_history`: Clear anomaly history
+- `energy_insights_get`: Get energy insights and recommendations
+- `habit_learning_learn`: Learn new habit pattern through observation
+- `habit_learning_predict`: Predict future events or sequences
+
+### Features
+- Unified ML context via `MLContext` module
+- All sensors integrate with existing ML subsystems
+- Push notifications via HA system notifications
+- Dashboard cards via existing `habitus_dashboard_cards.py`
+
+### Configuration
+- Enable via `ml_enabled: true` in config entry options
+- Auto-sync of entity states to ML context every 60 seconds
+
+---
+
 ## [0.8.16] - 2026-02-15
 
 ### Added

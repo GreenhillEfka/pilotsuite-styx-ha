@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
+from homeassistant.components import persistent_notification
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity import EntityCategory
 
-from .entity import CopilotBaseEntity
 from .const import (
     CONF_DEVLOG_PUSH_PATH,
     DEFAULT_DEVLOG_PUSH_PATH,
+    DOMAIN,
 )
+from .entity import CopilotBaseEntity
 from .log_fixer import async_analyze_logs, async_rollback_last_fix
 from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_error
 from .brain_graph_viz import async_publish_brain_graph_viz

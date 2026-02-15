@@ -65,6 +65,9 @@ def sanitize_entity_id(entity_id: str) -> str:
     # Remove leading/trailing underscores
     sanitized = sanitized.strip('_')
     
+    # Collapse multiple dots
+    sanitized = re.sub(r'\.+', '.', sanitized)
+    
     # Fallback if empty after sanitization
     if not sanitized:
         return "unknown"

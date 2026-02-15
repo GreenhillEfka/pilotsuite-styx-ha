@@ -1,3 +1,4 @@
+"""AI Home CoPilot Buttons (wrapper for backward compatibility)."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
@@ -20,6 +21,12 @@ from .habitus_zones_entities_v2 import (
 )
 from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
 from .button_update_rollback import CopilotUpdateRollbackReportButton
+from .button_media import (
+    VolumeUpButton,
+    VolumeDownButton,
+    VolumeMuteButton,
+    ClearOverridesButton,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -96,7 +103,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(entities, True)
 
 
-# Import all button classes from their respective modules
+# Re-export all button classes for backward compatibility
 from .button_safety import (
     CopilotSafetyBackupCreateButton,
     CopilotSafetyBackupStatusButton,
@@ -113,10 +120,7 @@ from .button_system import (
     CopilotDownloadHabitusDashboardButton,
     CopilotGeneratePilotSuiteDashboardButton,
     CopilotDownloadPilotSuiteDashboardButton,
-    VolumeUpButton,
-    VolumeDownButton,
-    VolumeMuteButton,
-    ClearOverridesButton,
+    CopilotBrainDashboardSummaryButton,
 )
 from .button_debug import (
     CopilotToggleLightButton,
@@ -140,5 +144,23 @@ from .button_debug import (
     CopilotDisableDebugButton,
     CopilotClearErrorDigestButton,
     CopilotClearAllLogsButton,
-    CopilotBrainDashboardSummaryButton,
+)
+from .button_graph import (
+    CopilotPublishBrainGraphVizButton,
+    CopilotPublishBrainGraphPanelButton,
+)
+from .button_devlog import (
+    CopilotDevLogTestPushButton,
+    CopilotDevLogPushLatestButton,
+    CopilotDevLogsFetchButton,
+)
+from .button_demo import (
+    CopilotCreateDemoSuggestionButton,
+)
+from .button_test import (
+    CopilotToggleLightButton,
+)
+from .button_other import (
+    CopilotAnalyzeLogsButton,
+    CopilotHaErrorsFetchButton,
 )

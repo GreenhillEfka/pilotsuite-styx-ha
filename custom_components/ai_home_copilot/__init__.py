@@ -29,6 +29,57 @@ from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
 from .core.modules.ml_context_module import MLContextModule
 from .debug import DebugModeSensor
 from .services_setup import async_register_all_services
+from .button import (
+    CopilotToggleLightButton,
+    CopilotCreateDemoSuggestionButton,
+    CopilotAnalyzeLogsButton,
+    CopilotRollbackLastFixButton,
+    CopilotGenerateOverviewButton,
+    CopilotDownloadOverviewButton,
+    CopilotGenerateInventoryButton,
+    CopilotSystemHealthReportButton,
+    CopilotGenerateConfigSnapshotButton,
+    CopilotDownloadConfigSnapshotButton,
+    CopilotReloadConfigEntryButton,
+    CopilotDevLogTestPushButton,
+    CopilotDevLogPushLatestButton,
+    CopilotDevLogsFetchButton,
+    CopilotCoreCapabilitiesFetchButton,
+    CopilotCoreEventsFetchButton,
+    CopilotCoreGraphStateFetchButton,
+    CopilotCoreGraphCandidatesPreviewButton,
+    CopilotCoreGraphCandidatesOfferButton,
+    CopilotPublishBrainGraphVizButton,
+    CopilotPublishBrainGraphPanelButton,
+    CopilotBrainDashboardSummaryButton,
+    CopilotForwarderStatusButton,
+    CopilotHaErrorsFetchButton,
+    CopilotPingCoreButton,
+    CopilotEnableDebug30mButton,
+    CopilotDisableDebugButton,
+    CopilotClearErrorDigestButton,
+    CopilotClearAllLogsButton,
+    CopilotSafetyBackupCreateButton,
+    CopilotSafetyBackupStatusButton,
+    CopilotGenerateHabitusDashboardButton,
+    CopilotDownloadHabitusDashboardButton,
+    CopilotGeneratePilotSuiteDashboardButton,
+    CopilotDownloadPilotSuiteDashboardButton,
+    VolumeUpButton,
+    VolumeDownButton,
+    VolumeMuteButton,
+    ClearOverridesButton,
+)
+
+# Import remaining buttons from their respective files
+from .habitus_zones_entities import HabitusZonesValidateButton
+from .habitus_zones_entities_v2 import (
+    HabitusZonesV2ValidateButton,
+    HabitusZonesV2SyncGraphButton,
+    HabitusZonesV2ReloadButton,
+)
+from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
+from .button_update_rollback import CopilotUpdateRollbackReportButton
 
 _MODULES = [
     "legacy",

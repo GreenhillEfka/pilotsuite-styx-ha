@@ -511,3 +511,136 @@ clear_debug_buffer:
   name: Clear Debug Buffer
   description: Clear the debug message buffer.
 
+
+# ─── Predictive Automation ───────────────────────────────────────────────────
+
+predictive_automation_suggest_automation:
+  name: Predictive Automation – Suggest Automation
+  description: Schlägt eine Automatisierung auf Basis von ML-Mustern vor.
+  fields:
+    pattern:
+      name: Pattern
+      description: Das zu automatisierende Muster (z.B. "light.kitchen:on → switch.coffee:on").
+      required: true
+      example: "light.kitchen:on → switch.coffee:on"
+      selector:
+        text:
+    confidence:
+      name: Konfidenz
+      description: Minimale Konfidenz für Vorschlag (0.0–1.0).
+      default: 0.5
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.05
+          mode: slider
+    zone:
+      name: Zone
+      description: "Optional: Zone-spezifische Automatisierung."
+      example: "kitchen"
+      selector:
+        text:
+
+# ─── Anomaly Alert ───────────────────────────────────────────────────────────
+
+anomaly_alert_check_and_alert:
+  name: Anomaly Alert – Check and Alert
+  description: Prüft aktuelle Daten auf Anomalien und sendet Alarme.
+  fields:
+    device_id:
+      name: Device ID
+      description: Zu überwachendes Gerät.
+      required: true
+      example: "sensor.living_room_temperature"
+      selector:
+        text:
+    threshold:
+      name: Threshold
+      description: Anomalie-Schwellwert (0.0–1.0).
+      default: 0.7
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.05
+          mode: slider
+
+anomaly_alert_clear_history:
+  name: Anomaly Alert – Clear History
+  description: Löscht die Anomalie-Verlaufsdaten.
+
+# ─── Energy Insights ───────────────────────────────────────────────────────
+
+energy_insights_get:
+  name: Energy Insights – Get Insights
+  description: Ruft aktuelle Energie-Insights und Empfehlungen ab.
+  fields:
+    device_id:
+      name: Device ID
+      description: "Optional: Gerät für detaillierte Insights."
+      example: "light.living_room"
+      selector:
+        text:
+    hours:
+      name: Hours
+      description: Zeitraum in Stunden (Standard: 24).
+      default: 24
+      selector:
+        number:
+          min: 1
+          max: 720
+          mode: box
+
+# ─── Habit Learning v2 ─────────────────────────────────────────────────────
+
+habit_learning_learn:
+  name: Habit Learning – Learn
+  description: Lernet ein neues Muster durch Beobachtung.
+  fields:
+    device_id:
+      name: Device ID
+      description: Gerät, dessen Verhalten beobachtet wird.
+      required: true
+      example: "light.kitchen"
+      selector:
+        text:
+    event_type:
+      name: Event Type
+      description: Typ des Events (on, off, state_change).
+      required: true
+      example: "on"
+      selector:
+        text:
+    device_chain:
+      name: Device Chain
+      description: "Optional: Sequenz von Geräten für Sequenz-Learning."
+      example: '["light.kitchen", "switch.coffee", "climate.living_room"]'
+      selector:
+        object:
+
+habit_learning_predict:
+  name: Habit Learning – Predict
+  description: Vorhersage eines zukünftigen Events oder einer Sequenz.
+  fields:
+    device_id:
+      name: Device ID
+      description: Gerät für Vorhersage.
+      required: true
+      example: "light.kitchen"
+      selector:
+        text:
+    event_type:
+      name: Event Type
+      description: Typ des Events (on, off, state_change).
+      required: true
+      example: "on"
+      selector:
+        text:
+    start_device:
+      name: Start Device
+      description: "Optional: Startgerät für Sequenz-Vorhersage."
+      example: "light.kitchen"
+      selector:
+        text:
+

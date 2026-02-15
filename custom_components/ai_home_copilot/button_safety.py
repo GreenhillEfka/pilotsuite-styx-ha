@@ -4,6 +4,7 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity
 
 from .entity import CopilotBaseEntity
+from .log_fixer import async_rollback_last_fix
 
 
 class CopilotRollbackLastFixButton(CopilotBaseEntity, ButtonEntity):
