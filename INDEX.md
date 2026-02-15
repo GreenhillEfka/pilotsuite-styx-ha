@@ -4,7 +4,7 @@
 
 ## Current Release
 
-**Core Add-on v0.6.0** (2026-02-15) — `main` branch
+**Core Add-on v0.6.2** (2026-02-15) — `main` branch
 
 ### Latest Updates
 - **Interactive Visualization (Phase 5)**: Full D3.js + React visualization module
