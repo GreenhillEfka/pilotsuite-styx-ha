@@ -5,6 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .debug import DebugModeSensor
 from .entity import CopilotBaseEntity
 from .media_entities import (
     MusicActiveCountSensor,
@@ -22,6 +23,11 @@ from .media_context_v2_entities import (
     DebugInfoSensor,
 )
 from .habitus_zones_entities import HabitusZonesCountSensor
+from .habitus_zones_entities_v2 import (
+    HabitusZonesV2CountSensor,
+    HabitusZonesV2StatesSensor,
+    HabitusZonesV2HealthSensor,
+)
 from .habitus_zones_store import async_get_zones
 from .habitus_zone_aggregates import build_zone_average_sensors
 from .core_v1_entities import CoreApiV1StatusSensor
@@ -37,7 +43,7 @@ from .habitus_miner_entities import (
     HabitusMinerStatusSensor, 
     HabitusMinerTopRuleSensor,
 )
-from .habitus_dashboard_cards_entities import HabitusDashboardCardsStatusSensor
+from .pipeline_health_entities import PipelineHealthSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -48,13 +54,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotVersionSensor(coordinator),
         CoreApiV1StatusSensor(coordinator, entry),
         HabitusZonesCountSensor(coordinator, entry),
+        # v2 Sensors
+        HabitusZonesV2CountSensor(coordinator, entry),
+        HabitusZonesV2StatesSensor(coordinator, entry),
+        HabitusZonesV2HealthSensor(coordinator, entry),
         SystemHealthEntityCountSensor(coordinator),
         SystemHealthSqliteDbSizeSensor(coordinator),
         CopilotInventoryLastRunSensor(coordinator),
         HabitusMinerRuleCountSensor(coordinator),
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
-        HabitusDashboardCardsStatusSensor(coordinator, entry),
+        PipelineHealthSensor(coordinator),
+        DebugModeSensor(hass),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)

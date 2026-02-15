@@ -1,0 +1,384 @@
+# AI Home CoPilot – Service Definitions
+# Auto-discovered by HA Developer Tools → Services
+
+# ─── Tag Registry ────────────────────────────────────────────────────────────
+
+tag_registry_upsert_tag:
+  name: Tag Registry – Upsert Tag
+  description: Erstellt oder aktualisiert einen Tag im Tag-Registry.
+  fields:
+    tag_key:
+      name: Tag Key
+      description: Eindeutiger Schlüssel des Tags (z.B. "area:kitchen").
+      required: true
+      example: "area:kitchen"
+      selector:
+        text:
+    title:
+      name: Titel
+      description: Anzeigename des Tags.
+      example: "Küche"
+      selector:
+        text:
+    icon:
+      name: Icon
+      description: MDI-Icon für den Tag (z.B. "mdi:silverware-fork-knife").
+      example: "mdi:silverware-fork-knife"
+      selector:
+        icon:
+    color:
+      name: Farbe
+      description: Farbe des Tags (z.B. "orange").
+      example: "orange"
+      selector:
+        text:
+    status:
+      name: Status
+      description: Aktueller Status des Tags.
+      example: "active"
+      selector:
+        text:
+
+tag_registry_set_assignment:
+  name: Tag Registry – Set Assignment
+  description: Weist einem Subject (Entity/Area) eine Liste von Tags zu.
+  fields:
+    subject:
+      name: Subject
+      description: Entity-ID oder Area-Name, dem Tags zugewiesen werden.
+      required: true
+      example: "light.wohnzimmer"
+      selector:
+        text:
+    tag_keys:
+      name: Tag Keys
+      description: Liste der zuzuweisenden Tag-Keys.
+      required: true
+      example: '["area:living_room", "type:ambient"]'
+      selector:
+        object:
+
+tag_registry_confirm:
+  name: Tag Registry – Confirm Tag
+  description: Bestätigt einen vorgeschlagenen Tag (markiert ihn als geprüft).
+  fields:
+    tag_key:
+      name: Tag Key
+      description: Schlüssel des zu bestätigenden Tags.
+      required: true
+      example: "area:kitchen"
+      selector:
+        text:
+
+tag_registry_sync_labels_now:
+  name: Tag Registry – Sync Labels Now
+  description: Synchronisiert alle Tags sofort mit HA-Labels.
+
+tag_registry_pull_from_core:
+  name: Tag Registry – Pull from Core
+  description: Zieht den aktuellen Tag-System-Snapshot vom Core Add-on.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz (optional).
+      selector:
+        text:
+
+# ─── Media Context v2 ────────────────────────────────────────────────────────
+
+media_context_v2_suggest_zone_mapping:
+  name: Media Context v2 – Suggest Zone Mapping
+  description: Schlägt automatische Zone-zu-Speaker-Zuordnungen vor.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz.
+      required: true
+      selector:
+        text:
+
+media_context_v2_apply_zone_suggestions:
+  name: Media Context v2 – Apply Zone Suggestions
+  description: Wendet vorgeschlagene Zone-Mappings an.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz.
+      required: true
+      selector:
+        text:
+
+media_context_v2_clear_overrides:
+  name: Media Context v2 – Clear Overrides
+  description: Löscht alle manuellen Zone-Overrides.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz.
+      required: true
+      selector:
+        text:
+
+# ─── N3 Event Forwarder ──────────────────────────────────────────────────────
+
+forwarder_n3_start:
+  name: N3 Event Forwarder – Start
+  description: Startet den Event-Forwarder zum Core Add-on (Heartbeat + Batch-Events).
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz.
+      required: true
+      selector:
+        text:
+
+forwarder_n3_stop:
+  name: N3 Event Forwarder – Stop
+  description: Stoppt den Event-Forwarder.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz.
+      required: true
+      selector:
+        text:
+
+forwarder_n3_stats:
+  name: N3 Event Forwarder – Stats
+  description: Gibt aktuelle Forwarder-Statistiken als Event aus.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: ID der Konfigurationsinstanz.
+      required: true
+      selector:
+        text:
+
+# ─── Ops Runbook ─────────────────────────────────────────────────────────────
+
+ops_runbook_preflight_check:
+  name: Ops Runbook – Preflight Check
+  description: Führt einen Preflight-Check durch (Systemvoraussetzungen, 1–2 Min.).
+
+ops_runbook_smoke_test:
+  name: Ops Runbook – Smoke Test
+  description: Führt einen Smoke-Test durch (Basis-Funktionalität verifizieren).
+
+ops_runbook_execute_action:
+  name: Ops Runbook – Execute Action
+  description: Führt eine benannte Runbook-Aktion aus.
+  fields:
+    action:
+      name: Aktion
+      description: Name der auszuführenden Runbook-Aktion.
+      required: true
+      example: "restart_forwarder"
+      selector:
+        text:
+
+ops_runbook_run_checklist:
+  name: Ops Runbook – Run Checklist
+  description: Führt eine benannte Checklist aus dem Ops-Runbook aus.
+  fields:
+    checklist:
+      name: Checklist
+      description: Name der auszuführenden Checklist.
+      required: true
+      example: "post_update"
+      selector:
+        text:
+
+# ─── Dev Surface (Debug) ─────────────────────────────────────────────────────
+
+enable_debug_for:
+  name: Debug – Enable for Entity
+  description: Aktiviert erweiterte Debug-Logs für eine bestimmte Entity.
+  fields:
+    entity_id:
+      name: Entity ID
+      description: Entity, für die Debug aktiviert werden soll.
+      required: true
+      example: "light.wohnzimmer"
+      selector:
+        entity:
+
+disable_debug:
+  name: Debug – Disable
+  description: Deaktiviert erweiterte Debug-Logs.
+
+clear_error_digest:
+  name: Debug – Clear Error Digest
+  description: Löscht den gesammelten Error-Digest (Fehlerübersicht zurücksetzen).
+
+ping:
+  name: Debug – Ping
+  description: Einfacher Health-Check / Lebenszeichen der Integration.
+
+# ─── Candidate Poller (Core Bridge) ──────────────────────────────────────────
+
+trigger_mining:
+  name: Trigger Mining
+  description: Startet einen On-Demand Mining-Lauf im Core Add-on und pollt neue Kandidaten.
+  fields:
+    min_confidence:
+      name: Min. Konfidenz
+      description: Minimale Konfidenz für Pattern-Erkennung (0.0–1.0).
+      example: 0.6
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.05
+          mode: slider
+    min_support:
+      name: Min. Support
+      description: Minimaler Support-Wert (0.0–1.0).
+      example: 0.1
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.05
+          mode: slider
+    min_lift:
+      name: Min. Lift
+      description: Minimaler Lift-Wert (>1.0 = stärker als Zufall).
+      example: 1.2
+      selector:
+        number:
+          min: 0.0
+          max: 10.0
+          step: 0.1
+          mode: slider
+
+# ─── UniFi Network Module ────────────────────────────────────────────────────
+
+ai_home_copilot_unifi_run_diagnostics:
+  name: UniFi – Run Diagnostics
+  description: Führt Netzwerk-Diagnostik über die UniFi-Integration aus.
+
+ai_home_copilot_unifi_get_report:
+  name: UniFi – Get Report
+  description: Ruft den letzten UniFi-Netzwerk-Report ab.
+
+# ─── Habitus Miner (Local) ───────────────────────────────────────────────────
+
+habitus_mine_rules:
+  name: Habitus – Mine Rules
+  description: Startet lokales Pattern-Mining auf gesammelten Events.
+  fields:
+    days_back:
+      name: Tage zurück
+      description: Anzahl Tage an Events, die analysiert werden sollen.
+      default: 7
+      selector:
+        number:
+          min: 1
+          max: 365
+          mode: box
+    domains:
+      name: Domains (Filter)
+      description: Nur Events dieser Domains einbeziehen.
+      example: '["light", "climate"]'
+      selector:
+        object:
+    exclude_domains:
+      name: Domains (Ausschluss)
+      description: Events dieser Domains ausschließen.
+      example: '["sensor"]'
+      selector:
+        object:
+    min_confidence:
+      name: Min. Konfidenz
+      description: Minimale Konfidenz-Schwelle für erkannte Regeln.
+      default: 0.5
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.05
+          mode: slider
+    min_lift:
+      name: Min. Lift
+      description: Minimaler Lift-Wert.
+      default: 1.2
+      selector:
+        number:
+          min: 0.0
+          max: 10.0
+          step: 0.1
+          mode: slider
+
+habitus_get_rules:
+  name: Habitus – Get Rules
+  description: Ruft die aktuell erkannten Habitus-Regeln ab.
+  fields:
+    limit:
+      name: Limit
+      description: Maximale Anzahl zurückgegebener Regeln.
+      default: 20
+      selector:
+        number:
+          min: 1
+          max: 200
+          mode: box
+    domain_filter:
+      name: Domain-Filter
+      description: Nur Regeln für diese Domain anzeigen.
+      example: "light"
+      selector:
+        text:
+    min_score:
+      name: Min. Score
+      description: Minimaler Score-Wert.
+      default: 0.0
+      selector:
+        number:
+          min: 0.0
+          max: 10.0
+          step: 0.1
+          mode: slider
+
+habitus_reset_cache:
+  name: Habitus – Reset Cache
+  description: Löscht den Mining-Cache (erzwingt Neuberechnung beim nächsten Lauf).
+
+habitus_configure_mining:
+  name: Habitus – Configure Mining
+  description: Konfiguriert Mining-Parameter zur Laufzeit.
+  fields:
+    auto_mining_enabled:
+      name: Auto-Mining aktiviert
+      description: Automatisches Mining an/aus.
+      selector:
+        boolean:
+    buffer_max_size:
+      name: Buffer Max Size
+      description: Maximale Anzahl Events im Mining-Buffer.
+      selector:
+        number:
+          min: 100
+          max: 10000
+          mode: box
+    buffer_max_age_hours:
+      name: Buffer Max Age (Stunden)
+      description: Maximales Alter der Events im Buffer.
+      selector:
+        number:
+          min: 1
+          max: 168
+          mode: box
+
+# ─── Debug Mode ──────────────────────────────────────────────────────────────
+
+set_debug:
+  name: Set Debug Mode
+  description: Aktiviert oder deaktiviert den Debug-Modus für erweiterte Logs.
+  fields:
+    enabled:
+      name: Enabled
+      description: Debug-Modus an/aus.
+      required: true
+      example: true
+      selector:
+        boolean:

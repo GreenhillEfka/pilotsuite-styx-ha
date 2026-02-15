@@ -35,6 +35,9 @@ from .const import (
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
     CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+    CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+    CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+    CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
     CONF_HA_ERRORS_DIGEST_ENABLED,
     CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     CONF_HA_ERRORS_DIGEST_MAX_LINES,
@@ -69,6 +72,9 @@ from .const import (
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
     DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
+    DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+    DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+    DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
     DEFAULT_HA_ERRORS_DIGEST_ENABLED,
     DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
     DEFAULT_HA_ERRORS_DIGEST_MAX_LINES,
@@ -114,7 +120,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 await _validate_input(self.hass, user_input)
-            except Exception:  # noqa: BLE001
+            except Exception as err:  # noqa: BLE001
+                # Log detailed error for debugging
+                import logging
+                _LOGGER = logging.getLogger(__name__)
+                _LOGGER.error("Config validation failed for %s:%s - %s", 
+                             user_input.get(CONF_HOST), user_input.get(CONF_PORT), str(err))
+                _LOGGER.debug("Config validation error details", exc_info=True)
                 errors["base"] = "cannot_connect"
             else:
                 title = f"AI Home CoPilot ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
@@ -124,9 +136,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-                vol.Optional(CONF_TOKEN): str,
+                vol.Optional(CONF_TOKEN, description={"suggested_value": "Optional: OpenClaw Gateway Auth Token"}): str,
                 # Use a plain string to maximize compatibility (no selector).
-                vol.Optional(CONF_TEST_LIGHT, default=""): str,
+                vol.Optional(CONF_TEST_LIGHT, default="", description={"suggested_value": "Optional: light.example_entity_id for connectivity test"}): str,
             }
         )
 
@@ -172,6 +184,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             if isinstance(tv_csv, str):
                 user_input[CONF_MEDIA_TV_PLAYERS] = _parse_csv(tv_csv)
 
+            # Normalize additional forwarder entities (comma-separated list -> list[str])
+            additional_entities_csv = user_input.get(CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES)
+            if isinstance(additional_entities_csv, str):
+                user_input[CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES] = _parse_csv(additional_entities_csv)
+
+            # Token handling: if empty string provided, explicitly remove token
+            if CONF_TOKEN in user_input:
+                token = user_input.get(CONF_TOKEN, "").strip()
+                if not token:  # Empty or whitespace-only = clear token
+                    user_input[CONF_TOKEN] = ""
+
             # Keep allow/block domains as the raw string; seed adapter parses both list and str.
             return self.async_create_entry(title="", data=user_input)
 
@@ -183,12 +206,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             f"/api/webhook/{webhook_id}" if webhook_id else "(generated after first setup)"
         )
 
+        # Token helper text
+        current_token = data.get(CONF_TOKEN, "")
+        token_hint = "** AKTUELL GESETZT **" if current_token else "Leer lassen um Token zu löschen"
+        
         schema = vol.Schema(
             {
                 vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): str,
                 vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
                 vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): int,
-                vol.Optional(CONF_TOKEN, default=data.get(CONF_TOKEN, "")): str,
+                vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
                 vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): str,
                 vol.Optional(
                     CONF_MEDIA_MUSIC_PLAYERS,
@@ -298,6 +325,28 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                         DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
                     ),
                 ): int,
+                # Entity allowlist options for events forwarder
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+                        DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+                    default=data.get(
+                        CONF_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+                        DEFAULT_EVENTS_FORWARDER_INCLUDE_MEDIA_PLAYERS,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                    default=_as_csv(data.get(
+                        CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                        DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                    )),
+                ): str,
 
                 # PilotSuite UX knobs (safe defaults).
                 vol.Optional(
@@ -374,7 +423,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     async def async_step_habitus_zones(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="habitus_zones",
-            menu_options=["create_zone", "edit_zone", "delete_zone", "bulk_edit", "back"],
+            menu_options=[
+                "create_zone",
+                "edit_zone",
+                "delete_zone",
+                "generate_dashboard",
+                "publish_dashboard",
+                "bulk_edit",
+                "back",
+            ],
         )
 
     async def async_step_back(self, user_input: dict | None = None) -> FlowResult:
@@ -484,6 +541,70 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     "Optional: use a categorized structure via `entities:` (role -> list of entity_ids), e.g.\n"
                     "- entities: {motion: [...], lights: [...], brightness: [...], heating: [...], humidity: [...], co2: [...], cover: [...], door: [...], window: [...], lock: [...], media: [...], other: [...]}"
                 ),
+            },
+        )
+
+    async def async_step_generate_dashboard(self, user_input: dict | None = None) -> FlowResult:
+        """Generate Lovelace dashboard YAML for all Habitus zones."""
+        from .habitus_dashboard import async_generate_habitus_zones_dashboard
+
+        if user_input is not None:
+            try:
+                path = await async_generate_habitus_zones_dashboard(self.hass, self._entry.entry_id)
+                return self.async_abort(
+                    reason="dashboard_generated",
+                    description_placeholders={"path": str(path)},
+                )
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="generate_dashboard",
+                    errors={"base": "generation_failed"},
+                    description_placeholders={"error": str(err)},
+                )
+
+        schema = vol.Schema({vol.Optional("confirm", default=True): bool})
+        return self.async_show_form(
+            step_id="generate_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. "
+                "The file is saved in the `ai_home_copilot/` configuration folder."
+            },
+        )
+
+    async def async_step_publish_dashboard(self, user_input: dict | None = None) -> FlowResult:
+        """Publish the latest generated dashboard to www folder."""
+        from .habitus_dashboard import async_publish_last_habitus_dashboard
+
+        if user_input is not None:
+            try:
+                url = await async_publish_last_habitus_dashboard(self.hass)
+                return self.async_abort(
+                    reason="dashboard_published",
+                    description_placeholders={"url": url},
+                )
+            except FileNotFoundError:
+                return self.async_show_form(
+                    step_id="publish_dashboard",
+                    errors={"base": "no_dashboard_generated"},
+                    description_placeholders={
+                        "hint": "Generate a dashboard first using 'Generate dashboard YAML'."
+                    },
+                )
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="publish_dashboard",
+                    errors={"base": "publish_failed"},
+                    description_placeholders={"error": str(err)},
+                )
+
+        schema = vol.Schema({vol.Optional("confirm", default=True): bool})
+        return self.async_show_form(
+            step_id="publish_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "description": "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder "
+                "for easy download. This creates a stable URL for the dashboard YAML."
             },
         )
 

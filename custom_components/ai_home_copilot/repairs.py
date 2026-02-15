@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import voluptuous as vol
 
 from homeassistant import data_entry_flow
@@ -7,11 +8,59 @@ from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
+from .api import CopilotApiClient, CopilotApiError
 from .const import DOMAIN
 from .log_fixer import async_disable_custom_integration_for_manifest_error
 from .log_store import FindingType
 from .log_store import async_get_log_fixer_state
 from .storage import CandidateState, async_defer_candidate, async_set_candidate_state
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _get_core_api(hass: HomeAssistant, entry_id: str) -> CopilotApiClient | None:
+    """Retrieve the shared CopilotApiClient for this config entry."""
+    ent_data = hass.data.get(DOMAIN, {}).get(entry_id)
+    if isinstance(ent_data, dict):
+        coord = ent_data.get("coordinator")
+        api = getattr(coord, "api", None)
+        if isinstance(api, CopilotApiClient):
+            return api
+    return None
+
+
+async def async_sync_decision_to_core(
+    hass: HomeAssistant,
+    entry_id: str,
+    candidate_id: str,
+    state: str,
+    retry_after_days: int | None = None,
+) -> None:
+    """Best-effort sync of user decision back to Core Add-on.
+
+    Maps HA candidate_id (prefixed ``core_``) back to the Core UUID and
+    calls ``PUT /api/v1/candidates/{id}`` to close the feedback loop.
+    """
+    api = _get_core_api(hass, entry_id)
+    if api is None:
+        _LOGGER.debug("Decision sync: no Core API client, skipping")
+        return
+
+    # HA candidate IDs from the poller are prefixed with "core_".
+    core_id = candidate_id
+    if core_id.startswith("core_"):
+        core_id = core_id[5:]
+
+    payload: dict = {"state": state}
+    if state == "deferred" and retry_after_days is not None:
+        payload["retry_after_days"] = retry_after_days
+
+    try:
+        await api.async_put(f"/api/v1/candidates/{core_id}", payload)
+        _LOGGER.info("Decision sync: %s → %s synced to Core", core_id, state)
+    except CopilotApiError as err:
+        _LOGGER.debug("Decision sync: failed for %s → %s: %s", core_id, state, err)
+
 
 STEP_CHOICE = vol.Schema(
     {
@@ -79,6 +128,9 @@ class CandidateRepairFlow(RepairsFlow):
                 await async_set_candidate_state(
                     self.hass, self._entry_id, self._candidate_id, CandidateState.DISMISSED
                 )
+                await async_sync_decision_to_core(
+                    self.hass, self._entry_id, self._candidate_id, "dismissed"
+                )
                 await self._maybe_delete_issue()
                 return self.async_create_entry(title="", data={"result": "dismissed"})
 
@@ -87,6 +139,9 @@ class CandidateRepairFlow(RepairsFlow):
 
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
+            )
+            await async_sync_decision_to_core(
+                self.hass, self._entry_id, self._candidate_id, "accepted"
             )
             await self._maybe_delete_issue()
             return self.async_create_entry(title="", data={"result": "accepted"})
@@ -104,6 +159,10 @@ class CandidateRepairFlow(RepairsFlow):
                 self._entry_id,
                 self._candidate_id,
                 until_ts=until,
+            )
+            await async_sync_decision_to_core(
+                self.hass, self._entry_id, self._candidate_id, "deferred",
+                retry_after_days=days,
             )
             return self.async_create_entry(
                 title="", data={"result": "deferred", "days": days}
@@ -148,6 +207,9 @@ class SeedRepairFlow(RepairsFlow):
                 await async_set_candidate_state(
                     self.hass, self._entry_id, self._candidate_id, CandidateState.DISMISSED
                 )
+                await async_sync_decision_to_core(
+                    self.hass, self._entry_id, self._candidate_id, "dismissed"
+                )
                 await self._maybe_delete_issue()
                 return self.async_create_entry(title="", data={"result": "dismissed"})
 
@@ -157,6 +219,9 @@ class SeedRepairFlow(RepairsFlow):
             # Accept
             await async_set_candidate_state(
                 self.hass, self._entry_id, self._candidate_id, CandidateState.ACCEPTED
+            )
+            await async_sync_decision_to_core(
+                self.hass, self._entry_id, self._candidate_id, "accepted"
             )
 
             # Special-case: graph edge candidates can be applied to the Core graph (governance-first).
@@ -209,6 +274,10 @@ class SeedRepairFlow(RepairsFlow):
                 self._entry_id,
                 self._candidate_id,
                 until_ts=until,
+            )
+            await async_sync_decision_to_core(
+                self.hass, self._entry_id, self._candidate_id, "deferred",
+                retry_after_days=days,
             )
             return self.async_create_entry(
                 title="", data={"result": "deferred", "days": days}

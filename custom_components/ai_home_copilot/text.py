@@ -14,6 +14,7 @@ from .const import (
     DOMAIN,
 )
 from .entity import CopilotBaseEntity
+from .habitus_zones_entities_v2 import HabitusZonesV2JsonText
 # Habitus zones bulk editing is provided via OptionsFlow (no state-length limits).
 
 
@@ -99,6 +100,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 name="AI Home CoPilot media TV players (csv)",
                 unique_id="ai_home_copilot_media_tv_players_csv",
             ),
+            # v2 Entities
+            HabitusZonesV2JsonText(coordinator, entry),
         ],
         True,
     )

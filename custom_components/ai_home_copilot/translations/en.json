@@ -158,7 +158,7 @@
   "issues": {
     "candidate_suggestion": {
       "title": "CoPilot suggestion: {title}",
-      "description": "CoPilot found a reusable pattern and suggests turning it into an automation. Click Fix to confirm after you’ve created the automation via a blueprint."
+      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings → Automations & Scenes → Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\n🔗 **Blueprint link:** [CoPilot A→B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
       "title": "CoPilot seed: {title}",
@@ -174,7 +174,7 @@
     },
     "log_state_attr_oversize": {
       "title": "State attributes too large: {entity_id}",
-      "description": "This entity is writing attributes bigger than Home Assistant’s recommended limit (16384 bytes). This can cause recorder/database and performance issues. Consider reducing attributes or moving data elsewhere."
+      "description": "This entity is writing attributes bigger than Home Assistant's recommended limit (16384 bytes). This can cause recorder/database and performance issues. Consider reducing attributes or moving data elsewhere."
     },
     "log_blocking_import_module": {
       "title": "Blocking call detected: import_module",

@@ -11,6 +11,7 @@ A privacy-first, governance-first layer that helps you:
 
 ## Quick links
 - Project plan / Kanban: [`PROJECT_PLAN.md`](./PROJECT_PLAN.md)
+- Habitus Dashboard Cards: [`HABITUS_DASHBOARD_CARDS.md`](./HABITUS_DASHBOARD_CARDS.md)
 - Operations (reload vs restart): [`OPERATIONS.md`](./OPERATIONS.md)
 - Dashboard template: [`DASHBOARD_LOVELACE.md`](./DASHBOARD_LOVELACE.md)
 - Dev surface (observability): [`DEV_SURFACE.md`](./DEV_SURFACE.md)

@@ -12,8 +12,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_call_later
 
-from ...const import DOMAIN
+from ...const import (
+    DEBUG_LEVEL_FULL,
+    DEBUG_LEVEL_LIGHT,
+    DEBUG_LEVEL_OFF,
+    DEBUG_LEVELS,
+    DOMAIN,
+)
 from ..module import CopilotModule, ModuleContext
+from ..error_helpers import format_error_context
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,11 +123,14 @@ class ErrorDigest:
         self.last_error: dict[str, Any] | None = None
         self.counters: Counter[str] = Counter()
         self.recent: deque[dict[str, Any]] = deque(maxlen=max_recent)
+        self._error_groups: dict[str, dict[str, Any]] = {}  # group_key -> {count, first_seen, last_seen, sample_error}
 
     def clear(self) -> None:
         self.last_error = None
         self.counters.clear()
         self.recent.clear()
+        self._error_groups.clear()
+        self._error_groups.clear()
 
     def record(self, *, error_key: str, message: str, where: str, hint: str | None = None) -> None:
         key = error_key if error_key in ERROR_REGISTRY else "unknown"
@@ -135,12 +145,69 @@ class ErrorDigest:
         self.counters[key] += 1
         self.recent.append(rec)
 
+    def record_exception(self, error: Exception, operation: str, context: dict[str, Any] | None = None) -> None:
+        """Record an exception with enhanced context and traceback info."""
+        error_data = format_error_context(error, operation, context, include_traceback=True, max_frames=5)
+        
+        # Classify the exception type
+        error_key = _classify_exception(error)
+        
+        # Create enhanced record with traceback summary
+        rec = {
+            "time": error_data["timestamp"],
+            "error_key": error_key,
+            "message": error_data["error_message"],
+            "where": operation,
+            "hint": ERROR_REGISTRY.get(error_key, {}).get("hint"),
+            "error_type": error_data["error_type"],
+            "context": error_data.get("context", {}),
+            "traceback_summary": error_data.get("traceback_summary"),
+        }
+        
+        # Track error grouping
+        group_key = _get_error_group_key(error, operation)
+        rec["group_key"] = group_key
+        
+        if group_key not in self._error_groups:
+            self._error_groups[group_key] = {
+                "count": 0,
+                "first_seen": rec["time"],
+                "last_seen": rec["time"],
+                "sample_error": {
+                    "error_key": error_key,
+                    "message": rec["message"],
+                    "where": rec["where"],
+                },
+            }
+        
+        self._error_groups[group_key]["count"] += 1
+        self._error_groups[group_key]["last_seen"] = rec["time"]
+        
+        self.last_error = rec
+        self.counters[error_key] += 1
+        self.recent.append(rec)
+
+    def get_error_groups(self, min_count: int = 2) -> list[dict[str, Any]]:
+        """Return grouped errors with occurrence count >= min_count."""
+        return [
+            {
+                "group_key": k,
+                "count": v["count"],
+                "first_seen": v["first_seen"],
+                "last_seen": v["last_seen"],
+                "sample_error": v["sample_error"],
+            }
+            for k, v in self._error_groups.items()
+            if v["count"] >= min_count
+        ]
+
     def as_dict(self) -> dict[str, Any]:
         # Keep stable output.
         return {
             "last_error": self.last_error,
             "counters": dict(self.counters),
             "recent": list(self.recent),
+            "error_groups": self.get_error_groups(),
             "registry": ERROR_REGISTRY,
             "max_recent": self._max_recent,
         }
@@ -160,6 +227,13 @@ def _classify_exception(err: Exception) -> str:
     if "client error" in msg or "cannot connect" in msg or "name or service not known" in msg:
         return "network"
     return "unknown"
+
+
+def _get_error_group_key(error: Exception, operation: str) -> str:
+    """Create a stable group key for similar errors based on exception type + operation."""
+    # Use exception class name + operation as group key
+    exc_class = type(error).__name__
+    return f"{exc_class}:{operation}"
 
 
 def _entry_state(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
@@ -270,6 +344,36 @@ class DevSurfaceModule(CopilotModule):
             k["errors"].clear()
             k["devlog"].add(level="info", typ="errors", msg="Error digest cleared")
 
+        async def _svc_set_debug_level(call: ServiceCall) -> None:
+            entry_id = str(call.data.get("entry_id", ""))
+            level = str(call.data.get("level", DEBUG_LEVEL_OFF))
+            k = _get_kernel(hass, entry_id)
+
+            if level == DEBUG_LEVEL_FULL:
+                k["debug"] = True
+            elif level == DEBUG_LEVEL_LIGHT:
+                k["debug"] = True  # Light still enables debug, but filters in UI
+            else:  # off
+                k["debug"] = False
+
+            k["debug_level"] = level
+            k["devlog"].add(level="info", typ="debug_level", msg=f"Debug level set to {level}", data={"level": level})
+
+        async def _svc_clear_all_logs(call: ServiceCall) -> None:
+            """Clear all log buffers (devlog and errors)."""
+            entry_id = str(call.data.get("entry_id", ""))
+            k = _get_kernel(hass, entry_id)
+
+            # Clear devlog buffer
+            if "devlog" in k:
+                k["devlog"]._dq.clear()
+
+            # Clear error digest
+            if "errors" in k:
+                k["errors"].clear()
+
+            k["devlog"].add(level="info", typ="logs", msg="All logs cleared")
+
         async def _svc_ping(call: ServiceCall) -> None:
             entry_id = str(call.data.get("entry_id", ""))
             ent = hass.config_entries.async_get_entry(entry_id)
@@ -283,6 +387,8 @@ class DevSurfaceModule(CopilotModule):
         hass.services.async_register(DOMAIN, "enable_debug_for", _svc_enable_debug)
         hass.services.async_register(DOMAIN, "disable_debug", _svc_disable_debug)
         hass.services.async_register(DOMAIN, "clear_error_digest", _svc_clear_errors)
+        hass.services.async_register(DOMAIN, "set_debug_level", _svc_set_debug_level)
+        hass.services.async_register(DOMAIN, "clear_all_logs", _svc_clear_all_logs)
         hass.services.async_register(DOMAIN, "ping", _svc_ping)
 
         global_data["dev_surface_services_registered"] = True
