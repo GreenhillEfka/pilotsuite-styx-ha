@@ -6,16 +6,13 @@ Diese Datei ist ein kurzer Überblick über laufende Arbeiten **vor** dem nächs
 - Für Details immer die GitHub-Commits im Branch `development` anschauen.
 
 ## Aktueller Stand
-- Letztes Release (main): **v0.7.3** - Habitus Dashboard Cards + Zones v2 Wizard
+- Letztes Release (main): **v0.7.4** - Core API compatibility (v0.4.16)
 - Alle PROJECT_PLAN Milestones (M0-M3) vollständig implementiert!
 
-## 2026-02-14 Autopilot Release
-- ✅ HA Integration v0.7.3 released + tagged
-- ✅ Core Add-on v0.4.15 merged to main + tagged
-- ✅ Alle Neurons implementiert: SystemHealth, UniFi, Energy
-- ✅ Tag System v0.2 mit Decision Matrix
-- ✅ Habitus Zones v2 mit zone-aware pattern mining
-- ✅ PROJECT_PLAN.md aktualisiert mit vollständigem Milestone-Status
+## 2026-02-15 Autopilot Release v0.7.4
+- ✅ HA Integration v0.7.4 released + tagged
+- ✅ Core API compatibility für log_fixer_tx Auth (v0.4.16)
+- ✅ Push zu origin/development
 
 ## Next (geplant)
 - Interactive Brain Graph Panel (optional)
