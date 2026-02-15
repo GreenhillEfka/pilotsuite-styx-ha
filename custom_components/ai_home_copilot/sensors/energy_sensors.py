@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Final
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -33,6 +33,7 @@ class EnergyUsageLevel(str, Enum):
 _POWER_THRESHOLD_LOW: Final = 100
 _POWER_THRESHOLD_MODERATE: Final = 500
 _POWER_THRESHOLD_HIGH: Final = 1500
+_POWER_MAX_NORMAL: Final = 2000
 
 
 @dataclass
@@ -62,7 +63,7 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
     _attr_unique_id: str = "ai_copilot_energy_proxy"
     _attr_icon: str = "mdi:lightning-bolt"
     _attr_native_unit_of_measurement: str = "W"
-    _attr_should_poll: bool = True
+    _attr_should_poll: bool = False  # Using coordinator, no manual polling needed
     
     def __init__(
         self,
@@ -70,7 +71,7 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
         hass: HomeAssistant,
     ) -> None:
         super().__init__(coordinator)
-        self._hass: Final = hass
+        self._hass: HomeAssistant = hass
         self._frugality_score: FrugalityScore | None = None
     
     @property
@@ -89,65 +90,81 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
     
     def _update_energy_data(self) -> None:
         """Calculate energy metrics from all power sensors."""
-        # Get power sensors with device_class="power"
-        power_sensors = [
-            s for s in self._hass.states.async_all("sensor")
-            if s.attributes.get("device_class") == "power"
-        ]
-        
-        # Calculate total power consumption
-        total_power: float = 0.0
-        power_entities: list[dict[str, Any]] = []
-        
-        for sensor in power_sensors:
-            try:
-                value: float = float(sensor.state)
-                if value > 0:
-                    total_power += value
-                    power_entities.append({
-                        "entity_id": sensor.entity_id,
-                        "power_w": value,
-                    })
-            except (ValueError, TypeError):
-                continue
-        
-        # Count active devices
-        light_states = self._hass.states.async_all("light")
-        lights_on = sum(1 for l in light_states if l.state == "on")
-        
-        switch_states = self._hass.states.async_all("switch")
-        switches_on = sum(1 for s in switch_states if s.state == "on")
-        
-        # Classify usage level
-        usage_level = self._classify_usage(total_power)
-        
-        # Calculate frugality score (inverse of consumption)
-        frugality_score = self._calculate_frugality(
-            total_power=total_power,
-            lights_on=lights_on,
-            switches_on=switches_on,
-        )
-        
-        # Update sensor state
-        self._attr_native_value = usage_level.value
-        self._attr_extra_state_attributes = {
-            "total_power_w": round(total_power, 1),
-            "lights_on": lights_on,
-            "switches_on": switches_on,
-            "power_entities_count": len(power_entities),
-            "power_entities": power_entities[:10],  # Limit for state size
-            "frugality_score": frugality_score.score,
-            "usage_level": usage_level.value,
-        }
-        
-        self._frugality_score = frugality_score
-        
-        _LOGGER.debug(
-            "Energy updated: %.1fW (level=%s, frugality=%.2f)",
-            total_power,
-            usage_level.value,
-            frugality_score.score,
-        )
+        try:
+            # Batch fetch all states once to avoid multiple state lookups
+            all_sensors: list[State] = self._hass.states.async_all("sensor")
+            
+            # Get power sensors with device_class="power"
+            power_sensors: list[State] = [
+                s for s in all_sensors
+                if s.attributes.get("device_class") == "power"
+            ]
+            
+            # Calculate total power consumption with better error handling
+            total_power: float = 0.0
+            power_entities: list[dict[str, Any]] = []
+            
+            for sensor in power_sensors:
+                try:
+                    state_str: str = str(sensor.state)
+                    if state_str in ("unavailable", "unknown", "none"):
+                        continue
+                    value: float = float(state_str)
+                    if value > 0:
+                        total_power += value
+                        power_entities.append({
+                            "entity_id": sensor.entity_id,
+                            "power_w": value,
+                        })
+                except (ValueError, TypeError) as err:
+                    _LOGGER.debug(
+                        "Skipping sensor %s: invalid state %s (%s)",
+                        sensor.entity_id,
+                        sensor.state,
+                        err,
+                    )
+                    continue
+            
+            # Count active devices - batch fetch lights and switches
+            all_lights: list[State] = self._hass.states.async_all("light")
+            all_switches: list[State] = self._hass.states.async_all("switch")
+            
+            lights_on: int = sum(1 for l in all_lights if l.state == "on")
+            switches_on: int = sum(1 for s in all_switches if s.state == "on")
+            
+            # Classify usage level
+            usage_level: EnergyUsageLevel = self._classify_usage(total_power)
+            
+            # Calculate frugality score (inverse of consumption)
+            frugality_score: FrugalityScore = self._calculate_frugality(
+                total_power=total_power,
+                lights_on=lights_on,
+                switches_on=switches_on,
+            )
+            
+            # Update sensor state
+            self._attr_native_value = usage_level.value
+            self._attr_extra_state_attributes = {
+                "total_power_w": round(total_power, 1),
+                "lights_on": lights_on,
+                "switches_on": switches_on,
+                "power_entities_count": len(power_entities),
+                "power_entities": power_entities[:10],  # Limit for state size
+                "frugality_score": frugality_score.score,
+                "usage_level": usage_level.value,
+            }
+            
+            self._frugality_score = frugality_score
+            
+            _LOGGER.debug(
+                "Energy updated: %.1fW (level=%s, frugality=%.2f)",
+                total_power,
+                usage_level.value,
+                frugality_score.score,
+            )
+            
+        except Exception as err:
+            _LOGGER.error("Failed to update energy data: %s", err)
     
     def _classify_usage(self, total_power: float) -> EnergyUsageLevel:
         """Classify power consumption into usage level."""
@@ -157,8 +174,7 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
             return EnergyUsageLevel.MODERATE
         elif total_power < _POWER_THRESHOLD_HIGH:
             return EnergyUsageLevel.HIGH
-        else:
-            return EnergyUsageLevel.VERY_HIGH
+        return EnergyUsageLevel.VERY_HIGH
     
     def _calculate_frugality(
         self,
@@ -173,17 +189,17 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
         - Active device count
         """
         # Normalize power to 0-1 scale (0 at 2000W, 1 at 0W)
-        power_score = max(0.0, 1.0 - (total_power / 2000.0))
+        power_score: float = max(0.0, 1.0 - (total_power / _POWER_MAX_NORMAL))
         
         # Device count penalty (more devices = less frugal)
-        device_count = lights_on + switches_on
-        device_score = max(0.0, 1.0 - (device_count / 20.0))
+        device_count: int = lights_on + switches_on
+        device_score: float = max(0.0, 1.0 - (device_count / 20.0))
         
         # Weighted combination
-        combined_score = (power_score * 0.7) + (device_score * 0.3)
+        combined_score: float = (power_score * 0.7) + (device_score * 0.3)
         
         # Classify level
-        usage_level = self._classify_usage(total_power)
+        usage_level: EnergyUsageLevel = self._classify_usage(total_power)
         
         # Build factors for mood system
         factors: list[dict[str, Any]] = [
