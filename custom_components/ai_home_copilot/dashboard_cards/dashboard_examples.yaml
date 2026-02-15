@@ -1,0 +1,317 @@
+# AI Home Copilot - Comprehensive Dashboard YAML Examples
+# Path: /config/.openclaw/workspace/ai_home_copilot_hacs_repo/custom_components/ai_home_copilot/dashboard_cards/
+# 
+# These YAML examples show how to use the dashboard cards in Lovelace UI
+
+# =============================================================================
+# EXAMPLE 1: Complete Dashboard (All-in-One)
+# =============================================================================
+# This creates a full dashboard with all sections in a responsive grid
+
+views:
+  - title: 🏠 AI Home Copilot
+    path: ai_home_dashboard
+    cards:
+      # Overview Section
+      - type: vertical-stack
+        title: 📊 Übersicht
+        cards:
+          - type: custom:ai-home-overview
+            title: Dashboard Übersicht
+            show_neurons: true
+            show_mood: true
+            show_zones: true
+            show_system_health: true
+
+      # Two-column section: Presence + Activity
+      - type: grid
+        columns: 2
+        cards:
+          - type: custom:ai-home-presence
+            title: 👥 Anwesenheit
+          - type: custom:ai-home-activity
+            title: ⚡ Aktivität
+
+      # Two-column section: Energy + Media  
+      - type: grid
+        columns: 2
+        cards:
+          - type: custom:ai-home-energy
+            title: ⚡ Energie
+          - type: custom:ai-home-media
+            title: 📺 Media
+
+      # Two-column section: Weather + Calendar
+      - type: grid
+        columns: 2
+        cards:
+          - type: custom:ai-home-weather
+            title: 🌤️ Wetter
+          - type: custom:ai-home-calendar
+            title: 📅 Kalender
+
+
+# =============================================================================
+# EXAMPLE 2: Mobile Dashboard
+# =============================================================================
+# Optimized for mobile devices with single-column layout
+
+views:
+  - title: 🏠 Home (Mobile)
+    path: ai_home_mobile
+    cards:
+      - type: vertical-stack
+        cards:
+          # Header
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.system_health_score
+                name: System
+                min: 0
+                max: 100
+              - type: entity
+                entity: sensor.ai_home_copilot_mood
+                name: Stimmung
+
+          # Presence Card
+          - type: custom:ai-home-presence
+            title: 👥 Anwesenheit
+            show_avatars: true
+
+          # Activity Card
+          - type: custom:ai-home-activity
+            title: ⚡ Aktivität
+
+          # Energy Card
+          - type: custom:ai-home-energy
+            title: ⚡ Energie
+            compact: true
+
+          # Weather Card
+          - type: custom:ai-home-weather
+            title: 🌤️ Wetter
+            compact: true
+
+
+# =============================================================================
+# EXAMPLE 3: Interactive Neuron Dashboard
+# =============================================================================
+# Dashboard with clickable neurons and filters
+
+views:
+  - title: 🧠 Neuronen
+    path: neurons
+    cards:
+      # Filter Bar
+      - type: horizontal-scroll
+        cards:
+          - type: button
+            name: Alle
+            icon: mdi:filter
+            tap_action:
+              action: navigate
+              navigation_path: /ai-home/neurons?filter=all
+          - type: button
+            name: Aktiv
+            icon: mdi:check-circle
+            tap_action:
+              action: navigate
+              navigation_path: /ai-home/neurons?filter=status:active
+          - type: button
+            name: Warnung
+            icon: mdi:alert-circle
+            tap_action:
+              action: navigate
+              navigation_path: /ai-home/neurons?filter=status:warning
+
+      # Neuron Grid
+      - type: grid
+        columns: 4
+        cards:
+          # Example neuron buttons
+          - type: button
+            name: Presence
+            icon: mdi:account-check
+            entity: binary_sensor.presence_living_room
+            tap_action:
+              action: more-info
+            hold_action:
+              action: navigate
+              navigation_path: /ai-home/neurons/presence
+            styles:
+              card:
+                background-color: "#4CAF50"
+
+          - type: button
+            name: Activity
+            icon: mdi:motion-sensor
+            entity: sensor.activity_score
+            tap_action:
+              action: more-info
+
+          - type: button
+            name: Energy
+            icon: mdi:lightning-bolt
+            entity: sensor.energy_consumption
+            tap_action:
+              action: more-info
+
+          - type: button
+            name: Mood
+            icon: mdi:emoticon
+            entity: sensor.ai_home_copilot_mood
+            tap_action:
+              action: more-info
+
+
+# =============================================================================
+# EXAMPLE 4: Zone Detail View
+# =============================================================================
+# Detailed view for a specific zone
+
+views:
+  - title: 🏠 Wohnzimmer
+    path: zone_living_room
+    cards:
+      - type: vertical-stack
+        title: 🏠 Wohnzimmer
+        cards:
+          # Zone Overview
+          - type: grid
+            columns: 2
+            cards:
+              - type: stat
+                name: Benutzer
+                value: "2"
+                icon: mdi:account-multiple
+              - type: stat
+                name: Aktivität
+                value: "85%"
+                icon: mdi:flash
+
+          # Lights
+          - type: entities
+            title: 💡 Beleuchtung
+            entities:
+              - entity: light.living_room_ceiling
+                name: Decke
+              - entity: light.living_room_lamp
+                name: Lampe
+
+          # Climate
+          - type: entities
+            title: 🌡️ Heizung
+            entities:
+              - entity: climate.living_room
+                name: Thermostat
+
+          # Media
+          - type: entities
+            title: 📺 Media
+            entities:
+              - entity: media_player.tv_living_room
+                name: Fernseher
+
+          # Controls
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: Alle aus
+                icon: mdi:lightbulb-off
+                tap_action:
+                  action: call-service
+                  service: light.turn_off
+                  target:
+                    area_id: living_room
+
+
+# =============================================================================
+# EXAMPLE 5: Dark/Light Mode Theme Card
+# =============================================================================
+
+views:
+  - title: ⚙️ Einstellungen
+    path: settings
+    cards:
+      - type: vertical-stack
+        title: 🎨 Design
+        cards:
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: Auto
+                icon: mdi:theme-light-dark
+                tap_action:
+                  action: call-service
+                  service: frontend.set_theme
+                  service_data:
+                    name: auto
+              - type: button
+                name: Hell
+                icon: mdi:weather-sunny
+                tap_action:
+                  action: call-service
+                  service: frontend.set_theme
+                  service_data:
+                    name: light
+              - type: button
+                name: Dunkel
+                icon: mdi:weather-night
+                tap_action:
+                  action: call-service
+                  service: frontend.set_theme
+                  service_data:
+                    name: dark
+
+
+# =============================================================================
+# EXAMPLE 6: System Health Dashboard
+# =============================================================================
+
+views:
+  - title: 💚 System Status
+    path: system_health
+    cards:
+      - type: vertical-stack
+        title: 💚 System Status
+        cards:
+          # Main health gauge
+          - type: gauge
+            entity: sensor.system_health_score
+            name: System Health
+            min: 0
+            max: 100
+            severity:
+              green: 80
+              yellow: 50
+              red: 0
+
+          # Stats grid
+          - type: grid
+            columns: 4
+            cards:
+              - type: stat
+                name: Aktive Neuronen
+                value: "8"
+                icon: mdi:brain
+              - type: stat
+                name: Warnungen
+                value: "1"
+                icon: mdi:alert-circle
+              - type: stat
+                name: Fehler
+                value: "0"
+                icon: mdi:close-circle
+              - type: stat
+                name: Uptime
+                value: "5d"
+                icon: mdi:clock
+
+          # Recent events
+          - type: logbook
+            title: Letzte Ereignisse
+            hours_to_show: 24
+            entities:
+              - sensor.ai_home_copilot_mood
+              - sensor.system_health_score

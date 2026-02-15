@@ -19,6 +19,10 @@ from .habitus_zones_entities_v2 import (
     HabitusZonesV2SyncGraphButton,
     HabitusZonesV2ReloadButton,
 )
+from .button_camera import (
+    CopilotGenerateCameraDashboardButton,
+    CopilotDownloadCameraDashboardButton,
+)
 from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
 from .button_update_rollback import CopilotUpdateRollbackReportButton
 from .button_media import (
@@ -88,6 +92,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ClearOverridesButton,
         # Brain dashboard summary
         CopilotBrainDashboardSummaryButton(coordinator, entry),
+        # Camera Dashboard buttons
+        CopilotGenerateCameraDashboardButton(hass, entry),
+        CopilotDownloadCameraDashboardButton(hass, entry),
     ]
 
     # Media Context v2 button entities

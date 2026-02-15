@@ -492,6 +492,220 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Camera Context Services
+# ---------------------------------------------------------------------------
+
+def _register_camera_context_services(hass: HomeAssistant) -> None:
+    """Register Camera Context services for Habitus integration."""
+    
+    if not hass.services.has_service(DOMAIN, "camera_trigger_motion"):
+        
+        async def _handle_trigger_motion(call: ServiceCall) -> None:
+            camera_id = call.data.get("camera_id", "")
+            camera_name = call.data.get("camera_name", camera_id.split(".")[-1] if camera_id else "Unknown")
+            confidence = call.data.get("confidence", 1.0)
+            zone = call.data.get("zone")
+            
+            # Get coordinator and trigger motion
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    coordinator.async_add_motion_event(
+                        camera_id=camera_id,
+                        camera_name=camera_name,
+                        confidence=confidence,
+                        zone=zone,
+                    )
+                    break
+            
+            # Fire event for other listeners
+            hass.bus.async_fire(
+                f"{DOMAIN}_camera_event",
+                {
+                    "type": "motion",
+                    "camera_id": camera_id,
+                    "camera_name": camera_name,
+                    "action": "started",
+                    "confidence": confidence,
+                    "zone": zone,
+                }
+            )
+        
+        hass.services.async_register(
+            DOMAIN,
+            "camera_trigger_motion",
+            _handle_trigger_motion,
+            schema=vol.Schema({
+                vol.Required("camera_id"): str,
+                vol.Optional("camera_name"): str,
+                vol.Optional("confidence"): vol.Coerce(float),
+                vol.Optional("zone"): str,
+            }),
+        )
+    
+    if not hass.services.has_service(DOMAIN, "camera_trigger_presence"):
+        
+        async def _handle_trigger_presence(call: ServiceCall) -> None:
+            camera_id = call.data.get("camera_id", "")
+            camera_name = call.data.get("camera_name", camera_id.split(".")[-1] if camera_id else "Unknown")
+            presence_type = call.data.get("presence_type", "person")
+            person_name = call.data.get("person_name")
+            confidence = call.data.get("confidence", 1.0)
+            
+            # Get coordinator and trigger presence
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    coordinator.async_add_presence_event(
+                        camera_id=camera_id,
+                        camera_name=camera_name,
+                        presence_type=presence_type,
+                        person_name=person_name,
+                        confidence=confidence,
+                    )
+                    break
+            
+            # Fire event
+            hass.bus.async_fire(
+                f"{DOMAIN}_camera_event",
+                {
+                    "type": "presence",
+                    "camera_id": camera_id,
+                    "camera_name": camera_name,
+                    "presence_type": presence_type,
+                    "person_name": person_name,
+                }
+            )
+        
+        hass.services.async_register(
+            DOMAIN,
+            "camera_trigger_presence",
+            _handle_trigger_presence,
+            schema=vol.Schema({
+                vol.Required("camera_id"): str,
+                vol.Optional("camera_name"): str,
+                vol.Optional("presence_type"): str,
+                vol.Optional("person_name"): str,
+                vol.Optional("confidence"): vol.Coerce(float),
+            }),
+        )
+    
+    if not hass.services.has_service(DOMAIN, "camera_trigger_activity"):
+        
+        async def _handle_trigger_activity(call: ServiceCall) -> None:
+            camera_id = call.data.get("camera_id", "")
+            camera_name = call.data.get("camera_name", camera_id.split(".")[-1] if camera_id else "Unknown")
+            activity_type = call.data.get("activity_type", "walking")
+            duration = call.data.get("duration_seconds", 0)
+            confidence = call.data.get("confidence", 1.0)
+            
+            # Get coordinator and trigger activity
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    coordinator.async_add_activity_event(
+                        camera_id=camera_id,
+                        camera_name=camera_name,
+                        activity_type=activity_type,
+                        duration_seconds=duration,
+                        confidence=confidence,
+                    )
+                    break
+        
+        hass.services.async_register(
+            DOMAIN,
+            "camera_trigger_activity",
+            _handle_trigger_activity,
+            schema=vol.Schema({
+                vol.Required("camera_id"): str,
+                vol.Optional("camera_name"): str,
+                vol.Required("activity_type"): str,
+                vol.Optional("duration_seconds"): int,
+                vol.Optional("confidence"): vol.Coerce(float),
+            }),
+        )
+    
+    if not hass.services.has_service(DOMAIN, "camera_trigger_zone"):
+        
+        async def _handle_trigger_zone(call: ServiceCall) -> None:
+            camera_id = call.data.get("camera_id", "")
+            camera_name = call.data.get("camera_name", camera_id.split(".")[-1] if camera_id else "Unknown")
+            zone_name = call.data.get("zone_name", "")
+            event_type = call.data.get("event_type", "entered")
+            object_type = call.data.get("object_type")
+            
+            # Get coordinator and trigger zone event
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    coordinator.async_add_zone_event(
+                        camera_id=camera_id,
+                        camera_name=camera_name,
+                        zone_name=zone_name,
+                        event_type=event_type,
+                        object_type=object_type,
+                    )
+                    break
+        
+        hass.services.async_register(
+            DOMAIN,
+            "camera_trigger_zone",
+            _handle_trigger_zone,
+            schema=vol.Schema({
+                vol.Required("camera_id"): str,
+                vol.Optional("camera_name"): str,
+                vol.Required("zone_name"): str,
+                vol.Optional("event_type"): str,
+                vol.Optional("object_type"): str,
+            }),
+        )
+    
+    if not hass.services.has_service(DOMAIN, "camera_clear_motion"):
+        
+        async def _handle_clear_motion(call: ServiceCall) -> None:
+            camera_id = call.data.get("camera_id", "")
+            
+            # Get coordinator and clear motion
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    coordinator.async_clear_motion(camera_id)
+                    break
+        
+        hass.services.async_register(
+            DOMAIN,
+            "camera_clear_motion",
+            _handle_clear_motion,
+            schema=vol.Schema({
+                vol.Required("camera_id"): str,
+            }),
+        )
+    
+    if not hass.services.has_service(DOMAIN, "camera_set_retention"):
+        
+        async def _handle_set_retention(call: ServiceCall) -> None:
+            camera_id = call.data.get("camera_id", "")
+            hours = call.data.get("hours", 24)
+            
+            # Get coordinator and set retention
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    coordinator.set_camera_retention(camera_id, hours)
+                    break
+        
+        hass.services.async_register(
+            DOMAIN,
+            "camera_set_retention",
+            _handle_set_retention,
+            schema=vol.Schema({
+                vol.Required("camera_id"): str,
+                vol.Required("hours"): int,
+            }),
+        )
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -503,3 +717,4 @@ def async_register_all_services(hass: HomeAssistant) -> None:
     _register_ops_runbook_services(hass)
     _register_habitus_dashboard_cards_services(hass)
     _register_mupl_services(hass)
+    _register_camera_context_services(hass)

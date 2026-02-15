@@ -27,6 +27,7 @@ from .core.modules.unifi_context_module import UnifiContextModule
 from .core.modules.weather_context_module import WeatherContextModule
 from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
 from .core.modules.ml_context_module import MLContextModule
+from .core.modules.camera_context_module import CameraContextModule
 from .core.modules.quick_search import QuickSearchModule
 from .core.modules.voice_context import VoiceContextModule
 from .debug import DebugModeSensor
@@ -74,6 +75,10 @@ from .button import (
 )
 
 # Import remaining buttons from their respective files
+from .button_camera import (
+    CopilotGenerateCameraDashboardButton,
+    CopilotDownloadCameraDashboardButton,
+)
 from .habitus_zones_entities import HabitusZonesValidateButton
 from .habitus_zones_entities_v2 import (
     HabitusZonesV2ValidateButton,
@@ -101,6 +106,7 @@ _MODULES = [
     "weather_context",
     "knowledge_graph_sync",
     "ml_context",
+    "camera_context",
     "quick_search",
     "voice_context",
 ]
@@ -137,6 +143,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "weather_context": WeatherContextModule,
         "knowledge_graph_sync": KnowledgeGraphSyncModule,
         "ml_context": MLContextModule,
+        "camera_context": CameraContextModule,
         "quick_search": QuickSearchModule,
         "voice_context": VoiceContextModule,
     }

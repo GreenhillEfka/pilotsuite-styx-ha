@@ -103,6 +103,8 @@ from .camera_entities import (
     CameraPresenceHistorySensor,
     CameraActivityHistorySensor,
     CameraZoneActivitySensor,
+    ActivityCamera,
+    ZoneCamera,
 )
 
 # Mobile Dashboard Cards
@@ -262,8 +264,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CameraActivityHistorySensor(coordinator, entry),
         CameraZoneActivitySensor(coordinator, entry),
     ])
+    
+    # Camera Activity and Zone Sensors (auto-discover cameras)
+    camera_entities = await _discover_camera_entities_for_sensors(hass)
+    for cam_id, cam_name in camera_entities:
+        entities.append(ActivityCamera(coordinator, entry, cam_id, cam_name))
+        entities.append(ZoneCamera(coordinator, entry, cam_id, cam_name))
 
     async_add_entities(entities, True)
+
+
+async def _discover_camera_entities_for_sensors(hass: HomeAssistant) -> list[tuple[str, str]]:
+    """Discover camera entities for sensors."""
+    from homeassistant.helpers import entity_registry
+    er = entity_registry.async_get(hass)
+    cameras = []
+    
+    for entity_id, entry in er.entities.items():
+        if entry.domain == "camera":
+            camera_name = entry.name or entry.original_name or entity_id.split(".")[-1]
+            cameras.append((entity_id, camera_name))
+    
+    return cameras
 
 
 class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):
