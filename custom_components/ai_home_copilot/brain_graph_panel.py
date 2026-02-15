@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import html
 import json
 import math
 from pathlib import Path
@@ -178,23 +179,31 @@ def _render_interactive_html(
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Prepare node data for JavaScript
+    # Prepare node data for JavaScript - sanitize all fields before JSON dump
     nodes_json = json.dumps([
         {
-            "id": n.node_id,
-            "label": n.label,
-            "kind": n.kind,
-            "domain": n.domain,
-            "zone": n.zone,
+            "id": html.escape(sanitize_text(n.node_id, max_chars=80)),
+            "label": html.escape(sanitize_text(n.label, max_chars=60)),
+            "kind": html.escape(sanitize_text(n.kind, max_chars=30)),
+            "domain": html.escape(sanitize_text(n.domain, max_chars=30)) if n.domain else None,
+            "zone": html.escape(sanitize_text(n.zone, max_chars=30)) if n.zone else None,
             "score": round(n.score, 3),
             "x": round(n.x, 1),
             "y": round(n.y, 1),
             "color": _get_kind_color(n.kind),
         }
         for n in viz_nodes
-    ])
+    ], ensure_ascii=False)
     
-    edges_json = json.dumps(edge_data)
+    edges_json = json.dumps([
+        {
+            "from": html.escape(sanitize_text(e.get("from"), max_chars=80)),
+            "to": html.escape(sanitize_text(e.get("to"), max_chars=80)),
+            "type": html.escape(sanitize_text(e.get("type"), max_chars=30)) if e.get("type") else None,
+            "weight": round(float(e.get("weight", 0)), 3) if e.get("weight") is not None else None,
+        }
+        for e in edge_data
+    ], ensure_ascii=False)
     
     # Collect unique kinds/zones for filters
     kinds = sorted(set(n.kind for n in viz_nodes if n.kind))
@@ -515,7 +524,7 @@ def _render_interactive_html(
                         <div class="stat-label">Nodes</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-value" id="edge-count">{len(edge_data)}</div>
+                        <div class="stat-value" id="edge-count">{len(edges)}</div>
                         <div class="stat-label">Edges</div>
                     </div>
                 </div>

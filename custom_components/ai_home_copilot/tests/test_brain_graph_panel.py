@@ -40,7 +40,7 @@ class TestBrainGraphPanel:
 
         assert "<!DOCTYPE html>" in html
         assert "Empty Graph" in html
-        assert "Nodes: 0" in html or '"nodes": []' in html
+        assert "const nodes = [];" in html
 
     def test_render_interactive_html_filters(self):
         """Test that filters are populated from data."""
