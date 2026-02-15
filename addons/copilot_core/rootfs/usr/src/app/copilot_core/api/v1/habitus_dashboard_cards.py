@@ -18,6 +18,26 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _get_brain_graph_service():
+    """Get Brain Graph service instance."""
+    try:
+        from copilot_core.brain_graph.provider import get_graph_service
+        return get_graph_service()
+    except Exception as e:
+        _LOGGER.warning("Brain Graph service not available: %s", e)
+        return None
+
+
+def _get_habitus_service():
+    """Get Habitus Miner service instance."""
+    try:
+        from copilot_core.habitus.provider import get_habitus_service
+        return get_habitus_service()
+    except Exception as e:
+        _LOGGER.warning("Habitus service not available: %s", e)
+        return None
+
+
 bp = Blueprint("habitus_dashboard_cards", __name__, url_prefix="/habitus/dashboard_cards")
 
 
@@ -50,19 +70,32 @@ def get_dashboard_patterns():
 
 @bp.get("/zones")
 def get_zones():
-    """Get list of available zones for dashboard generation."""
-    # TODO: Integrate with Brain Graph zones
-    return jsonify({
-        "ok": True,
-        "time": _now_iso(),
-        "zones": [
-            {"id": "zone:kitchen", "name": "Kitchen", "entities": 12},
-            {"id": "zone:living_room", "name": "Living Room", "entities": 18},
-            {"id": "zone:bedroom", "name": "Bedroom", "entities": 8},
-            {"id": "zone:bathroom", "name": "Bathroom", "entities": 5},
-        ],
-        "note": "Placeholder - will be populated from Brain Graph"
-    })
+    """Get list of available zones for dashboard generation from Brain Graph."""
+    brain_service = _get_brain_graph_service()
+    
+    if not brain_service:
+        return jsonify({
+            "ok": True,
+            "time": _now_iso(),
+            "zones": [],
+            "error": "Brain Graph service not available"
+        })
+    
+    try:
+        zones = brain_service.get_zones()
+        return jsonify({
+            "ok": True,
+            "time": _now_iso(),
+            "zones": zones,
+            "source": "brain_graph"
+        })
+    except Exception as e:
+        _LOGGER.error("Failed to get zones: %s", e)
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "zones": []
+        }), 500
 
 
 @bp.get("/zone/<zone_id>")
@@ -77,7 +110,25 @@ def get_zone_patterns(zone_id):
     if not zone_id.startswith("zone:"):
         zone_id = f"zone:{zone_id}"
     
+    brain_service = _get_brain_graph_service()
+    zone_entities = []
+    
+    if brain_service:
+        try:
+            zone_data = brain_service.get_zone_entities(zone_id)
+            zone_entities = zone_data.get("entities", [])
+        except Exception as e:
+            _LOGGER.warning("Failed to get zone entities: %s", e)
+    
     patterns = _get_patterns("zone", zone_id)
+    
+    # Add zone entity data to patterns
+    if zone_entities:
+        patterns["zone_data"] = {
+            "zone_id": zone_id,
+            "entity_count": len(zone_entities),
+            "entities": zone_entities[:20]  # Limit for response
+        }
     
     return jsonify({
         "ok": True,
@@ -101,14 +152,37 @@ def get_rule_cards():
     limit = request.args.get("limit", 10, type=int)
     zone = request.args.get("zone")
     
-    # TODO: Integrate with Habitus Miner service
-    # For now, return template structure
-    cards = _generate_rule_cards(min_confidence, limit, zone)
+    habitus_service = _get_habitus_service()
+    rules_data = []
+    
+    if habitus_service:
+        try:
+            # Get rules from Habitus Miner
+            rules = habitus_service.get_rules(
+                limit=limit,
+                min_score=min_confidence,
+                zone_filter=zone
+            )
+            rules_data = [
+                {
+                    "A": rule.A,
+                    "B": rule.B,
+                    "confidence": round(rule.confidence, 3),
+                    "lift": round(rule.lift, 2),
+                    "nAB": rule.nAB,
+                }
+                for rule in rules[:limit]
+            ]
+        except Exception as e:
+            _LOGGER.warning("Failed to get habitus rules: %s", e)
+    
+    cards = _generate_rule_cards(min_confidence, limit, zone, rules_data)
     
     return jsonify({
         "ok": True,
         "time": _now_iso(),
         "cards": cards,
+        "rules": rules_data,
         "config": {
             "min_confidence": min_confidence,
             "limit": limit,
@@ -286,42 +360,52 @@ def _get_patterns(pattern_type: str, zone_id: str = None) -> dict:
     }
 
 
-def _generate_rule_cards(min_confidence: float, limit: int, zone: str = None) -> list:
+def _generate_rule_cards(min_confidence: float, limit: int, zone: str = None, rules_data: list = None) -> list:
     """Generate dashboard cards from discovered A→B rules."""
     
-    # TODO: Call Habitus Miner service to get real rules
-    # For now, return a template structure
-    
     cards = []
+    rules_data = rules_data or []
     
-    # Template for rule-based cards
-    rule_card_template = {
-        "type": "custom:habitus-rule-card",
-        "title": "Discovered Patterns",
-        "config": {
-            "min_confidence": min_confidence,
-            "limit": limit,
-            "zone": zone,
-            "show_confidence": True,
-            "show_lift": True,
-            "show_actions": True
+    # If we have real rules, generate cards from them
+    if rules_data:
+        for rule in rules_data:
+            rule_card = {
+                "type": "custom:habitus-rule-card",
+                "title": f"Pattern: {rule['A']} → {rule['B']}",
+                "config": {
+                    "antecedent": rule["A"],
+                    "consequent": rule["B"],
+                    "confidence": rule["confidence"],
+                    "lift": rule["lift"],
+                    "occurrences": rule["nAB"],
+                    "zone": zone,
+                    "show_create_automation": rule["confidence"] >= 0.8
+                }
+            }
+            cards.append(rule_card)
+    
+    # Template for summary card
+    if cards:
+        summary_card = {
+            "type": "custom:habitus-summary-card",
+            "title": f"Discovered Patterns ({len(cards)})",
+            "config": {
+                "zone": zone,
+                "min_confidence": min_confidence,
+                "total_rules": len(rules_data)
+            }
         }
-    }
-    
-    cards.append(rule_card_template)
-    
-    # Template for suggestions card
-    suggestions_card = {
-        "type": "custom:habitus-suggestions-card",
-        "title": "Automation Suggestions",
-        "config": {
-            "zone": zone,
-            "min_confidence": min_confidence,
-            "show_create_automation": True
-        }
-    }
-    
-    cards.append(suggestions_card)
+        cards.insert(0, summary_card)
+    else:
+        # No rules found, return placeholder templates
+        cards.append({
+            "type": "custom:habitus-placeholder-card",
+            "title": "No Patterns Yet",
+            "config": {
+                "message": "Collect more events to discover patterns",
+                "min_confidence": min_confidence
+            }
+        })
     
     return cards
 
@@ -329,6 +413,9 @@ def _generate_rule_cards(min_confidence: float, limit: int, zone: str = None) ->
 @bp.get("/health")
 def health():
     """Health check for dashboard_cards module."""
+    brain_ok = _get_brain_graph_service() is not None
+    habitus_ok = _get_habitus_service() is not None
+    
     return jsonify({
         "ok": True,
         "time": _now_iso(),
@@ -337,7 +424,13 @@ def health():
         "features": [
             "zone_aware_patterns",
             "rule_based_cards",
-            "dynamic_templates"
+            "dynamic_templates",
+            "brain_graph_integration",
+            "habitus_miner_integration"
         ],
+        "integrations": {
+            "brain_graph": "ok" if brain_ok else "unavailable",
+            "habitus_miner": "ok" if habitus_ok else "unavailable"
+        },
         "status": "active"
     })
