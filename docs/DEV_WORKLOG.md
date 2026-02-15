@@ -22,7 +22,6 @@ Diese Datei ist ein kurzer Überblick über laufende Arbeiten **vor** dem nächs
 - ✅ Push zu origin/development
 
 ## Next (geplant)
-- Merge development → main (production release)
 - Interactive Brain Graph Panel (optional)
 - Multi-user preference learning
 - Cross-home pattern sharing (opt-in)
