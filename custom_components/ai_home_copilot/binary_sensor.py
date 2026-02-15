@@ -9,6 +9,10 @@ from .entity import CopilotBaseEntity
 from .media_entities import MusicActiveBinarySensor, TvActiveBinarySensor
 from .forwarder_quality_entities import EventsForwarderConnectedBinarySensor
 from .mesh_monitoring import ZWaveMeshStatusBinarySensor, ZigbeeMeshStatusBinarySensor
+from .camera_entities import (
+    MotionDetectionCamera,
+    PresenceCamera,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -38,7 +42,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ZigbeeMeshStatusBinarySensor(hass, entry),
     ])
 
+    # Camera Context Binary Sensors (Habitus Camera Integration)
+    # Auto-discover cameras from HA and create entities
+    camera_entities = await _discover_camera_entities(hass)
+    for cam_id, cam_name in camera_entities:
+        entities.append(MotionDetectionCamera(coordinator, entry, cam_id, cam_name))
+        entities.append(PresenceCamera(coordinator, entry, cam_id, cam_name))
+
     async_add_entities(entities, True)
+
+
+async def _discover_camera_entities(hass: HomeAssistant) -> list[tuple[str, str]]:
+    """Discover camera entities from Home Assistant."""
+    from homeassistant.helpers import entity_registry
+    er = entity_registry.async_get(hass)
+    cameras = []
+    
+    for entity_id, entry in er.entities.items():
+        if entry.domain == "camera":
+            camera_name = entry.name or entry.original_name or entity_id.split(".")[-1]
+            cameras.append((entity_id, camera_name))
+    
+    return cameras
 
 
 class CopilotOnlineBinarySensor(CopilotBaseEntity, BinarySensorEntity):

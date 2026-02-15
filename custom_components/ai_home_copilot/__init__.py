@@ -137,6 +137,8 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "weather_context": WeatherContextModule,
         "knowledge_graph_sync": KnowledgeGraphSyncModule,
         "ml_context": MLContextModule,
+        "quick_search": QuickSearchModule,
+        "voice_context": VoiceContextModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():
