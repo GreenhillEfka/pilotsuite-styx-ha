@@ -6,6 +6,12 @@
 
 **Core Add-on v0.4.16** (2026-02-15) — `main` branch
 
+### Latest Update
+- **Habitus Dashboard Cards API**: `/api/v1/habitus/dashboard_cards` endpoint
+- **Habitus Miner v0.1**: Zone-aware pattern mining backend
+- **Debug Mode Module**: Runtime debug configuration
+- **Security**: log_fixer_tx API authentication
+
 ### Features
 - **Habitus Zones v2** — Zone-aware pattern mining
 - **Tag System v0.2** — Decision Matrix with HA Labels integration
