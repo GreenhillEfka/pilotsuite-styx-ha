@@ -293,5 +293,90 @@ def get_capabilities():
             "neural_pipeline": True,
             "multi_user_learning": True,
             "federated_learning": True,
+        },
+        "modules": {
+            "events": {
+                "enabled": True,
+                "persist": getattr(cfg, "events_persist", False) if hasattr(cfg, "events_persist") else False,
+                "cache_max": getattr(cfg, "events_cache_max", 500) if hasattr(cfg, "events_cache_max") else 500,
+                "idempotency": {
+                    "supported": True,
+                    "ttl_seconds": getattr(cfg, "events_idempotency_ttl_seconds", 1200) if hasattr(cfg, "events_idempotency_ttl_seconds") else 1200,
+                    "lru_max": getattr(cfg, "events_idempotency_lru_max", 10000) if hasattr(cfg, "events_idempotency_lru_max") else 10000,
+                    "key_sources": [
+                        "Idempotency-Key header",
+                        "idempotency_key payload field",
+                        "event_id payload field",
+                        "id payload field",
+                    ],
+                },
+            },
+            "candidates": {
+                "enabled": True,
+                "persist": getattr(cfg, "candidates_persist", False) if hasattr(cfg, "candidates_persist") else False,
+                "max": getattr(cfg, "candidates_max", 500) if hasattr(cfg, "candidates_max") else 500,
+            },
+            "mood": {
+                "enabled": True,
+                "window_seconds": getattr(cfg, "mood_window_seconds", 3600) if hasattr(cfg, "mood_window_seconds") else 3600,
+            },
+            "brain_graph": {
+                "enabled": True,
+                "persist": getattr(cfg, "brain_graph_persist", True) if hasattr(cfg, "brain_graph_persist") else True,
+                "json_path": getattr(cfg, "brain_graph_json_path", "/data/brain_graph.json") if hasattr(cfg, "brain_graph_json_path") else "/data/brain_graph.json",
+                "nodes_max": getattr(cfg, "brain_graph_nodes_max", 500) if hasattr(cfg, "brain_graph_nodes_max") else 500,
+                "edges_max": getattr(cfg, "brain_graph_edges_max", 1500) if hasattr(cfg, "brain_graph_edges_max") else 1500,
+                "feeding_enabled": True,
+            },
+            "vector_store": {
+                "enabled": True,
+                "version": "0.1.0",
+                "description": "Vector operations for semantic search and embeddings",
+                "endpoints": [
+                    "/api/v1/vector/store",
+                    "/api/v1/vector/search",
+                    "/api/v1/vector/get/:id",
+                    "/api/v1/vector/delete/:id",
+                    "/api/v1/vector/stats"
+                ]
+            },
+            "dashboard": {
+                "enabled": True,
+                "version": "0.1.0",
+                "description": "Dashboard data endpoints",
+                "endpoints": [
+                    "/api/v1/dashboard/brain-summary"
+                ]
+            },
+            "search": {
+                "enabled": True,
+                "version": "1.0.0",
+                "description": "Quick search for entities, automations, scripts, scenes, and services",
+                "endpoints": [
+                    "/api/v1/search",
+                    "/api/v1/search/entities",
+                    "/api/v1/search/stats",
+                    "/api/v1/search/index"
+                ]
+            },
+            "notifications": {
+                "enabled": True,
+                "version": "1.0.0",
+                "description": "Push notification system for alerts, mood changes, and suggestions",
+                "endpoints": [
+                    "/api/v1/notifications/send",
+                    "/api/v1/notifications",
+                    "/api/v1/notifications/subscribe",
+                    "/api/v1/notifications/subscriptions"
+                ]
+            },
+            "voice_context": {
+                "enabled": True,
+                "version": "1.0.0",
+                "description": "Voice assistant integration for mood-based context",
+                "endpoints": [
+                    "/api/v1/voice_context"
+                ]
+            },
         }
     })
