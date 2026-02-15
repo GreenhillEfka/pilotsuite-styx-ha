@@ -12,20 +12,14 @@ from typing import Any
 
 from flask import Blueprint, current_app, jsonify, request
 
+from copilot_core.storage.user_preferences import (
+    UserPreferences,
+    get_user_preference_store,
+)
+
 bp = Blueprint("user_preferences", __name__, url_prefix="/user")
 
 _LOGGER = logging.getLogger(__name__)
-
-# In-memory preference store (for now; will be persisted later)
-# Structure: {user_id: {preferences: {...}, patterns: {...}, priority: 0.5}}
-_user_store: dict[str, dict[str, Any]] = {}
-
-# Device affinity store
-# Structure: {entity_id: {primary_user: str, usage_distribution: {user_id: float}}}
-_device_affinities: dict[str, dict[str, Any]] = {}
-
-# Active users cache (populated from Home Assistant person entities)
-_active_users: list[str] = []
 
 
 def _get_ha_client():
@@ -34,6 +28,11 @@ def _get_ha_client():
     if hasattr(cfg, "ha_client"):
         return cfg.ha_client
     return None
+
+
+def _store():
+    """Get the user preference store."""
+    return get_user_preference_store()
 
 
 @bp.get("/<user_id>/preferences")
@@ -46,12 +45,16 @@ def get_user_preferences(user_id: str):
     Returns:
         JSON with user_id and preferences dict
     """
-    prefs = _user_store.get(user_id, {}).get("preferences", {
-        "light_brightness": {"default": 0.8, "by_zone": {}},
-        "media_volume": {"default": 0.5, "by_zone": {}},
-        "temperature": {"default": 21.0, "by_zone": {}},
-        "mood_weights": {"comfort": 0.5, "frugality": 0.5, "joy": 0.5},
-    })
+    user = _store().get_user(user_id)
+    if user:
+        prefs = user.preferences
+    else:
+        prefs = {
+            "light_brightness": {"default": 0.8, "by_zone": {}},
+            "media_volume": {"default": 0.5, "by_zone": {}},
+            "temperature": {"default": 21.0, "by_zone": {}},
+            "mood_weights": {"comfort": 0.5, "frugality": 0.5, "joy": 0.5},
+        }
     
     return jsonify({
         "user_id": user_id,
@@ -70,19 +73,13 @@ def get_user_zone_preference(user_id: str, zone_id: str):
     Returns:
         JSON with user_id, zone_id, and preference
     """
-    user_data = _user_store.get(user_id, {})
-    prefs = user_data.get("preferences", {})
+    user = _store().get_user(user_id)
     
-    # Check zone-specific preference
-    for pref_type in ["light_brightness", "media_volume", "temperature"]:
-        zone_prefs = prefs.get(pref_type, {}).get("by_zone", {})
-        if zone_id in zone_prefs:
-            pref = zone_prefs[zone_id]
-        else:
-            pref = prefs.get(pref_type, {}).get("default", 0.5)
-    
-    # Get zone-specific mood weights
-    mood = prefs.get("mood_weights", {"comfort": 0.5, "frugality": 0.5, "joy": 0.5})
+    if user:
+        prefs = user.preferences
+        mood = prefs.get("mood_weights", {"comfort": 0.5, "frugality": 0.5, "joy": 0.5})
+    else:
+        mood = {"comfort": 0.5, "frugality": 0.5, "joy": 0.5}
     
     return jsonify({
         "user_id": user_id,
@@ -115,23 +112,9 @@ def update_user_preference(user_id: str):
     if not zone_id:
         return jsonify({"error": "zone_id_required"}), 400
     
-    # Initialize user if needed
-    if user_id not in _user_store:
-        _user_store[user_id] = {
-            "preferences": {
-                "light_brightness": {"default": 0.8, "by_zone": {}},
-                "media_volume": {"default": 0.5, "by_zone": {}},
-                "temperature": {"default": 21.0, "by_zone": {}},
-                "mood_weights": {"comfort": 0.5, "frugality": 0.5, "joy": 0.5},
-            },
-            "patterns": {},
-            "priority": 0.5,
-        }
-    
-    prefs = _user_store[user_id]["preferences"]
-    
-    # Update mood weights
-    mood = prefs.get("mood_weights", {"comfort": 0.5, "frugality": 0.5, "joy": 0.5})
+    # Build preference update
+    prefs_update = {}
+    mood = {}
     
     if "comfort_bias" in data:
         mood["comfort"] = max(0.0, min(1.0, float(data["comfort_bias"])))
@@ -140,14 +123,18 @@ def update_user_preference(user_id: str):
     if "joy_bias" in data:
         mood["joy"] = max(0.0, min(1.0, float(data["joy_bias"])))
     
-    prefs["mood_weights"] = mood
+    if mood:
+        prefs_update["mood_weights"] = mood
+    
+    # Update via store
+    user = _store().update_user_preferences(user_id, prefs_update)
     
     _LOGGER.info("Updated preference for user %s in zone %s: %s", user_id, zone_id, mood)
     
     return jsonify({
         "user_id": user_id,
         "zone_id": zone_id,
-        "preference": {"mood_weights": mood},
+        "preference": {"mood_weights": user.preferences.get("mood_weights", {})},
     })
 
 
@@ -160,8 +147,6 @@ def get_active_users():
     Returns:
         List of active user dicts with user_id and name
     """
-    global _active_users
-    
     ha_client = _get_ha_client()
     active = []
     
@@ -172,14 +157,15 @@ def get_active_users():
             for state in states:
                 if state.get("entity_id", "").startswith("person."):
                     if state.get("state") == "home":
+                        user_id = state["entity_id"]
                         active.append({
-                            "user_id": state["entity_id"],
-                            "name": state.get("attributes", {}).get("friendly_name", state["entity_id"]),
+                            "user_id": user_id,
+                            "name": state.get("attributes", {}).get("friendly_name", user_id),
                         })
+                        # Update store
+                        _store().add_active_user(user_id)
         except Exception as e:
             _LOGGER.warning("Failed to get active users from HA: %s", e)
-    
-    _active_users = [u["user_id"] for u in active]
     
     return jsonify({
         "status": "ok",
@@ -195,10 +181,12 @@ def get_all_users():
     Returns:
         Dict of user_id to user data
     """
+    users = _store().get_all_users()
+    
     return jsonify({
         "status": "ok",
-        "users": _user_store,
-        "count": len(_user_store),
+        "users": {uid: u.to_dict() for uid, u in users.items()},
+        "count": len(users),
     })
 
 
@@ -223,10 +211,10 @@ def set_user_priority(user_id: str):
     
     priority = max(0.0, min(1.0, float(priority)))
     
-    if user_id not in _user_store:
-        _user_store[user_id] = {"preferences": {}, "patterns": {}, "priority": priority}
-    else:
-        _user_store[user_id]["priority"] = priority
+    ok = _store().update_user_priority(user_id, priority)
+    
+    if not ok:
+        return jsonify({"error": "user_not_found"}), 404
     
     _LOGGER.info("Set priority %.2f for user %s", priority, user_id)
     
@@ -246,21 +234,10 @@ def delete_user_data(user_id: str):
     Returns:
         Status dict
     """
-    if user_id not in _user_store:
+    ok = _store().delete_user(user_id)
+    
+    if not ok:
         return jsonify({"error": "user_not_found"}), 404
-    
-    del _user_store[user_id]
-    
-    # Remove from device affinities
-    for entity_id, aff in _device_affinities.items():
-        if aff.get("primary_user") == user_id:
-            aff["primary_user"] = None
-        if user_id in aff.get("usage_distribution", {}):
-            del aff["usage_distribution"][user_id]
-    
-    # Remove from active users
-    if user_id in _active_users:
-        _active_users.remove(user_id)
     
     _LOGGER.info("Deleted all data for user: %s", user_id)
     
@@ -277,22 +254,12 @@ def export_user_data(user_id: str):
     Returns:
         User data dict
     """
-    if user_id not in _user_store:
+    data = _store().export_user_data(user_id)
+    
+    if not data:
         return jsonify({"error": "user_not_found"}), 404
     
-    user_data = _user_store[user_id]
-    
-    # Include relevant device affinities
-    affinities = {}
-    for entity_id, aff in _device_affinities.items():
-        if user_id in aff.get("usage_distribution", {}):
-            affinities[entity_id] = aff["usage_distribution"]
-    
-    return jsonify({
-        "user_id": user_id,
-        "data": user_data,
-        "device_affinities": affinities,
-    })
+    return jsonify(data)
 
 
 # ==================== Aggregated Mood ====================
@@ -313,46 +280,9 @@ def get_aggregated_mood():
     if users_param:
         user_ids = [u.strip() for u in users_param.split(",") if u.strip()]
     else:
-        user_ids = _active_users
+        user_ids = _store().get_active_users()
     
-    if not user_ids:
-        return jsonify({
-            "status": "ok",
-            "mood": {"comfort": 0.5, "frugality": 0.5, "joy": 0.5},
-            "user_count": 0,
-        })
-    
-    if len(user_ids) == 1:
-        user_id = user_ids[0]
-        if user_id in _user_store:
-            mood = _user_store[user_id].get("preferences", {}).get("mood_weights", {})
-        else:
-            mood = {"comfort": 0.5, "frugality": 0.5, "joy": 0.5}
-        return jsonify({
-            "status": "ok",
-            "mood": mood,
-            "user_count": 1,
-        })
-    
-    # Weighted aggregation by priority
-    total_weight = 0.0
-    mood = {"comfort": 0.0, "frugality": 0.0, "joy": 0.0}
-    
-    for user_id in user_ids:
-        if user_id not in _user_store:
-            continue
-        
-        user = _user_store[user_id]
-        weight = user.get("priority", 0.5)
-        user_mood = user.get("preferences", {}).get("mood_weights", {})
-        
-        mood["comfort"] += user_mood.get("comfort", 0.5) * weight
-        mood["frugality"] += user_mood.get("frugality", 0.5) * weight
-        mood["joy"] += user_mood.get("joy", 0.5) * weight
-        total_weight += weight
-    
-    if total_weight > 0:
-        mood = {k: round(v / total_weight, 3) for k, v in mood.items()}
+    mood = _store().get_aggregated_mood(user_ids)
     
     return jsonify({
         "status": "ok",

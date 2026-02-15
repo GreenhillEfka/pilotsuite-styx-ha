@@ -1,5 +1,26 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.5.2] - 2026-02-15
+
+### Added
+- **User Preference Storage**: Persistent JSONL-based storage for MUP-L
+  - `copilot_core/storage/user_preferences.py` - UserPreferences, DeviceAffinity, UserPreferenceStore
+  - Privacy-first: all data remains local
+  - JSONL persistence in `/data/user_preferences.jsonl` and `/data/device_affinities.jsonl`
+  - Active user tracking, mood aggregation, device affinity scoring
+- **Core API User Preferences**: REST endpoints for MUP-L
+  - `GET /api/v1/user/<user_id>/preferences`
+  - `GET /api/v1/user/<user_id>/zone/<zone_id>/preference`
+  - `POST /api/v1/user/<user_id>/preference`
+  - `GET /api/v1/user/active` - Active users from HA person entities
+  - `GET /api/v1/user/all` - All known users
+  - `POST /api/v1/user/<user_id>/priority` - Set user priority
+  - `DELETE /api/v1/user/<user_id>` - GDPR delete
+  - `GET /api/v1/user/<user_id>/export` - GDPR export
+  - `GET /api/v1/user/mood/aggregated` - Aggregated mood
+
+---
+
 ## [0.5.1] - 2026-02-15
 
 ### Added
