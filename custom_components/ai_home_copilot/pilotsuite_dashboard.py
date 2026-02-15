@@ -23,7 +23,9 @@ from .const import (
     DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
     DEFAULT_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
 )
-from .habitus_zones_store import async_get_zones
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_store import async_get_zones
+from .habitus_zones_store_v2 import async_get_zones_v2
 from .pilotsuite_dashboard_store import PilotSuiteDashboardState, async_get_state, async_set_state
 
 _LOGGER = logging.getLogger(__name__)

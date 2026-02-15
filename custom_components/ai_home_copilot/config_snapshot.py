@@ -11,7 +11,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .habitus_zones_store import async_get_zones, async_set_zones_from_raw
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_store import async_get_zones, async_set_zones_from_raw
+from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2_from_raw
 from .config_snapshot_store import (
     async_get_state,
     async_set_last_generated,

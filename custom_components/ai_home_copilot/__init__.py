@@ -80,19 +80,8 @@ from .button_camera import (
     CopilotDownloadCameraDashboardButton,
 )
 
-# DEPRECATED: v1 habitus zones - prefer v2
-# v1 imports kept for backward compatibility during migration
-import warnings
-try:
-    from .habitus_zones_entities import HabitusZonesValidateButton
-    warnings.warn(
-        "habitus_zones_entities (v1) is DEPRECATED. Using v2 instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-except ImportError:
-    pass  # v2 is primary, v1 may fail
-
+# DEPRECATED: v1 - now using v2 only
+# v1 imports removed - use habitus_zones_entities_v2 instead
 # v2 is now the primary implementation
 from .habitus_zones_entities_v2 import (
     HabitusZonesV2ValidateButton,

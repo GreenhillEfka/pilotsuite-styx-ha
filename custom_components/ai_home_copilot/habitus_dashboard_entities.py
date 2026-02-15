@@ -26,10 +26,16 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .const import DOMAIN
 from .entity import CopilotBaseEntity
-from .habitus_zones_store import (
-    HabitusZone,
-    SIGNAL_HABITUS_ZONES_UPDATED,
-    async_get_zones,
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_store import (
+#     HabitusZone,
+#     SIGNAL_HABITUS_ZONES_V2_UPDATED,
+#     async_get_zones,
+# )
+from .habitus_zones_store_v2 import (
+    HabitusZoneV2,
+    SIGNAL_HABITUS_ZONES_V2_UPDATED,
+    async_get_zones_v2,
 )
 from .habitus_dashboard_cards import (
     ZoneStatusData,
@@ -61,13 +67,13 @@ class HabitusZoneScoreSensor(CopilotBaseEntity, SensorEntity):
         self._attr_name = f"AI Home CoPilot Zone {zone_id} Score"
 
     @property
-    def zone(self) -> HabitusZone | None:
+    def zone(self) -> HabitusZoneV2 | None:
         """Get the zone for this sensor."""
         # Will be set by async_added_to_hass or _reload_value
         return getattr(self, "_zone", None)
 
     @zone.setter
-    def zone(self, value: HabitusZone) -> None:
+    def zone(self, value: HabitusZoneV2) -> None:
         self._zone = value
 
     async def async_added_to_hass(self) -> None:
@@ -75,7 +81,7 @@ class HabitusZoneScoreSensor(CopilotBaseEntity, SensorEntity):
         await self._reload_value()
 
     async def _reload_value(self) -> None:
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
         zone = next((z for z in zones if z.zone_id == self._zone_id), None)
 
         if zone:
@@ -117,7 +123,7 @@ class HabitusZoneStatusSensor(CopilotBaseEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self._unsub = async_dispatcher_connect(
-            self.hass, SIGNAL_HABITUS_ZONES_UPDATED, self._on_zones_updated
+            self.hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, self._on_zones_updated
         )
         await self._refresh()
 
@@ -128,10 +134,10 @@ class HabitusZoneStatusSensor(CopilotBaseEntity, SensorEntity):
         await super().async_will_remove_from_hass()
 
     async def _refresh(self) -> None:
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
 
         # Find active zone (first with motion/presence)
-        active_zone: HabitusZone | None = None
+        active_zone: HabitusZoneV2 | None = None
         active_score: float | None = None
 
         for z in zones:
@@ -197,7 +203,7 @@ class HabitusMoodDistributionSensor(CopilotBaseEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self._unsub = async_dispatcher_connect(
-            self.hass, SIGNAL_HABITUS_ZONES_UPDATED, self._on_zones_updated
+            self.hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, self._on_zones_updated
         )
         await self._refresh()
 
@@ -208,7 +214,7 @@ class HabitusMoodDistributionSensor(CopilotBaseEntity, SensorEntity):
         await super().async_will_remove_from_hass()
 
     async def _refresh(self) -> None:
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
 
         # Simulate mood detection (would come from Core API in real implementation)
         zone_moods = self._detect_zone_moods(zones)
@@ -230,7 +236,7 @@ class HabitusMoodDistributionSensor(CopilotBaseEntity, SensorEntity):
 
         self.async_write_ha_state()
 
-    def _detect_zone_moods(self, zones: list[HabitusZone]) -> dict[str, str]:
+    def _detect_zone_moods(self, zones: list[HabitusZoneV2]) -> dict[str, str]:
         """Detect mood for each zone based on entity states.
 
         This is a simplified implementation. In production, this would
@@ -285,7 +291,7 @@ class HabitusCurrentMoodSensor(CopilotBaseEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self._unsub = async_dispatcher_connect(
-            self.hass, SIGNAL_HABITUS_ZONES_UPDATED, self._on_zones_updated
+            self.hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, self._on_zones_updated
         )
         await self._refresh()
 
@@ -296,7 +302,7 @@ class HabitusCurrentMoodSensor(CopilotBaseEntity, SensorEntity):
         await super().async_will_remove_from_hass()
 
     async def _refresh(self) -> None:
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
 
         # Detect mood based on all zones
         zone_moods = self._detect_moods(zones)
@@ -320,7 +326,7 @@ class HabitusCurrentMoodSensor(CopilotBaseEntity, SensorEntity):
 
         self.async_write_ha_state()
 
-    def _detect_moods(self, zones: list[HabitusZone]) -> dict[str, str]:
+    def _detect_moods(self, zones: list[HabitusZoneV2]) -> dict[str, str]:
         """Detect mood for each zone."""
         moods: dict[str, str] = {}
 
@@ -375,7 +381,7 @@ class HabitusZoneTransitionLogSensor(CopilotBaseEntity, SensorEntity):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         self._unsub = async_dispatcher_connect(
-            self.hass, SIGNAL_HABITUS_ZONES_UPDATED, self._on_zones_updated
+            self.hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, self._on_zones_updated
         )
         await self._refresh()
 
@@ -390,7 +396,7 @@ class HabitusZoneTransitionLogSensor(CopilotBaseEntity, SensorEntity):
 
         # In a real implementation, this would track actual zone transitions
         # For now, return a snapshot of current zones
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
 
         transitions = []
         for z in zones:
@@ -466,7 +472,7 @@ class HabitusCardsConfigText(CopilotBaseEntity, TextEntity):
         await self._reload_value()
 
     async def _reload_value(self) -> None:
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
 
         from .habitus_dashboard_cards import (
             generate_zone_status_card_simple,

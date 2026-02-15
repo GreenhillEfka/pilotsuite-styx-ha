@@ -760,9 +760,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         return await self._async_step_zone_form(mode="create", user_input=user_input)
 
     async def async_step_edit_zone(self, user_input: dict | None = None) -> FlowResult:
-        from .habitus_zones_store import async_get_zones
+        # DEPRECATED: v1 - prefer v2
+        # from .habitus_zones_store import async_get_zones
+        from .habitus_zones_store_v2 import async_get_zones_v2
 
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
         ids = [z.zone_id for z in zones]
         if not ids:
             return self.async_abort(reason="no_zones")
@@ -775,9 +777,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         return await self._async_step_zone_form(mode="edit", user_input=None, zone_id=zid)
 
     async def async_step_delete_zone(self, user_input: dict | None = None) -> FlowResult:
-        from .habitus_zones_store import async_get_zones, async_set_zones
+        # DEPRECATED: v1 - prefer v2
+        # from .habitus_zones_store import async_get_zones, async_set_zones
+        from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2
 
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
         ids = [z.zone_id for z in zones]
         if not ids:
             return self.async_abort(reason="no_zones")
@@ -788,7 +792,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
 
         zid = str(user_input.get("zone_id", ""))
         remain = [z for z in zones if z.zone_id != zid]
-        await async_set_zones(self.hass, self._entry.entry_id, remain)
+        await async_set_zones_v2(self.hass, self._entry.entry_id, remain)
         return await self.async_step_habitus_zones()
 
     async def async_step_bulk_edit(self, user_input: dict | None = None) -> FlowResult:
@@ -797,9 +801,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         import yaml
         import json
 
-        from .habitus_zones_store import async_get_zones, async_set_zones_from_raw
+        # DEPRECATED: v1 - prefer v2
+        # from .habitus_zones_store import async_get_zones, async_set_zones_from_raw
+        from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2_from_raw
 
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
         current = []
         for z in zones:
             # UX: if a zone has structured `entities`, prefer emitting that only.
@@ -822,7 +828,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 except Exception:  # noqa: BLE001
                     raw = yaml.safe_load(raw_text)
 
-                await async_set_zones_from_raw(self.hass, self._entry.entry_id, raw)
+                await async_set_zones_v2_from_raw(self.hass, self._entry.entry_id, raw)
             except Exception as err:  # noqa: BLE001
                 return self.async_show_form(
                     step_id="bulk_edit",
@@ -935,15 +941,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         zone_id: str | None = None,
     ) -> FlowResult:
         from homeassistant.helpers import selector
-        from .habitus_zones_store import HabitusZone, async_get_zones, async_set_zones
+        # DEPRECATED: v1 - prefer v2
+        # from .habitus_zones_store import HabitusZone, async_get_zones, async_set_zones
+        from .habitus_zones_store_v2 import HabitusZoneV2, async_get_zones_v2, async_set_zones_v2
 
-        zones = await async_get_zones(self.hass, self._entry.entry_id)
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
         existing = {z.zone_id: z for z in zones}
 
         if zone_id and zone_id in existing:
             z = existing[zone_id]
         else:
-            z = HabitusZone(zone_id="", name="", entity_ids=[], entities=None)
+            # v2: HabitusZoneV2 uses tuples instead of lists
+            z = HabitusZoneV2(zone_id="", name="", entity_ids=(), entities=None)
 
         if user_input is not None:
             zid = str(user_input.get("zone_id") or "").strip()
@@ -977,13 +986,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             # drop empty roles
             ent_map = {k: v for k, v in ent_map.items() if v}
 
-            new_zone = HabitusZone(zone_id=zid, name=name or zid, entity_ids=uniq, entities=ent_map or None)
+            new_zone = HabitusZoneV2(zone_id=zid, name=name or zid, entity_ids=tuple(uniq), entities=ent_map or None)
 
             # Replace / insert
             new_list = [zz for zz in zones if zz.zone_id != zid]
             new_list.append(new_zone)
             # Persist (store enforces requirements)
-            await async_set_zones(self.hass, self._entry.entry_id, new_list)
+            await async_set_zones_v2(self.hass, self._entry.entry_id, new_list)
 
             return await self.async_step_habitus_zones()
 

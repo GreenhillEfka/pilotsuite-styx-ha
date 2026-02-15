@@ -19,7 +19,9 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .habitus_zones_store import HabitusZone, async_get_zones
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_store import HabitusZoneV2, async_get_zones
+from .habitus_zones_store_v2 import HabitusZoneV2, async_get_zones_v2
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -182,7 +184,7 @@ def _grid_card(cards: list[str], columns: int = 2) -> str:
 # ============================================================================
 
 def generate_zone_status_card_yaml(
-    zones: list[HabitusZone],
+    zones: list[HabitusZoneV2],
     active_zone_id: str | None = None,
     score_entity_id: str | None = None,
     mood_entity_id: str | None = None,
@@ -448,7 +450,7 @@ def generate_mood_distribution_card_simple(
 # ============================================================================
 
 def generate_habitus_dashboard_view(
-    zones: list[HabitusZone],
+    zones: list[HabitusZoneV2],
     active_zone_id: str | None = None,
     transitions: list[ZoneTransitionData] | None = None,
     mood_data: list[MoodDistributionData] | None = None,
@@ -501,7 +503,7 @@ def generate_habitus_dashboard_view(
 
 async def get_active_zone_id(hass: HomeAssistant, entry_id: str) -> str | None:
     """Get the currently active Habitus zone."""
-    zones = await async_get_zones(hass, entry_id)
+    zones = await async_get_zones_v2(hass, entry_id)
 
     for z in zones:
         # Check for motion/presence activity in the zone
@@ -514,7 +516,7 @@ async def get_active_zone_id(hass: HomeAssistant, entry_id: str) -> str | None:
     return None
 
 
-def calculate_zone_score(z: HabitusZone, hass: HomeAssistant) -> float | None:
+def calculate_zone_score(z: HabitusZoneV2, hass: HomeAssistant) -> float | None:
     """Calculate a simple zone score based on entity states.
 
     Args:
@@ -539,7 +541,7 @@ def calculate_zone_score(z: HabitusZone, hass: HomeAssistant) -> float | None:
 
 
 def aggregate_mood_distribution(
-    zones: list[HabitusZone],
+    zones: list[HabitusZoneV2],
     zone_moods: dict[str, str],
 ) -> list[MoodDistributionData]:
     """Aggregate mood distribution across zones.

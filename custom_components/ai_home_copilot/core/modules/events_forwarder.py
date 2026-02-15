@@ -43,7 +43,9 @@ from ...const import (
     DEFAULT_MEDIA_MUSIC_PLAYERS,
     DEFAULT_MEDIA_TV_PLAYERS,
 )
-from ...habitus_zones_store import SIGNAL_HABITUS_ZONES_UPDATED, async_get_zones
+# DEPRECATED: v1 - prefer v2
+# from ...habitus_zones_store import SIGNAL_HABITUS_ZONES_V2_UPDATED, async_get_zones
+from ...habitus_zones_store_v2 import SIGNAL_HABITUS_ZONES_V2_UPDATED, async_get_zones_v2
 from ...core_v1 import async_fetch_core_capabilities
 from ...media_context import _parse_csv
 from ..module import ModuleContext
@@ -208,7 +210,7 @@ async def _build_forwarder_entity_allowlist(
         DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES
     )
     if include_habitus:
-        zones = await async_get_zones(hass, entry.entry_id)
+        zones = await async_get_zones_v2(hass, entry.entry_id)
         for z in zones:
             for eid in z.entity_ids:
                 entity_to_zone.setdefault(eid, []).append(z.zone_id)
@@ -759,7 +761,7 @@ class EventsForwarderModule:
                 return
             _schedule_task(_refresh_subscriptions)
 
-        st.unsub_zones = async_dispatcher_connect(hass, SIGNAL_HABITUS_ZONES_UPDATED, _zones_updated)
+        st.unsub_zones = async_dispatcher_connect(hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, _zones_updated)
 
         if forward_call_service:
             st.unsub_call_service = hass.bus.async_listen("call_service", _handle_call_service)

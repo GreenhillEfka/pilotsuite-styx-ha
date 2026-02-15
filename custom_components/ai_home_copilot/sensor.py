@@ -24,13 +24,16 @@ from .media_context_v2_entities import (
     ConfigValidationSensor,
     DebugInfoSensor,
 )
-from .habitus_zones_entities import HabitusZonesCountSensor
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_entities import HabitusZonesCountSensor
 from .habitus_zones_entities_v2 import (
     HabitusZonesV2CountSensor,
     HabitusZonesV2StatesSensor,
     HabitusZonesV2HealthSensor,
 )
-from .habitus_zones_store import async_get_zones
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_store import async_get_zones
+from .habitus_zones_store_v2 import async_get_zones_v2
 from .habitus_zone_aggregates import build_zone_average_sensors
 from .core_v1_entities import CoreApiV1StatusSensor
 from .systemhealth_entities import SystemHealthEntityCountSensor, SystemHealthSqliteDbSizeSensor
@@ -210,7 +213,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     # Add optional Habitus zone aggregate sensors (e.g., Temperatur Ø / Luftfeuchte Ø).
     try:
-        zones = await async_get_zones(hass, entry.entry_id)
+        zones = await async_get_zones_v2(hass, entry.entry_id)
         for z in zones:
             entities.extend(
                 build_zone_average_sensors(

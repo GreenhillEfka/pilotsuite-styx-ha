@@ -124,11 +124,12 @@ class TestZoneStatusCard:
     def test_zone_status_card_with_zones(self):
         """Test zone status card with zone list."""
         from .habitus_dashboard_cards import generate_zone_status_card_yaml
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
         zones = [
-            HabitusZone(zone_id="wohnzimmer", name="Wohnzimmer", entity_ids=["light.lr"]),
-            HabitusZone(zone_id="kueche", name="Küche", entity_ids=["light.k"]),
+            HabitusZoneV2(zone_id="wohnzimmer", name="Wohnzimmer", entity_ids=["light.lr"]),
+            HabitusZoneV2(zone_id="kueche", name="Küche", entity_ids=["light.k"]),
         ]
 
         result = generate_zone_status_card_yaml(
@@ -236,13 +237,14 @@ class TestZoneScoreCalculation:
     def test_calculate_zone_score_basic(self):
         """Test basic zone score calculation."""
         from .habitus_dashboard_cards import calculate_zone_score
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
         # Create mock hass
         mock_hass = Mock()
         mock_hass.states.get = Mock(side_effect=lambda eid: Mock(state="on"))
 
-        zone = HabitusZone(
+        zone = HabitusZoneV2(
             zone_id="test",
             name="Test Zone",
             entity_ids=["light.test1", "light.test2", "climate.test"],
@@ -267,9 +269,10 @@ class TestZoneScoreCalculation:
         mock_hass.states.get = Mock(side_effect=get_state)
 
         from .habitus_dashboard_cards import calculate_zone_score
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
-        zone = HabitusZone(
+        zone = HabitusZoneV2(
             zone_id="test",
             name="Test Zone",
             entity_ids=["light.test1", "light.test2", "climate.test"],
@@ -287,9 +290,10 @@ class TestZoneScoreCalculation:
         mock_hass.states.get = Mock(return_value=None)
 
         from .habitus_dashboard_cards import calculate_zone_score
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
-        zone = HabitusZone(
+        zone = HabitusZoneV2(
             zone_id="test",
             name="Test Zone",
             entity_ids=[],
@@ -305,9 +309,10 @@ class TestZoneScoreCalculation:
         mock_hass.states.get = Mock(return_value=Mock(state="unavailable"))
 
         from .habitus_dashboard_cards import calculate_zone_score
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
-        zone = HabitusZone(
+        zone = HabitusZoneV2(
             zone_id="test",
             name="Test Zone",
             entity_ids=["light.test"],
@@ -325,12 +330,13 @@ class TestMoodDistributionAggregation:
     def test_aggregate_mood_distribution(self):
         """Test mood distribution aggregation."""
         from .habitus_dashboard_cards import aggregate_mood_distribution
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
         zones = [
-            HabitusZone(zone_id="z1", name="Zone 1", entity_ids=[]),
-            HabitusZone(zone_id="z2", name="Zone 2", entity_ids=[]),
-            HabitusZone(zone_id="z3", name="Zone 3", entity_ids=[]),
+            HabitusZoneV2(zone_id="z1", name="Zone 1", entity_ids=[]),
+            HabitusZoneV2(zone_id="z2", name="Zone 2", entity_ids=[]),
+            HabitusZoneV2(zone_id="z3", name="Zone 3", entity_ids=[]),
         ]
 
         zone_moods = {"z1": "relax", "z2": "relax", "z3": "focus"}
@@ -362,11 +368,12 @@ class TestMoodDistributionAggregation:
     def test_aggregate_mood_distribution_all_same(self):
         """Test mood distribution where all zones have same mood."""
         from .habitus_dashboard_cards import aggregate_mood_distribution
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
 
         zones = [
-            HabitusZone(zone_id="z1", name="Zone 1", entity_ids=[]),
-            HabitusZone(zone_id="z2", name="Zone 2", entity_ids=[]),
+            HabitusZoneV2(zone_id="z1", name="Zone 1", entity_ids=[]),
+            HabitusZoneV2(zone_id="z2", name="Zone 2", entity_ids=[]),
         ]
 
         zone_moods = {"z1": "sleep", "z2": "sleep"}
@@ -442,15 +449,16 @@ class TestCardIntegration:
     def test_complete_dashboard_view(self):
         """Test generation of complete dashboard view."""
         from .habitus_dashboard_cards import generate_habitus_dashboard_view
-        from .habitus_zones_store import HabitusZone
+                # DEPRECATED: v1 - use v2
+        from .habitus_zones_store_v2 import HabitusZoneV2 as HabitusZone
         from .habitus_dashboard_cards import (
             ZoneTransitionData,
             MoodDistributionData,
         )
 
         zones = [
-            HabitusZone(zone_id="wohnzimmer", name="Wohnzimmer", entity_ids=[]),
-            HabitusZone(zone_id="kueche", name="Küche", entity_ids=[]),
+            HabitusZoneV2(zone_id="wohnzimmer", name="Wohnzimmer", entity_ids=[]),
+            HabitusZoneV2(zone_id="kueche", name="Küche", entity_ids=[]),
         ]
 
         transitions = [

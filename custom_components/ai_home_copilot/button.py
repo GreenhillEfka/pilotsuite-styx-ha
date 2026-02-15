@@ -13,7 +13,8 @@ from .const import (
     DOMAIN,
 )
 from .entity import CopilotBaseEntity
-from .habitus_zones_entities import HabitusZonesValidateButton
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_entities import HabitusZonesValidateButton
 from .habitus_zones_entities_v2 import (
     HabitusZonesV2ValidateButton,
     HabitusZonesV2SyncGraphButton,

@@ -15,7 +15,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .habitus_dashboard_store import HabitusDashboardState, async_get_state, async_set_state
-from .habitus_zones_store import async_get_zones, HabitusZone
+# DEPRECATED: v1 - prefer v2
+# from .habitus_zones_store import async_get_zones, HabitusZone
+from .habitus_zones_store_v2 import async_get_zones_v2, HabitusZoneV2
 
 _LOGGER = logging.getLogger(__name__)
 
