@@ -34,6 +34,14 @@ from .habitus_zones_store import async_get_zones
 from .habitus_zone_aggregates import build_zone_average_sensors
 from .core_v1_entities import CoreApiV1StatusSensor
 from .systemhealth_entities import SystemHealthEntityCountSensor, SystemHealthSqliteDbSizeSensor
+from .mesh_monitoring import (
+    ZWaveNetworkHealthSensor,
+    ZWaveDevicesOnlineSensor,
+    ZWaveBatteryOverviewSensor,
+    ZigbeeNetworkHealthSensor,
+    ZigbeeDevicesOnlineSensor,
+    ZigbeeBatteryOverviewSensor,
+)
 from .forwarder_quality_entities import (
     EventsForwarderDroppedTotalSensor,
     EventsForwarderErrorStreakSensor,
@@ -60,6 +68,24 @@ from .sensors.voice_context import (
     VoiceContextSensor,
     VoicePromptSensor,
 )
+from .sensors.neurons_14 import (
+    PresenceRoomSensor,
+    PresencePersonSensor,
+    ActivityLevelSensor,
+    ActivityStillnessSensor,
+    TimeOfDaySensor,
+    DayTypeSensor,
+    RoutineStabilitySensor,
+    LightLevelSensor,
+    NoiseLevelSensor,
+    WeatherContextSensor,
+    CalendarLoadSensor,
+    AttentionLoadSensor,
+    StressProxySensor,
+    EnergyProxySensor,
+    MediaActivitySensor,
+    MediaIntensitySensor,
+)
 from .mood_dashboard import (
     MoodDashboardEntity,
     MoodHistoryEntity,
@@ -83,6 +109,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusZonesV2HealthSensor(coordinator, entry),
         SystemHealthEntityCountSensor(coordinator),
         SystemHealthSqliteDbSizeSensor(coordinator),
+        # Mesh Monitoring (Z-Wave / Zigbee)
+        ZWaveNetworkHealthSensor(hass, entry),
+        ZWaveDevicesOnlineSensor(hass, entry),
+        ZWaveBatteryOverviewSensor(hass, entry),
+        ZigbeeNetworkHealthSensor(hass, entry),
+        ZigbeeDevicesOnlineSensor(hass, entry),
+        ZigbeeBatteryOverviewSensor(hass, entry),
         CopilotInventoryLastRunSensor(coordinator),
         HabitusMinerRuleCountSensor(coordinator),
         HabitusMinerStatusSensor(coordinator),
@@ -96,6 +129,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         # Voice Context Sensors (HA Assist)
         VoiceContextSensor(coordinator),
         VoicePromptSensor(coordinator),
+        # 14 Neuron Sensors (Original Plan)
+        PresenceRoomSensor(coordinator, hass),
+        PresencePersonSensor(coordinator, hass),
+        ActivityLevelSensor(coordinator, hass),
+        ActivityStillnessSensor(coordinator, hass),
+        TimeOfDaySensor(coordinator),
+        DayTypeSensor(coordinator, hass),
+        RoutineStabilitySensor(coordinator, hass),
+        LightLevelSensor(coordinator, hass),
+        NoiseLevelSensor(coordinator, hass),
+        WeatherContextSensor(coordinator, hass),
+        CalendarLoadSensor(coordinator, hass),
+        AttentionLoadSensor(coordinator, hass),
+        StressProxySensor(coordinator, hass),
+        EnergyProxySensor(coordinator, hass),
+        MediaActivitySensor(coordinator, hass),
+        MediaIntensitySensor(coordinator, hass),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)

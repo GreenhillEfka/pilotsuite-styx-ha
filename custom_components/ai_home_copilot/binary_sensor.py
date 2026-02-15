@@ -8,6 +8,7 @@ from .const import DOMAIN
 from .entity import CopilotBaseEntity
 from .media_entities import MusicActiveBinarySensor, TvActiveBinarySensor
 from .forwarder_quality_entities import EventsForwarderConnectedBinarySensor
+from .mesh_monitoring import ZWaveMeshStatusBinarySensor, ZigbeeMeshStatusBinarySensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -30,6 +31,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         )
     
     # Media Context v2 doesn't have binary sensor entities currently
+
+    # Mesh Monitoring Binary Sensors (Z-Wave / Zigbee)
+    entities.extend([
+        ZWaveMeshStatusBinarySensor(hass, entry),
+        ZigbeeMeshStatusBinarySensor(hass, entry),
+    ])
 
     async_add_entities(entities, True)
 
