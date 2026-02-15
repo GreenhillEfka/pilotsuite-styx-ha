@@ -3,6 +3,31 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 0.5.0
+- **Knowledge Graph Module**: Neo4j-backed graph storage with SQLite fallback
+  - Captures relationships between entities, patterns, moods, and contexts
+  - Node types: ENTITY, DOMAIN, AREA, ZONE, PATTERN, MOOD, CAPABILITY, TAG, TIME_CONTEXT
+  - Edge types: BELONGS_TO, HAS_CAPABILITY, HAS_TAG, TRIGGERS, CORRELATES_WITH, ACTIVE_DURING, RELATES_TO_MOOD
+  - Dual backend: Neo4j (preferred) or SQLite (fallback)
+- **Graph Builder**: Build graph from HA states, entities, areas, and tags
+- **Pattern Importer**: Import Habitus A→B rules as PATTERN nodes
+- **API Endpoints**: `/api/v1/kg/*` for graph queries and management
+  - `GET /api/v1/kg/stats` - Graph statistics
+  - `GET/POST /api/v1/kg/nodes` - Node CRUD
+  - `GET/POST /api/v1/kg/edges` - Edge CRUD
+  - `POST /api/v1/kg/query` - Custom graph queries
+  - `GET /api/v1/kg/entity/{id}/related` - Get related entities
+  - `GET /api/v1/kg/zone/{id}/entities` - Get zone entities
+  - `GET /api/v1/kg/mood/{mood}/patterns` - Get mood-related patterns
+  - `POST /api/v1/kg/import/entities` - Import from HA states
+  - `POST /api/v1/kg/import/patterns` - Import from Habitus miner
+- Environment variables for Neo4j:
+  - `COPILOT_NEO4J_URI` (default: none, uses SQLite)
+  - `COPILOT_NEO4J_USER` (default: neo4j)
+  - `COPILOT_NEO4J_PASSWORD`
+  - `COPILOT_NEO4J_ENABLED` (default: true)
+  - `COPILOT_KG_SQLITE_PATH` (default: /data/knowledge_graph.db)
+
 ## 0.2.7
 - Brain Graph Ops: `POST /api/v1/graph/ops` (v0.1: touch_edge; idempotent; allowlist: observed_with, controls).
 

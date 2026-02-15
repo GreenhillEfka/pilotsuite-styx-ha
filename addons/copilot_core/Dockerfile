@@ -8,7 +8,8 @@ RUN apk add --no-cache python3 py3-pip graphviz && \
         waitress==3.0.0 \
         python-ulid==2.7.0 \
         pyyaml==6.0.1 \
-        psutil==6.1.0
+        psutil==6.1.0 \
+        neo4j==5.26.0
 
 WORKDIR /usr/src/app
 COPY rootfs/usr/src/app /usr/src/app

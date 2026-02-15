@@ -2,7 +2,7 @@
   "name": "AI Home CoPilot Core (MVP)",
   "slug": "copilot_core",
   "description": "MVP Core Service for AI Home CoPilot (health/version endpoints; scaffold for neurons/moods/synapses).",
-  "version": "0.4.16",
+  "version": "0.5.0",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": ["amd64", "aarch64"],
   "startup": "services",
@@ -29,6 +29,14 @@
       "edge_half_life_hours": 12.0,
       "node_min_score": 0.1,
       "edge_min_weight": 0.1
+    },
+    "knowledge_graph": {
+      "enabled": true,
+      "backend": "sqlite",
+      "neo4j_uri": "",
+      "neo4j_user": "neo4j",
+      "neo4j_password": "",
+      "sqlite_path": "/data/knowledge_graph.db"
     }
   },
   "schema": {
@@ -41,6 +49,14 @@
       "edge_half_life_hours": "float(1.0..168.0)",
       "node_min_score": "float(0.01..1.0)",
       "edge_min_weight": "float(0.01..1.0)"
+    },
+    "knowledge_graph": {
+      "enabled": "bool",
+      "backend": "list(sqlite|neo4j)",
+      "neo4j_uri": "str?",
+      "neo4j_user": "str?",
+      "neo4j_password": "password?",
+      "sqlite_path": "str?"
     }
   }
 }
