@@ -14,16 +14,17 @@ habitus_dashboard.py infrastructure.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
-# DEPRECATED: v1 - prefer v2
-# from .habitus_zones_store import HabitusZoneV2, async_get_zones
 from .habitus_zones_store_v2 import HabitusZoneV2, async_get_zones_v2
 
 _LOGGER = logging.getLogger(__name__)
+
+# Type aliases - defined after classes below
 
 
 # ============================================================================
@@ -47,7 +48,7 @@ class ZoneTransitionData:
     timestamp: str
     from_zone: str | None
     to_zone: str
-    trigger: str | None
+    trigger: str | None = None
     confidence: float | None = None
 
 
@@ -58,6 +59,13 @@ class MoodDistributionData:
     count: int
     percentage: float
     zone_name: str
+    zone_id: str | None = None  # Added zone_id for entity generation
+
+
+# Type aliases for better readability
+ZoneList = list[HabitusZoneV2]
+TransitionList = list[ZoneTransitionData]
+MoodDataList = list[MoodDistributionData]
 
 
 # ============================================================================
@@ -66,7 +74,7 @@ class MoodDistributionData:
 
 def _card_header(title: str, icon: str | None = None) -> str:
     """Generate card header YAML."""
-    lines = [
+    lines: list[str] = [
         "    - type: custom:hui-card",
         f"      title: {title}",
     ]
@@ -75,7 +83,12 @@ def _card_header(title: str, icon: str | None = None) -> str:
     return "\n".join(lines)
 
 
-def _gauge_card(entity_id: str, title: str, min_val: float = 0, max_val: float = 100) -> str:
+def _gauge_card(
+    entity_id: str,
+    title: str,
+    min_val: float = 0,
+    max_val: float = 100,
+) -> str:
     """Generate a gauge card YAML."""
     return f"""    - type: gauge
       entity: {entity_id}
@@ -96,7 +109,7 @@ def _stat_card(
     unit: str | None = None,
 ) -> str:
     """Generate a stat card YAML."""
-    lines = [
+    lines: list[str] = [
         "    - type: statistic",
     ]
     if entity_id:
@@ -113,7 +126,7 @@ def _stat_card(
 
 def _entities_card(title: str, entities: list[str]) -> str:
     """Generate an entities card YAML."""
-    lines = [
+    lines: list[str] = [
         "    - type: entities",
         f"      title: {title}",
         "      show_header_toggle: false",
@@ -128,9 +141,13 @@ def _entities_card(title: str, entities: list[str]) -> str:
     return "\n".join(lines)
 
 
-def _history_graph_card(title: str, entities: list[str], hours: int = 24) -> str:
+def _history_graph_card(
+    title: str,
+    entities: list[str],
+    hours: int = 24,
+) -> str:
     """Generate a history-graph card YAML."""
-    lines = [
+    lines: list[str] = [
         "    - type: history-graph",
         f"      title: {title}",
         f"      hours_to_show: {hours}",
@@ -146,7 +163,7 @@ def _history_graph_card(title: str, entities: list[str], hours: int = 24) -> str
 
 def _markdown_card(title: str, content: str) -> str:
     """Generate a markdown card YAML."""
-    lines = [
+    lines: list[str] = [
         "    - type: markdown",
         f"      title: {title}",
         "      content: |",
@@ -158,13 +175,12 @@ def _markdown_card(title: str, content: str) -> str:
 
 def _vertical_stack_card(cards: list[str]) -> str:
     """Wrap cards in a vertical-stack."""
-    return """    - type: vertical-stack
-""" + "\n".join(cards)
+    return "    - type: vertical-stack\n" + "\n".join(cards)
 
 
 def _grid_card(cards: list[str], columns: int = 2) -> str:
     """Generate a grid card with columns."""
-    nested = []
+    nested: list[str] = []
     for card in cards:
         # Strip leading indentation and add proper grid nesting
         lines = card.strip().splitlines()
@@ -184,7 +200,7 @@ def _grid_card(cards: list[str], columns: int = 2) -> str:
 # ============================================================================
 
 def generate_zone_status_card_yaml(
-    zones: list[HabitusZoneV2],
+    zones: ZoneList,
     active_zone_id: str | None = None,
     score_entity_id: str | None = None,
     mood_entity_id: str | None = None,
@@ -199,7 +215,13 @@ def generate_zone_status_card_yaml(
 
     Returns:
         YAML string for the card
+
+    Raises:
+        ValueError: If zones list is invalid
     """
+    if zones is None:
+        zones = []
+
     cards: list[str] = []
 
     # Header with current status
@@ -228,7 +250,7 @@ def generate_zone_status_card_yaml(
         cards.append(_stat_card(mood_entity_id, "Stimmung", icon="mdi:emoticon-outline"))
 
     # Grid of zone indicators
-    zone_cards = []
+    zone_cards: list[str] = []
     for z in zones:
         is_active = z.zone_id == active_zone_id
         state = "aktiv" if is_active else "inaktiv"
@@ -248,7 +270,10 @@ def generate_zone_status_card_yaml(
     return _vertical_stack_card(cards)
 
 
-def generate_zone_status_card_simple(active_zone: str, score: float | None = None) -> str:
+def generate_zone_status_card_simple(
+    active_zone: str,
+    score: float | None = None,
+) -> str:
     """Generate simple Zone Status Card YAML (standalone version).
 
     Args:
@@ -275,7 +300,7 @@ def generate_zone_status_card_simple(active_zone: str, score: float | None = Non
 # ============================================================================
 
 def generate_zone_transitions_card_yaml(
-    transitions: list[ZoneTransitionData],
+    transitions: TransitionList,
     max_entries: int = 10,
 ) -> str:
     """Generate Zone Transitions History Card YAML.
@@ -287,13 +312,16 @@ def generate_zone_transitions_card_yaml(
     Returns:
         YAML string for the card
     """
+    if transitions is None:
+        transitions = []
+
     cards: list[str] = []
 
     # Header
     cards.append(_markdown_card("Zone Transitions", "**Letzte Zone-Änderungen**"))
 
     # Recent transitions timeline
-    transition_lines = []
+    transition_lines: list[str] = []
     for t in transitions[:max_entries]:
         from_str = t.from_zone or "unbekannt"
         to_str = t.to_zone
@@ -309,14 +337,20 @@ def generate_zone_transitions_card_yaml(
     cards.append(_markdown_card("Verlauf (letzte 24h)", content))
 
     # History graph (if sensor entities exist)
-    graph_entities = [f"sensor.ai_home_copilot_zone_{t.to_zone}" for t in transitions[:5]]
+    graph_entities = [
+        f"sensor.ai_home_copilot_zone_{t.to_zone}"
+        for t in transitions[:5]
+        if t.to_zone
+    ]
     if graph_entities:
         cards.append(_history_graph_card("Zone-Historie", graph_entities, hours=24))
 
     return _vertical_stack_card(cards)
 
 
-def generate_zone_transitions_card_simple(last_transition: ZoneTransitionData | None = None) -> str:
+def generate_zone_transitions_card_simple(
+    last_transition: ZoneTransitionData | None = None,
+) -> str:
     """Generate simple Zone Transitions Card YAML (standalone version).
 
     Args:
@@ -348,8 +382,24 @@ def generate_zone_transitions_card_simple(last_transition: ZoneTransitionData | 
 # Mood Distribution Card
 # ============================================================================
 
+# Mood color mapping as immutable constant
+MOOD_COLORS_MAP: dict[str, str] = {
+    "relax": "#4CAF50",
+    "focus": "#2196F3",
+    "energy": "#FF9800",
+    "sleep": "#3F51B5",
+    "party": "#E91E63",
+    "default": "#9E9E9E",
+}
+
+
+def _get_mood_color(mood: str) -> str:
+    """Get color for a mood, with fallback to default."""
+    return MOOD_COLORS_MAP.get(mood.lower(), MOOD_COLORS_MAP["default"])
+
+
 def generate_mood_distribution_card_yaml(
-    mood_data: list[MoodDistributionData],
+    mood_data: MoodDataList,
     current_mood_entity_id: str | None = None,
 ) -> str:
     """Generate Mood Distribution Card YAML.
@@ -361,13 +411,16 @@ def generate_mood_distribution_card_yaml(
     Returns:
         YAML string for the card
     """
+    if mood_data is None:
+        mood_data = []
+
     cards: list[str] = []
 
     # Header
     cards.append(_markdown_card("Stimmungsverteilung", "**Aktuelle Mood-Verteilung nach Zone**"))
 
     # Mood breakdown table
-    mood_lines = []
+    mood_lines: list[str] = []
     for m in mood_data:
         bar = "█" * int(m.percentage / 10)
         mood_lines.append(f"- **{m.zone_name}:** {m.mood} ({m.percentage:.1f}%) {bar}")
@@ -379,20 +432,13 @@ def generate_mood_distribution_card_yaml(
     cards.append(_markdown_card("Verteilung", content))
 
     # Pie chart-like visualization using bars
-    pie_cards = []
+    pie_cards: list[str] = []
     for m in mood_data:
-        color_map = {
-            "relax": "#4CAF50",
-            "focus": "#2196F3",
-            "energy": "#FF9800",
-            "sleep": "#3F51B5",
-            "party": "#E91E63",
-            "default": "#9E9E9E",
-        }
-        color = color_map.get(m.mood.lower(), color_map["default"])
+        zone_id = m.zone_id or m.zone_name.lower().replace(" ", "_")
+        color = _get_mood_color(m.mood)
 
         bar_card = f"""        - type: custom:bar-card
-          entity: sensor.ai_home_copilot_mood_{m.zone_id}
+          entity: sensor.ai_home_copilot_mood_{zone_id}
           title: {m.zone_name}
           direction: rtl
           value: {m.mood}
@@ -430,7 +476,7 @@ def generate_mood_distribution_card_simple(
 
     cards.append(_markdown_card("Mood Verteilung", "**Stimmungsverteilung im Zuhause**"))
 
-    mood_lines = []
+    mood_lines: list[str] = []
     for mood, count in mood_counts.items():
         percentage = (count / total_zones * 100) if total_zones > 0 else 0
         bar = "█" * int(percentage / 5)
@@ -450,10 +496,10 @@ def generate_mood_distribution_card_simple(
 # ============================================================================
 
 def generate_habitus_dashboard_view(
-    zones: list[HabitusZoneV2],
+    zones: ZoneList,
     active_zone_id: str | None = None,
-    transitions: list[ZoneTransitionData] | None = None,
-    mood_data: list[MoodDistributionData] | None = None,
+    transitions: TransitionList | None = None,
+    mood_data: MoodDataList | None = None,
     score_entity_id: str | None = None,
     mood_entity_id: str | None = None,
 ) -> str:
@@ -501,22 +547,47 @@ def generate_habitus_dashboard_view(
 # Helper Functions
 # ============================================================================
 
-async def get_active_zone_id(hass: HomeAssistant, entry_id: str) -> str | None:
-    """Get the currently active Habitus zone."""
-    zones = await async_get_zones_v2(hass, entry_id)
+async def get_active_zone_id(
+    hass: HomeAssistant,
+    entry_id: str,
+) -> str | None:
+    """Get the currently active Habitus zone.
+
+    Args:
+        hass: Home Assistant instance
+        entry_id: Configuration entry ID
+
+    Returns:
+        Active zone ID or None if no active zone found
+
+    Raises:
+        HomeAssistantError: If there's an error accessing zones
+    """
+    try:
+        zones = await async_get_zones_v2(hass, entry_id)
+    except Exception as exc:
+        _LOGGER.error("Failed to get zones: %s", exc)
+        return None
 
     for z in zones:
         # Check for motion/presence activity in the zone
-        motion_entities = z.entities.get("motion") if z.entities else []
+        motion_entities = z.entities.get("motion", []) if z.entities else []
         for entity_id in motion_entities[:3]:  # Check first 3 motion sensors
-            state = hass.states.get(entity_id)
-            if state and state.state == "on":
-                return z.zone_id
+            try:
+                state = hass.states.get(entity_id)
+                if state and state.state == "on":
+                    return z.zone_id
+            except Exception as exc:
+                _LOGGER.debug("Error checking entity %s: %s", entity_id, exc)
+                continue
 
     return None
 
 
-def calculate_zone_score(z: HabitusZoneV2, hass: HomeAssistant) -> float | None:
+def calculate_zone_score(
+    z: HabitusZoneV2,
+    hass: HomeAssistant,
+) -> float | None:
     """Calculate a simple zone score based on entity states.
 
     Args:
@@ -526,24 +597,37 @@ def calculate_zone_score(z: HabitusZoneV2, hass: HomeAssistant) -> float | None:
     Returns:
         Score between 0-100 or None if not calculable
     """
-    active_count = 0
-    total_count = len(z.entity_ids)
+    try:
+        entity_ids = getattr(z, "entity_ids", None)
+        if not entity_ids:
+            return None
 
-    if total_count == 0:
+        total_count = len(entity_ids)
+        if total_count == 0:
+            return None
+
+        active_count = 0
+        unavailable_states = {"unavailable", "unknown", "off"}
+
+        for entity_id in entity_ids:
+            try:
+                state = hass.states.get(entity_id)
+                if state and state.state not in unavailable_states:
+                    active_count += 1
+            except Exception as exc:
+                _LOGGER.debug("Error getting state for %s: %s", entity_id, exc)
+                continue
+
+        return round((active_count / total_count) * 100, 1)
+    except Exception as exc:
+        _LOGGER.error("Error calculating zone score: %s", exc)
         return None
-
-    for entity_id in z.entity_ids:
-        state = hass.states.get(entity_id)
-        if state and state.state not in ("unavailable", "unknown", "off"):
-            active_count += 1
-
-    return round((active_count / total_count) * 100, 1)
 
 
 def aggregate_mood_distribution(
-    zones: list[HabitusZoneV2],
+    zones: ZoneList,
     zone_moods: dict[str, str],
-) -> list[MoodDistributionData]:
+) -> MoodDataList:
     """Aggregate mood distribution across zones.
 
     Args:
@@ -553,6 +637,9 @@ def aggregate_mood_distribution(
     Returns:
         List of MoodDistributionData sorted by percentage
     """
+    if not zones:
+        return []
+
     mood_counts: dict[str, int] = {}
     zone_mood_map: dict[str, str] = {}
 
@@ -565,16 +652,25 @@ def aggregate_mood_distribution(
     if total == 0:
         return []
 
-    result: list[MoodDistributionData] = []
+    result: MoodDataList = []
     for mood, count in mood_counts.items():
         percentage = (count / total) * 100
         # Get zone name for this mood (first zone with this mood)
-        zone_name = next((z.name for z in zones if zone_moods.get(z.zone_id) == mood), mood)
+        zone_name = next(
+            (z.name for z in zones if zone_moods.get(z.zone_id) == mood),
+            mood,
+        )
+        # Get zone_id for entity generation
+        zone_id = next(
+            (z.zone_id for z in zones if zone_moods.get(z.zone_id) == mood),
+            None,
+        )
         result.append(MoodDistributionData(
             mood=mood,
             count=count,
             percentage=percentage,
             zone_name=zone_name,
+            zone_id=zone_id,
         ))
 
     return sorted(result, key=lambda x: x.percentage, reverse=True)
