@@ -2,6 +2,25 @@
 
 ## [0.10.0] - 2026-02-15
 
+## [0.12.0] - 2026-02-15
+
+### Added
+- **Comprehensive Dashboard**: All Habitus aspects in dashboard
+  - Neurons Status, Mood Overview, Zone Overview, System Health
+  - Presence, Activity, Energy, Media, Weather, Calendar Cards
+  - Interactive elements with clickable neurons, filters, modals
+  - Mobile responsive with dark/light mode
+- **Camera Integration** (complete):
+  - camera_entities.py: Motion, Presence, Activity, Zone cameras
+  - camera_context_module.py: Camera → Neurons integration
+  - camera_dashboard.py: Dashboard YAML generator
+  - Privacy: Face blur, local processing, retention config
+  - Services: trigger_motion, trigger_presence, camera_set_retention
+- **Interactive Dashboard**: Clickable neurons, filters, modal dialogs
+- **Mobile Responsive Dashboard**: Grid layout, adaptive cards, theme switcher
+- **Button Camera**: Camera dashboard generation buttons
+
+
 ### Added
 - **Camera Context Module**: New core module for camera-based context detection
   - Motion detection events tracking
