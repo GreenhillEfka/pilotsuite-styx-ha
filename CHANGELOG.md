@@ -1,5 +1,26 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.10] - 2026-02-15
+
+### Added
+- **Enhanced Repairs UX** (`repairs_enhanced.py`):
+  - Zone context display (where the pattern was discovered)
+  - Mood context display (why this suggestion is relevant now)
+  - Risk visualization (low/medium/high with explanations)
+  - Rich evidence formatting (timing stats, observation counts)
+  - Safety-critical entity detection
+  - Zone pattern issue type
+
+### Changed
+- Updated `strings.json` with new placeholders:
+  - `{zone}` - Zone context
+  - `{confidence}` - Pattern confidence percentage
+  - `{lift}` - Pattern lift factor
+  - `{mood_context}` - Current mood with reason
+  - `{safety_status}` - Risk level with safety indicator
+
+---
+
 ## [0.8.9] - 2026-02-15
 
 ### Changed

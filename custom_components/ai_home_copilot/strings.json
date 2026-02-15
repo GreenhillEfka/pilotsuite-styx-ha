@@ -171,11 +171,15 @@
   "issues": {
     "candidate_suggestion": {
       "title": "CoPilot suggestion: {title}",
-      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings → Automations & Scenes → Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\n🔗 **Blueprint link:** [CoPilot A→B Blueprint]({blueprint_url})"
+      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Zone:** {zone}\n**Confidence:** {confidence}% | **Lift:** {lift}x\n**Mood Context:** {mood_context}\n\n**Next steps:**\n1. Go to [Settings → Automations & Scenes → Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\n🔗 **Blueprint link:** [CoPilot A→B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
       "title": "CoPilot seed: {title}",
-      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A→B blueprint to create an automation if it makes sense, then click Fix and confirm."
+      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\n**Zone:** {zone}\n**Mood Context:** {mood_context}\n\nExcerpt: {excerpt}\n\nUse the safe A→B blueprint to create an automation if it makes sense, then click Fix and confirm."
+    },
+    "zone_pattern": {
+      "title": "Zone pattern: {title}",
+      "description": "CoPilot discovered a pattern in zone **{zone}**.\n\n**Pattern:** {pattern}\n**Confidence:** {confidence}% | **Lift:** {lift}x\n**Safety:** {safety_status}\n\n{mood_context}\n\nClick **Fix** to review and create an automation."
     },
     "log_manifest_parse_error": {
       "title": "Custom integration has invalid manifest.json: {integration}",
