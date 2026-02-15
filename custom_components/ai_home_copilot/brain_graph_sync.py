@@ -50,7 +50,14 @@ def sanitize_entity_id(entity_id: str) -> str:
         return "unknown"
     
     # Keep only alphanumeric, underscore, dot, and hyphen
-    sanitized = re.sub(r'[^\w.\-]', '_', entity_id)
+    # Handle unicode by converting to ASCII-compatible representation
+    try:
+        # Try to encode to ASCII, replacing non-ASCII chars
+        ascii_id = entity_id.encode('ascii', errors='replace').decode('ascii')
+    except Exception:
+        ascii_id = entity_id
+    
+    sanitized = re.sub(r'[^a-zA-Z0-9_.\-]', '_', ascii_id)
     
     # Collapse multiple underscores
     sanitized = re.sub(r'_+', '_', sanitized)

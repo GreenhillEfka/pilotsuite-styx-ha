@@ -15,6 +15,7 @@ from .tag_registry import (
     async_import_canonical_tags,
     async_replace_assignments_snapshot,
     async_sync_labels_now,
+    get_label_registry_sync,
 )
 
 _LOGGER = logging.getLogger(__name__)

@@ -2,7 +2,6 @@
 import pytest
 from custom_components.ai_home_copilot.brain_graph_sync import (
     sanitize_entity_id,
-    safe_sanitize_entity_id,
     sanitize_node_id,
 )
 
@@ -19,19 +18,20 @@ class TestEntityIdSanitization:
     def test_sanitize_entity_id_with_special_chars(self):
         """Test that special characters are replaced."""
         # Path traversal attempts
-        assert safe_sanitize_entity_id("light../../../etc/passwd") == "light_etc_passwd"
-        assert safe_sanitize_entity_id("sensor.<script>alert('xss')</script>") == "sensor.script_alert_xss_script"
+        assert sanitize_entity_id("light../../../etc/passwd") == "light_etc_passwd"
+        assert sanitize_entity_id("sensor.<script>alert('xss')</script>") == "sensor.script_alert_xss_script"
         
         # SQL injection attempts (though not used in SQL)
-        assert safe_sanitize_entity_id("light'; DROP TABLE--") == "light_DROP_TABLE"
+        assert sanitize_entity_id("light'; DROP TABLE--") == "light_DROP_TABLE"
         
         # Newline injection
-        assert safe_sanitize_entity_id("light.kitchen\nmalicious") == "light.kitchen_malicious"
+        assert sanitize_entity_id("light.kitchen\nmalicious") == "light.kitchen_malicious"
 
     def test_sanitize_entity_id_unicode(self):
         """Test that unicode characters are handled."""
-        assert safe_sanitize_entity_id("light.küche") == "light.k_che"
-        assert safe_sanitize_entity_id("sensor.温度") == "sensor"
+        # Unicode chars are replaced
+        assert sanitize_entity_id("light.küche") == "light.k_che"
+        assert sanitize_entity_id("sensor.温度") == "sensor_"
 
     def test_sanitize_entity_id_empty(self):
         """Test empty entity_id returns 'unknown'."""
@@ -40,8 +40,8 @@ class TestEntityIdSanitization:
 
     def test_sanitize_entity_id_multiple_underscores(self):
         """Test that multiple underscores are collapsed."""
-        assert safe_sanitize_entity_id("light..kitchen...lamp") == "light.kitchen.lamp"
-        assert safe_sanitize_entity_id("sensor___test") == "sensor_test"
+        assert sanitize_entity_id("light..kitchen...lamp") == "light.kitchen.lamp"
+        assert sanitize_entity_id("sensor___test") == "sensor_test"
 
     def test_sanitize_node_id(self):
         """Test node ID construction with sanitization."""
@@ -59,14 +59,14 @@ class TestEntityIdSanitization:
 
     def test_sanitize_preserves_domain_structure(self):
         """Test that domain.entity structure is preserved."""
-        result = safe_sanitize_entity_id("light.kitchen_ceiling")
+        result = sanitize_entity_id("light.kitchen_ceiling")
         assert result.startswith("light.")
         assert "." in result  # Domain separator preserved
         
     def test_sanitize_state_values(self):
         """Test sanitization of state values (can be arbitrary strings)."""
         # States can be user-defined strings
-        assert safe_sanitize_entity_id("on") == "on"
-        assert safe_sanitize_entity_id("off") == "off"
-        assert safe_sanitize_entity_id("heat_cool") == "heat_cool"
-        assert safe_sanitize_entity_id("playing<podcast>") == "playing_podcast"
+        assert sanitize_entity_id("on") == "on"
+        assert sanitize_entity_id("off") == "off"
+        assert sanitize_entity_id("heat_cool") == "heat_cool"
+        assert sanitize_entity_id("playing<podcast>") == "playing_podcast"
