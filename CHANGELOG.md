@@ -1,5 +1,25 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.9.8] - 2026-02-15
+
+### Fixed
+- **Manifest Version Sync**: Version bumped to v0.9.8 for release alignment
+- py_compile validation passing
+
+---
+
+## [0.9.7] - 2026-02-15
+
+### Fixed
+- **Critical Import Fix**: Added missing `async_call_core_api` function (ImportError fix)
+  - Resolved ImportError in HA → Core communication
+  - Zone detection now fully functional with Core API calls
+
+### Added
+- **Zone Detection Documentation**: Complete docs for Auto-Zone Detection feature
+
+---
+
 ## [0.9.6] - 2026-02-15
 
 ### Added
