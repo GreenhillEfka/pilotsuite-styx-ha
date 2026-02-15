@@ -62,6 +62,12 @@ def mock_hass():
     return hass
 
 
+@pytest.fixture
+def mock_hass_obj():
+    """Pytest fixture for mock HomeAssistant instance."""
+    return mock_hass()
+
+
 def forwarder_config():
     """Default N3 forwarder configuration."""
     return {
@@ -72,6 +78,12 @@ def forwarder_config():
         "flush_interval": 0.1,
         "forward_call_service": True,
     }
+
+
+@pytest.fixture
+def forwarder_config_obj():
+    """Pytest fixture for forwarder configuration."""
+    return forwarder_config()
 
 
 class TestN3EventForwarder:

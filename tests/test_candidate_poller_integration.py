@@ -20,10 +20,19 @@ from unittest.mock import AsyncMock, MagicMock, patch, call
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.components.repairs import RepairsFlow
+
+# Lazy import HA components - skip if not installed
+try:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.helpers.event import async_track_time_interval
+    from homeassistant.components.repairs import RepairsFlow
+    HA_AVAILABLE = True
+except ImportError:
+    HA_AVAILABLE = False
+    HomeAssistant = None
+    ConfigEntry = None
+    RepairsFlow = None
 
 
 # Mock classes for testing

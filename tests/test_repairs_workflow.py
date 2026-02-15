@@ -21,10 +21,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.repairs import RepairsFlow
-from homeassistant.helpers import issue_registry as ir
+# Lazy import HA components - skip if not installed
+try:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.components.repairs import RepairsFlow
+    from homeassistant.helpers import issue_registry as ir
+    HA_AVAILABLE = True
+except ImportError:
+    HA_AVAILABLE = False
+    HomeAssistant = None
+    ConfigEntry = None
+    RepairsFlow = None
+    ir = None
 
 
 # Mock helpers for HA components
