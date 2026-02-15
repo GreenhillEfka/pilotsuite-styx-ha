@@ -17,6 +17,10 @@ from .mood import (
     AwayMoodNeuron, AlertMoodNeuron, SocialMoodNeuron, RecoveryMoodNeuron,
     create_mood_neuron, MOOD_NEURON_CLASSES
 )
+from .weather import (
+    WeatherContextNeuron, PVForecastNeuron,
+    WeatherCondition,
+)
 
 __all__ = [
     # Manager
@@ -58,4 +62,8 @@ __all__ = [
     "RecoveryMoodNeuron",
     "create_mood_neuron",
     "MOOD_NEURON_CLASSES",
+    # Weather neurons
+    "WeatherContextNeuron",
+    "PVForecastNeuron",
+    "WeatherCondition",
 ]

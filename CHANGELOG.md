@@ -1,5 +1,26 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.28] - 2026-02-15
+
+### Added
+- **Weather Context Neuron** (`neurons/weather.py`):
+  - `WeatherContextNeuron`: Evaluates weather for PV potential, comfort, activity suggestions
+  - `PVForecastNeuron`: Evaluates PV forecast for energy optimization
+  - `WeatherCondition` enum for weather categorization
+  - Methods: `get_pv_potential()`, `get_comfort_score()`, `should_suppress_outdoor_suggestions()`
+- **Weather API** (`api/v1/weather.py`):
+  - `GET /api/v1/weather` - Current weather snapshot
+  - `GET /api/v1/weather/forecast` - Multi-day forecast
+  - `GET /api/v1/weather/pv-recommendations` - PV-based energy recommendations
+  - `WeatherService` class with caching (15min TTL)
+  - PV production estimation based on cloud cover and UV index
+
+### Changed
+- `neurons/__init__.py`: Export new weather neurons
+- `api/v1/blueprint.py`: Register weather blueprint
+
+---
+
 ## [0.4.27] - 2026-02-15
 
 ### Fixed
