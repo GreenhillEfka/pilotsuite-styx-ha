@@ -1,0 +1,64 @@
+{
+  "zones": [
+    {
+      "zone_id": "zone:wohnbereich",
+      "name": "Wohnbereich",
+      "zone_type": "area",
+      "floor": "EG",
+      "priority": 5,
+      "tags": ["aicp.place.wohnzimmer", "aicp.place.wohnbereich"]
+    },
+    {
+      "zone_id": "zone:kochbereich",
+      "name": "Kochbereich",
+      "zone_type": "area",
+      "floor": "EG",
+      "priority": 5,
+      "tags": ["aicp.place.kuche", "aicp.place.kochbereich"]
+    },
+    {
+      "zone_id": "zone:gangbereich",
+      "name": "Gangbereich",
+      "zone_type": "area",
+      "floor": "EG",
+      "priority": 3,
+      "tags": ["aicp.place.gang", "aicp.place.flur"]
+    },
+    {
+      "zone_id": "zone:badbereich",
+      "name": "Badbereich",
+      "zone_type": "area",
+      "floor": "EG",
+      "priority": 4,
+      "tags": ["aicp.place.bad", "aicp.place.badezimmer"]
+    },
+    {
+      "zone_id": "zone:schlafbereich",
+      "name": "Schlafbereich",
+      "zone_type": "area",
+      "floor": "OG",
+      "priority": 5,
+      "tags": ["aicp.place.schlafzimmer", "aicp.place.schlafbereich"]
+    },
+    {
+      "zone_id": "zone:terassenbereich",
+      "name": "Terrassenbereich",
+      "zone_type": "outdoor",
+      "floor": "EG",
+      "priority": 3,
+      "tags": ["aicp.place.terrasse", "aicp.place.garten", "aicp.place.aussen"]
+    }
+  ],
+  "tag_to_zone_mapping": {
+    "aicp.place.wohnzimmer": "zone:wohnbereich",
+    "aicp.place.kuche": "zone:kochbereich",
+    "aicp.place.kochbereich": "zone:kochbereich",
+    "aicp.place.gang": "zone:gangbereich",
+    "aicp.place.flur": "zone:gangbereich",
+    "aicp.place.bad": "zone:badbereich",
+    "aicp.place.schlafzimmer": "zone:schlafbereich",
+    "aicp.place.terrasse": "zone:terassenbereich",
+    "aicp.place.garten": "zone:terassenbereich",
+    "aicp.place.aussen": "zone:terassenbereich"
+  }
+}

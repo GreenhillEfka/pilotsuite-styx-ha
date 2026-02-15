@@ -1,0 +1,48 @@
+# AI Home CoPilot Brain Graph Dashboard
+# Füge dies zu deiner lovelace.yaml hinzu
+
+title: 🧠 Gehirn
+cards:
+  # Brain Graph Panel (iframe)
+  - type: iframe
+    url: /local/ai_home_copilot/brain_graph_panel.html
+    title: 🧠 Neuronales Netzwerk
+    aspect_ratio: '16:9'
+    
+  # Neuron Status Overview
+  - type: entities
+    title: 🧠 Neuronen Status
+    show_header_toggle: false
+    entities:
+      - entity: sensor.ai_copilot_neuron_dashboard
+        name: Neuron Dashboard
+        icon: mdi:brain
+      - entity: sensor.ai_copilot_mood
+        name: Aktueller Mood
+        icon: mdi:emoticon
+      - entity: sensor.ai_copilot_energy
+        name: Energy Level
+        icon: mdi:lightning-bolt
+      - entity: sensor.ai_copilot_presence
+        name: Presence Score
+        icon: mdi:account-multiple
+
+  # Mood Distribution
+  - type: custom:bar-card
+    title: 🎭 Stimmungsverteilung
+    entities:
+      - entity: sensor.ai_copilot_mood
+        icon: mdi:emoticon-happy
+      - entity: sensor.ai_copilot_energy
+        icon: mdi:lightning-bolt
+        
+  # Quick Actions
+  - type: entities
+    title: ⚡ Schnellaktionen
+    entities:
+      - entity: input_button.ai_copilot_reset_mood
+        name: Mood zurücksetzen
+      - entity: input_button.ai_copilot_sync_graph
+        name: Graph synchronisieren
+      - entity: input_boolean.ai_copilot_debug_mode
+        name: Debug Modus
