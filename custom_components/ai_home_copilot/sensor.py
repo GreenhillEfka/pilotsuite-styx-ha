@@ -99,6 +99,13 @@ from .mood_dashboard import (
 from .calendar_context import CalendarContextEntity
 from .suggestion_panel import SuggestionQueue
 
+# Mobile Dashboard Cards
+from .mobile_dashboard_cards import (
+    MobileDashboardSensor,
+    MobileQuickActionsSensor,
+    MobileEntityGridSensor,
+)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
@@ -234,6 +241,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         await module.async_setup()
         entities.append(CalendarContextEntity(entry.entry_id, module))
         data["calendar_context_module"] = module
+
+    # Mobile Dashboard Cards (Mobile-optimized UI)
+    entities.extend([
+        MobileDashboardSensor(hass, entry),
+        MobileQuickActionsSensor(hass, entry),
+        MobileEntityGridSensor(hass, entry),
+    ])
 
     async_add_entities(entities, True)
 

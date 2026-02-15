@@ -105,6 +105,11 @@ _MODULES = [
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_all_services(hass)
+    
+    # Register Quick Search services
+    from .search_integration import async_register_services as register_search_services
+    await register_search_services(hass)
+    
     return True
 
 
