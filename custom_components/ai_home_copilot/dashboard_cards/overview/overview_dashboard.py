@@ -7,20 +7,14 @@ Functions:
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-# Import data classes
-from .data_classes import DashboardData
-
-# Import card builders from split modules
-from .overview_cards import create_dashboard_overview_card
-from .presence_activity_cards import create_presence_card, create_activity_card
-from .energy_media_cards import create_energy_card, create_media_card
-from .weather_calendar_cards import create_weather_card, create_calendar_card
+if TYPE_CHECKING:
+    from ..data_classes import DashboardData
 
 
 def create_complete_dashboard(
-    data: DashboardData,
+    data: "DashboardData",
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
@@ -35,6 +29,12 @@ def create_complete_dashboard(
     Mobile: Stacks vertically
     Desktop: Grid layout
     """
+    # Lazy imports to avoid circular dependencies
+    from ..overview.overview_cards import create_dashboard_overview_card
+    from ..presence.presence_activity_cards import create_presence_card, create_activity_card
+    from ..energy.energy_media_cards import create_energy_card, create_media_card
+    from ..weather.weather_calendar_cards import create_weather_card, create_calendar_card
+    
     config = config or {}
     
     return {
@@ -78,7 +78,7 @@ def create_complete_dashboard(
 
 
 def create_mobile_dashboard(
-    data: DashboardData,
+    data: "DashboardData",
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
@@ -86,6 +86,11 @@ def create_mobile_dashboard(
     
     Single column layout, optimized for touch.
     """
+    # Lazy imports to avoid circular dependencies
+    from ..presence.presence_activity_cards import create_presence_card, create_activity_card
+    from ..energy.energy_media_cards import create_energy_card, create_media_card
+    from ..weather.weather_calendar_cards import create_weather_card, create_calendar_card
+    
     config = config or {}
     
     return {

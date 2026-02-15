@@ -6,10 +6,10 @@ Cards:
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-# Import data classes
-from .data_classes import PresenceData, ActivityData
+if TYPE_CHECKING:
+    from ..data_classes import PresenceData, ActivityData
 
 
 def create_presence_card(

@@ -9,14 +9,14 @@ Cards:
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-# Import data classes
-from .data_classes import (
-    DashboardData,
-    NeuronStatus,
-    MoodData,  # Optional
-)
+if TYPE_CHECKING:
+    from ..data_classes import (
+        DashboardData,
+        NeuronStatus,
+        MoodData,
+    )
 
 
 def create_dashboard_overview_card(

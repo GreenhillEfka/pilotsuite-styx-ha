@@ -211,10 +211,14 @@ def _get_health_color(health: str) -> str:
 
 def get_mesh_data_from_hass(hass: HomeAssistant) -> MeshNetworkData:
     """Extract mesh network data from Home Assistant states."""
-    from ..mesh_monitoring import _analyze_mesh_devices
-    
-    zwave_data = _analyze_mesh_devices(hass, "zwave")
-    zigbee_data = _analyze_mesh_devices(hass, "zigbee")
+    try:
+        from ..mesh_monitoring import _analyze_mesh_devices
+        zwave_data = _analyze_mesh_devices(hass, "zwave")
+        zigbee_data = _analyze_mesh_devices(hass, "zigbee")
+    except ImportError:
+        # Fallback: get data from sensors directly
+        zwave_data = {"total": 0, "online": 0, "avg_latency_ms": 0, "battery_devices": [], "low_battery": []}
+        zigbee_data = {"total": 0, "online": 0, "avg_link_quality": 0, "battery_devices": [], "low_battery": []}
     
     return MeshNetworkData(
         zwave_total=zwave_data.get("total", 0),
