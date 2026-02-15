@@ -221,6 +221,62 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception as ex:  # noqa: BLE001
             _LOGGER.debug(f"Could not auto-tag entities: {ex}")
 
+    async def get_zone_entity_suggestions(self, zone_name: str) -> dict:
+        """Get entity suggestions for a zone.
+        
+        Returns dict with keys: motion, lights, sensors, media, other
+        Each value is a list of entity_ids.
+        """
+        from homeassistant.helpers import area_registry, entity_registry
+        
+        suggestions = {
+            "motion": [],
+            "lights": [],
+            "sensors": [],
+            "media": [],
+            "other": []
+        }
+        
+        try:
+            area_reg = area_registry.async_get(self.hass)
+            entity_reg = entity_registry.async_get(self.hass)
+            
+            # Normalize zone name for matching
+            zone_name_lower = zone_name.lower().replace("bereich", "").strip()
+            
+            # Get areas matching zone name
+            matching_areas = [a for a in area_reg.areas.values() 
+                             if zone_name_lower in a.name.lower()]
+            
+            for entity_id, entry in entity_reg.entities.items():
+                if entry.disabled:
+                    continue
+                    
+                # Check: Area match or name match
+                area_match = entry.area_id and any(
+                    a.id == entry.area_id for a in matching_areas
+                )
+                name_match = zone_name_lower in entity_id.lower()
+                
+                if area_match or name_match:
+                    domain = entity_id.split(".")[0]
+                    
+                    if domain == "binary_sensor":
+                        suggestions["motion"].append(entity_id)
+                    elif domain == "light":
+                        suggestions["lights"].append(entity_id)
+                    elif domain == "sensor":
+                        suggestions["sensors"].append(entity_id)
+                    elif domain == "media_player":
+                        suggestions["media"].append(entity_id)
+                    else:
+                        suggestions["other"].append(entity_id)
+                        
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.debug(f"Could not get zone suggestions: {ex}")
+            
+        return suggestions
+
     @staticmethod
     def async_get_options_flow(config_entry: config_entries.ConfigEntry):
         return OptionsFlowHandler(config_entry)
