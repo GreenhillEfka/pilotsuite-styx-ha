@@ -65,8 +65,10 @@ async def _save(hass: HomeAssistant, data: dict[str, Any]) -> None:
     await _get_store(hass).async_save(data)
 
 
-def _tag_status(tag: dict[str, Any]) -> str:
+def _tag_status(tag: dict[str, Any] | None) -> str:
     # statuses: confirmed|pending
+    if tag is None:
+        return "pending"
     status = str(tag.get("status") or "pending")
     return status
 
@@ -146,6 +148,16 @@ def _label_name_from_obj(label: Any) -> Optional[str]:
 
 
 async def _get_label_registry(hass: HomeAssistant) -> Any:
+    try:
+        from homeassistant.helpers import label_registry as lr  # type: ignore
+
+        return lr.async_get(hass)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def get_label_registry_sync(hass: HomeAssistant) -> Any:
+    """Get label registry synchronously (for testing)."""
     try:
         from homeassistant.helpers import label_registry as lr  # type: ignore
 
