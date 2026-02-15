@@ -1,5 +1,19 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.9] - 2026-02-15
+
+### Changed
+- **Weather Context Integration**: Connected to Core Add-on Weather API v0.4.28
+  - Weather coordinator now uses `/api/v1/weather` endpoint
+  - PV recommendations from `/api/v1/weather/pv-recommendations`
+  - Forecast from `/api/v1/weather/forecast`
+  - Full integration with WeatherContextNeuron in Core
+
+### Fixed
+- Weather API endpoint paths now match Core Add-on v0.4.28
+
+---
+
 ## [0.8.8] - 2026-02-15
 
 ### Added

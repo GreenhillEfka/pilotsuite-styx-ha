@@ -100,6 +100,7 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
         try:
             session = await self._get_session()
             base_url = self._get_base_url()
+            # Updated endpoint path for Core Add-on v0.4.28
             url = f"{base_url}/api/v1/weather"
             
             async with session.get(url, headers=self._get_headers()) as response:
@@ -111,6 +112,10 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
                     raise Exception(f"Weather API returned status {response.status}")
                 
                 data = await response.json()
+                
+                # Handle wrapped response from Core API
+                if "data" in data:
+                    data = data["data"]
                 
                 return WeatherSnapshot(
                     timestamp=data.get("timestamp", datetime.now().isoformat()),
@@ -139,6 +144,10 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
                     return []
                 
                 data = await response.json()
+                
+                # Handle wrapped response from Core API
+                if "data" in data:
+                    data = data["data"]
                 return [
                     WeatherForecast(
                         timestamp=f.get("timestamp", ""),
@@ -167,6 +176,10 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
                     return []
                 
                 data = await response.json()
+                
+                # Handle wrapped response from Core API
+                if "data" in data:
+                    data = data["data"]
                 return [
                     PVRecommendation(
                         id=r["id"],
