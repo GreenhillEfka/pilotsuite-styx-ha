@@ -1,5 +1,23 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.9.3] - 2026-02-15
+
+### Added
+- **Phase 5 Complete**: All Phase 5 features released
+  - Interactive Brain Graph Panel ✅
+  - Cross-Home Sharing API ✅
+  - Collective Intelligence ✅
+
+### Changed
+- Manifest version synced to 0.9.3
+- All Phase 5 features now fully integrated and tested
+
+### Technical
+- Full py_compile validation passing
+- All Phase 5 components working together
+
+---
+
 ## [0.9.2] - 2026-02-15
 
 ### Added

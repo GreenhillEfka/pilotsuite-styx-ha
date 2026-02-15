@@ -65,6 +65,13 @@ def sanitize_entity_id(entity_id: str) -> str:
     return sanitized
 
 
+def safe_sanitize_entity_id(entity_id: str | None) -> str:
+    """Safely sanitize entity_id, handling None values."""
+    if entity_id is None:
+        return "unknown"
+    return sanitize_entity_id(entity_id)
+
+
 def sanitize_node_id(node_type: str, identifier: str) -> str:
     """Create a sanitized node ID from type and identifier.
     
