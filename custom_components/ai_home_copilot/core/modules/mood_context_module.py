@@ -120,21 +120,38 @@ class MoodContextModule:
     def _clamp(self, value: float, low: float = 0.0, high: float = 1.0) -> float:
         return max(low, min(high, value))
 
-    def _get_user_preference(self, user_id: str, zone_id: str) -> Optional[Dict[str, Any]]:
-        if not user_id or not zone_id:
+    def _get_user_preference(self, user_id: str, zone_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get user preference from UserPreferenceModule.
+        
+        Args:
+            user_id: The user ID to get preferences for
+            zone_id: Optional zone ID for zone-specific preferences
+            
+        Returns:
+            User preferences dict with bias values, or None if not found
+        """
+        if not user_id:
             return None
 
-        try:
-            from .user_preference_module import UserPreferenceModule  # type: ignore
-        except Exception:  # noqa: BLE001
-            return None
-
+        # Use cached import to avoid repeated imports
+        if not hasattr(self, "_user_pref_module_class"):
+            try:
+                from .user_preference_module import UserPreferenceModule
+                self._user_pref_module_class = UserPreferenceModule
+            except ImportError as e:
+                logger.debug(f"Could not import UserPreferenceModule: {e}")
+                return None
+        
+        UserPreferenceModule = self._user_pref_module_class
+        
         dom = self.hass.data.get(DOMAIN, {})
+        
+        # Try to get module directly from hass.data
         module = dom.get("user_preference_module")
         if isinstance(module, UserPreferenceModule):
             return module.get_user_preference(user_id, zone_id)
 
-        # Fallback: search entry data for a registered module.
+        # Fallback: search entry data for a registered module
         for entry_data in dom.values():
             if isinstance(entry_data, dict):
                 candidate = entry_data.get("user_preference_module")
