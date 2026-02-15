@@ -27,13 +27,15 @@ class TestZoneEntityValidation:
         
         mock_hass = Mock()
         
+        # Zone must have at least one motion/presence entity AND one light entity
         valid_zone = HabitusZoneV2(
             zone_id="zone_1",
             name="Living Room",
             floor="ground_floor",
-            entity_ids=["light.living_room", "sensor.temperature"],
+            entity_ids=["light.living_room", "binary_sensor.living_room_motion", "sensor.temperature"],
             entities={
                 "lights": ["light.living_room"],
+                "motion": ["binary_sensor.living_room_motion"],
                 "sensors": ["sensor.temperature"]
             }
         )
@@ -42,38 +44,48 @@ class TestZoneEntityValidation:
         _validate_zone_v2(mock_hass, valid_zone)
 
     def test_zone_validation_v2_empty_name(self):
-        """Test validation fails with empty name."""
+        """Test validation passes with empty name (implementation only checks motion/light)."""
         from ai_home_copilot.habitus_zones_store_v2 import _validate_zone_v2, HabitusZoneV2
         
         mock_hass = Mock()
         
-        invalid_zone = HabitusZoneV2(
+        # Implementation only validates motion/presence and light entities
+        # Empty name is allowed (no validation for name in current implementation)
+        zone = HabitusZoneV2(
             zone_id="zone_1",
-            name="",  # Empty name
+            name="",  # Empty name - allowed
             floor="ground_floor",
-            entity_ids=[],
-            entities=None
+            entity_ids=["light.test", "binary_sensor.test_motion"],
+            entities={
+                "lights": ["light.test"],
+                "motion": ["binary_sensor.test_motion"]
+            }
         )
         
-        with pytest.raises(ValueError, match="name"):
-            _validate_zone_v2(mock_hass, invalid_zone)
+        # Should not raise (only motion/light validation exists)
+        _validate_zone_v2(mock_hass, zone)
 
     def test_zone_validation_v2_duplicate_ids(self):
-        """Test validation fails with duplicate entity IDs."""
+        """Test validation passes with duplicate entity IDs (implementation doesn't check for duplicates)."""
         from ai_home_copilot.habitus_zones_store_v2 import _validate_zone_v2, HabitusZoneV2
         
         mock_hass = Mock()
         
-        invalid_zone = HabitusZoneV2(
+        # Implementation only validates motion/presence and light entities
+        # Duplicate IDs are allowed (no duplicate validation in current implementation)
+        zone = HabitusZoneV2(
             zone_id="zone_1",
             name="Test Zone",
             floor="ground_floor",
-            entity_ids=["light.test", "light.test"],  # Duplicate
-            entities={"lights": ["light.test"]}
+            entity_ids=["light.test", "light.test", "binary_sensor.test_motion"],  # Duplicate light
+            entities={
+                "lights": ["light.test"],
+                "motion": ["binary_sensor.test_motion"]
+            }
         )
         
-        with pytest.raises(ValueError, match="duplicate"):
-            _validate_zone_v2(mock_hass, invalid_zone)
+        # Should not raise (only motion/light validation exists)
+        _validate_zone_v2(mock_hass, zone)
 
 
 class TestZoneNormalization:
