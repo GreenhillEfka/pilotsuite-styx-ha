@@ -89,9 +89,10 @@ ha-copilot-repo/
 ## Next Milestones
 
 - [x] Interactive Visualization (Phase 5)
-- [ ] Cross-Home Sharing
-- [ ] Collective Intelligence
+- [x] Cross-Home Sharing (v0.6.0)
+- [x] Collective Intelligence (v0.6.1)
 - [ ] Extended neuron modules
+- [ ] Performance optimization (caching, connection pooling)
 
 ---
 

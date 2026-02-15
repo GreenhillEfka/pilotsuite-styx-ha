@@ -21,6 +21,7 @@ from copilot_core.tags.api import bp as tags_bp
 # New feature APIs
 from copilot_core.api.v1.search import bp as search_bp
 from copilot_core.api.v1.notifications import bp as notifications_bp
+from copilot_core.api.v1.user_hints import bp as user_hints_bp
 
 # Neuron APIs (energy, unifi)
 from copilot_core.energy.api import energy_bp
@@ -50,6 +51,7 @@ api_v1.register_blueprint(tags_bp)
 # Register new feature APIs
 api_v1.register_blueprint(search_bp)
 api_v1.register_blueprint(notifications_bp)
+api_v1.register_blueprint(user_hints_bp)
 
 # Register Neuron APIs
 api_v1.register_blueprint(energy_bp)
