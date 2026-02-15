@@ -1,5 +1,16 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.17] - 2026-02-15
+
+### Added
+- **OpenAPI Specification** (`docs/openapi.yaml`):
+  - Complete REST API documentation for Core Add-on
+  - Habitus, Graph, Mood, Tags, Events, Candidates, System endpoints
+  - Request/response schemas with examples
+  - Authentication and idempotency documentation
+
+---
+
 ## [0.4.16] - 2026-02-15
 
 ### Security Fixes (P0)

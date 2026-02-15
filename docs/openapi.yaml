@@ -1,0 +1,804 @@
+openapi: 3.0.3
+info:
+  title: AI Home CoPilot Core API
+  description: |
+    REST API for the AI Home CoPilot Core Add-on.
+    
+    This API provides endpoints for:
+    - Habitus pattern mining and rules discovery
+    - Brain graph visualization and synchronization
+    - User preference learning (MUPL)
+    - Tag system v2 for entity classification
+    - Mood context aggregation
+    - Event ingestion with idempotency
+    - System health monitoring
+    
+    ## Authentication
+    All endpoints require `X-Auth-Token` header when authentication is enabled.
+    
+    ## Idempotency
+    Event endpoints support `Idempotency-Key` header for deduplication.
+  version: 0.4.16
+  contact:
+    name: AI Home CoPilot
+    url: https://github.com/GreenhillEfka/Home-Assistant-Copilot
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://homeassistant.local:8123/api/copilot
+    description: Home Assistant Core Add-on
+  - url: http://localhost:48099
+    description: Development server
+
+tags:
+  - name: Habitus
+    description: Pattern mining and A→B rule discovery
+  - name: Graph
+    description: Brain graph visualization and sync
+  - name: Mood
+    description: Mood context aggregation
+  - name: Tags
+    description: Entity tagging and classification
+  - name: Events
+    description: Event ingestion and processing
+  - name: System
+    description: System health and diagnostics
+  - name: Candidates
+    description: Automation candidates discovery
+
+paths:
+  # ==================== HABITUS ====================
+  /api/v1/habitus/status:
+    get:
+      tags: [Habitus]
+      summary: Get habitus miner status
+      operationId: getHabitusStatus
+      responses:
+        '200':
+          description: Habitus miner status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitusStatus'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/habitus/rules:
+    get:
+      tags: [Habitus]
+      summary: Get discovered A→B rules
+      operationId: getHabitusRules
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: min_score
+          in: query
+          schema:
+            type: number
+            format: float
+        - name: a_filter
+          in: query
+          schema:
+            type: string
+        - name: b_filter
+          in: query
+          schema:
+            type: string
+        - name: domain_filter
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of discovered rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RulesResponse'
+
+  /api/v1/habitus/mine:
+    post:
+      tags: [Habitus]
+      summary: Mine rules from HA events
+      operationId: mineRules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MineRequest'
+      responses:
+        '200':
+          description: Mining result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MineResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/v1/habitus/dashboard_cards:
+    get:
+      tags: [Habitus]
+      summary: Get dashboard card templates
+      operationId: getDashboardCards
+      responses:
+        '200':
+          description: Dashboard card templates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardCardsResponse'
+
+  /api/v1/habitus/dashboard_cards/zones:
+    get:
+      tags: [Habitus]
+      summary: Get discovered zones
+      operationId: getZones
+      responses:
+        '200':
+          description: Zone list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZonesResponse'
+
+  # ==================== GRAPH ====================
+  /api/v1/graph/state:
+    get:
+      tags: [Graph]
+      summary: Get brain graph state
+      operationId: getGraphState
+      parameters:
+        - name: max_nodes
+          in: query
+          schema:
+            type: integer
+            default: 500
+        - name: max_edges
+          in: query
+          schema:
+            type: integer
+            default: 2000
+      responses:
+        '200':
+          description: Brain graph visualization data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphState'
+
+  /api/v1/graph/sync:
+    post:
+      tags: [Graph]
+      summary: Synchronize graph with HA entities
+      operationId: syncGraph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphSyncRequest'
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphSyncResponse'
+
+  /api/v1/graph/patterns:
+    get:
+      tags: [Graph]
+      summary: Get discovered patterns
+      operationId: getPatterns
+      responses:
+        '200':
+          description: Pattern list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternsResponse'
+
+  # ==================== MOOD ====================
+  /api/v1/mood:
+    get:
+      tags: [Mood]
+      summary: Get current mood context
+      operationId: getMood
+      parameters:
+        - name: zone_id
+          in: query
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Mood context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodResponse'
+
+  # ==================== TAGS ====================
+  /api/v1/tags2/tags:
+    get:
+      tags: [Tags]
+      summary: Get all tags
+      operationId: getTags
+      responses:
+        '200':
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagsResponse'
+    post:
+      tags: [Tags]
+      summary: Create a tag
+      operationId: createTag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreate'
+      responses:
+        '201':
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+
+  /api/v1/tags2/subjects/{subject_id}/tags:
+    get:
+      tags: [Tags]
+      summary: Get tags for a subject
+      operationId: getSubjectTags
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subject's tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectTagsResponse'
+    post:
+      tags: [Tags]
+      summary: Assign tag to subject
+      operationId: assignTag
+      parameters:
+        - name: subject_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagAssignment'
+      responses:
+        '201':
+          description: Tag assigned
+
+  # ==================== EVENTS ====================
+  /api/v1/events:
+    post:
+      tags: [Events]
+      summary: Ingest event
+      operationId: ingestEvent
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: Unique key for deduplication
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventIngest'
+      responses:
+        '200':
+          description: Event processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventIngestResponse'
+
+  # ==================== CANDIDATES ====================
+  /api/v1/candidates:
+    get:
+      tags: [Candidates]
+      summary: Get automation candidates
+      operationId: getCandidates
+      parameters:
+        - name: min_score
+          in: query
+          schema:
+            type: number
+            format: float
+            default: 0.5
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Candidate list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidatesResponse'
+
+  /api/v1/candidates/stats:
+    get:
+      tags: [Candidates]
+      summary: Get candidate statistics
+      operationId: getCandidateStats
+      responses:
+        '200':
+          description: Candidate statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateStats'
+
+  # ==================== SYSTEM ====================
+  /api/v1/system-health:
+    get:
+      tags: [System]
+      summary: Get system health
+      operationId: getSystemHealth
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+
+components:
+  schemas:
+    # ---------- HABITUS ----------
+    HabitusStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+        version:
+          type: string
+        statistics:
+          type: object
+          properties:
+            total_rules:
+              type: integer
+            total_events:
+              type: integer
+            last_mining_ms:
+              type: integer
+        config:
+          type: object
+
+    Rule:
+      type: object
+      properties:
+        A:
+          type: string
+          description: Antecedent entity/transition
+        B:
+          type: string
+          description: Consequent entity/transition
+        dt_sec:
+          type: number
+          description: Time delta in seconds
+        nA:
+          type: integer
+          description: Antecedent count
+        nB:
+          type: integer
+          description: Consequent count
+        nAB:
+          type: integer
+          description: Co-occurrence count
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        confidence_lb:
+          type: number
+          description: Lower bound confidence
+        lift:
+          type: number
+        leverage:
+          type: number
+        score:
+          type: number
+        evidence:
+          type: object
+          properties:
+            hit_examples:
+              type: array
+              items:
+                type: object
+            miss_examples:
+              type: array
+              items:
+                type: object
+            latency_quantiles:
+              type: array
+              items:
+                type: number
+
+    RulesResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        total_rules:
+          type: integer
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+
+    MineRequest:
+      type: object
+      required:
+        - events
+      properties:
+        events:
+          type: array
+          items:
+            type: object
+        config:
+          type: object
+
+    MineResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        mining_time_sec:
+          type: number
+        total_input_events:
+          type: integer
+        discovered_rules:
+          type: integer
+        top_rules:
+          type: array
+          items:
+            type: object
+
+    DashboardCardsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        cards:
+          type: array
+          items:
+            type: object
+
+    ZonesResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        zones:
+          type: array
+          items:
+            type: object
+            properties:
+              zone_id:
+                type: string
+              name:
+                type: string
+              entities:
+                type: array
+                items:
+                  type: string
+
+    # ---------- GRAPH ----------
+    GraphState:
+      type: object
+      properties:
+        status:
+          type: string
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              label:
+                type: string
+              domain:
+                type: string
+              score:
+                type: number
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              target:
+                type: string
+              type:
+                type: string
+              weight:
+                type: number
+
+    GraphSyncRequest:
+      type: object
+      properties:
+        entities:
+          type: array
+          items:
+            type: object
+        full_sync:
+          type: boolean
+          default: false
+
+    GraphSyncResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        nodes_added:
+          type: integer
+        nodes_updated:
+          type: integer
+        nodes_removed:
+          type: integer
+        edges_added:
+          type: integer
+
+    PatternsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        patterns:
+          type: array
+          items:
+            type: object
+
+    # ---------- MOOD ----------
+    MoodResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        mood:
+          type: object
+          properties:
+            score:
+              type: number
+              minimum: 0
+              maximum: 1
+            confidence:
+              type: number
+            factors:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: number
+                  weight:
+                    type: number
+        zone_id:
+          type: string
+        user_id:
+          type: string
+
+    # ---------- TAGS ----------
+    TagsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+
+    Tag:
+      type: object
+      properties:
+        tag_id:
+          type: string
+        namespace:
+          type: string
+        facet:
+          type: string
+        key:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    TagCreate:
+      type: object
+      required:
+        - tag_id
+      properties:
+        tag_id:
+          type: string
+          pattern: '^[a-z0-9_]+\.[a-z0-9_]+\.[a-z0-9_]+$'
+          example: 'aicp.place.kueche'
+        description:
+          type: string
+
+    TagAssignment:
+      type: object
+      required:
+        - tag_id
+      properties:
+        tag_id:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        source:
+          type: string
+          enum: [manual, inferred, learned]
+
+    SubjectTagsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        subject_id:
+          type: string
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+
+    # ---------- EVENTS ----------
+    EventIngest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+        text:
+          type: string
+        payload:
+          type: object
+        idempotency_key:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    EventIngestResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        stored:
+          type: boolean
+        deduped:
+          type: boolean
+        event_id:
+          type: string
+
+    # ---------- CANDIDATES ----------
+    CandidatesResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        candidates:
+          type: array
+          items:
+            type: object
+            properties:
+              candidate_id:
+                type: string
+              trigger:
+                type: object
+              action:
+                type: object
+              score:
+                type: number
+              source:
+                type: string
+
+    CandidateStats:
+      type: object
+      properties:
+        status:
+          type: string
+        total:
+          type: integer
+        by_source:
+          type: object
+        by_domain:
+          type: object
+
+    # ---------- SYSTEM ----------
+    SystemHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        checks:
+          type: object
+          properties:
+            api:
+              type: string
+              enum: [ok, error]
+            storage:
+              type: string
+              enum: [ok, error]
+            ha_connection:
+              type: string
+              enum: [ok, error]
+        version:
+          type: string
+        uptime_seconds:
+          type: integer
+
+    # ---------- COMMON ----------
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+        code:
+          type: string
+
+  responses:
+    ErrorResponse:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Auth-Token
+
+security:
+  - ApiKeyAuth: []
