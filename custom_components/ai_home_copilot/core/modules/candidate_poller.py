@@ -63,6 +63,38 @@ class _PollerState:
     rate_limit_last_refill: float = 0.0
 
 
+def _rate_limit_refill(st: _PollerState) -> None:
+    """Refill rate limit tokens based on elapsed time."""
+    now = time.time()
+    if st.rate_limit_last_refill == 0:
+        st.rate_limit_last_refill = now
+        return
+    
+    elapsed = now - st.rate_limit_last_refill
+    st.rate_limit_tokens = min(
+        st.rate_limit_max_tokens,
+        st.rate_limit_tokens + (elapsed * st.rate_limit_refill_rate)
+    )
+    st.rate_limit_last_refill = now
+
+
+def _rate_limit_consume(st: _PollerState, cost: float = 1.0) -> bool:
+    """Try to consume tokens from the rate limiter. Returns True if allowed."""
+    _rate_limit_refill(st)
+    
+    if st.rate_limit_tokens >= cost:
+        st.rate_limit_tokens -= cost
+        return True
+    return False
+
+
+def _get_backoff_delay(st: _PollerState) -> float:
+    """Calculate exponential backoff delay based on error streak."""
+    if st.backoff_level <= 0:
+        return 0.0
+    return min(st.backoff_base_delay * (2 ** st.backoff_level), 60.0)
+
+
 def _build_suggest_candidate(raw: dict[str, Any]) -> SuggestCandidate | None:
     """Convert a Core API candidate dict into an HA SuggestCandidate."""
     cid = raw.get("candidate_id")
@@ -121,6 +153,7 @@ class CandidatePollerModule:
     def __init__(self) -> None:
         self._unsub: CALLBACK_TYPE | None = None
         self._entry_id: str | None = None
+        self._state = _PollerState()
 
     def _get_api(self, hass: HomeAssistant, entry: ConfigEntry) -> CopilotApiClient | None:
         """Retrieve the shared CopilotApiClient for this entry."""
@@ -133,21 +166,64 @@ class CandidatePollerModule:
         return None
 
     async def _poll_once(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Single poll cycle: fetch pending candidates, offer to HA, mark as offered."""
+        """Single poll cycle: fetch pending candidates, offer to HA, mark as offered.
+        
+        Includes rate limiting and exponential backoff for error resilience.
+        """
+        st = self._state
+        
+        # Prevent concurrent polls
+        if st.polling:
+            _LOGGER.debug("CandidatePoller: poll already in progress, skipping")
+            return
+        
+        # Check rate limit
+        if not _rate_limit_consume(st, cost=REQUEST_COST):
+            _LOGGER.debug("CandidatePoller: rate limited, skipping poll")
+            return
+        
+        # Apply exponential backoff if needed
+        backoff_delay = _get_backoff_delay(st)
+        if backoff_delay > 0:
+            _LOGGER.debug("CandidatePoller: backing off %.1fs (level %d)", backoff_delay, st.backoff_level)
+            await asyncio.sleep(backoff_delay)
+        
+        st.polling = True
+        
         api = self._get_api(hass, entry)
         if api is None:
             _LOGGER.debug("CandidatePoller: no API client available, skipping poll")
+            st.polling = False
             return
 
         try:
             resp = await api.async_get("/api/v1/candidates?state=pending&include_ready_deferred=true&limit=10")
+            
+            # Success - reset backoff
+            st.backoff_level = 0
+            st.error_streak = 0
+            st.last_poll_ts = time.time()
+            st.poll_count += 1
+            
         except CopilotApiError as err:
-            _LOGGER.warning("CandidatePoller: failed to fetch candidates: %s", err)
+            st.error_count += 1
+            st.error_streak += 1
+            st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
+            _LOGGER.warning("CandidatePoller: failed to fetch candidates: %s (backoff level %d)", err, st.backoff_level)
+            st.polling = False
+            return
+        except Exception as err:
+            st.error_count += 1
+            st.error_streak += 1
+            st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
+            _LOGGER.warning("CandidatePoller: unexpected error fetching candidates: %s", err)
+            st.polling = False
             return
 
         candidates_raw = resp.get("candidates", [])
         if not candidates_raw:
             _LOGGER.debug("CandidatePoller: no pending candidates")
+            st.polling = False
             return
 
         _LOGGER.info("CandidatePoller: %d pending candidate(s) from Core", len(candidates_raw))
@@ -173,6 +249,8 @@ class CandidatePollerModule:
                     )
                 except CopilotApiError:
                     _LOGGER.debug("CandidatePoller: could not mark %s as offered in Core", core_id)
+
+        st.polling = False
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         self._entry_id = ctx.entry.entry_id

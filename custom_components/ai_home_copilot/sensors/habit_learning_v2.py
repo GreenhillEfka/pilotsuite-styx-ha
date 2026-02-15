@@ -53,6 +53,7 @@ class HabitLearningSensor(SensorEntity):
         return {
             "total_patterns": habit_summary.get("total_patterns", 0),
             "time_patterns": habit_summary.get("time_patterns", {}),
+            "mood_patterns": habit_summary.get("mood_patterns", {}),
             "sequences": habit_summary.get("sequences", {}),
             "device_patterns": habit_summary.get("device_patterns", {}),
             "last_update": habit_summary.get("last_update"),
