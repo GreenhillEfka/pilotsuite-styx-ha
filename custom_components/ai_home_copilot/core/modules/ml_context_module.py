@@ -22,6 +22,11 @@ class MLContextModule(CopilotModule):
     - HabitPredictor: Time-based pattern prediction
     - EnergyOptimizer: Device energy optimization
     - MultiUserLearner: Multi-user behavior tracking
+    
+    Integration with Mood Module:
+    - Records mood-aware events with context
+    - Provides mood-weighted predictions
+    - Supports personalized predictions per mood state
     """
     
     MODULE_NAME = "ml_context"
@@ -33,18 +38,46 @@ class MLContextModule(CopilotModule):
         self._enabled = False
         self._update_interval = 60  # seconds
         self._unsub: Optional[Any] = None
+        self._mood_module = None  # Reference to mood module
         
     @property
     def ml_context(self) -> Optional[MLContext]:
         """Get the ML context instance."""
         return self._ml_context
+    
+    def set_mood_module(self, mood_module) -> None:
+        """Set reference to mood module for integration."""
+        self._mood_module = mood_module
+        _LOGGER.info("Mood module connected to ML context")
+        
+    def _get_current_mood(self) -> Dict[str, Any]:
+        """Get current mood context for ML integration."""
+        if self._mood_module:
+            try:
+                # Try to get mood from mood module
+                entry_data = self.hass.data.get("ai_home_copilot", {}).get(self.entry.entry_id, {})
+                mood_data = entry_data.get("mood_module", {})
+                last_orchestration = mood_data.get("last_orchestration", {})
+                
+                # Get most recent zone mood
+                for zone, data in last_orchestration.items():
+                    if data.get("mood"):
+                        return {
+                            "mood": data["mood"].get("mood", "unknown"),
+                            "confidence": data["mood"].get("confidence", 0.0),
+                            "zone": zone,
+                        }
+            except Exception as e:
+                _LOGGER.debug("Could not get mood from mood module: %s", e)
+        
+        return {"mood": "unknown", "confidence": 0.0}
         
     async def async_setup_entry(self, entry: ConfigEntry) -> bool:
         """Set up ML context module."""
         config = entry.options or entry.data
         
-        # Check if ML is enabled (default: false for now)
-        self._enabled = config.get("ml_enabled", False)
+        # Enable ML by default (previously disabled)
+        self._enabled = config.get("ml_enabled", True)
         
         if not self._enabled:
             _LOGGER.info("ML Context module disabled")
@@ -65,6 +98,9 @@ class MLContextModule(CopilotModule):
                     self.hass.data["ai_home_copilot"][self.entry.entry_id] = {}
                 self.hass.data["ai_home_copilot"][self.entry.entry_id]["ml_context"] = self._ml_context
                 
+                # Try to connect with mood module
+                await self._connect_mood_module()
+                
                 # Start periodic update
                 self._unsub = asyncio.create_task(self._periodic_update())
                 
@@ -73,6 +109,19 @@ class MLContextModule(CopilotModule):
         except Exception as e:
             _LOGGER.error("Failed to initialize ML context: %s", e)
             return False
+    
+    async def _connect_mood_module(self) -> None:
+        """Connect with mood module if available."""
+        try:
+            entry_data = self.hass.data.get("ai_home_copilot", {}).get(self.entry.entry_id, {})
+            mood_data = entry_data.get("mood_module")
+            
+            if mood_data:
+                _LOGGER.info("Mood module found, ML-Mood integration ready")
+            else:
+                _LOGGER.debug("Mood module not yet available, will retry on updates")
+        except Exception as e:
+            _LOGGER.debug("Could not connect mood module: %s", e)
             
     def _init_ml_context(self) -> Optional[MLContext]:
         """Initialize ML context (CPU-bound, run in executor)."""

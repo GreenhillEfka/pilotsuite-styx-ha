@@ -180,6 +180,18 @@ class _ForwarderState:
     # concurrency guard (avoid overlapping flush tasks)
     flushing: bool = False
 
+    # Rate limiting: token bucket algorithm
+    rate_limit_tokens: float = 10.0
+    rate_limit_max_tokens: float = 10.0
+    rate_limit_refill_rate: float = 5.0  # tokens per second
+    rate_limit_last_refill: float = 0.0
+    rate_limit_enabled: bool = True
+
+    # Exponential backoff for errors
+    backoff_level: int = 0
+    backoff_max_level: int = 5
+    backoff_base_delay: float = 1.0  # seconds
+
 
 def _entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
     dom = hass.data.setdefault(DOMAIN, {})

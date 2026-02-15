@@ -197,7 +197,7 @@ class TestHabitusMinerModule:
         """Test getting patterns for a specific zone."""
         # Setup with some rules
         with patch('homeassistant.core.HomeAssistant.services') as mock_services:
-            mock_services.has_service = MagicMock(return=False)
+            mock_services.has_service = MagicMock(return_value=False)
             await module.async_setup_entry(mock_ctx)
         
         module_data = mock_ctx.hass.data[DOMAIN][mock_ctx.entry.entry_id]["habitus_miner"]

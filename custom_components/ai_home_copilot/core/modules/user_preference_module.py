@@ -153,8 +153,84 @@ class UserPreferenceModule:
         return self._active_user
     
     def get_all_users(self) -> Dict[str, UserPreference]:
-        """Get all user preferences."""
-        return self._users
+        """Get all user preferences as UserPreference objects."""
+        return {
+            user_id: UserPreference.from_dict(user_data) 
+            for user_id, user_data in self._data["users"].items()
+        }
+    
+    def get_user_preference(self, user_id: str, zone_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get user preference for a specific user and optional zone.
+        
+        This method is called by mood_context_module to get user-specific mood biases.
+        
+        Args:
+            user_id: The user ID to get preferences for
+            zone_id: Optional zone ID for zone-specific preferences
+            
+        Returns:
+            Dict with user preferences including bias values, or None if user not found
+        """
+        if user_id not in self._data["users"]:
+            return None
+        
+        user_data = self._data["users"][user_id]
+        preferences = user_data.get("preferences", {})
+        
+        # Return preferences with bias values for mood weighting
+        return {
+            "user_id": user_id,
+            "display_name": user_data.get("display_name", ""),
+            "preferences": preferences,
+            "comfort_bias": preferences.get("comfort_bias", 0.0),
+            "frugality_bias": preferences.get("frugality_bias", 0.0),
+            "joy_bias": preferences.get("joy_bias", 0.0),
+            "zone_preferences": preferences.get("zones", {}).get(zone_id, {}) if zone_id else {},
+        }
+    
+    def get_character_preferences(self, character_id: str) -> Dict[str, Any]:
+        """Get preferences formatted for Character System.
+        
+        Args:
+            character_id: The character/voice profile ID
+            
+        Returns:
+            Dict with character-tailored preferences
+        """
+        # Check if we have a mapped character profile
+        if self._character_profile and self._character_profile.get("character_id") == character_id:
+            return self._character_profile.get("preferences", {})
+        
+        # Find user associated with this character
+        for user_id, user_data in self._data["users"].items():
+            if user_data.get("character_id") == character_id:
+                return user_data.get("preferences", {})
+        
+        # Return default character preferences
+        return {
+            "tone": "friendly",
+            "verbosity": "normal",
+            "initiated_conversations": True,
+            "notification_preferences": {
+                "energy_alerts": True,
+                "security_alerts": True,
+                "mood_suggestions": True,
+            },
+            "response_style": "conversational",
+        }
+    
+    def set_character_profile(self, character_id: str, preferences: Dict[str, Any]) -> None:
+        """Set character profile for Character System integration.
+        
+        Args:
+            character_id: The character/voice profile ID
+            preferences: Character-specific preferences
+        """
+        self._character_profile = {
+            "character_id": character_id,
+            "preferences": preferences,
+        }
+        _LOGGER.debug(f"Character profile set for {character_id}")
     
     def get_preference(self, user_id: str, key: str, default: Any = None) -> Any:
         """Get user preference from _data dict."""
@@ -272,7 +348,14 @@ class UserPreferenceModule:
         """Get suggestion weight based on mode and user preference.
         
         Returns 1.0 for unknown users (neutral).
-        For known users, adjusts based on frugality preference for energy_saving mode.
+        For known users, adjusts based on preference for the given mode.
+        
+        Args:
+            user_id: The user ID to get weights for
+            mode: The suggestion mode ('energy_saving', 'comfort', 'entertainment', 'security')
+            
+        Returns:
+            Weight multiplier between 0.0 and 2.0
         """
         # Unknown user - return neutral weight
         if user_id not in self._data["users"]:
@@ -281,14 +364,26 @@ class UserPreferenceModule:
         user_prefs = self._data["users"][user_id].get("preferences", {})
         
         if mode == "energy_saving":
-            # Higher frugality = higher weight for energy saving
+            # Higher frugality = higher weight for energy saving suggestions
             frugality = user_prefs.get("frugality", 0.5)
             return 0.5 + frugality  # 0.5-1.5 range
+        
         elif mode == "comfort":
-            # Higher comfort preference = higher weight
+            # Higher comfort preference = higher weight for comfort suggestions
             comfort = user_prefs.get("comfort", 0.5)
-            return 0.5 + comfort
+            return 0.5 + comfort  # 0.5-1.5 range
+        
+        elif mode == "entertainment":
+            # Higher joy preference = higher weight for entertainment suggestions
+            joy = user_prefs.get("joy", 0.5)
+            return 0.5 + joy  # 0.5-1.5 range
+        
+        elif mode == "security":
+            # Security is generally always relevant
+            return 1.0
+        
         else:
+            # Unknown mode - neutral weight
             return 1.0
     
     async def record_mood(self, user_id: str, zone: str, mood: Dict[str, Any], 
@@ -327,14 +422,59 @@ class UserPreferenceModule:
     
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of module state."""
+        total_patterns = sum(
+            len(user.get("learned_patterns", [])) 
+            for user in self._data["users"].values()
+        )
+        confirmed_patterns = sum(
+            sum(1 for p in user.get("learned_patterns", []) if p.get("confirmed"))
+            for user in self._data["users"].values()
+        )
+        
         return {
             "tracked_users": list(self._tracked_users),
             "active_user": self._active_user,
             "active_zone": self._active_zone,
             "learning_enabled": self._learning_enabled,
             "total_users": len(self._data["users"]),
+            "total_patterns": total_patterns,
+            "confirmed_patterns": confirmed_patterns,
             "primary_user": self._data["config"].get("primary_user"),
+            "character_profile": self._character_profile.get("character_id") if self._character_profile else None,
         }
+    
+    def get_user_for_character(self, character_id: str) -> Optional[str]:
+        """Get user ID associated with a character ID.
+        
+        Args:
+            character_id: The character/voice profile ID
+            
+        Returns:
+            User ID if found, None otherwise
+        """
+        for user_id, user_data in self._data["users"].items():
+            if user_data.get("character_id") == character_id:
+                return user_id
+        return None
+    
+    def set_user_character_mapping(self, user_id: str, character_id: str) -> None:
+        """Map a user ID to a character ID for Character System integration.
+        
+        Args:
+            user_id: The user ID
+            character_id: The character/voice profile ID
+        """
+        if user_id not in self._data["users"]:
+            self._data["users"][user_id] = {
+                "user_id": user_id,
+                "display_name": "",
+                "preferences": {"light_brightness_default": 0.7},
+                "learned_patterns": [],
+                "mood_history": [],
+            }
+        
+        self._data["users"][user_id]["character_id"] = character_id
+        _LOGGER.debug(f"Mapped user {user_id} to character {character_id}")
     
     def set_learning_enabled(self, enabled: bool) -> None:
         """Enable or disable learning."""
