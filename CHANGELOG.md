@@ -3,6 +3,26 @@
 ## [0.12.1] - 2026-02-15
 
 ### Fixed
+
+## [0.13.0] - 2026-02-16
+
+### Added
+- Zone System v2: 6 zones (Wohnbereich, Kochbereich, Gangbereich, Badbereich, Schlafbereich, Terrassenbereich)
+- Auto-Tag Integration: Tags automatically created when zones are created
+- Zone Entity Suggestions: Dashboard card shows entity suggestions
+- Character System v0.1: 5 presets with mood weights and voice tones
+- User Hints System: Natural language → automation suggestions
+
+### Security
+- P0 Fixes: exec() → ast.parse(), SHA256 hash verification, input validation
+- P1 Fixes: Command whitelist validation
+
+### Fixed
+- Test improvements: 297 passed (+7)
+- Multiple code quality improvements
+
+### Documentation
+- Comprehensive Module Inventory, User Manual, Habitus Philosophy
 - **Circular Import Errors**: Fixed import chain coordinator.py → camera_entities.py → entity.py
   - Used TYPE_CHECKING pattern for runtime imports in 9 files
   - Files fixed: entity.py, camera_entities.py, button_base.py, button_camera.py,
