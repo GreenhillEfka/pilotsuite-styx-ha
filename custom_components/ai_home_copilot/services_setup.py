@@ -336,6 +336,20 @@ def _register_ops_runbook_services(hass: HomeAssistant) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Habitus Dashboard Cards services
+# ---------------------------------------------------------------------------
+
+def _register_habitus_dashboard_cards_services(hass: HomeAssistant) -> None:
+    """Register Habitus Dashboard Cards v0.2 services."""
+
+    if not hass.services.has_service(DOMAIN, "get_dashboard_patterns"):
+        from .services.habitus_dashboard_cards_service import (
+            async_setup_habitus_dashboard_cards_services,
+        )
+        hass.async_create_task(async_setup_habitus_dashboard_cards_services(hass))
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -345,3 +359,4 @@ def async_register_all_services(hass: HomeAssistant) -> None:
     _register_media_context_v2_services(hass)
     _register_forwarder_n3_services(hass)
     _register_ops_runbook_services(hass)
+    _register_habitus_dashboard_cards_services(hass)
