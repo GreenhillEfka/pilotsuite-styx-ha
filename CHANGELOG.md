@@ -1,5 +1,30 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.9.0] - 2026-02-15
+
+### Added
+- **ML Pattern Recognition Module** (`ml/`):
+  - `MLContext` - Unified ML context provider for neurons
+  - `AnomalyDetector` - Real-time anomaly detection for device events
+  - `HabitPredictor` - Time-based pattern prediction and user routine learning
+  - `EnergyOptimizer` - Device energy optimization recommendations
+  - `MultiUserLearner` - Multi-user behavior tracking and personalization
+  - `TrainingPipeline` - Model training infrastructure
+  - `InferenceEngine` - Real-time inference with statistics
+
+### Features
+- Time-based habit pattern detection (hourly/daily cycles)
+- Device sequence prediction (chain of device activations)
+- Energy consumption optimization per device
+- Multi-user personalized habit predictions
+- Anomaly detection with configurable thresholds
+- Integration with existing neuron system via `ml_context.py`
+
+### Technical
+- All ML modules pass py_compile syntax validation
+- Unit tests provided in `ml/tests/`
+- Ready for neuron integration
+
 ## [0.8.18] - 2026-02-15
 
 ### Fixed
