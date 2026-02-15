@@ -20,8 +20,11 @@
   - Service definitions
   - Test coverage plan
 
-### Changed
-- Extended MUPL module structure with `core/mupl/` directory
+### Fixed
+- Pipeline Health API endpoints updated to match Core Add-on routes:
+  - `/api/v1/candidates/stats` → `/api/v1/candidates`
+  - `/api/v1/habitus/health` → `/api/v1/habitus/status`
+  - `/api/v1/graph/patterns` → `/api/v1/graph/state`
 
 ---
 
