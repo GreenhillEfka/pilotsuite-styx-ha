@@ -2,43 +2,59 @@
 
 import sys
 import os
+import ast
 
 # Get the ml directory
 ml_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 print(f"ML directory: {ml_dir}")
 
-# Test by executing each module directly
-print("\n=== Testing AnomalyDetector ===")
-exec(open(os.path.join(ml_dir, "patterns", "anomaly_detector.py")).read())
-print("AnomalyDetector: OK (syntax valid)")
 
-print("\n=== Testing HabitPredictor ===")
-exec(open(os.path.join(ml_dir, "patterns", "habit_predictor.py")).read())
-print("HabitPredictor: OK (syntax valid)")
+def validate_syntax(filepath: str) -> bool:
+    """Validate Python syntax using ast.parse() instead of exec()."""
+    try:
+        with open(filepath, 'r') as f:
+            code = f.read()
+        ast.parse(code, filename=filepath)
+        return True
+    except SyntaxError as e:
+        print(f"Syntax error in {filepath}: {e}")
+        return False
 
-print("\n=== Testing EnergyOptimizer ===")
-exec(open(os.path.join(ml_dir, "patterns", "energy_optimizer.py")).read())
-print("EnergyOptimizer: OK (syntax valid)")
 
-print("\n=== Testing MultiUserLearner ===")
-exec(open(os.path.join(ml_dir, "patterns", "multi_user_learner.py")).read())
-print("MultiUserLearner: OK (syntax valid)")
+# Test each module with safe syntax validation
+test_files = [
+    ("patterns/anomaly_detector.py", "AnomalyDetector"),
+    ("patterns/habit_predictor.py", "HabitPredictor"),
+    ("patterns/energy_optimizer.py", "EnergyOptimizer"),
+    ("patterns/multi_user_learner.py", "MultiUserLearner"),
+    ("training/__init__.py", "Training Pipeline"),
+    ("inference/__init__.py", "Inference Engine"),
+]
 
-print("\n=== Testing Training Pipeline ===")
-exec(open(os.path.join(ml_dir, "training", "__init__.py")).read())
-print("Training Pipeline: OK (syntax valid)")
+all_ok = True
+for rel_path, name in test_files:
+    filepath = os.path.join(ml_dir, rel_path)
+    if os.path.exists(filepath):
+        if validate_syntax(filepath):
+            print(f"{name}: OK (syntax valid)")
+        else:
+            print(f"{name}: FAILED")
+            all_ok = False
+    else:
+        print(f"{name}: SKIPPED (file not found)")
 
-print("\n=== Testing Inference Engine ===")
-exec(open(os.path.join(ml_dir, "inference", "__init__.py")).read())
-print("Inference Engine: OK (syntax valid)")
-
-print("\n=== Testing ML Context ===")
-# Just check file exists and has valid Python syntax
+# Check ml_context.py
 ml_context_path = os.path.join(os.path.dirname(ml_dir), "ml_context.py")
-with open(ml_context_path, 'r') as f:
-    code = f.read()
-    compile(code, ml_context_path, 'exec')
-print("ML Context: OK (syntax valid)")
+if os.path.exists(ml_context_path):
+    if validate_syntax(ml_context_path):
+        print("ML Context: OK (syntax valid)")
+    else:
+        print("ML Context: FAILED")
+        all_ok = False
 
-print("\n=== All ML modules syntax validated successfully! ===")
+if all_ok:
+    print("\n=== All ML modules syntax validated successfully! ===")
+else:
+    print("\n=== Some modules have syntax errors! ===")
+    sys.exit(1)

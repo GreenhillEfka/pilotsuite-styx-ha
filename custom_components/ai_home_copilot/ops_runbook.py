@@ -10,6 +10,14 @@ import sys
 from datetime import datetime, timezone
 from typing import Any
 
+# Allowlist for safe commands (P1 Security Fix)
+ALLOWED_COMMANDS = {
+    "openclaw", "ls", "df", "du", "cat", "head", "tail", "grep", "find",
+    "touch", "mkdir", "rm", "cp", "mv", "chmod", "chown",
+    "git", "curl", "wget", "systemctl", "docker",
+    "python3", "pip3", "node", "npm",
+}
+
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.typing import ConfigType
@@ -328,7 +336,15 @@ async def async_run_checklist(hass: HomeAssistant, checklist: str) -> dict[str, 
 
 
 async def _run_command(cmd: list[str], timeout: int = 30) -> dict[str, Any]:
-    """Run a shell command with timeout."""
+    """Run a shell command with timeout (whitelist validated)."""
+    # P1 Security: Validate command is in allowlist
+    if cmd and cmd[0] not in ALLOWED_COMMANDS:
+        return {
+            "return_code": -1,
+            "stdout": "",
+            "stderr": f"Command not allowed: {cmd[0]}. Use only: {', '.join(ALLOWED_COMMANDS)}",
+        }
+    
     try:
         process = await asyncio.create_subprocess_exec(
             *cmd,

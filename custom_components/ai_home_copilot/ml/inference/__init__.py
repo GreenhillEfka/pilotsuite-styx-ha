@@ -67,10 +67,24 @@ class InferenceEngine:
             True if loading succeeded
         """
         try:
+            import hashlib
+            
             path = self.model_path / f"{model_name}_model.pkl"
+            hash_path = self.model_path / f"{model_name}_model.pkl.sha256"
+            
             if not path.exists():
                 return False
-                
+            
+            # Verify hash before loading (security)
+            if hash_path.exists():
+                with open(path, "rb") as f:
+                    current_hash = hashlib.sha256(f.read()).hexdigest()
+                with open(hash_path, "r") as f:
+                    expected_hash = f.read().strip()
+                if current_hash != expected_hash:
+                    print(f"Security: Model {model_name} hash mismatch!")
+                    return False
+            
             with open(path, "rb") as f:
                 self.models[model_name] = pickle.load(f)
                 
