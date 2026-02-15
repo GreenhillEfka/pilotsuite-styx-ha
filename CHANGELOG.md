@@ -1,5 +1,35 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.18] - 2026-02-15
+
+### Added
+- **Knowledge Graph Module** (`copilot_core/knowledge_graph/`):
+  - Neo4j-backed graph storage with SQLite fallback for dual backend support
+  - Node types: ENTITY, DOMAIN, AREA, ZONE, PATTERN, MOOD, CAPABILITY, TAG, TIME_CONTEXT, USER
+  - Edge types: BELONGS_TO, HAS_CAPABILITY, HAS_TAG, TRIGGERS, CORRELATES_WITH, ACTIVE_DURING, RELATES_TO_MOOD, PREFERRED_BY, AVOIDED_BY
+  - GraphStore: Dual backend (Neo4j/SQLite), CRUD operations, graph queries
+  - GraphBuilder: Build graph from HA states, entities, areas, tags
+  - PatternImporter: Import Habitus A→B rules as PATTERN nodes with TRIGGERS edges
+- **Knowledge Graph API** (`/api/v1/kg/`):
+  - `GET /kg/stats` - Graph statistics
+  - `GET/POST /kg/nodes` - Node CRUD
+  - `GET/POST /kg/edges` - Edge CRUD
+  - `POST /kg/query` - Graph queries (semantic, structural, causal, temporal, contextual)
+  - `GET /kg/entity/<id>/related` - Get related entities
+  - `GET /kg/zone/<id>/entities` - Get entities in zone
+  - `GET /kg/mood/<mood>/patterns` - Get patterns for mood
+  - `POST /kg/import/entities` - Import from HA states
+  - `POST /kg/import/patterns` - Import from Habitus miner output
+- **Tests**: Comprehensive unit tests for models, store, builder, importer, API
+
+### Technical Details
+- Environment variables: `COPILOT_NEO4J_URI`, `COPILOT_NEO4J_USER`, `COPILOT_NEO4J_PASSWORD`, `COPILOT_NEO4J_ENABLED`
+- SQLite fallback at `/data/knowledge_graph.db`
+- Thread-safe singleton pattern for GraphStore
+- Pattern filtering by confidence, support, lift thresholds
+
+---
+
 ## [0.4.17] - 2026-02-15
 
 ### Added
