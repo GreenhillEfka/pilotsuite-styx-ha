@@ -71,6 +71,7 @@ ha-copilot-repo/
 
 ## Next Milestones
 
+- [ ] Knowledge Graph Integration in HA Integration (connect to Core KG API)
 - [ ] Client SDK generation from OpenAPI spec
 - [ ] Interactive API documentation (Swagger UI)
 - [ ] Performance benchmarks
