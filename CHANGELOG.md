@@ -1,5 +1,30 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.1] - 2026-02-15
+
+### Added
+- **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
+  - `ActionAttributor` class for attributing HA actions to specific users
+  - Multiple attribution sources:
+    - `PresenceAttribution`: Based on who is home
+    - `DeviceOwnershipAttribution`: Based on device ownership mapping
+    - `RoomLocationAttribution`: Based on room presence sensors
+    - `TimePatternAttribution`: Based on historical time patterns
+  - Weighted confidence scoring across all sources
+  - Action history storage for preference learning
+  - API: `get_user_actions()`, `get_entity_actions()`, `get_action_history()`
+- **MUPL Documentation** (`docs/MUPL_PHASE2.md`):
+  - Architecture overview
+  - Data models for action logging and preferences
+  - API endpoints specification
+  - Service definitions
+  - Test coverage plan
+
+### Changed
+- Extended MUPL module structure with `core/mupl/` directory
+
+---
+
 ## [0.8.0] - 2026-02-15
 
 ### Added
