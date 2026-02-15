@@ -7,7 +7,14 @@ Diese Datei ist ein kurzer Überblick über laufende Arbeiten **vor** dem nächs
 
 ## Aktueller Stand
 - Letztes Release (main): **v0.7.4** - Core API compatibility (v0.4.16)
+- Development: **v0.7.5** - Security + Habitus Dashboard Cards Service
 - Alle PROJECT_PLAN Milestones (M0-M3) vollständig implementiert!
+
+## 2026-02-15 Autopilot Release v0.7.5
+- ✅ Security: Entity ID sanitization in brain_graph_sync
+- ✅ Habitus Dashboard Cards Service + Status Sensor
+- ✅ Version sync (manifest → CHANGELOG)
+- ✅ Merge dev-habitus-dashboard-cards → development
 
 ## 2026-02-15 Autopilot Release v0.7.4
 - ✅ HA Integration v0.7.4 released + tagged
@@ -15,6 +22,7 @@ Diese Datei ist ein kurzer Überblick über laufende Arbeiten **vor** dem nächs
 - ✅ Push zu origin/development
 
 ## Next (geplant)
+- Merge development → main (production release)
 - Interactive Brain Graph Panel (optional)
 - Multi-user preference learning
 - Cross-home pattern sharing (opt-in)

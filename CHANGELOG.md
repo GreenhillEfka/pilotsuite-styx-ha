@@ -1,5 +1,24 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.7.5] - 2026-02-15
+
+### Security
+- **Entity ID sanitization**: Prevent injection attacks in brain_graph_sync node IDs
+  - Added `sanitize_entity_id()` function for path traversal, special chars, unicode handling
+  - Added `sanitize_node_id()` helper for safe node ID construction
+  - Comprehensive unit tests for sanitization
+
+### Added
+- **Habitus Dashboard Cards Service**: `ai_home_copilot.get_dashboard_patterns` service
+  - Fetches dashboard card patterns from Core API
+  - Supports `pattern_type` (all/overview/room/energy/sleep) and `format` (json/yaml) params
+- **HabitusDashboardCardsStatusSensor**: Status sensor for dashboard cards module
+
+### Fixed
+- **Version sync**: Manifest version synced with CHANGELOG
+
+---
+
 ## [0.7.4] - 2026-02-15
 
 ### Security
