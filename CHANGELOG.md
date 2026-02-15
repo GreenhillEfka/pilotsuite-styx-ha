@@ -1,6 +1,14 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
-## [0.10.0] - 2026-02-15
+## [0.12.1] - 2026-02-15
+
+### Fixed
+- **Circular Import Errors**: Fixed import chain coordinator.py → camera_entities.py → entity.py
+  - Used TYPE_CHECKING pattern for runtime imports in 9 files
+  - Files fixed: entity.py, camera_entities.py, button_base.py, button_camera.py,
+    habitus_miner_entities.py, pipeline_health_entities.py, legacy.py,
+    core/modules/__init__.py, __init__.py
+  - All py_compile tests now pass cleanly
 
 ## [0.12.0] - 2026-02-15
 
