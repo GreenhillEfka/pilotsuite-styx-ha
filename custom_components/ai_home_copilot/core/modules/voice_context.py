@@ -277,7 +277,7 @@ class VoiceContextModule(CopilotModule):
             if self._character_service:
                 try:
                     return self._character_service.get_greeting()
-                except:
+                except Exception:
                     pass
             return tone_config.get("greeting", default)
         
@@ -285,7 +285,7 @@ class VoiceContextModule(CopilotModule):
             if self._character_service:
                 try:
                     return self._character_service.get_confirmation()
-                except:
+                except Exception:
                     pass
             return random.choice(tone_config.get("confirmations", [default]))
         
@@ -294,7 +294,7 @@ class VoiceContextModule(CopilotModule):
                 try:
                     preset = self._character_service.get_current_preset()
                     return random.choice(preset.voice.errors)
-                except:
+                except Exception:
                     pass
             return tone_config.get("errors", [default])[0]
         
