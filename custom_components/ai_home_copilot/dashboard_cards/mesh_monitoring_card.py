@@ -211,7 +211,7 @@ def _get_health_color(health: str) -> str:
 
 def get_mesh_data_from_hass(hass: HomeAssistant) -> MeshNetworkData:
     """Extract mesh network data from Home Assistant states."""
-    from .mesh_monitoring import _analyze_mesh_devices
+    from ..mesh_monitoring import _analyze_mesh_devices
     
     zwave_data = _analyze_mesh_devices(hass, "zwave")
     zigbee_data = _analyze_mesh_devices(hass, "zigbee")
@@ -256,3 +256,199 @@ def _calculate_health(data: dict[str, Any]) -> str:
         return "degraded"
     
     return "healthy"
+
+
+# === Extended Dashboard Cards for new Sensors ===
+
+def create_mesh_overview_card(
+    hass: HomeAssistant,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Create a complete Mesh Network Overview Card using the new sensors.
+    
+    Uses:
+    - sensor.mesh_network_overview (JSON with all data)
+    - sensor.zwave_mesh_topology (visualization)
+    - sensor.zigbee_mesh_topology (visualization)
+    
+    Args:
+        hass: Home Assistant instance
+        config: Optional configuration overrides
+        
+    Returns:
+        Lovelace card configuration dict
+    """
+    card_config = {
+        "type": "vertical-stack",
+        "title": "Mesh Network Overview",
+        "cards": [
+            # Health Score Gauge (using custom card or fallback)
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "entity": "sensor.mesh_network_overview",
+                        "state_not": "unknown",
+                    }
+                ],
+                "card": {
+                    "type": "entity",
+                    "entity": "sensor.mesh_network_overview",
+                    "name": "Network Health",
+                    "icon": "mdi:mesh_network",
+                },
+            },
+            # Network Status
+            {
+                "type": "entities",
+                "title": "Status",
+                "show_header_toggle": False,
+                "entities": [
+                    {
+                        "entity": "sensor.zwave_network_health",
+                        "name": "Z-Wave Health",
+                    },
+                    {
+                        "entity": "sensor.zigbee_network_health", 
+                        "name": "Zigbee Health",
+                    },
+                ],
+            },
+            # Device Counts
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    {
+                        "type": "entity",
+                        "entity": "sensor.zwave_devices_online",
+                        "name": "Z-Wave Online",
+                        "icon": "mdi:access-point",
+                    },
+                    {
+                        "type": "entity",
+                        "entity": "sensor.zigbee_devices_online",
+                        "name": "Zigbee Online",
+                        "icon": "mdi:access-point-network",
+                    },
+                ],
+            },
+            # Battery Overview
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    {
+                        "type": "entity",
+                        "entity": "sensor.zwave_battery_overview",
+                        "name": "Z-Wave Battery",
+                        "icon": "mdi:battery",
+                    },
+                    {
+                        "type": "entity",
+                        "entity": "sensor.zigbee_battery_overview",
+                        "name": "Zigbee Battery",
+                        "icon": "mdi:battery",
+                    },
+                ],
+            },
+            # Mesh Status Binary Sensors
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    {
+                        "type": "entity",
+                        "entity": "binary_sensor.zwave_mesh_status",
+                        "name": "Z-Wave Mesh",
+                        "icon": "mdi:mesh_network",
+                    },
+                    {
+                        "type": "entity",
+                        "entity": "binary_sensor.zigbee_mesh_status",
+                        "name": "Zigbee Mesh",
+                        "icon": "mdi:mesh_network",
+                    },
+                ],
+            },
+            # Topology Data (for custom visualizations)
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "entity": "sensor.zwave_mesh_topology",
+                        "state_not": "unknown",
+                    }
+                ],
+                "card": {
+                    "type": "entity",
+                    "entity": "sensor.zwave_mesh_topology",
+                    "name": "Z-Wave Topology",
+                    "icon": "mdi:tree",
+                },
+            },
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "entity": "sensor.zigbee_mesh_topology",
+                        "state_not": "unknown",
+                    }
+                ],
+                "card": {
+                    "type": "entity",
+                    "entity": "sensor.zigbee_mesh_topology",
+                    "name": "Zigbee Topology",
+                    "icon": "mdi:zigbee",
+                },
+            },
+        ],
+    }
+    
+    if config:
+        card_config.update(config)
+    
+    return card_config
+
+
+def create_topology_visualization_card(
+    protocol: str,
+    hass: HomeAssistant,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Create a topology visualization card for Z-Wave or Zigbee.
+    
+    Args:
+        protocol: "zwave" or "zigbee"
+        hass: Home Assistant instance
+        config: Optional configuration overrides
+        
+    Returns:
+        Lovelace card configuration dict
+    """
+    entity_id = f"sensor.{protocol}_mesh_topology"
+    name = "Z-Wave" if protocol == "zwave" else "Zigbee"
+    icon = "mdi:tree" if protocol == "zwave" else "mdi:zigbee"
+    
+    card_config = {
+        "type": "vertical-stack",
+        "title": f"{name} Mesh Topology",
+        "cards": [
+            {
+                "type": "entity",
+                "entity": entity_id,
+                "name": "Topology Data",
+                "icon": icon,
+            },
+            # For custom card implementations (e.g., custom:mesh-visualizer)
+            # {
+            #     "type": "custom:mesh-visualizer",
+            #     "entity": entity_id,
+            #     "title": f"{name} Mesh",
+            # },
+        ],
+    }
+    
+    if config:
+        card_config.update(config)
+    
+    return card_config

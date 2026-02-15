@@ -1,0 +1,128 @@
+# Node-RED Flow Configuration for Mesh Network Dashboard
+# ======================================================
+#
+# Import this JSON into Node-RED to create a mesh network monitoring flow.
+# 
+# Prerequisites:
+# 1. Install node-red-contrib-home-assistant-websocket
+# 2. Configure Home Assistant server connection
+# 3. Import this flow
+
+[
+  {
+    "id": "mesh-network-dashboard",
+    "type": "tab",
+    "label": "Mesh Network Dashboard",
+    "disabled": false,
+    "info": "Z-Wave & Zigbee mesh network monitoring"
+  },
+  {
+    "id": "ha-mesh-events",
+    "type": "ha-events",
+    "z": "mesh-network-dashboard",
+    "name": "HA Mesh Events",
+    "server": "home-assistant",
+    "eventType": "state_changed",
+    "eventDataFilter": "entity_id:sensor.mesh_network_overview",
+    "outputs": 1,
+    "x": 50,
+    "y": 100,
+    "wires": [
+      ["mesh-parse"]
+    ]
+  },
+  {
+    "id": "mesh-parse",
+    "type": "function",
+    "z": "mesh-network-dashboard",
+    "name": "Parse Mesh Data",
+    "func": "const data = msg.payload.event.new_state;\nconst attributes = data.attributes;\n\nlet meshData;\ntry {\n  meshData = JSON.parse(data.state);\n} catch (e) {\n  meshData = attributes;\n}\n\nmsg.payload = {\n  topic: 'mesh/network',\n  health_score: meshData.health_score || 0,\n  zwave: {\n    devices: meshData.zwave?.total_devices || 0,\n    online: meshData.zwave?.online || 0,\n    latency: meshData.zwave?.avg_latency_ms || null,\n    low_battery: meshData.zwave?.low_battery_count || 0,\n  },\n  zigbee: {\n    devices: meshData.zigbee?.total_devices || 0,\n    online: meshData.zigbee?.online || 0,\n    link_quality: meshData.zigbee?.avg_link_quality || null,\n    low_battery: meshData.zigbee?.low_battery_count || 0,\n  },\n  battery: {\n    total: meshData.battery?.total || 0,\n    low: meshData.battery?.low || 0,\n  },\n  timestamp: new Date().toISOString(),\n};\n\nreturn msg;",
+    "outputs": 1,
+    "x": 250,
+    "y": 100,
+    "wires": [
+      ["mesh-dashboard-ui", "mesh-gauge", "mesh-alerts"]
+    ]
+  },
+  {
+    "id": "mesh-dashboard-ui",
+    "type": "ui_template",
+    "z": "mesh-network-dashboard",
+    "group": "mesh-group",
+    "name": "Mesh Dashboard UI",
+    "order": 1,
+    "width": "6",
+    "height": "8",
+    "template": "<div ng-init='init()'>\n  <style>\n    .mesh-card { padding: 10px; margin: 5px; border-radius: 8px; background: #1a1a2e; }\n    .mesh-title { font-size: 18px; font-weight: bold; color: #eee; margin-bottom: 10px; }\n    .mesh-row { display: flex; justify-content: space-between; padding: 5px 0; }\n    .mesh-label { color: #aaa; }\n    .mesh-value { color: #4ade80; font-weight: bold; }\n    .mesh-value.warning { color: #fbbf24; }\n    .mesh-value.error { color: #ef4444; }\n  </style>\n  \n  <div class='mesh-card'>\n    <div class='mesh-title'>🌐 Mesh Network</div>\n    \n    <div class='mesh-row'>\n      <span class='mesh-label'>Health Score</span>\n      <span class='mesh-value' ng-class=\"{'error': msg.payload.health_score < 50, 'warning': msg.payload.health_score < 80}\">\n        {{msg.payload.health_score}}%\n      </span>\n    </div>\n    \n    <div style='margin-top: 15px;'>\n      <div class='mesh-title' style='font-size: 14px;'>Z-Wave</div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Devices</span>\n        <span class='mesh-value'>{{msg.payload.zwave.devices}}</span>\n      </div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Online</span>\n        <span class='mesh-value'>{{msg.payload.zwave.online}}</span>\n      </div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Latency</span>\n        <span class='mesh-value'>{{msg.payload.zwave.latency}}ms</span>\n      </div>\n    </div>\n    \n    <div style='margin-top: 15px;'>\n      <div class='mesh-title' style='font-size: 14px;'>Zigbee</div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Devices</span>\n        <span class='mesh-value'>{{msg.payload.zigbee.devices}}</span>\n      </div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Online</span>\n        <span class='mesh-value'>{{msg.payload.zigbee.online}}</span>\n      </div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Link Quality</span>\n        <span class='mesh-value'>{{msg.payload.zigbee.link_quality}}</span>\n      </div>\n    </div>\n    \n    <div style='margin-top: 15px;'>\n      <div class='mesh-title' style='font-size: 14px;'>🔋 Battery</div>\n      <div class='mesh-row'>\n        <span class='mesh-label'>Low Battery</span>\n        <span class='mesh-value' ng-class=\"{'warning': msg.payload.battery.low > 0}\">{{msg.payload.battery.low}}</span>\n      </div>\n    </div>\n  </div>\n</div>",
+    "x": 500,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "mesh-gauge",
+    "type": "ui_gauge",
+    "z": "mesh-network-dashboard",
+    "name": "Health Gauge",
+    "group": "mesh-gauge-group",
+    "order": 1,
+    "width": "4",
+    "height": "4",
+    "gtype": "gage",
+    "title": "Network Health",
+    "units": "%",
+    "segments": [
+      {"from": "0", "to": "50", "color": "#ef4444"},
+      {"from": "50", "to": "80", "color": "#fbbf24"},
+      {"from": "80", "to": "100", "color": "#4ade80"}
+    ],
+    "min": "0",
+    "max": "100",
+    "x": 500,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "mesh-alerts",
+    "type": "function",
+    "z": "mesh-network-dashboard",
+    "name": "Check Alerts",
+    "func": "const alerts = [];\n\nif (msg.payload.health_score < 50) {\n  alerts.push({level: 'error', text: 'Network health critical: ' + msg.payload.health_score + '%'});\n}\n\nif (msg.payload.zwave.latency > 100) {\n  alerts.push({level: 'warning', text: 'Z-Wave latency high: ' + msg.payload.zwave.latency + 'ms'});\n}\n\nif (msg.payload.zigbee.link_quality < 50) {\n  alerts.push({level: 'warning', text: 'Zigbee link quality weak: ' + msg.payload.zigbee.link_quality});\n}\n\nif (msg.payload.battery.low > 0) {\n  alerts.push({level: 'warning', text: msg.payload.battery.low + ' devices with low battery'});\n}\n\nmsg.alerts = alerts;\nmsg.payload = alerts.length > 0 ? alerts : [{level: 'ok', text: 'All systems normal'}];\nreturn msg;",
+    "outputs": 1,
+    "x": 500,
+    "y": 300,
+    "wires": [
+      ["mesh-notifications"]
+    ]
+  },
+  {
+    "id": "mesh-notifications",
+    "type": "ui_text",
+    "z": "mesh-network-dashboard",
+    "name": "Status Text",
+    "group": "mesh-status-group",
+    "order": 1,
+    "width": "6",
+    "height": "2",
+    "x": 700,
+    "y": 300,
+    "wires": []
+  }
+]
+
+
+# === Alternative: Simplified MQTT Topics ===
+#
+# If you prefer MQTT integration:
+# 
+# Subscribe to:
+#   homeassistant/sensor/mesh_network_overview/state
+#   homeassistant/sensor/zwave_mesh_topology/state  
+#   homeassistant/sensor/zigbee_mesh_topology/state
+#
+# The JSON payload contains all mesh data:
+# {
+#   "health_score": 85,
+#   "zwave": {"total_devices": 15, "online": 14, "avg_latency_ms": 45},
+#   "zigbee": {"total_devices": 22, "online": 20, "avg_link_quality": 72},
+#   "battery": {"total": 12, "low": 2}
+# }

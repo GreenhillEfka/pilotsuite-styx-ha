@@ -1,0 +1,193 @@
+# Mesh Network Dashboard - ESPHome Configuration
+# ===============================================
+#
+# This configuration creates sensors that read from Home Assistant
+# and display mesh network data on an ESP32/ESP8266 with OLED display.
+#
+# Usage:
+# 1. Add this to your ESPHome configuration.yaml
+# 2. Configure the HA API connection
+# 3. Upload to your device
+
+# Example minimal configuration:
+esphome:
+  name: mesh-dashboard
+  platform: ESP32
+  board: esp32dev
+
+# WiFi configuration (replace with your credentials)
+wifi:
+  ssid: "YourSSID"
+  password: "YourPassword"
+
+# Enable Home Assistant API
+api:
+  password: "YourAPIPassword"
+
+# Enable OLED display (SSD1306)
+display:
+  - platform: ssd1306_i2c
+    id: mesh_display
+    width: 128
+    height: 64
+    reset_pin: 4
+    address: 0x3C
+    lambda: |-
+      // Mesh Dashboard Display
+      // Shows Z-Wave & Zigbee network status
+
+# Sensor configuration - reads from Home Assistant
+sensor:
+  # Health Score (0-100%)
+  - platform: homeassistant
+    id: mesh_health
+    entity_id: sensor.mesh_network_overview
+    attribute: health_score
+    internal: true
+    on_value:
+      then:
+        - display.page.show_next: mesh_display
+
+  # Z-Wave Device Count
+  - platform: homeassistant
+    id: zwave_devices
+    entity_id: sensor.zwave_devices_online
+    internal: true
+
+  # Zigbee Device Count
+  - platform: homeassistant
+    id: zigbee_devices
+    entity_id: sensor.zigbee_devices_online
+    internal: true
+
+  # Z-Wave Latency
+  - platform: homeassistant
+    id: zwave_latency
+    entity_id: sensor.zwave_network_health
+    attribute: avg_latency_ms
+    internal: true
+
+  # Zigbee Link Quality
+  - platform: homeassistant
+    id: zigbee_lq
+    entity_id: sensor.zigbee_network_health
+    attribute: avg_link_quality
+    internal: true
+
+  # Battery Overview
+  - platform: homeassistant
+    id: low_battery_count
+    entity_id: sensor.mesh_network_overview
+    attribute: battery.low
+    internal: true
+
+# Text Sensors for Status Display
+text_sensor:
+  - platform: homeassistant
+    id: zwave_health_status
+    entity_id: sensor.zwave_network_health
+    internal: true
+
+  - platform: homeassistant
+    id: zigbee_health_status
+    entity_id: sensor.zigbee_network_health
+    internal: true
+
+# Display Pages
+time:
+  - platform: homeassistant
+    id: esptime
+
+display:
+  - platform: ssd1306_i2c
+    # ... (from above)
+
+    pages:
+      # Page 1: Overview
+      - id: page_overview
+        lambda: |-
+          it.printf(0, 0, id(mesh_font), "🌐 Mesh Network");
+          it.printf(0, 16, id(mesh_font), "Health: %d%%", int(id(mesh_health).state));
+          it.printf(0, 28, id(mesh_font), "Z-Wave: %d", int(id(zwave_devices).state));
+          it.printf(0, 40, id(mesh_font), "Zigbee: %d", int(id(zigbee_devices).state));
+          it.printf(0, 52, id(mesh_font), "Low Bat: %d", int(id(low_battery_count).state));
+
+      # Page 2: Z-Wave Details
+      - id: page_zwave
+        lambda: |-
+          it.printf(0, 0, id(mesh_font), "📡 Z-Wave");
+          it.printf(0, 16, id(mesh_font), "Status: %s", id(zwave_health_status).state.c_str());
+          it.printf(0, 28, id(mesh_font), "Devices: %d", int(id(zwave_devices).state));
+          it.printf(0, 40, id(mesh_font), "Latency: %dms", int(id(zwave_latency).state));
+          it.printf(0, 52, id(mesh_font), "Low Bat: %d", int(id(low_battery_count).state));
+
+      # Page 3: Zigbee Details
+      - id: page_zigbee
+        lambda: |-
+          it.printf(0, 0, id(mesh_font), "📟 Zigbee");
+          it.printf(0, 16, id(mesh_font), "Status: %s", id(zigbee_health_status).state.c_str());
+          it.printf(0, 28, id(mesh_font), "Devices: %d", int(id(zigbee_devices).state));
+          it.printf(0, 40, id(mesh_font), "Link Qual: %d", int(id(zigbee_lq).state));
+          it.printf(0, 52, id(mesh_font), "Low Bat: %d", int(id(low_battery_count).state));
+
+
+# Font configuration (add to config or use default)
+# font:
+#   - file: "fonts/arial.ttf"
+#     id: mesh_font
+#     size: 12
+
+
+# === Alternative: Simple Status LED Indicators ===
+#
+# Add LED indicators for quick status visualization:
+#
+# output:
+#   - platform: gpio
+#     id: led_ok
+#     pin: GPIO2  # Green LED
+#   
+#   - platform: gpio
+#     id: led_warning
+#     pin: GPIO4  # Yellow LED
+#   
+#   - platform: gpio
+#     id: led_error
+#     pin: GPIO5  # Red LED
+#
+# sensor:
+#   - platform: homeassistant
+#     # ...
+#     on_value:
+#       then:
+#         - if:
+#             condition:
+#               lambda: 'return x >= 80;'
+#             then:
+#               - output.turn_on: led_ok
+#               - output.turn_off: led_warning
+#               - output.turn_off: led_error
+#         - else:
+#           - if:
+#               condition:
+#                 lambda: 'return x >= 50;'
+#               then:
+#                 - output.turn_off: led_ok
+#                 - output.turn_on: led_warning
+#                 - output.turn_off: led_error
+#               else:
+#                 - output.turn_off: led_ok
+#                 - output.turn_off: led_warning
+#                 - output.turn_on: led_error
+
+
+# === Integration with HA Automation ===
+#
+# automation:
+#   # Auto-cycle display pages every 5 seconds
+#   - id: auto_rotate_pages
+#     trigger:
+#       - platform: time
+#         every: 5s
+#     action:
+#       - display.page.show_next: mesh_display

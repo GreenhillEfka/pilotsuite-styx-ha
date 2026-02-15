@@ -42,6 +42,11 @@ from .mesh_monitoring import (
     ZigbeeDevicesOnlineSensor,
     ZigbeeBatteryOverviewSensor,
 )
+from .mesh_dashboard import (
+    MeshNetworkOverviewSensor,
+    ZWaveMeshTopologySensor,
+    ZigbeeMeshTopologySensor,
+)
 from .forwarder_quality_entities import (
     EventsForwarderDroppedTotalSensor,
     EventsForwarderErrorStreakSensor,
@@ -116,6 +121,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ZigbeeNetworkHealthSensor(hass, entry),
         ZigbeeDevicesOnlineSensor(hass, entry),
         ZigbeeBatteryOverviewSensor(hass, entry),
+        # Mesh Dashboard (Overview & Topology)
+        MeshNetworkOverviewSensor(hass, entry),
+        ZWaveMeshTopologySensor(hass, entry),
+        ZigbeeMeshTopologySensor(hass, entry),
         CopilotInventoryLastRunSensor(coordinator),
         HabitusMinerRuleCountSensor(coordinator),
         HabitusMinerStatusSensor(coordinator),

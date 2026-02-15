@@ -1,0 +1,154 @@
+# Mesh Network Dashboard - Lovelace YAML Configuration
+# =================================================
+# 
+# Copy this configuration to your Lovelace Dashboard (RAW Config Editor)
+# or use it as a reference for creating custom cards.
+#
+# Entities used:
+# - sensor.mesh_network_overview (JSON overview)
+# - sensor.zwave_network_health
+# - sensor.zigbee_network_health  
+# - sensor.zwave_devices_online
+# - sensor.zigbee_devices_online
+# - sensor.zwave_battery_overview
+# - sensor.zigbee_battery_overview
+# - binary_sensor.zwave_mesh_status
+# - binary_sensor.zigbee_mesh_status
+# - sensor.zwave_mesh_topology (JSON topology data)
+# - sensor.zigbee_mesh_topology (JSON topology data)
+
+# === Option 1: Simple Overview Card ===
+
+type: vertical-stack
+title: Mesh Network Overview
+cards:
+  # Network Health Overview
+  - type: entity
+    entity: sensor.mesh_network_overview
+    name: Network Overview
+    icon: mdi:mesh_network
+
+  # Health Status Row
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: sensor.zwave_network_health
+        name: Z-Wave Health
+        icon: mdi:mesh
+
+      - type: entity
+        entity: sensor.zigbee_network_health
+        name: Zigbee Health
+        icon: mdi:zigbee
+
+  # Device Counts Row
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: sensor.zwave_devices_online
+        name: Z-Wave Devices
+        icon: mdi:access-point
+
+      - type: entity
+        entity: sensor.zigbee_devices_online
+        name: Zigbee Devices
+        icon: mdi:access-point-network
+
+  # Battery Status Row
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: sensor.zwave_battery_overview
+        name: Z-Wave Battery
+        icon: mdi:battery
+
+      - type: entity
+        entity: sensor.zigbee_battery_overview
+        name: Zigbee Battery
+        icon: mdi:battery
+
+  # Mesh Status (Binary Sensors)
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: binary_sensor.zwave_mesh_status
+        name: Z-Wave Mesh
+        icon: mdi:mesh_network
+
+      - type: entity
+        entity: binary_sensor.zigbee_mesh_status
+        name: Zigbee Mesh
+        icon: mdi:mesh_network
+
+  # Topology Data (JSON - for custom cards)
+  - type: conditional
+    conditions:
+      - entity: sensor.zwave_mesh_topology
+        state_not: unknown
+    card:
+      type: entity
+      entity: sensor.zwave_mesh_topology
+      name: Z-Wave Topology
+      icon: mdi:tree
+
+  - type: conditional
+    conditions:
+      - entity: sensor.zigbee_mesh_topology
+        state_not: unknown
+    card:
+      type: entity
+      entity: sensor.zigbee_mesh_topology
+      name: Zigbee Topology
+      icon: mdi:zigbee
+
+
+# === Option 2: Enhanced Card with Gauge (requires custom:gauge-card) ===
+
+# type: vertical-stack
+# title: Mesh Network Overview (Enhanced)
+# cards:
+#   # Health Score Gauge
+#   - type: custom:gauge-card
+#     entity: sensor.mesh_network_overview
+#     title: Network Health
+#     min: 0
+#     max: 100
+#     unit: '%'
+#     severity:
+#       red: 0
+#       yellow: 50
+#       green: 80
+#
+#   # Rest same as Option 1...
+
+
+# === Option 3: Grid Layout (3 columns) ===
+
+# type: vertical-stack
+# title: Mesh Network Dashboard
+# cards:
+#   - type: grid
+#     columns: 3
+#     cards:
+#       - type: entity
+#         entity: sensor.zwave_network_health
+#         name: Z-Wave
+#       - type: entity
+#         entity: sensor.zigbee_network_health
+#         name: Zigbee
+#       - type: entity
+#         entity: sensor.mesh_network_overview
+#         name: Overview
+#
+#   - type: grid
+#     columns: 3
+#     cards:
+#       - type: entity
+#         entity: sensor.zwave_devices_online
+#         name: Z-Wave
+#       - type: entity
+#         entity: sensor.zigbee_devices_online
+#         name: Zigbee
+#       - type: entity
+#         entity: sensor.zwave_battery_overview
+#         name: Battery
