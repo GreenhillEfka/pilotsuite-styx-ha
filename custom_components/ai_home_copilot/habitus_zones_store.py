@@ -1,5 +1,27 @@
+"""
+Habitus Zones Store v1 - DEPRECATED
+====================================
+This module is DEPRECATED. Please use habitus_zones_store_v2 instead.
+
+Migration notes:
+- v2 provides better zone validation and entity tracking
+- Use async_get_zones_v2() and async_set_zones_v2() for new implementations
+- This module will be removed in a future release
+
+To migrate:
+    # Old (v1):
+    from .habitus_zones_store import async_get_zones
+    zones = await async_get_zones(hass, entry_id)
+
+    # New (v2):
+    from .habitus_zones_store_v2 import async_get_zones_v2
+    zones = await async_get_zones_v2(hass, entry_id)
+"""
+
 from __future__ import annotations
 
+import logging
+import warnings
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,6 +30,16 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+# Issue deprecation warning when module is imported
+warnings.warn(
+    "habitus_zones_store is DEPRECATED. Use habitus_zones_store_v2 instead. "
+    "This module will be removed in a future release.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.habitus_zones"

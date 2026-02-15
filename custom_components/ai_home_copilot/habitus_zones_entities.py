@@ -1,6 +1,25 @@
+"""
+Habitus Zones Entities v1 - DEPRECATED
+=======================================
+This module is DEPRECATED. Please use habitus_zones_entities_v2 instead.
+
+Migration notes:
+- v2 provides enhanced entity validation and better state management
+- This module will be removed in a future release
+
+To migrate:
+    # Old (v1):
+    from .habitus_zones_entities import HabitusZonesJsonText
+
+    # New (v2):
+    from .habitus_zones_entities_v2 import HabitusZonesV2JsonText
+"""
+
 from __future__ import annotations
 
 import json
+import logging
+import warnings
 from typing import Any
 
 import yaml
@@ -20,6 +39,16 @@ from .habitus_zones_store import (
     SIGNAL_HABITUS_ZONES_UPDATED,
     async_get_zones,
     async_set_zones_from_raw,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+# Issue deprecation warning
+warnings.warn(
+    "habitus_zones_entities is DEPRECATED. Use habitus_zones_entities_v2 instead. "
+    "This module will be removed in a future release.",
+    DeprecationWarning,
+    stacklevel=2
 )
 
 

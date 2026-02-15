@@ -1,4 +1,24 @@
+"""
+Media Setup v1 - DEPRECATED
+===========================
+This module is DEPRECATED. Please use media_context_v2_setup instead.
+
+Migration notes:
+- v2 provides enhanced setup and configuration management
+- This module will be removed in a future release
+"""
+
 from __future__ import annotations
+
+import warnings
+
+# Issue deprecation warning
+warnings.warn(
+    "media_setup is DEPRECATED. Use media_context_v2_setup instead. "
+    "This module will be removed in a future release.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant

@@ -1,4 +1,24 @@
+"""
+Media Entities v1 - DEPRECATED
+==============================
+This module is DEPRECATED. Please use media_context_v2_entities instead.
+
+Migration notes:
+- v2 provides enhanced entity definitions
+- This module will be removed in a future release
+"""
+
 from __future__ import annotations
+
+import warnings
+
+# Issue deprecation warning
+warnings.warn(
+    "media_entities is DEPRECATED. Use media_context_v2_entities instead. "
+    "This module will be removed in a future release.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.sensor import SensorEntity

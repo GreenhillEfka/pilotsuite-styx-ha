@@ -5,6 +5,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_HOST,
@@ -119,6 +120,22 @@ from .const import (
     DOMAIN,
 )
 
+# Import from setup_wizard
+from .setup_wizard import (
+    SetupWizard,
+    SCHEMA_FEATURES,
+    SCHEMA_NETWORK,
+    SCHEMA_REVIEW,
+)
+
+# Wizard step constants
+STEP_DISCOVERY = "discovery"
+STEP_ZONES = "zones"
+STEP_ENTITIES = "entities"
+STEP_FEATURES = "features"
+STEP_NETWORK = "network"
+STEP_REVIEW = "review"
+
 
 def _as_csv(value) -> str:
     if value is None:
@@ -150,17 +167,36 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return OptionsFlowHandler(config_entry)
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
+        """Initial step - show main menu with Quick Start vs Manual Setup."""
+        # Show main menu: Quick Start vs Manual Setup
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["quick_start", "manual_setup"],
+            description_placeholders={
+                "description": "🏠 **AI Home CoPilot Setup**\n\n"
+                "Choose your setup method:\n\n"
+                "⚡ **Quick Start**: Auto-configure with smart defaults\n"
+                "   - Auto-discovers your devices\n"
+                "   - Configures media players automatically\n"
+                "   - Ready in under 2 minutes\n\n"
+                "⚙️ **Manual Setup**: Expert configuration\n"
+                "   - Full control over all options\n"
+                "   - Advanced networking settings\n"
+            }
+        )
+
+    async def async_step_quick_start(self, user_input: dict | None = None) -> FlowResult:
+        """Quick Start - guided wizard with smart defaults."""
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_manual_setup(self, user_input: dict | None = None) -> FlowResult:
+        """Manual setup - direct configuration form."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Check if user wants to use setup wizard
-            if user_input.get("use_wizard"):
-                return await self.async_step_wizard()
-            
             try:
                 await _validate_input(self.hass, user_input)
             except Exception as err:  # noqa: BLE001
-                # Log detailed error for debugging
                 import logging
                 _LOGGER = logging.getLogger(__name__)
                 _LOGGER.error("Config validation failed for %s:%s - %s", 
@@ -175,59 +211,213 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-                vol.Optional(CONF_TOKEN, description={"suggested_value": "Optional: OpenClaw Gateway Auth Token"}): str,
-                # Use a plain string to maximize compatibility (no selector).
-                vol.Optional(CONF_TEST_LIGHT, default="", description={"suggested_value": "Optional: light.example_entity_id for connectivity test"}): str,
-                # Setup wizard option
-                vol.Optional("use_wizard", default=False): bool,
+                vol.Optional(CONF_TOKEN): str,
+                vol.Optional(CONF_TEST_LIGHT, default=""): str,
             }
         )
 
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="manual_setup", 
+            data_schema=schema, 
+            errors=errors,
+            description_placeholders={
+                "description": "Enter your OpenClaw Gateway connection details."
+            }
+        )
 
     async def async_step_reauth(self, user_input: dict | None = None) -> FlowResult:
-        return await self.async_step_user(user_input)
+        return await self.async_step_manual_setup(user_input)
 
     async def async_step_wizard(self, user_input: dict | None = None) -> FlowResult:
-        """Setup wizard - guided configuration for new users."""
-        from .setup_wizard import SetupWizard, generate_wizard_config
+        """Setup wizard - guided configuration for new users.
         
+        Multi-step wizard:
+        1. Quick Start - auto-discovery with defaults
+        2. Zone selection (full wizard)
+        3. Entity selection
+        4. Feature selection
+        5. Network configuration
+        6. Review & confirm
+        """
+        # Initialize wizard and data storage
         if not hasattr(self, "_wizard"):
             self._wizard = SetupWizard(self.hass)
+            self._data = {}
         
         wizard = self._wizard
         
+        # Handle wizard flow state
+        wizard_step = getattr(self, "_wizard_step", STEP_DISCOVERY)
+        
         if user_input is None:
-            # Start wizard - discovery step
-            return self.async_show_form(
-                step_id="wizard_discovery",
-                data_schema=vol.Schema({
-                    vol.Optional("auto_discover", default=True): bool,
-                }),
-                description_placeholders={
-                    "description": "Setup Wizard will scan your Home Assistant for compatible devices and suggest optimal configuration."
+            # Show current step
+            if wizard_step == STEP_DISCOVERY:
+                return self.async_show_form(
+                    step_id="wizard_discovery",
+                    data_schema=vol.Schema({
+                        vol.Optional("quick_start", default=True): bool,
+                        vol.Optional("auto_discover", default=True): bool,
+                    }),
+                    description_placeholders={
+                        "description": "Quick Start uses intelligent defaults based on your HA setup. "
+                        "Auto-discovery will scan for compatible devices.\n\n"
+                        "Skip advanced configuration if you're experienced with OpenClaw."
+                    }
+                )
+            elif wizard_step == STEP_ZONES:
+                zone_suggestions = wizard.get_zone_suggestions()
+                zone_options = [(z["area_id"], f"{z['name']} ({z['entity_count']} entities)") for z in zone_suggestions]
+                
+                if zone_options:
+                    zone_schema = vol.Schema({
+                        vol.Optional("selected_zones"): selector({
+                            "select": {
+                                "options": zone_options,
+                                "multiple": True,
+                                "mode": "list",
+                            }
+                        }),
+                    })
+                else:
+                    zone_schema = vol.Schema({
+                        vol.Optional("selected_zones"): str,
+                    })
+                    
+                return self.async_show_form(
+                    step_id="wizard_zones",
+                    data_schema=zone_schema,
+                    description_placeholders={
+                        "found_zones": str(len(zone_suggestions)),
+                        "hint": "Select zones or skip with empty selection."
+                    }
+                )
+            elif wizard_step == STEP_ENTITIES:
+                suggestions = wizard.suggest_media_players()
+                return self.async_show_form(
+                    step_id="wizard_entities",
+                    data_schema=vol.Schema({
+                        vol.Optional("music_players", default=suggestions["music"]): selector({
+                            "entity": {
+                                "filter": [{"domain": "media_player"}],
+                                "multiple": True,
+                            }
+                        }),
+                        vol.Optional("tv_players", default=suggestions["tv"]): selector({
+                            "entity": {
+                                "filter": [{"domain": "media_player", "device_class": "tv"}],
+                                "multiple": True,
+                            }
+                        }),
+                    }),
+                )
+            elif wizard_step == STEP_FEATURES:
+                return self.async_show_form(
+                    step_id="wizard_features",
+                    data_schema=SCHEMA_FEATURES,
+                )
+            elif wizard_step == STEP_NETWORK:
+                return self.async_show_form(
+                    step_id="wizard_network",
+                    data_schema=SCHEMA_NETWORK,
+                )
+            elif wizard_step == STEP_REVIEW:
+                # Generate summary
+                network = self._data.get("network", {})
+                entities = self._data.get("entities", {})
+                features = self._data.get("features", [])
+                zones = self._data.get("selected_zones", [])
+                
+                music_count = len(entities.get("music_players", [])) if isinstance(entities.get("music_players"), list) else 0
+                tv_count = len(entities.get("tv_players", [])) if isinstance(entities.get("tv_players"), list) else 0
+                
+                summary = f"""
+**Configuration Summary:**
+
+**Network:**
+- Host: {network.get(CONF_HOST, DEFAULT_HOST)}
+- Port: {network.get(CONF_PORT, DEFAULT_PORT)}
+
+**Selected Zones:** {len(zones) if zones else 'Auto-detected'}
+
+**Media Players:**
+- Music: {music_count} players
+- TV: {tv_count} players
+
+**Features:** {', '.join(features) if features else 'Basic'}
+                """
+                
+                return self.async_show_form(
+                    step_id="wizard_review",
+                    data_schema=SCHEMA_REVIEW,
+                    description_placeholders={"summary": summary}
+                )
+        
+        # Process user input based on current step
+        if wizard_step == STEP_DISCOVERY:
+            quick_start = user_input.get("quick_start", True)
+            auto_discover = user_input.get("auto_discover", True)
+            self._data["quick_start"] = quick_start
+            
+            if auto_discover:
+                # Perform discovery
+                discovered = await wizard.discover_entities()
+                self._data["discovery"] = discovered
+            
+            if quick_start:
+                # Quick Start mode - use smart defaults
+                suggestions = wizard.suggest_media_players()
+                self._data["entities"] = {
+                    "music_players": suggestions.get("music", []),
+                    "tv_players": suggestions.get("tv", []),
                 }
-            )
-        
-        # Perform discovery
-        discovered = await wizard.discover_entities()
-        
-        # Get zone suggestions
-        zone_suggestions = wizard.get_zone_suggestions()
-        
-        # Generate zone selection schema
-        zone_options = [(z["area_id"], f"{z['name']} ({z['entity_count']} entities)") for z in zone_suggestions]
-        
-        return self.async_show_form(
-            step_id="wizard_zones",
-            data_schema=vol.Schema({
-                vol.Required("selected_zones"): vol.In(zone_options) if zone_options else str,
-            }),
-            description_placeholders={
-                "found_zones": str(len(zone_suggestions)),
-                "found_players": str(len(discovered.get("media_players", []))),
+                self._data["features"] = ["basic", "media_control"]
+                self._data["selected_zones"] = []
+                self._data["network"] = {
+                    CONF_HOST: DEFAULT_HOST,
+                    CONF_PORT: DEFAULT_PORT,
+                    CONF_TOKEN: "",
+                }
+                # Skip to review
+                self._wizard_step = STEP_REVIEW
+            else:
+                # Full wizard - continue to zones
+                self._wizard_step = STEP_ZONES
+            
+            return await self.async_step_wizard(None)
+            
+        elif wizard_step == STEP_ZONES:
+            self._data["selected_zones"] = user_input.get("selected_zones", [])
+            self._wizard_step = STEP_ENTITIES
+            return await self.async_step_wizard(None)
+            
+        elif wizard_step == STEP_ENTITIES:
+            self._data["entities"] = user_input
+            self._wizard_step = STEP_FEATURES
+            return await self.async_step_wizard(None)
+            
+        elif wizard_step == STEP_FEATURES:
+            self._data["features"] = user_input.get("features", [])
+            self._wizard_step = STEP_NETWORK
+            return await self.async_step_wizard(None)
+            
+        elif wizard_step == STEP_NETWORK:
+            self._data["network"] = user_input
+            self._wizard_step = STEP_REVIEW
+            return await self.async_step_wizard(None)
+            
+        elif wizard_step == STEP_REVIEW:
+            # Generate final configuration
+            final_config = {
+                **self._data.get("network", {}),
+                **self._data.get("entities", {}),
+                "selected_zones": self._data.get("selected_zones", []),
+                "features": self._data.get("features", []),
+                CONF_WATCHDOG_ENABLED: DEFAULT_WATCHDOG_ENABLED,
+                CONF_EVENTS_FORWARDER_ENABLED: DEFAULT_EVENTS_FORWARDER_ENABLED,
             }
-        )
+            
+            title = "AI Home CoPilot (Quick Start)" if self._data.get("quick_start") else "AI Home CoPilot"
+            return self.async_create_entry(title=title, data=final_config)
 
 
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
