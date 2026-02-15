@@ -65,6 +65,18 @@ from .const import (
     DEFAULT_MUPL_MIN_INTERACTIONS,
     DEFAULT_MUPL_RETENTION_DAYS,
     MUPL_PRIVACY_MODES,
+    # Neural System Configuration
+    CONF_NEURON_ENABLED,
+    CONF_NEURON_EVALUATION_INTERVAL,
+    CONF_NEURON_CONTEXT_ENTITIES,
+    CONF_NEURON_STATE_ENTITIES,
+    CONF_NEURON_MOOD_ENTITIES,
+    DEFAULT_NEURON_ENABLED,
+    DEFAULT_NEURON_EVALUATION_INTERVAL,
+    DEFAULT_NEURON_CONTEXT_ENTITIES,
+    DEFAULT_NEURON_STATE_ENTITIES,
+    DEFAULT_NEURON_MOOD_ENTITIES,
+    NEURON_TYPES,
     # Other defaults
     DEFAULT_HOST,
     DEFAULT_PORT,
@@ -185,7 +197,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         # Top-level menu: keep settings form, add Habitus zones wizard.
         return self.async_show_menu(
             step_id="init",
-            menu_options=["settings", "habitus_zones", "backup_restore"],
+            menu_options=["settings", "habitus_zones", "neurons", "backup_restore"],
         )
 
     async def async_step_settings(self, user_input: dict | None = None) -> FlowResult:
@@ -787,6 +799,51 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
 
         step_id = "create_zone" if mode == "create" else "edit_zone_form"
         return self.async_show_form(step_id=step_id, data_schema=schema)
+
+    async def async_step_neurons(self, user_input: dict | None = None) -> FlowResult:
+        """Configure neural system entities."""
+        if user_input is not None:
+            # Normalize entity lists
+            context_csv = user_input.get(CONF_NEURON_CONTEXT_ENTITIES, "")
+            if isinstance(context_csv, str):
+                user_input[CONF_NEURON_CONTEXT_ENTITIES] = _parse_csv(context_csv)
+            
+            state_csv = user_input.get(CONF_NEURON_STATE_ENTITIES, "")
+            if isinstance(state_csv, str):
+                user_input[CONF_NEURON_STATE_ENTITIES] = _parse_csv(state_csv)
+            
+            mood_csv = user_input.get(CONF_NEURON_MOOD_ENTITIES, "")
+            if isinstance(mood_csv, str):
+                user_input[CONF_NEURON_MOOD_ENTITIES] = _parse_csv(mood_csv)
+            
+            return self.async_create_entry(title="", data=user_input)
+        
+        data = {**self._entry.data, **self._entry.options}
+        
+        schema = vol.Schema({
+            vol.Optional(
+                CONF_NEURON_ENABLED,
+                default=data.get(CONF_NEURON_ENABLED, DEFAULT_NEURON_ENABLED),
+            ): bool,
+            vol.Optional(
+                CONF_NEURON_EVALUATION_INTERVAL,
+                default=data.get(CONF_NEURON_EVALUATION_INTERVAL, DEFAULT_NEURON_EVALUATION_INTERVAL),
+            ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
+            vol.Optional(
+                CONF_NEURON_CONTEXT_ENTITIES,
+                default=_as_csv(data.get(CONF_NEURON_CONTEXT_ENTITIES, DEFAULT_NEURON_CONTEXT_ENTITIES)),
+            ): str,  # Comma-separated context entity IDs
+            vol.Optional(
+                CONF_NEURON_STATE_ENTITIES,
+                default=_as_csv(data.get(CONF_NEURON_STATE_ENTITIES, DEFAULT_NEURON_STATE_ENTITIES)),
+            ): str,  # Comma-separated state entity IDs
+            vol.Optional(
+                CONF_NEURON_MOOD_ENTITIES,
+                default=_as_csv(data.get(CONF_NEURON_MOOD_ENTITIES, DEFAULT_NEURON_MOOD_ENTITIES)),
+            ): str,  # Comma-separated mood entity IDs
+        })
+        
+        return self.async_show_form(step_id="neurons", data_schema=schema)
 
 
 # Options flow is provided via ConfigFlow.async_get_options_flow

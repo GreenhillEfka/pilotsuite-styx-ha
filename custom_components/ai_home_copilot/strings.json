@@ -18,6 +18,7 @@
         "menu_options": {
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
+          "neurons": "Neural System",
           "backup_restore": "Backup / restore"
         }
       },
@@ -66,6 +67,22 @@
           "publish_dashboard": "Publish dashboard (www)",
           "bulk_edit": "Bulk edit (YAML/JSON)",
           "back": "Back"
+        }
+      },
+      "neurons": {
+        "title": "Neural System Configuration",
+        "description": "Configure context, state, and mood neurons for the AI Home CoPilot neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
+        "data": {
+          "neuron_enabled": "Enable Neural System",
+          "neuron_evaluation_interval": "Evaluation Interval (seconds)",
+          "neuron_context_entities": "Context Neuron Entities (comma-separated)",
+          "neuron_state_entities": "State Neuron Entities (comma-separated)",
+          "neuron_mood_entities": "Mood Neuron Entities (comma-separated)"
+        },
+        "data_description": {
+          "neuron_context_entities": "Entities for context neurons (presence, time, weather, etc.)",
+          "neuron_state_entities": "Entities for state neurons (energy, comfort, stress, etc.)",
+          "neuron_mood_entities": "Entities that influence mood (lights, media, climate, etc.)"
         }
       },
       "bulk_edit": {

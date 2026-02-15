@@ -1,5 +1,27 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.12] - 2026-02-15
+
+### Added
+- **Neural System Configuration UI**:
+  - New Options Flow menu: "Neural System"
+  - Configure context, state, and mood neuron entities
+  - Enable/disable neural system
+  - Set evaluation interval (10-3600 seconds)
+
+- **Config Options**:
+  - `neuron_enabled` - Enable/disable neural system
+  - `neuron_evaluation_interval` - How often neurons evaluate
+  - `neuron_context_entities` - Entities for context neurons
+  - `neuron_state_entities` - Entities for state neurons
+  - `neuron_mood_entities` - Entities that influence mood
+
+### Changed
+- Options Flow menu now includes "Neural System" section
+- strings.json updated with neuron configuration labels
+
+---
+
 ## [0.8.11] - 2026-02-15
 
 ### Added
