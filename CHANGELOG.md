@@ -1,15 +1,20 @@
 # CHANGELOG - AI Home CoPilot Core
 
-## [0.4.25] - 2026-02-15
+## [0.4.26] - 2026-02-15
+
+### Fixed
+- **RESTORED mood/ module** - Autopilot incorrectly deleted it
+  - mood/ contains MoodService, MoodEngine, MoodOrchestrator, MoodScorer, API
+  - neurons/mood.py only has MoodNeuron classes, NOT the infrastructure
+  - All imports were broken after deletion
+- `tagging/` removal was correct (duplicate of `tags/`)
+
+## [0.4.25] - 2026-02-15 [YANKED]
 
 ### Removed
-- **Redundant modules cleaned up**:
-  - `mood/` directory (replaced by `neurons/mood.py`)
-  - `tagging/` directory (duplicate of `tags/`)
-  
-### Changed
-- Reduced module count from 22 to 20
-- Cleaner module structure
+- **Redundant modules cleaned up** [INCORRECT - SEE 0.4.26]:
+  - `mood/` directory (replaced by `neurons/mood.py`) [WRONG - RESTORED IN 0.4.26]
+  - `tagging/` directory (duplicate of `tags/`) [CORRECT]
 
 ---
 
