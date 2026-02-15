@@ -1,13 +1,18 @@
 """Tests for zone-based mining."""
 import pytest
+import sys
+from pathlib import Path
 from datetime import datetime
 
-from habitus_miner.zone_mining import (
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from copilot_core.habitus_miner.zone_mining import (
     ZoneBasedMiner,
     ZoneMiningConfig,
     ZoneMiningResult,
 )
-from habitus_miner.model import NormEvent, MiningConfig
+from copilot_core.habitus_miner.model import NormEvent, MiningConfig
 
 
 class MockTagZoneIntegration:
