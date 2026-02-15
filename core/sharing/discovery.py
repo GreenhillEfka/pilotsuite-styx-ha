@@ -146,7 +146,7 @@ class DiscoveryService:
 
         # PTR record
         data += b"\x00\x10\x00\x01"  # Type: PTR, Class: IN
-        data += b"\x00\x00\x0e\xx10"  # TTL: 120s
+        data += b"\x00\x00\x0e\x10"  # TTL: 120s
         data += b"\x00\x12"  # Data length
 
         # Target: instance name
