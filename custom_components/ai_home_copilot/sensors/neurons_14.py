@@ -11,7 +11,7 @@ Implements the missing neurons:
 from __future__ import annotations
 
 import logging
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Any, Dict, Optional
 
 from homeassistant.components.sensor import SensorEntity
@@ -132,7 +132,15 @@ class PresencePersonSensor(CoordinatorEntity, SensorEntity):
 
 
 class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for overall activity level in the home."""
+    """Sensor for overall activity level in the home.
+    
+    Connected to:
+    - Motion sensors (binary_sensor)
+    - Camera motion events
+    - Media players
+    - Lights
+    - Module Connector signals
+    """
     
     _attr_name = "AI CoPilot Activity Level"
     _attr_unique_id = "ai_copilot_activity_level"
@@ -142,9 +150,18 @@ class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
         super().__init__(coordinator)
         self._hass = hass
+        self._last_motion_time: datetime | None = None
+        self._camera_motion_active = False
     
     async def async_update(self) -> None:
-        """Calculate activity level based on various sensors."""
+        """Calculate activity level based on various sensors.
+        
+        Uses:
+        1. Motion sensors (binary_sensor)
+        2. Camera motion events (via module connector)
+        3. Media players
+        4. Lights
+        """
         # Factors: motion sensors, media players, lights, switches
         score = 0
         
@@ -153,6 +170,26 @@ class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
         motion_on = sum(1 for s in motion_states 
                        if s.attributes.get("device_class") == "motion" and s.state == "on")
         score += motion_on * 3
+        
+        # Check for camera motion events via module connector
+        try:
+            from ..module_connector import get_module_connector
+            
+            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
+            connector = await get_module_connector(self._hass, entry_id)
+            activity_context = connector.activity_context
+            
+            # Use camera motion if recent (within last 2 minutes)
+            if activity_context.motion_detected and activity_context.timestamp:
+                time_since_motion = (dt_util.utcnow() - activity_context.timestamp).total_seconds()
+                if time_since_motion < 120:  # 2 minutes
+                    self._camera_motion_active = True
+                    score += 5  # Add camera motion score
+            else:
+                self._camera_motion_active = False
+                
+        except Exception:
+            pass
         
         # Media players active (weight: 2)
         media_states = self._hass.states.async_all("media_player")
@@ -163,9 +200,6 @@ class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
         light_states = self._hass.states.async_all("light")
         lights_on = sum(1 for l in light_states if l.state == "on")
         score += lights_on
-        
-        # Recent state changes (last 5 minutes)
-        # This would need historical data - simplified for now
         
         # Determine level
         if score == 0:
@@ -181,8 +215,10 @@ class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
         self._attr_extra_state_attributes = {
             "score": score,
             "motion_active": motion_on,
+            "camera_motion_active": self._camera_motion_active,
             "media_playing": media_playing,
             "lights_on": lights_on,
+            "sources": ["motion_sensors", "camera", "media", "lights"],
         }
 
 
@@ -518,7 +554,12 @@ class WeatherContextSensor(CoordinatorEntity, SensorEntity):
 
 
 class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for calendar load (busyness)."""
+    """Sensor for calendar load (busyness).
+    
+    Connected to:
+    - calendar_context module for event data
+    - Module Connector for calendar.load Neuron
+    """
     
     _attr_name = "AI CoPilot Calendar Load"
     _attr_unique_id = "ai_copilot_calendar_load"
@@ -530,36 +571,102 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
         self._hass = hass
     
     async def async_update(self) -> None:
-        """Calculate calendar load for today."""
+        """Calculate calendar load for today.
+        
+        Uses data from:
+        1. Calendar entities state
+        2. Calendar context module (if available)
+        3. Module connector signals
+        """
         calendar_states = self._hass.states.async_all("calendar")
         
         now = dt_util.now()
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-        
         event_count = 0
-        busy_periods = 0
+        meetings_today = 0
+        is_weekend = now.weekday() >= 5
         
-        for cal in calendar_states:
-            # This would need actual calendar API access
-            # For now, use basic state
-            if cal.state != "unknown":
-                event_count += 1
+        # Try to get calendar context from module connector
+        calendar_context_data = None
+        try:
+            from ..module_connector import get_module_connector
+            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
+            connector = await get_module_connector(self._hass, entry_id)
+            calendar_context_data = connector.calendar_context.to_dict()
+        except Exception:
+            pass
         
-        # Classify load
-        if event_count == 0:
+        # Try to get calendar events via service
+        try:
+            for cal in calendar_states:
+                if cal.state != "unknown":
+                    event_count += 1
+                    
+                # Get actual events if available
+                try:
+                    result = await self._hass.services.async_call(
+                        "calendar",
+                        "get_events",
+                        {
+                            "entity_id": cal.entity_id,
+                            "start_date_time": now.isoformat(),
+                            "end_date_time": (now + timedelta(days=1)).isoformat(),
+                        },
+                        blocking=False,
+                    )
+                    if result and cal.entity_id in result:
+                        events = result[cal.entity_id].get("events", [])
+                        meetings_today += len(events)
+                except Exception:
+                    pass
+        except Exception as err:
+            _LOGGER.debug("Error fetching calendar events: %s", err)
+        
+        # Use data from calendar context if available
+        if calendar_context_data:
+            event_count = calendar_context_data.get("event_count", event_count)
+            meetings_today = calendar_context_data.get("meetings_today", meetings_today)
+            is_weekend = calendar_context_data.get("is_weekend", is_weekend)
+            focus_weight = calendar_context_data.get("focus_weight", 0.0)
+            social_weight = calendar_context_data.get("social_weight", 0.0)
+            relax_weight = calendar_context_data.get("relax_weight", 0.0)
+            has_conflicts = calendar_context_data.get("has_conflicts", False)
+            next_meeting_in_minutes = calendar_context_data.get("next_meeting_in_minutes")
+        else:
+            focus_weight = 0.0
+            social_weight = 0.0
+            relax_weight = 0.0
+            has_conflicts = False
+            next_meeting_in_minutes = None
+        
+        # Classify load based on event count
+        if meetings_today == 0:
             load = "free"
-        elif event_count < 3:
+        elif meetings_today < 3:
             load = "light"
-        elif event_count < 6:
+        elif meetings_today < 6:
             load = "moderate"
         else:
             load = "busy"
         
+        # Adjust based on focus weight (meetings = more load)
+        if focus_weight > 0.5:
+            if load == "light":
+                load = "moderate"
+            elif load == "moderate":
+                load = "busy"
+        
         self._attr_native_value = load
         self._attr_extra_state_attributes = {
             "event_count": event_count,
+            "meetings_today": meetings_today,
             "hour": now.hour,
+            "is_weekend": is_weekend,
+            "focus_weight": focus_weight,
+            "social_weight": social_weight,
+            "relax_weight": relax_weight,
+            "has_conflicts": has_conflicts,
+            "next_meeting_in_minutes": next_meeting_in_minutes,
+            "source": "calendar_context_module" if calendar_context_data else "calendar_entities",
         }
 
 

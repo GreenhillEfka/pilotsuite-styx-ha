@@ -19,6 +19,7 @@ from homeassistant.helpers import entity_registry
 from homeassistant.const import EVENT_STATE_CHANGED, EVENT_CALL_SERVICE
 
 from .const import DOMAIN
+from ...module_connector import SIGNAL_ACTIVITY_UPDATED
 from .camera_entities import (
     CameraMotionEvent,
     CameraPresenceEvent,
@@ -335,17 +336,69 @@ class CameraContextModule(CopilotModule):
             event_data.get("event_type"))
     
     async def _forward_to_brain(self, event_subtype: str, context: Dict[str, Any]) -> None:
-        """Forward camera events to brain graph sync module."""
+        """Forward camera events to brain graph sync module and neurons.
+        
+        Implements Camera → Activity Neuron connection:
+        - Motion events → activity.level Neuron
+        - Presence events → presence.room Neuron
+        - Zone events → spatial context
+        """
+        # 1. Forward to brain graph sync module (if available)
         try:
-            # Get the runtime and forwarder
             runtime = self._hass.data.get(DOMAIN)
             if runtime and hasattr(runtime, "registry"):
-                # Try to get brain_graph_sync module
                 module = runtime.registry.get("brain_graph_sync")
                 if module and hasattr(module, "async_add_camera_event"):
                     await module.async_add_camera_event(event_subtype, context)
         except Exception as e:
             _LOGGER.debug("Could not forward to brain: %s", e)
+        
+        # 2. Forward to Module Connector for Activity Neuron update
+        try:
+            from ...module_connector import get_module_connector, SIGNAL_ACTIVITY_UPDATED
+            
+            connector = await get_module_connector(self._hass, self._entry_id)
+            
+            # Update activity context based on event type
+            if event_subtype == "motion":
+                activity_level = "moderate" if context.get("action") == "started" else "low"
+                await connector._handle_motion_event({
+                    "type": "motion",
+                    "camera_id": context.get("camera_id"),
+                    "camera_name": context.get("camera_name"),
+                    "action": context.get("action"),
+                    "confidence": context.get("confidence", 1.0),
+                    "timestamp": context.get("timestamp"),
+                })
+            elif event_subtype == "presence":
+                await connector._handle_presence_event({
+                    "type": "presence",
+                    "entity_id": context.get("entity_id"),
+                    "person_name": context.get("person_name"),
+                    "action": context.get("action"),
+                    "timestamp": context.get("timestamp"),
+                })
+            elif event_subtype == "zone":
+                await connector._handle_zone_event({
+                    "type": "zone",
+                    "camera_id": context.get("camera_id"),
+                    "zone_name": context.get("zone_name"),
+                    "event_type": context.get("event_type"),
+                    "timestamp": context.get("timestamp"),
+                })
+                
+        except Exception as e:
+            _LOGGER.debug("Could not forward to module connector: %s", e)
+        
+        # 3. Fire activity update signal for direct neuron updates
+        self._hass.bus.async_fire(
+            SIGNAL_ACTIVITY_UPDATED,
+            {
+                "source": "camera",
+                "event_subtype": event_subtype,
+                "context": context,
+            }
+        )
     
     async def async_shutdown(self) -> None:
         """Clean up on shutdown."""

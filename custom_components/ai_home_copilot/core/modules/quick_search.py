@@ -417,6 +417,162 @@ class QuickSearchModule(CopilotModule):
         }
         return icon_map.get(domain, "mdi:service")
     
+    def generate_automation_suggestions(
+        self,
+        hass: HomeAssistant,
+        query: str,
+        search_results: SearchResults,
+    ) -> dict[str, Any]:
+        """Generate automation suggestions from search results.
+        
+        Maps:
+        - Search results → automation suggestions
+        - Entity search → candidate generation
+        """
+        suggestions = []
+        candidates = []
+        
+        for result in search_results.results:
+            result_type = result.type
+            result_id = result.id
+            result_title = result.title
+            score = result.score
+            
+            if result_type == "entity":
+                # Generate automation candidates based on entity
+                entity_domain = result_id.split(".")[0] if "." in result_id else ""
+                
+                # Suggest relevant automations
+                candidate = {
+                    "type": "entity_candidate",
+                    "entity_id": result_id,
+                    "entity_name": result_title,
+                    "domain": entity_domain,
+                    "score": score,
+                    "suggested_automations": self._get_domain_automation_suggestions(entity_domain, result_title),
+                }
+                candidates.append(candidate)
+                
+                # Also add as general suggestion
+                suggestions.append({
+                    "type": "automation_suggestion",
+                    "title": f"Automation für {result_title}",
+                    "description": f"Entität {result_id} in Automation nutzen",
+                    "entity_id": result_id,
+                    "score": score * 0.8,
+                })
+            
+            elif result_type == "service":
+                # Generate service-based suggestions
+                service_domain = result_id.split(".")[0] if "." in result_id else ""
+                
+                candidate = {
+                    "type": "service_candidate",
+                    "service_id": result_id,
+                    "service_name": result_title,
+                    "domain": service_domain,
+                    "score": score,
+                    "suggested_automations": [
+                        f"Automation mit Service {result_id} erstellen",
+                    ],
+                }
+                candidates.append(candidate)
+            
+            elif result_type == "automation":
+                # Suggest improvements to existing automation
+                suggestions.append({
+                    "type": "automation_improvement",
+                    "title": f"Automation verbessern: {result_title}",
+                    "description": result.description,
+                    "automation_id": result_id,
+                    "score": score * 0.9,
+                })
+        
+        # Sort by score
+        suggestions.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+        candidates.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+        
+        return {
+            "query": query,
+            "suggestions": suggestions[:10],
+            "candidates": candidates[:10],
+            "total_suggestions": len(suggestions),
+            "total_candidates": len(candidates),
+        }
+    
+    def _get_domain_automation_suggestions(self, domain: str, entity_name: str) -> list[str]:
+        """Get automation suggestions based on entity domain."""
+        suggestions_map = {
+            "light": [
+                f"Licht {entity_name} bei Sonnenuntergang einschalten",
+                f"Bewegungsgesteuerte Beleuchtung für {entity_name}",
+                f"{entity_name} automatisch dimmen",
+            ],
+            "switch": [
+                f"Schalter {entity_name} zeitgesteuert schalten",
+                f"{entity_name} bei Abwesenheit ausschalten",
+            ],
+            "sensor": [
+                f"Automation basierend auf {entity_name} Wert erstellen",
+                f"Benachrichtigung bei Schwellenwert von {entity_name}",
+            ],
+            "binary_sensor": [
+                f"Automation bei Änderung von {entity_name}",
+                f"{entity_name} für Sicherheits-Automation nutzen",
+            ],
+            "climate": [
+                f"Temperatur-Automation für {entity_name}",
+                f"Smart Climate Steuerung für {entity_name}",
+            ],
+            "media_player": [
+                f"Medien-Automation für {entity_name}",
+                f"{entity_name} automatisch steuern",
+            ],
+            "camera": [
+                f"Kamera-Automation für {entity_name}",
+                f"Bewegungserkennung mit {entity_name}",
+            ],
+            "cover": [
+                f"Rollladen-Automation für {entity_name}",
+                f"Sonnenstandsabhängige Steuerung für {entity_name}",
+            ],
+            "lock": [
+                f"Schloss-Automation für {entity_name}",
+                f"Zugangskontrolle mit {entity_name}",
+            ],
+        }
+        
+        return suggestions_map.get(domain, [f"Automation für {entity_name} erstellen"])
+    
+    async def async_generate_suggestions(
+        self,
+        hass: HomeAssistant,
+        query: str,
+    ) -> dict[str, Any]:
+        """Generate automation suggestions from a search query.
+        
+        Combines entity, automation, and service search to generate
+        comprehensive automation suggestions.
+        """
+        # Perform multiple searches in parallel
+        entity_results = self.search_entities(hass, query, limit=10)
+        automation_results = self.search_automations(hass, query, limit=10)
+        service_results = self.search_services(hass, query, limit=10)
+        
+        # Combine results
+        combined_results = SearchResults(
+            query=query,
+            results=entity_results.results + automation_results.results + service_results.results,
+            total=entity_results.total + automation_results.total + service_results.total,
+            execution_time_ms=entity_results.execution_time_ms + automation_results.execution_time_ms + service_results.execution_time_ms,
+        )
+        
+        # Sort combined results by score
+        combined_results.results.sort(key=lambda x: x.score, reverse=True)
+        
+        # Generate suggestions
+        return self.generate_automation_suggestions(hass, query, combined_results)
+    
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload the module."""
         # Remove services
