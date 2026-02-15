@@ -4,7 +4,36 @@ Operations - Idempotent rename and set_enabled operations
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+
+
+# Security: Allowed paths for rename operations
+ALLOWED_RENAME_PATHS: List[str] = [
+    "/config/homeassistant",
+    "/config/.openclaw/workspace",
+    "/config/www",
+    "/config/custom_components",
+]
+
+
+def validate_rename_path(path: str) -> bool:
+    """
+    Validate that a path is within allowed directories.
+    
+    Security fix: Prevent arbitrary file operations that could lead to
+    privilege escalation or data exfiltration.
+    
+    Args:
+        path: Path to validate
+        
+    Returns:
+        True if path is within allowed directories, False otherwise
+    """
+    try:
+        resolved = Path(path).resolve()
+        return any(str(resolved).startswith(allowed) for allowed in ALLOWED_RENAME_PATHS)
+    except Exception:
+        return False
 
 
 class OperationError(Exception):
@@ -67,6 +96,16 @@ class RenameOperation(BaseOperation):
         
     def apply(self) -> None:
         """Apply rename operation (idempotent)."""
+        # Security: Validate paths before any operation
+        if not validate_rename_path(str(self.before_path)):
+            raise OperationError(
+                f"Security: Source path not allowed: {self.before_path}"
+            )
+        if not validate_rename_path(str(self.after_path)):
+            raise OperationError(
+                f"Security: Destination path not allowed: {self.after_path}"
+            )
+        
         before_exists = self.before_path.exists()
         after_exists = self.after_path.exists()
         
@@ -93,6 +132,16 @@ class RenameOperation(BaseOperation):
             
     def rollback(self) -> None:
         """Rollback rename operation (idempotent)."""
+        # Security: Validate paths before any operation
+        if not validate_rename_path(str(self.before_path)):
+            raise OperationError(
+                f"Security: Source path not allowed: {self.before_path}"
+            )
+        if not validate_rename_path(str(self.after_path)):
+            raise OperationError(
+                f"Security: Destination path not allowed: {self.after_path}"
+            )
+        
         # Rollback is just inverse apply
         before_exists = self.after_path.exists()
         after_exists = self.before_path.exists()

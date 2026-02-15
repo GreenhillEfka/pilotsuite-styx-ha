@@ -73,7 +73,10 @@ def get_graph_state() -> Response:
     except ValueError as e:
         return jsonify({"error": f"Invalid parameter: {str(e)}"}), 400
     except Exception as e:
-        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+        # Security: Don't leak internal error details
+        import logging
+        logging.getLogger(__name__).error(f"Graph state error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @brain_graph_bp.route('/snapshot.svg', methods=['GET'])
 @require_api_key
@@ -139,10 +142,12 @@ def get_graph_snapshot() -> Response:
         return Response(svg_bytes, mimetype='image/svg+xml')
         
     except Exception as e:
-        error_svg = f'''<?xml version="1.0"?>
+        # Security: Don't leak internal error details
+        import logging
+        logging.getLogger(__name__).error(f"Graph snapshot error: {e}")
+        error_svg = '''<?xml version="1.0"?>
 <svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
-    <text x="200" y="80" text-anchor="middle" fill="red">Render Error</text>
-    <text x="200" y="120" text-anchor="middle" font-size="12" fill="#666">{str(e)[:50]}</text>
+    <text x="200" y="100" text-anchor="middle" fill="red">Render Error</text>
 </svg>'''
         return Response(error_svg, mimetype='image/svg+xml'), 500
 
@@ -157,7 +162,10 @@ def get_graph_stats() -> Response:
         stats = _brain_graph_service.get_stats()
         return jsonify(stats)
     except Exception as e:
-        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+        # Security: Don't leak internal error details
+        import logging
+        logging.getLogger(__name__).error(f"Graph stats error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @brain_graph_bp.route('/prune', methods=['POST'])
 @require_api_key
@@ -173,7 +181,10 @@ def prune_graph() -> Response:
             "stats": stats
         })
     except Exception as e:
-        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+        # Security: Don't leak internal error details
+        import logging
+        logging.getLogger(__name__).error(f"Graph prune error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @brain_graph_bp.route('/patterns', methods=['GET'])
 @require_api_key
@@ -190,7 +201,10 @@ def get_patterns() -> Response:
             "patterns": patterns
         })
     except Exception as e:
-        return jsonify({"error": f"Internal error: {str(e)}"}), 500
+        # Security: Don't leak internal error details
+        import logging
+        logging.getLogger(__name__).error(f"Graph patterns error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 def _parse_int_param(param_name: str, default: int = None, max_value: int = None) -> int:
     """Parse integer parameter with validation."""
