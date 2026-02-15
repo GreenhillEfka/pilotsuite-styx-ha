@@ -336,7 +336,12 @@ async def async_setup_mood_dashboard(
     entry_id: str,
     async_add_entities: AddEntitiesCallback,
 ) -> list[MoodDashboardEntity]:
-    """Setup mood dashboard entities."""
+    """Setup mood dashboard entities.
+    
+    Also sets up listeners for:
+    - Module Connector mood alerts
+    - Notification patterns
+    """
     
     entities = [
         MoodDashboardEntity(entry_id),
@@ -350,6 +355,55 @@ async def async_setup_mood_dashboard(
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN].setdefault(entry_id, {})
     hass.data[DOMAIN][entry_id]["mood_entities"] = entities
+    
+    # Set up listener for mood alerts from module connector
+    async def on_mood_alert(event):
+        """Handle mood alert from module connector."""
+        alert_data = event.data
+        
+        alert_type = alert_data.get("alert_type", "")
+        severity = alert_data.get("severity", "normal")
+        message = alert_data.get("message", "")
+        factors = alert_data.get("factors", [])
+        
+        # Convert alert type to mood type
+        mood_type_map = {
+            "focus": "focus",
+            "stress": "alert",
+            "relax": "relax",
+            "social": "social",
+        }
+        
+        mood_type = mood_type_map.get(alert_type, "neutral")
+        
+        # Calculate value based on severity
+        value_map = {
+            "low": 0.3,
+            "normal": 0.5,
+            "high": 0.7,
+            "critical": 0.9,
+        }
+        value = value_map.get(severity, 0.5)
+        
+        # Add factors
+        all_factors = factors + [
+            {"source": "notification", "alert_type": alert_type, "severity": severity}
+        ]
+        
+        # Update mood
+        await async_update_mood_from_neuron(
+            hass,
+            entry_id,
+            mood_type,
+            value,
+            0.8,  # confidence
+            all_factors,
+        )
+        
+        _LOGGER.debug("Mood updated from notification alert: %s (%s)", mood_type, severity)
+    
+    # Listen for mood alerts
+    hass.bus.async_listen(f"{DOMAIN}_mood_alert", on_mood_alert)
     
     return entities
 

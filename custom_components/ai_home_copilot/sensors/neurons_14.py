@@ -35,7 +35,15 @@ NIGHT_START = time(22, 0)
 
 
 class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for primary room with presence."""
+    """Sensor for primary room with presence.
+    
+    Connected to:
+    - Person entities (home/away)
+    - Device trackers
+    - Motion sensors (area detection)
+    - Camera presence events (via module connector)
+    - Camera zone events (spatial context)
+    """
     
     _attr_name = "AI CoPilot Presence Room"
     _attr_unique_id = "ai_copilot_presence_room"
@@ -46,9 +54,18 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._hass = hass
         self._attr_native_value = "unknown"
+        self._camera_detected_room = None
+        self._camera_person_detected = False
     
     async def async_update(self) -> None:
-        """Update presence room based on HA states."""
+        """Update presence room based on HA states.
+        
+        Priority:
+        1. Person zone (from person entities)
+        2. Device tracker zone
+        3. Camera zone events (spatial context)
+        4. Motion sensor area
+        """
         # Find person entities and their states
         person_states = self._hass.states.async_all("person")
         
@@ -62,8 +79,29 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
             if s.attributes.get("device_class") == "motion" and s.state == "on"
         ]
         
+        # Check for camera presence/zone events via module connector
+        camera_room = None
+        person_detected = False
+        try:
+            from ..module_connector import get_module_connector
+            
+            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
+            connector = await get_module_connector(self._hass, entry_id)
+            activity_context = connector.activity_context
+            
+            # Get room from camera zone events
+            if activity_context.room:
+                camera_room = activity_context.room
+            
+            # Check if person was detected by camera
+            if activity_context.person_detected:
+                person_detected = True
+                
+        except Exception:
+            pass
+        
         # Determine primary room with presence
-        # Priority: person zone > device_tracker zone > motion sensor area
+        # Priority: person zone > device_tracker zone > camera zone > motion sensor area
         primary_room = "none"
         
         for person in person_states:
@@ -82,6 +120,10 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
                         primary_room = zone
                         break
         
+        # Use camera zone if no room found yet
+        if primary_room == "none" and camera_room:
+            primary_room = camera_room
+        
         if primary_room == "none" and motion_active:
             # Use first motion sensor's area
             area_id = motion_active[0].attributes.get("area_id")
@@ -93,12 +135,17 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
                         primary_room = area.name
         
         self._attr_native_value = primary_room
+        self._camera_detected_room = camera_room
+        self._camera_person_detected = person_detected
         
         # Set extra attributes
         self._attr_extra_state_attributes = {
             "active_persons": len([p for p in person_states if p.state == "home"]),
             "motion_sensors_active": len(motion_active),
             "device_trackers_home": len([t for t in device_tracker_states if t.state == "home"]),
+            "camera_room": camera_room,
+            "camera_person_detected": person_detected,
+            "sources": ["person", "device_tracker", "camera_zone", "motion_sensor"],
         }
 
 
@@ -671,7 +718,14 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
 
 
 class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for attention/mental load estimation."""
+    """Sensor for attention/mental load estimation.
+    
+    Connected to:
+    - Calendar events (meeting load)
+    - Media players (active content)
+    - Smart speakers
+    - Module Connector signals
+    """
     
     _attr_name = "AI CoPilot Attention Load"
     _attr_unique_id = "ai_copilot_attention_load"
@@ -683,7 +737,14 @@ class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
         self._hass = hass
     
     async def async_update(self) -> None:
-        """Estimate attention load based on device activity."""
+        """Estimate attention load based on device activity and calendar.
+        
+        Uses:
+        1. Calendar events (meetings = high attention demand)
+        2. Media players (active content)
+        3. Smart speakers
+        4. Module Connector calendar context
+        """
         # Count active devices that indicate user attention
         # TVs, computers, phones
         
@@ -691,15 +752,37 @@ class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
         media_states = self._hass.states.async_all("media_player")
         media_active = sum(1 for m in media_states if m.state == "playing")
         
-        # Computers (if available)
         # Smart speakers playing
         speaker_states = self._hass.states.async_all("media_player")
         speakers_playing = sum(1 for s in speaker_states 
                               if s.attributes.get("device_class") == "speaker" 
                               and s.state == "playing")
         
+        # Get calendar context for meeting load
+        calendar_focus_weight = 0.0
+        calendar_meetings_today = 0
+        try:
+            from ..module_connector import get_module_connector
+            
+            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
+            connector = await get_module_connector(self._hass, entry_id)
+            calendar_context = connector.calendar_context
+            
+            calendar_focus_weight = calendar_context.focus_weight
+            calendar_meetings_today = calendar_context.event_count
+            
+        except Exception:
+            pass
+        
         # Calculate load
+        # Device-based score
         load_score = media_active * 2 + speakers_playing
+        
+        # Add calendar-based score (meetings increase attention demand)
+        if calendar_focus_weight > 0.5:
+            load_score += 3  # High meeting load
+        elif calendar_focus_weight > 0.2:
+            load_score += 1  # Moderate meeting load
         
         if load_score == 0:
             attention = "idle"
@@ -714,6 +797,9 @@ class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
         self._attr_extra_state_attributes = {
             "media_active": media_active,
             "speakers_playing": speakers_playing,
+            "calendar_focus_weight": calendar_focus_weight,
+            "calendar_meetings_today": calendar_meetings_today,
+            "sources": ["media", "speakers", "calendar"],
         }
 
 

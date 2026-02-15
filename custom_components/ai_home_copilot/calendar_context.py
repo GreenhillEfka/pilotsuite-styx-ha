@@ -162,7 +162,7 @@ class CalendarContextModule(BaseModule):
         )
     
     async def async_update(self) -> CalendarContext:
-        """Update calendar context."""
+        """Update calendar context and notify module connector."""
         now = dt_util.utcnow()
         
         # Check if we need to update
@@ -176,6 +176,22 @@ class CalendarContextModule(BaseModule):
         all_events = []
         start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = start_of_day + timedelta(days=2)  # Today + tomorrow
+        
+        # Fire calendar updated event for module connector
+        self._hass.bus.async_fire(
+            f"{DOMAIN}_calendar_updated",
+            {
+                "load_level": self._get_load_level(),
+                "event_count": len(all_events),
+                "meetings_today": len(self._context.all_events_today),
+                "is_weekend": self._context.is_weekend,
+                "focus_weight": self._context.focus_weight,
+                "social_weight": self._context.social_weight,
+                "relax_weight": self._context.relax_weight,
+                "has_conflicts": self._context.has_conflicts,
+                "next_meeting_start": self._context.next_meeting_start.isoformat() if self._context.next_meeting_start else None,
+            }
+        )
         
         for calendar_entity in self._calendar_entities:
             try:
@@ -395,6 +411,26 @@ class CalendarContextModule(BaseModule):
         self._context.social_weight = max(0.0, min(1.0, social))
         self._context.relax_weight = max(0.0, min(1.0, relax))
         self._context.alert_weight = max(0.0, min(1.0, alert))
+    
+    def _get_load_level(self) -> str:
+        """Get calendar load level based on event count.
+        
+        Returns:
+            - free: no events today
+            - light: 1-2 events
+            - moderate: 3-5 events
+            - busy: 6+ events
+        """
+        event_count = len(self._context.all_events_today)
+        
+        if event_count == 0:
+            return "free"
+        elif event_count < 3:
+            return "light"
+        elif event_count < 6:
+            return "moderate"
+        else:
+            return "busy"
 
 
 class CalendarContextEntity(Entity):
