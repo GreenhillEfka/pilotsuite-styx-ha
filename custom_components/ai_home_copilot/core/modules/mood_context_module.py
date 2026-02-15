@@ -10,12 +10,15 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING, Union
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ...const import DOMAIN
+
+if TYPE_CHECKING:
+    from .user_preference_module import UserPreferenceModule
 
 logger = logging.getLogger(__name__)
 

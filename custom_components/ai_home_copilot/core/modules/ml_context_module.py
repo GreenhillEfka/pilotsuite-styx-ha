@@ -286,6 +286,63 @@ class MLContextModule(CopilotModule):
             return {"status": "disabled"}
         return self._ml_context.get_ml_context(device_id)
 
+    def get_habit_summary_data(self) -> Dict[str, Any]:
+        """Get habit summary data for sensors (habit_learning_v2)."""
+        if not self._ml_context or not self._ml_context.habit_predictor:
+            return {
+                "habit_summary": {
+                    "total_patterns": 0,
+                    "time_patterns": {},
+                    "sequences": {},
+                    "device_patterns": {},
+                    "last_update": None,
+                },
+                "predictions": [],
+                "sequences": [],
+            }
+        
+        # Get habit summary from predictor
+        habit_summary = self._ml_context.habit_predictor.get_habit_summary(hours=24)
+        
+        # Build predictions list
+        predictions = []
+        for device_id in habit_summary.get("device_patterns", {}):
+            device_info = habit_summary["device_patterns"][device_id]
+            for event_type in device_info.get("event_types", []):
+                pred = self._ml_context.get_habit_prediction(device_id, event_type)
+                if pred.get("predicted"):
+                    predictions.append({
+                        "pattern": f"{device_id}:{event_type}",
+                        "confidence": pred.get("confidence", 0),
+                        "predicted": True,
+                        "details": pred.get("details", {}),
+                    })
+        
+        # Build sequences list
+        sequences = []
+        for start_device, seq_list in self._ml_context.habit_predictor.sequence_patterns.items():
+            if seq_list:
+                seq_pred = self._ml_context.habit_predictor.predict_sequence(start_device)
+                if seq_pred.get("predicted"):
+                    sequences.append({
+                        "sequence": seq_pred.get("sequence", []),
+                        "confidence": seq_pred.get("confidence", 0),
+                        "occurrences": seq_pred.get("occurrences", 0),
+                        "predicted": True,
+                    })
+        
+        return {
+            "habit_summary": {
+                "total_patterns": habit_summary.get("total_patterns", 0),
+                "time_patterns": habit_summary.get("time_patterns", {}),
+                "sequences": habit_summary.get("sequences", {}),
+                "device_patterns": habit_summary.get("device_patterns", {}),
+                "last_update": habit_summary.get("last_update"),
+            },
+            "predictions": predictions,
+            "sequences": sequences,
+        }
+
 
 def get_ml_module(hass: HomeAssistant, entry_id: str) -> Optional[MLContextModule]:
     """Get the ML context module for an entry."""
