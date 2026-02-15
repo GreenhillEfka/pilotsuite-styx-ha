@@ -295,6 +295,58 @@ def generate_zone_status_card_simple(
     return _vertical_stack_card(cards)
 
 
+def generate_zone_entity_suggestions_card(
+    zone_name: str,
+    zone_id: str,
+    suggestions: dict[str, list[str]],
+) -> str:
+    """Generate Zone Entity Suggestions Card YAML.
+    
+    Shows suggested entities for a zone based on:
+    - Tags (aicp.place.X)
+    - Entity names matching zone
+    - HA Areas
+    
+    Args:
+        zone_name: Display name of the zone
+        zone_id: Zone ID
+        suggestions: Dict with keys: motion, lights, sensors, media, other
+    
+    Returns:
+        YAML string for the card
+    """
+    cards: list[str] = []
+    
+    # Header
+    cards.append(_markdown_card(
+        "🔍 Entity Vorschläge", 
+        f"**Zone:** {zone_name}\n\nFolgende Entities könnten zur Zone gehören:"
+    ))
+    
+    # Group suggestions by role
+    role_labels = {
+        "motion": "🏃 Bewegung",
+        "lights": "💡 Lichter", 
+        "sensors": "🌡️ Sensoren",
+        "media": "📺 Media",
+        "other": "📦 Sonstige"
+    }
+    
+    for role, label in role_labels.items():
+        entities = suggestions.get(role, [])
+        if entities:
+            entity_list = "\n".join([f"- {e}" for e in entities])
+            cards.append(_markdown_card(label, entity_list))
+    
+    # Add configuration link
+    cards.append(_markdown_card(
+        "⚙️ Konfigurieren",
+        "[Zone bearbeiten](/config/ai_home_copilot/zones)"
+    ))
+    
+    return _vertical_stack_card(cards)
+
+
 # ============================================================================
 # Zone Transitions Card
 # ============================================================================
