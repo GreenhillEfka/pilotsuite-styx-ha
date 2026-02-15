@@ -189,8 +189,8 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZone) -> str:
         return f"sensor.ai_home_copilot_hz_{zone_id}_{metric}_avg"
 
     def _maybe_avg_card(metric: str, title: str, sources: list[str]) -> list[str]:
-        # Policy: only show average if there are >2 source entities.
-        if len(sources) <= 2:
+        # Policy: show average if there are >=2 source entities.
+        if len(sources) < 2:
             return []
         eid = _avg_entity_id(metric)
         if hass.states.get(eid) is None:
@@ -252,6 +252,20 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZone) -> str:
         cards.append(_entities_card_yaml("Luftfeuchte", humidity))
         cards.append(_history_graph_yaml("Luftfeuchte — Verlauf (24h)", humidity))
 
+    # Thermostat (heating targets)
+    thermostat = roles.get("thermostat") or []
+    if thermostat:
+        cards.extend(_maybe_avg_card("thermostat", "Thermostat Ø", thermostat))
+        cards.append(_entities_card_yaml("Thermostat", thermostat))
+        cards.append(_history_graph_yaml("Thermostat — Verlauf (24h)", thermostat))
+
+    # Illuminance (light level sensors)
+    illuminance = roles.get("illuminance") or []
+    if illuminance:
+        cards.extend(_maybe_avg_card("illuminance", "Beleuchtungsstärke Ø", illuminance))
+        cards.append(_entities_card_yaml("Beleuchtungsstärke", illuminance))
+        cards.append(_history_graph_yaml("Beleuchtungsstärke — Verlauf (24h)", illuminance))
+
     co2 = roles.get("co2") or []
     if co2:
         cards.append(_entities_card_yaml("CO₂", co2))
@@ -269,6 +283,7 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZone) -> str:
 
     power = roles.get("power") or []
     if power:
+        cards.extend(_maybe_avg_card("power", "Leistung Ø", power))
         cards.append(_entities_card_yaml("Strom (Leistung)", power))
         cards.append(_history_graph_yaml("Strom — Verlauf (24h)", power))
 

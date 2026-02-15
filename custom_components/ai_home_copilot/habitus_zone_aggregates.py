@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, LIGHT_LUX, UnitOfPower, UnitOfTemperature
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -30,6 +30,21 @@ _AGGREGATES: list[_AggregateSpec] = [
         key="humidity",
         label="Luftfeuchte Ø",
         device_class=SensorDeviceClass.HUMIDITY,
+    ),
+    _AggregateSpec(
+        key="thermostat",
+        label="Thermostat Ø",
+        device_class=SensorDeviceClass.TEMPERATURE,
+    ),
+    _AggregateSpec(
+        key="illuminance",
+        label="Beleuchtungsstärke Ø",
+        device_class=SensorDeviceClass.ILLUMINANCE,
+    ),
+    _AggregateSpec(
+        key="power",
+        label="Leistung Ø",
+        device_class=SensorDeviceClass.POWER,
     ),
 ]
 
@@ -80,6 +95,12 @@ class HabitusZoneAverageSensor(CopilotBaseEntity, SensorEntity):
             self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         elif spec.key == "humidity":
             self._attr_native_unit_of_measurement = PERCENTAGE
+        elif spec.key == "thermostat":
+            self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+        elif spec.key == "illuminance":
+            self._attr_native_unit_of_measurement = "lx"
+        elif spec.key == "power":
+            self._attr_native_unit_of_measurement = "W"
 
         self._value: float | None = None
         self._unsub = None
@@ -141,7 +162,8 @@ def build_zone_average_sensors(
 ) -> list[HabitusZoneAverageSensor]:
     """Create average sensors for a zone.
 
-    Policy: only create an average sensor when there are >2 source entities.
+    Policy: create average sensor when >=2 source entities of same type.
+    Supports: temperature, humidity, thermostat, illuminance, power.
     """
 
     if not isinstance(entities_by_role, dict):
@@ -150,7 +172,7 @@ def build_zone_average_sensors(
     out: list[HabitusZoneAverageSensor] = []
     for spec in _AGGREGATES:
         sources = entities_by_role.get(spec.key) or []
-        if len(sources) <= 2:
+        if len(sources) < 2:
             continue
         out.append(
             HabitusZoneAverageSensor(

@@ -1,5 +1,28 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.13] - 2026-02-15
+
+### Added
+- **Extended Zone Aggregate Sensors**:
+  - Added thermostat, illuminance, and power to aggregate types
+  - Policy changed from `>2` to `>=2` entities (average shown with 2+ sensors)
+  - Dashboard now shows average cards for all 5 types
+
+### Changed
+- `habitus_zone_aggregates.py`: Extended `_AGGREGATES` with thermostat, illuminance, power
+- `habitus_dashboard.py`: Added average cards and history graphs for new types
+
+### Supported Aggregate Types:
+| Type | Label | Unit | Device Class |
+|------|-------|------|--------------|
+| temperature | Temperatur Ø | °C | TEMPERATURE |
+| humidity | Luftfeuchte Ø | % | HUMIDITY |
+| thermostat | Thermostat Ø | °C | TEMPERATURE |
+| illuminance | Beleuchtungsstärke Ø | lx | ILLUMINANCE |
+| power | Leistung Ø | W | POWER |
+
+---
+
 ## [0.8.12] - 2026-02-15
 
 ### Added
