@@ -4,26 +4,37 @@
 
 ## Current Release
 
-**Core Add-on v0.4.18** (2026-02-15) — `main` branch
+**Core Add-on v0.6.0** (2026-02-15) — `main` branch
 
 ### Latest Updates
+- **Interactive Visualization (Phase 5)**: Full D3.js + React visualization module
+- **Brain Graph Panel**: Interactive force-directed graph with zoom/pan
+- **Lovelace Cards**: Custom cards for mood, neurons, habitus
+- **React Components**: Smooth animations with Framer Motion
+- **Multi-User Preference Learning (v0.5.2)**: Persistent JSONL storage
 - **Knowledge Graph Module**: Neo4j-backed graph storage with SQLite fallback
-- **KG API Endpoints**: Full CRUD for nodes/edges, graph queries (semantic, structural, causal, temporal)
-- **OpenAPI Specification**: Complete API documentation (`docs/openapi.yaml`)
-- **Habitus Dashboard Cards API**: `/api/v1/habitus/dashboard_cards` endpoint
-- **Habitus Miner v0.1**: Zone-aware pattern mining backend
-- **Security**: log_fixer_tx API authentication
+- **ML Pattern Recognition (v0.8.19)**: AnomalyDetector, HabitPredictor, EnergyOptimizer
 
 ### Features
 | Feature | Status |
 |---------|--------|
+| Interactive Visualization | ✅ Phase 5 Complete |
 | Knowledge Graph | ✅ Neo4j/SQLite dual backend |
 | Habitus Zones v2 | ✅ Zone-aware pattern mining |
 | Tag System v0.2 | ✅ Decision Matrix with HA Labels |
 | Neurons | ✅ SystemHealth, UniFi, Energy |
-| Brain Graph | ✅ Configurable limits |
+| Brain Graph | ✅ D3.js + React |
 | Event Deduplication | ✅ Idempotency-Key support |
-| OpenAPI Spec | ✅ v0.4.18 |
+| OpenAPI Spec | ✅ v0.6.0 |
+
+### Visualization Components
+| Component | Type | Description |
+|----------|------|-------------|
+| BrainGraphPanel | D3.js | Force-directed entity graph |
+| MoodCard | Lovelace | Mood context visualization |
+| NeuronsCard | Lovelace | Neuron activity display |
+| HabitusCard | Lovelace | Habitus zone selector |
+| React Visualization | React | Full dashboard with animations |
 
 ### API Endpoints
 | Module | Endpoints |
@@ -38,12 +49,13 @@
 | UniFi | `/api/v1/unifi/*` (wan, clients, roaming, baselines) |
 | Energy | `/api/v1/energy/*` |
 | SystemHealth | `/api/v1/system-health/*` |
+| User Preferences | `/api/v1/user/*` (preferences, zones, mood) |
 
 ## Development Status
 
 | Branch | Status | Description |
 |--------|--------|-------------|
-| `main` | ✅ Stable | Production releases (v0.4.18) |
+| `main` | ✅ Stable | Production releases (v0.6.0) |
 | `dev-knowledge-graph` | ✅ Merged | Knowledge Graph module |
 
 ## Quick Links
@@ -51,6 +63,7 @@
 | Doc | Path |
 |-----|------|
 | API Spec | `docs/openapi.yaml` |
+| Visualization Guide | `docs/visualization.md` |
 | Start Here | `docs/START_HERE.md` |
 | Ethics & Governance | `docs/ETHICS_GOVERNANCE.md` |
 | Changelog | `CHANGELOG.md` |
@@ -61,9 +74,13 @@
 ```
 ha-copilot-repo/
 ├── addons/              # HA Add-on (Core service)
+│   └── copilot_core/    # Core service container
 ├── custom_components/   # HA Integration (adapter)
 ├── docs/                # Documentation
 │   └── openapi.yaml     # API specification
+├── sdk/                 # Client SDKs (Python/TypeScript)
+├── src/                 # Source modules
+│   └── visualizations/  # Phase 5 visualization
 ├── CHANGELOG.md         # Version history
 ├── INDEX.md             # This file
 └── README.md            # Install guide
@@ -71,10 +88,9 @@ ha-copilot-repo/
 
 ## Next Milestones
 
-- [ ] Knowledge Graph Integration in HA Integration (connect to Core KG API)
-- [ ] Client SDK generation from OpenAPI spec
-- [ ] Interactive API documentation (Swagger UI)
-- [ ] Performance benchmarks
+- [x] Interactive Visualization (Phase 5)
+- [ ] Cross-Home Sharing
+- [ ] Collective Intelligence
 - [ ] Extended neuron modules
 
 ---
