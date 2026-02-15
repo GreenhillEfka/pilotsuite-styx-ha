@@ -400,6 +400,13 @@ class HabitPredictor:
                 "count": len(recent_events),
                 "event_types": list(set(e["event_type"] for e in recent_events)),
             }
+        
+        # Get mood patterns summary
+        mood_summary = {}
+        for pattern_key, mood_data in self.mood_patterns.items():
+            mood_summary[pattern_key] = {
+                mood: len(times) for mood, times in mood_data.items()
+            }
             
         return {
             "device_patterns": device_events,
@@ -407,6 +414,7 @@ class HabitPredictor:
             "time_patterns": {
                 k: len(v) for k, v in self.time_patterns.items()
             },
+            "mood_patterns": mood_summary,
             "sequences": {
                 k: len(v) for k, v in self.sequence_patterns.items()
             },
