@@ -3,6 +3,14 @@
 ## [0.8.1] - 2026-02-15
 
 ### Added
+- **Performance Optimization** (`core/performance.py`):
+  - `TTLCache`: Thread-safe TTL cache with automatic expiration
+  - `EntityStateCache`: Batch entity queries to reduce HA API calls
+  - `DomainFilter`: Efficient domain-filtered state queries
+  - Mood score caching (30s TTL) for <500ms response times
+  - Entity cache invalidation on state changes
+  - Brain graph sync optimization with domain filtering
+
 - **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
   - `ActionAttributor` class for attributing HA actions to specific users
   - Multiple attribution sources:
