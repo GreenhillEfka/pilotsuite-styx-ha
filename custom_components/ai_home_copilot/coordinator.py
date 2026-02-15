@@ -1,137 +1,169 @@
+"""HA Integration for AI Home CoPilot - Coordinator with Neural System."""
 from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
 import logging
-import re
-from urllib.parse import urlparse
+from typing import Any, Dict, Optional
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import CopilotApiClient, CopilotApiError, CopilotStatus
-from .const import (
-    CONF_HOST,
-    CONF_PORT,
-    CONF_TOKEN,
-    CONF_WATCHDOG_ENABLED,
-    CONF_WATCHDOG_INTERVAL_SECONDS,
-    DEFAULT_WATCHDOG_ENABLED,
-    DEFAULT_WATCHDOG_INTERVAL_SECONDS,
-    DOMAIN,
-)
+from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_TOKEN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _normalize_base_url(host: str, port: int) -> str:
-    """Build a usable base URL from user input.
+class CopilotApiClient:
+    """Client for Copilot Core API with neural system support."""
+    
+    def __init__(self, session, base_url: str, token: str):
+        self._session = session
+        self._base_url = base_url.rstrip("/")
+        self._token = token
+    
+    async def async_get_status(self) -> Dict[str, Any]:
+        """Get basic status."""
+        url = f"{self._base_url}/api/v1/status"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        
+        async with self._session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                raise CopilotApiError(f"API error: {resp.status}")
+            return await resp.json()
+    
+    async def async_get_mood(self) -> Dict[str, Any]:
+        """Get current mood from neural system."""
+        url = f"{self._base_url}/api/v1/neurons/mood"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        
+        try:
+            async with self._session.get(url, headers=headers, timeout=5) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        except Exception as e:
+            _LOGGER.debug("Mood API not available: %s", e)
+        return {"mood": "unknown", "confidence": 0.0}
+    
+    async def async_get_neurons(self) -> Dict[str, Any]:
+        """Get all neuron states."""
+        url = f"{self._base_url}/api/v1/neurons"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        
+        try:
+            async with self._session.get(url, headers=headers, timeout=5) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        except Exception as e:
+            _LOGGER.debug("Neurons API not available: %s", e)
+        return {"neurons": {}}
+    
+    async def async_evaluate_neurons(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate neural pipeline with HA states."""
+        url = f"{self._base_url}/api/v1/neurons/evaluate"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        
+        try:
+            async with self._session.post(url, json=context, headers=headers, timeout=10) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        except Exception as e:
+            _LOGGER.warning("Neural evaluation failed: %s", e)
+        return {}
 
-    Users sometimes paste a full URL (e.g. "http://192.168.30.18:8909").
-    We accept that and normalize it to avoid double schemes like "http://http://...".
-    """
 
-    raw = (host or "").strip().rstrip("/")
-
-    if raw.startswith("http://") or raw.startswith("https://"):
-        parsed = urlparse(raw)
-        if parsed.scheme and parsed.netloc:
-            return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-        return raw
-
-    # Strip any accidental path.
-    raw = raw.split("/", 1)[0]
-
-    # If host already includes a port (e.g. "192.168.30.18:8909"), keep it.
-    if re.match(r"^[^\[]+:[0-9]+$", raw) and raw.count(":") == 1:
-        return f"http://{raw}".rstrip("/")
-
-    return f"http://{raw}:{int(port)}".rstrip("/")
+class CopilotApiError(Exception):
+    """API error."""
+    pass
 
 
-class CopilotDataUpdateCoordinator(DataUpdateCoordinator[CopilotStatus]):
-    """Status coordinator with basic scaling guardrails.
-
-    - Prevent overlapping updates via an asyncio.Lock (single-writer for coordinator.data).
-    - Bound upstream concurrency via a small semaphore.
-    - Apply a simple exponential backoff on repeated failures to reduce load.
-    """
-
+class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
+    """Coordinator with neural system integration."""
+    
     def __init__(self, hass: HomeAssistant, config: dict):
         self._hass = hass
         self._config = config
         session = async_get_clientsession(hass)
-        base_url = _normalize_base_url(
-            str(config.get(CONF_HOST, "")),
-            int(config.get(CONF_PORT, 0) or 0),
-        )
-        token = config.get(CONF_TOKEN)
-        self.api = CopilotApiClient(session=session, base_url=base_url, token=token)
-
-        watchdog_enabled = bool(config.get(CONF_WATCHDOG_ENABLED, DEFAULT_WATCHDOG_ENABLED))
-        watchdog_interval = int(
-            config.get(CONF_WATCHDOG_INTERVAL_SECONDS, DEFAULT_WATCHDOG_INTERVAL_SECONDS)
-        )
-
-        # Coordinator cadence guardrails: avoid overly aggressive polls.
-        watchdog_interval = max(5, min(watchdog_interval, 3600))
-
-        self._base_interval: timedelta | None = (
-            timedelta(seconds=watchdog_interval) if watchdog_enabled else None
-        )
-        self._failure_streak: int = 0
-
-        # Thread-safety / concurrency.
-        self._update_lock = asyncio.Lock()
-        self._req_sem = asyncio.Semaphore(2)
-
+        
+        host = str(config.get(CONF_HOST, ""))
+        port = int(config.get(CONF_PORT, 0) or 0)
+        base_url = f"http://{host}:{port}" if port else f"http://{host}"
+        
+        token = config.get(CONF_TOKEN, "")
+        self.api = CopilotApiClient(session, base_url, token)
+        
+        # Cache for neural data
+        self._neural_data: Dict[str, Any] = {}
+        
         super().__init__(
             hass,
             logger=_LOGGER,
-            name=f"{DOMAIN}-{config.get(CONF_HOST)}:{config.get(CONF_PORT)}",
-            update_interval=self._base_interval,
+            name=f"{DOMAIN}_coordinator",
+            update_interval=timedelta(seconds=30),
         )
-
-    def _apply_backoff(self) -> None:
-        """Apply a bounded exponential backoff by adjusting update_interval."""
-
-        if self._base_interval is None:
-            return
-
-        factor = 2 ** max(0, self._failure_streak - 1)
-        base_s = int(self._base_interval.total_seconds())
-        seconds = base_s * factor
-        seconds = max(base_s, min(seconds, 600))
-        new_interval = timedelta(seconds=seconds)
-
-        if new_interval != self.update_interval:
-            self.update_interval = new_interval
-            _LOGGER.debug(
-                "Coordinator backoff: failure_streak=%s interval=%ss",
-                self._failure_streak,
-                seconds,
-            )
-
-    def _reset_backoff(self) -> None:
-        if self._base_interval is None:
-            return
-        if self.update_interval != self._base_interval:
-            self.update_interval = self._base_interval
-            _LOGGER.debug(
-                "Coordinator backoff reset: interval=%ss",
-                int(self._base_interval.total_seconds()),
-            )
-
-    async def _async_update_data(self) -> CopilotStatus:
-        async with self._update_lock:
-            try:
-                async with self._req_sem:
-                    data = await self.api.async_get_status()
-                self._failure_streak = 0
-                self._reset_backoff()
-                return data
-            except CopilotApiError as err:
-                self._failure_streak += 1
-                self._apply_backoff()
-                raise UpdateFailed(str(err)) from err
+    
+    async def _async_update_data(self) -> Dict[str, Any]:
+        """Fetch data from API."""
+        try:
+            # Get basic status
+            status = await self.api.async_get_status()
+            
+            # Get mood from neural system
+            mood_data = await self.api.async_get_mood()
+            
+            # Get neuron states
+            neurons_data = await self.api.async_get_neurons()
+            
+            # Combine all data
+            return {
+                "ok": status.get("ok", True),
+                "version": status.get("version", "unknown"),
+                "mood": mood_data,
+                "neurons": neurons_data.get("neurons", {}),
+                "dominant_mood": mood_data.get("mood", "unknown"),
+                "mood_confidence": mood_data.get("confidence", 0.0),
+            }
+        except Exception as err:
+            _LOGGER.error("Error fetching Copilot data: %s", err)
+            raise UpdateFailed(str(err)) from err
+    
+    @callback
+    def async_get_mood(self) -> Dict[str, Any]:
+        """Get cached mood data."""
+        return self.data.get("mood", {}) if self.data else {}
+    
+    @callback
+    def async_get_neurons(self) -> Dict[str, Any]:
+        """Get cached neuron states."""
+        return self.data.get("neurons", {}) if self.data else {}
+    
+    async def async_evaluate_with_states(self) -> Dict[str, Any]:
+        """Evaluate neural pipeline with current HA states."""
+        # Build context from HA states
+        context = {
+            "states": {},
+            "time": {},
+            "weather": {},
+            "presence": {},
+        }
+        
+        # Get relevant states
+        entity_ids = [
+            "person.", "binary_sensor.", "sensor.temperature", 
+            "sensor.humidity", "sensor.light", "sensor.illuminance",
+            "weather.", "light.", "media_player."
+        ]
+        
+        for pattern in entity_ids:
+            for entity_id in self._hass.states.async_entity_ids():
+                if entity_id.startswith(pattern):
+                    state = self._hass.states.get(entity_id)
+                    if state:
+                        context["states"][entity_id] = {
+                            "state": state.state,
+                            "attributes": dict(state.attributes)
+                        }
+        
+        # Evaluate
+        return await self.api.async_evaluate_neurons(context)

@@ -1,5 +1,25 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.6] - 2026-02-15
+
+### Added
+- **Neural System Integration**:
+  - Coordinator now calls `/api/v1/neurons/mood` for mood data
+  - Coordinator now calls `/api/v1/neurons` for neuron states
+  - `async_evaluate_with_states()` for full neural pipeline
+  - HA states → Neural context mapping
+
+### Changed
+- **MoodSensor** now uses real neural data from Core API
+- **NeuronActivitySensor** shows actual active neurons
+- Coordinator fetches mood every 30 seconds
+
+### Integration
+- HA Integration → Core API → Neural System → Live Mood Data
+- Pipeline: HA States → NeuronManager → Mood → Sensors
+
+---
+
 ## [0.8.5] - 2026-02-15
 
 ### Added
