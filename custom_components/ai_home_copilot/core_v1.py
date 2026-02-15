@@ -3,14 +3,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import re
+import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import CopilotApiClient, CopilotApiError
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 SIGNAL_CORE_CAPABILITIES_UPDATED = f"{DOMAIN}_core_capabilities_updated"
@@ -99,3 +103,53 @@ def get_cached_core_capabilities(hass: HomeAssistant, entry_id: str) -> dict[str
         return None
     cap = ent.get("core_capabilities")
     return cap if isinstance(cap, dict) else None
+
+
+async def async_call_core_api(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    method: str,
+    path: str,
+    data: dict | None = None,
+) -> dict | None:
+    """Call Core Add-on API endpoint.
+    
+    Args:
+        hass: Home Assistant instance
+        entry: Config entry with host, port, token
+        method: HTTP method (GET, POST, PUT, DELETE)
+        path: API path (e.g., /api/v1/status)
+        data: Optional JSON payload for POST/PUT
+        
+    Returns:
+        JSON response dict or None on error
+    """
+    session = async_get_clientsession(hass)
+    host = entry.data.get("host", "homeassistant.local")
+    port = entry.data.get("port", 8909)
+    token = entry.data.get("token", "")
+    
+    url = f"http://{host}:{port}{path}"
+    headers = {"X-Auth-Token": token} if token else {}
+    
+    try:
+        if method == "GET":
+            async with session.get(url, headers=headers, timeout=10) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        elif method == "POST":
+            async with session.post(url, json=data, headers=headers, timeout=10) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        elif method == "PUT":
+            async with session.put(url, json=data, headers=headers, timeout=10) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        elif method == "DELETE":
+            async with session.delete(url, headers=headers, timeout=10) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        return None
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Core API call failed: %s", err)
+        return None

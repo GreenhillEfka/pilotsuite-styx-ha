@@ -1,5 +1,34 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.9.6] - 2026-02-15
+
+### Added
+- **Auto-Zone Detection**: Automatic zone detection via device_tracker/person entities
+  - `zone_detector.py` - Zone detection module with automatic presence tracking
+  - Zone templates (home, work, away, shared, sleep)
+  - Multi-user zone clustering ("zusammen sein" pattern)
+  - Entity discovery and state change tracking
+  - Time-based zone detection (e.g., sleep mode)
+
+- **Dashboard Cards**: Lovelace UI card generators
+  - `dashboard_cards/` directory with 4 card types:
+    - `energy_distribution_card.py` - Energy consumption visualization
+    - `media_context_card.py` - Media playback context display
+    - `zone_context_card.py` - Zone occupancy status
+    - `user_together_card.py` - Multi-user clustering ("zusammen sein")
+  - All cards follow Lovelace UI patterns and integrate with existing infrastructure
+
+### Changed
+- Manifest version synced to 0.9.6
+- All zone detection and dashboard features now fully integrated
+
+### Technical
+- py_compile validation passing
+- All modules properly integrated into custom_components/ai_home_copilot/
+- Documentation updated in docs/
+
+---
+
 ## [0.9.5] - 2026-02-15
 
 ### Fixed
