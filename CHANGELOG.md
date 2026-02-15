@@ -1,5 +1,24 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.7.6] - 2026-02-15
+
+### Added
+- **Interactive Brain Graph Panel** (`brain_graph_panel.py`):
+  - Zoom/Pan support (mouse wheel + drag)
+  - Filter by Node Kind, Zone, or text search
+  - Click nodes for detailed info panel
+  - Color-coded node types (light, sensor, zone, etc.)
+  - Legend with all node kinds
+  - Stats display (node/edge counts)
+  - New button: `button.ai_home_copilot_publish_brain_graph_panel`
+  - Output: `/local/ai_home_copilot/brain_graph_panel.html`
+  - Privacy-first: all data stays local, no external dependencies
+
+### Changed
+- Increased graph limits: 200 nodes, 400 edges (was 120/240)
+
+---
+
 ## [0.7.5] - 2026-02-15
 
 ### Security
