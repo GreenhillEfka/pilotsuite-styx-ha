@@ -325,14 +325,13 @@ class BrainGraphSync:
                 
                 await self._send_edge_update(edge_data)
     
-<<<<<<< HEAD
     async def _sync_entity_states(self, domains: Optional[List[str]] = None):
-        """Sync current entity states as state nodes.
+        """Sync current entity states as state nodes with domain filtering.
         
         Args:
-            domains: Optional list of domains to sync. If None, syncs all relevant domains.
+            domains: Optional list of domains to sync. If None, uses optimized default set.
         """
-        # Default domains for smart home graph (skip internal/sensor-heavy)
+        # Default domains for smart home graph (extended coverage)
         if domains is None:
             domains = [
                 "light", "switch", "climate", "media_player", "cover",
@@ -340,21 +339,8 @@ class BrainGraphSync:
                 "humidifier", "fan", "vacuum", "lock", "alarm_control_panel"
             ]
         
-        for domain in domains:
-            entity_ids = self.hass.states.async_entity_ids(domain)
-            for entity_id in entity_ids:
-                state = self.hass.states.get(entity_id)
-                if state and state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
-                    await self._sync_entity_state(entity_id, state)
-=======
-    async def _sync_entity_states(self):
-        """Sync current entity states as state nodes with domain filtering."""
-        # Get relevant domains only (performance optimization)
-        relevant_domains = {"light", "switch", "sensor", "binary_sensor", "climate", 
-                          "media_player", "cover", "lock", "person", "device_tracker"}
-        
-        # Use domain filter instead of fetching all states
-        states = DomainFilter.get_entities_by_domain(self.hass, relevant_domains)
+        # Use domain filter for performance optimization
+        states = DomainFilter.get_entities_by_domain(self.hass, set(domains))
         
         for entity_id, state in states.items():
             # Skip unavailable/unknown states and internal entities
@@ -363,7 +349,6 @@ class BrainGraphSync:
                 continue
                 
             await self._sync_entity_state(entity_id, state)
->>>>>>> origin/dev/mupl-phase2-v0.8.1
     
     async def _sync_entity_state(self, entity_id: str, state):
         """Sync a single entity state to Brain Graph."""
