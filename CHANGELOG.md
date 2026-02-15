@@ -1,5 +1,24 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.9.1] - 2026-02-15
+
+### Added
+- **ML Context Module Integration** (`core/modules/ml_context_module.py`):
+  - Runtime integration via CopilotModule interface
+  - Registered in module registry alongside other context modules
+  - Periodic entity state sync to ML context
+  - Async-safe initialization in executor (CPU-bound operations)
+  - Configuration options: `ml_enabled`, `ml_entities`, `ml_anomaly_contamination`, `ml_habit_window_size`
+
+### Changed
+- `__init__.py`: Added MLContextModule to runtime registry
+- `const.py`: Added ML configuration constants (disabled by default)
+
+### Technical
+- Full py_compile validation passing
+- ML context now accessible via `hass.data["ai_home_copilot"][entry_id]["ml_context"]`
+- Ready for neuron integration and sensor entities
+
 ## [0.9.0] - 2026-02-15
 
 ### Added

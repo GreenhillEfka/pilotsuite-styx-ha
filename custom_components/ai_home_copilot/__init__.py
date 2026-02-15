@@ -26,6 +26,7 @@ from .core.modules.energy_context_module import EnergyContextModule
 from .core.modules.unifi_context_module import UnifiContextModule
 from .core.modules.weather_context_module import WeatherContextModule
 from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
+from .core.modules.ml_context_module import MLContextModule
 from .debug import DebugModeSensor
 from .services_setup import async_register_all_services
 
@@ -46,6 +47,7 @@ _MODULES = [
     "unifi_context",
     "weather_context",
     "knowledge_graph_sync",
+    "ml_context",
 ]
 
 
@@ -74,6 +76,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "unifi_context": UnifiContextModule,
         "weather_context": WeatherContextModule,
         "knowledge_graph_sync": KnowledgeGraphSyncModule,
+        "ml_context": MLContextModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():
