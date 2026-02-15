@@ -143,3 +143,32 @@ All notable changes to AI Home CoPilot will be documented in this file.
 - Habitus Zones: Zone-basierte Muster-Erkennung
 - Tag System v0.2
 - Brain Graph
+## [0.9.4] - 2026-02-15
+
+### Added
+- Complete SETUP_GUIDE.md - German installation guide
+- OpenAPI Specification for HA Integration services
+- LazyHistoryLoader for on-demand history caching
+- MUPL Phase2 Caching and Query Optimization
+
+### Merged
+- dev/mupl-phase2-v0.8.1
+- dev/openapi-spec-v0.8.2
+- dev/vector-store-v0.8.3
+
+## [0.9.3] - 2026-02-15
+
+### Added
+- Phase 6.1 Core Features:
+  - Predictive Automation (suggest_automation service)
+  - Anomaly Alert (check_and_alert service)
+  - Energy Insights (get_energy_insights service)
+  - Habit Learning V2 (learn_habits, predict_sequence services)
+
+### Changed
+- button.py refactored (40KB → 8 modules)
+- Critical fixes: N+1 queries, memory leak, blocking I/O
+- Tags API verified (Flask + Auth)
+
+### Tests
+- 100+ new tests (Core + Integration)
