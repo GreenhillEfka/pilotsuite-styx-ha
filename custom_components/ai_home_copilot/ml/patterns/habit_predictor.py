@@ -190,6 +190,7 @@ class HabitPredictor:
         device_id: str,
         event_type: str,
         timestamp: Optional[float] = None,
+        context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Predict the likelihood of a pattern occurring.
@@ -198,6 +199,7 @@ class HabitPredictor:
             device_id: ID of the device
             event_type: Type of event to predict
             timestamp: When the event would occur
+            context: Optional context including mood for mood-aware prediction
             
         Returns:
             Prediction dictionary with confidence and details
@@ -212,10 +214,28 @@ class HabitPredictor:
         if timestamp is None:
             timestamp = time.time()
             
+        if context is None:
+            context = {}
+            
         pattern_key = f"{device_id}_{event_type}"
         
-        # Get prediction
+        # Get base prediction
         prediction = self._predict_pattern(pattern_key, timestamp)
+        
+        # Apply mood-aware adjustment if mood context provided
+        current_mood = context.get("mood")
+        if current_mood and current_mood != "unknown":
+            mood_confidence = self._get_mood_confidence(pattern_key, current_mood)
+            if mood_confidence > 0:
+                # Blend base confidence with mood-specific confidence
+                base_conf = prediction.get("confidence", 0)
+                blended = (base_conf * 0.6) + (mood_confidence * 0.4)
+                prediction["confidence"] = blended
+                prediction["predicted"] = blended >= self.confidence_threshold
+                prediction["mood_adjusted"] = True
+                prediction["mood_confidence"] = mood_confidence
+        
+        self.last_prediction_time[pattern_key] = time.time()
         
         return {
             "predicted": prediction["predicted"],
@@ -224,6 +244,23 @@ class HabitPredictor:
             "device_id": device_id,
             "event_type": event_type,
         }
+        
+    def _get_mood_confidence(self, pattern_key: str, mood: str) -> float:
+        """Get confidence based on mood-specific historical patterns."""
+        mood_times = self.mood_patterns.get(pattern_key, {}).get(mood, [])
+        
+        if len(mood_times) < self.min_samples_per_pattern:
+            return 0.0
+        
+        # Calculate recency-weighted confidence
+        recent_count = sum(1 for t in mood_times if t > time.time() - (7 * 24 * 3600))
+        total_count = len(mood_times)
+        
+        # Higher confidence for more occurrences and recent activity
+        recency_factor = min(1.0, recent_count / self.min_samples_per_pattern)
+        count_factor = min(1.0, total_count / 10)
+        
+        return (recency_factor * 0.7) + (count_factor * 0.3)
         
     def _predict_pattern(
         self,

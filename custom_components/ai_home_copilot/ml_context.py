@@ -212,6 +212,7 @@ class MLContext:
         self,
         device_id: str,
         event_type: str,
+        context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Get habit prediction for a device event.
@@ -219,6 +220,7 @@ class MLContext:
         Args:
             device_id: Device identifier
             event_type: Event type
+            context: Optional context for mood-aware prediction
             
         Returns:
             Habit prediction
@@ -226,7 +228,7 @@ class MLContext:
         if not self._is_initialized:
             return {"status": "not_initialized"}
             
-        return self.habit_predictor.predict(device_id, event_type)
+        return self.habit_predictor.predict(device_id, event_type, context=context)
         
     def get_energy_recommendations(
         self,

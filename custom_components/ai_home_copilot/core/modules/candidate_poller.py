@@ -9,11 +9,14 @@ The module also syncs user decisions (accepted / dismissed) back to the Core
 when candidates change state on the HA side.
 
 Poll interval is conservative (5 min default) to avoid overloading the Core.
+Includes rate limiting and exponential backoff for API errors.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import time
+from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -36,8 +39,28 @@ _LOGGER = logging.getLogger(__name__)
 # Poll every 5 minutes — low overhead, fast enough for non-real-time suggestions.
 DEFAULT_POLL_INTERVAL = timedelta(minutes=5)
 
+# Rate limiting for API calls
+MAX_REQUESTS_PER_MINUTE = 30
+
 # Storage key used inside hass.data[DOMAIN][entry_id] for bookkeeping.
 _DATA_KEY = "candidate_poller"
+
+
+@dataclass(slots=True)
+class _PollerState:
+    """Internal state for candidate poller."""
+    polling: bool = False
+    last_poll_ts: float | None = None
+    poll_count: int = 0
+    error_count: int = 0
+    error_streak: int = 0
+    backoff_level: int = 0
+    backoff_max_level: int = 5
+    backoff_base_delay: float = 1.0
+    rate_limit_tokens: float = MAX_REQUESTS_PER_MINUTE
+    rate_limit_max_tokens: float = MAX_REQUESTS_PER_MINUTE
+    rate_limit_refill_rate: float = MAX_REQUESTS_PER_MINUTE / 60.0
+    rate_limit_last_refill: float = 0.0
 
 
 def _build_suggest_candidate(raw: dict[str, Any]) -> SuggestCandidate | None:
