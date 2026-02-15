@@ -162,8 +162,14 @@ async def test_sync_labels_now(hass):
     mock_entity_reg = AsyncMock()
     mock_entity_reg.async_update_entity = AsyncMock()
 
+    # Mock config entries
+    mock_config_entries = MagicMock()
+    mock_config_entries.async_entries = MagicMock(return_value=[])
+    
+    hass.config_entries = mock_config_entries
+
     with patch(
-        "custom_components.ai_home_copilot.tag_registry.async_get_label_registry",
+        "custom_components.ai_home_copilot.tag_registry.get_label_registry_sync",
         return_value=mock_label_reg,
     ), patch(
         "homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_reg
@@ -189,6 +195,7 @@ async def test_pull_tag_system_snapshot_mocked(hass):
     # Mock the config entry and coordinator
     from homeassistant.config_entries import ConfigEntry
     from custom_components.ai_home_copilot.const import DOMAIN
+    from custom_components.ai_home_copilot.tag_registry import get_label_registry_sync
 
     entry = ConfigEntry(
         version=1,
@@ -198,7 +205,12 @@ async def test_pull_tag_system_snapshot_mocked(hass):
         options={},
         entry_id="test_entry",
     )
-    hass.config_entries._entries = [entry]
+    
+    # Mock config entries properly
+    mock_config_entries = MagicMock()
+    mock_config_entries.async_entries = MagicMock(return_value=[entry])
+    hass.config_entries = mock_config_entries
+    
     hass.data[DOMAIN] = {
         "test_entry": {
             "coordinator": MagicMock(
@@ -219,7 +231,7 @@ async def test_pull_tag_system_snapshot_mocked(hass):
     )
 
     with patch(
-        "custom_components.ai_home_copilot.tag_registry.async_get_label_registry",
+        "custom_components.ai_home_copilot.tag_registry.get_label_registry_sync",
         return_value=mock_label_reg,
     ):
         result = await async_pull_tag_system_snapshot(hass, entry_id="test_entry", lang="de")
