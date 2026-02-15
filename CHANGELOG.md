@@ -1,5 +1,19 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.5] - 2026-02-15
+
+### Added
+- **Mood Sensor Entities** (`sensors/mood_sensor.py`):
+  - `sensor.ai_copilot_mood`: Current mood (relax, focus, active, sleep, away, alert, social, recovery)
+  - `sensor.ai_copilot_mood_confidence`: Confidence level (0-100%)
+  - `sensor.ai_copilot_active_neurons`: Count of active neurons with details
+- **Neural System Visibility**: Mood and neuron states now visible in HA
+
+### Changed
+- Integrated mood sensors into main sensor platform
+
+---
+
 ## [0.8.4] - 2026-02-15
 
 ### Added
