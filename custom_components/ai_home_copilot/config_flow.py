@@ -173,6 +173,54 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> None:
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    async def _create_zone_tag(self, zone_id: str, zone_name: str) -> None:
+        """Auto-create tag when zone is created.
+        
+        Creates a tag like 'aicp.place.wohnzimmer' when a zone is created.
+        This allows entities to be automatically associated with zones.
+        """
+        try:
+            from homeassistant.components import tag
+            
+            # Create tag: aicp.place.{zone_id}
+            tag_id = f"aicp.place.{zone_id.replace('zone:', '')}"
+            
+            # Check if tag already exists
+            existing_tags = await tag.async_get_tags(self.hass)
+            if tag_id not in [t.get("tag_id") for t in existing_tags.values()]:
+                await tag.async_create_tag(
+                    self.hass,
+                    tag_id=tag_id,
+                    name=f"Zone: {zone_name}"
+                )
+                _LOGGER.info(f"Auto-created tag: {tag_id} for zone: {zone_name}")
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.debug(f"Could not auto-create tag: {ex}")
+
+    async def _tag_zone_entities(self, zone_id: str, entity_ids: list[str]) -> None:
+        """Auto-tag entities when added to zone.
+        
+        Tags all entities in the zone with the zone's tag.
+        """
+        try:
+            from homeassistant.components import tag
+            
+            zone_tag = f"aicp.place.{zone_id.replace('zone:', '')}"
+            
+            for entity_id in entity_ids:
+                try:
+                    await tag.async_tag_entity(
+                        self.hass,
+                        entity_id=entity_id,
+                        tag_id=zone_tag
+                    )
+                except Exception:  # noqa: BLE001
+                    pass  # Entity might not support tagging
+                    
+            _LOGGER.info(f"Auto-tagged {len(entity_ids)} entities with tag: {zone_tag}")
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.debug(f"Could not auto-tag entities: {ex}")
+
     @staticmethod
     def async_get_options_flow(config_entry: config_entries.ConfigEntry):
         return OptionsFlowHandler(config_entry)
@@ -1048,6 +1096,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             new_list.append(new_zone)
             # Persist (store enforces requirements)
             await async_set_zones_v2(self.hass, self._entry.entry_id, new_list)
+
+            # AUTO-TAG: Create tag for zone if not exists
+            await self._create_zone_tag(zid, name)
+            
+            # AUTO-TAG: Tag all entities in zone with zone tag
+            await self._tag_zone_entities(zid, entity_ids)
 
             return await self.async_step_habitus_zones()
 
