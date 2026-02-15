@@ -17,6 +17,7 @@ import voluptuous as vol
 
 from ...const import DOMAIN
 from ..module import CopilotModule, ModuleContext
+from ..performance import get_entity_state_cache, get_mood_score_cache, invalidate_caches_for_entity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -204,6 +205,8 @@ class MoodModule:
             
             if entity_id in tracked_entities:
                 _LOGGER.debug("State change detected for %s, triggering mood evaluation", entity_id)
+                # Invalidate caches for this entity
+                await invalidate_caches_for_entity(entity_id)
                 # Delay slightly to allow state to stabilize
                 await asyncio.sleep(2)
                 await self._orchestrate_all_zones(hass, entry_id, dry_run=False, force_actions=False)
@@ -247,6 +250,14 @@ class MoodModule:
             
             zone_config = config["zones"][zone_name]
             
+            # Check cache for existing mood score (if not forcing)
+            mood_cache = get_mood_score_cache()
+            if not force_actions and not dry_run:
+                cached_mood = await mood_cache.get_mood(zone_name)
+                if cached_mood and cached_mood.get("valid", True):
+                    _LOGGER.debug("Using cached mood for zone %s: %s", zone_name, cached_mood.get("mood"))
+                    return
+            
             # Collect sensor data
             sensor_data = await self._collect_sensor_data(hass, zone_config)
             
@@ -274,6 +285,16 @@ class MoodModule:
                 
                 # Store result
                 entry_data["mood_module"]["last_orchestration"][zone_name] = orchestration_result
+                
+                # Cache the mood score
+                mood_data = orchestration_result.get("mood", {})
+                if mood_data:
+                    await mood_cache.set_mood(zone_name, {
+                        "mood": mood_data.get("mood"),
+                        "confidence": mood_data.get("confidence", 0.0),
+                        "valid": True,
+                        "timestamp": datetime.now().isoformat()
+                    }, ttl_seconds=30.0)
                 
                 _LOGGER.info("Zone %s mood orchestration completed: %s", 
                            zone_name, orchestration_result.get("mood", {}).get("mood"))
@@ -331,11 +352,12 @@ class MoodModule:
             _LOGGER.error("Failed to force mood for zone %s: %s", zone_name, e)
 
     async def _collect_sensor_data(self, hass: HomeAssistant, zone_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Collect current sensor data for a zone."""
+        """Collect current sensor data for a zone using cache."""
         
         sensor_data = {}
+        entity_cache = get_entity_state_cache()
         
-        # Collect all relevant entity states
+        # Collect all relevant entity IDs
         entity_ids = []
         entity_ids.extend(zone_config.get("motion_entities", []))
         entity_ids.extend(zone_config.get("light_entities", []))
@@ -344,15 +366,11 @@ class MoodModule:
         if zone_config.get("illuminance_entity"):
             entity_ids.append(zone_config["illuminance_entity"])
         
+        # Use cache for entity states
         for entity_id in entity_ids:
-            state = hass.states.get(entity_id)
+            state = await entity_cache.get_state(hass, entity_id)
             if state:
-                sensor_data[entity_id] = {
-                    "state": state.state,
-                    "attributes": dict(state.attributes),
-                    "last_changed": state.last_changed.isoformat(),
-                    "last_updated": state.last_updated.isoformat()
-                }
+                sensor_data[entity_id] = state
         
         return sensor_data
 

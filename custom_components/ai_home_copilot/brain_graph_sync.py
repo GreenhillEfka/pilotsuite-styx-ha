@@ -307,17 +307,26 @@ class BrainGraphSync:
                 
                 await self._send_edge_update(edge_data)
     
-    async def _sync_entity_states(self):
-        """Sync current entity states as state nodes."""
-        states = self.hass.states.async_all()
+    async def _sync_entity_states(self, domains: Optional[List[str]] = None):
+        """Sync current entity states as state nodes.
         
-        for state in states:
-            # Skip unavailable/unknown states and internal entities
-            if (state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN] or 
-                state.entity_id.startswith(('input_', 'group.', 'zone.'))):
-                continue
-                
-            await self._sync_entity_state(state.entity_id, state)
+        Args:
+            domains: Optional list of domains to sync. If None, syncs all relevant domains.
+        """
+        # Default domains for smart home graph (skip internal/sensor-heavy)
+        if domains is None:
+            domains = [
+                "light", "switch", "climate", "media_player", "cover",
+                "sensor", "binary_sensor", "person", "device_tracker",
+                "humidifier", "fan", "vacuum", "lock", "alarm_control_panel"
+            ]
+        
+        for domain in domains:
+            entity_ids = self.hass.states.async_entity_ids(domain)
+            for entity_id in entity_ids:
+                state = self.hass.states.get(entity_id)
+                if state and state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+                    await self._sync_entity_state(entity_id, state)
     
     async def _sync_entity_state(self, entity_id: str, state):
         """Sync a single entity state to Brain Graph."""
