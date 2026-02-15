@@ -17,6 +17,7 @@ import voluptuous as vol
 
 from ...const import DOMAIN
 from ..module import CopilotModule, ModuleContext
+from ..performance import get_mood_cache, TTLCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -204,6 +205,9 @@ class MoodModule:
             
             if entity_id in tracked_entities:
                 _LOGGER.debug("State change detected for %s, triggering mood evaluation", entity_id)
+                # Invalidate mood cache on state change
+                mood_cache = get_mood_cache()
+                await mood_cache.clear()  # Clear all cached mood data
                 # Delay slightly to allow state to stabilize
                 await asyncio.sleep(2)
                 await self._orchestrate_all_zones(hass, entry_id, dry_run=False, force_actions=False)
@@ -331,7 +335,17 @@ class MoodModule:
             _LOGGER.error("Failed to force mood for zone %s: %s", zone_name, e)
 
     async def _collect_sensor_data(self, hass: HomeAssistant, zone_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Collect current sensor data for a zone."""
+        """Collect current sensor data for a zone with caching."""
+        
+        # Create cache key based on zone
+        cache_key = f"mood_sensor_data_{hash(frozenset(zone_config.keys()))}"
+        mood_cache = get_mood_cache()
+        
+        # Check cache first (TTL 5 seconds for sensor data)
+        cached = await mood_cache.get(cache_key)
+        if cached is not None:
+            _LOGGER.debug("Using cached sensor data for zone")
+            return cached
         
         sensor_data = {}
         
@@ -353,6 +367,9 @@ class MoodModule:
                     "last_changed": state.last_changed.isoformat(),
                     "last_updated": state.last_updated.isoformat()
                 }
+        
+        # Cache the sensor data (5 second TTL for rapid changes)
+        await mood_cache.set(cache_key, sensor_data)
         
         return sensor_data
 

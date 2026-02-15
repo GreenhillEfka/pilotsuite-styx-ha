@@ -24,6 +24,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.const import EVENT_STATE_CHANGED, EVENT_CALL_SERVICE
 
 from .const import DOMAIN
+from .core.performance import get_entity_cache, DomainFilter, TTLCache
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,6 +88,9 @@ class N3EventForwarder:
         
         # Zone mapping
         self._entity_to_zone: Dict[str, str] = {}
+        
+        # Performance: Entity state cache
+        self._entity_cache = get_entity_cache()
 
         # User context tracking (local-only; never forwarded to Core)
         self._last_user_actions_by_zone: Dict[str, Dict[str, Any]] = {}
