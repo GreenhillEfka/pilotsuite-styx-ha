@@ -1,5 +1,37 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.4] - 2026-02-15
+
+### Added
+- **Vector Store Client** (`vector_client.py`):
+  - Client for Core Add-on Vector Store API
+  - Entity embedding synchronization with automatic periodic sync
+  - User preference similarity matching for recommendations
+  - Pattern embedding storage for knowledge graph integration
+- **MUPL Vector Integration**:
+  - `update_user_preferences()`: Store user preference vectors
+  - `get_user_similarity_recommendations()`: Get recommendations from similar users
+  - `find_similar_entities()`: Find entities with similar embeddings
+  - `find_similar_users()`: Find users with similar preferences
+- **API Methods**:
+  - `create_entity_embedding()`: Create entity embedding
+  - `create_user_preference_embedding()`: Create user preference embedding
+  - `create_pattern_embedding()`: Create pattern embedding
+  - `bulk_create_embeddings()`: Bulk create embeddings
+  - `get_similarity()`: Get similarity between two entries
+  - `get_vector_stats()`: Get vector store statistics
+- **Configuration**:
+  - `VECTOR_STORE_ENABLED`: Enable/disable vector store
+  - `VECTOR_STORE_API_URL`: Core Add-on API URL
+  - `VECTOR_STORE_SYNC_INTERVAL`: Sync interval (default 6 hours)
+
+### Integration
+- Automatic entity embedding sync on startup and periodic interval
+- Integrates with MUPL module for preference-based recommendations
+- Similarity-based suggestions for automations and scenes
+
+---
+
 ## [0.8.3] - 2026-02-15
 
 ### Added
