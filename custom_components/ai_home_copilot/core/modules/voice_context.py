@@ -5,17 +5,18 @@ Features:
 - TTS Output: Text-to-speech via HA TTS services
 - Voice State Tracking: Track voice assistant states
 - Command Templates: Predefined command patterns
+- Character System Integration: voice_tone aware responses
+- Suggestions Integration: Context-aware voice suggestions
 """
 from __future__ import annotations
 
 import logging
 import re
+import random
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers.entity import get_entity_id
 
 from ..core.module import CopilotModule, ModuleContext
 from ..const import DOMAIN
@@ -23,109 +24,189 @@ from ..const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
-# Voice command patterns
-COMMAND_PATTERNS = {
+# Voice tone configurations mapped to character presets
+VOICE_TONE_CONFIGS = {
+    "formal": {
+        "greeting": "Guten Tag. Wie kann ich behilflich sein?",
+        "confirmations": ["Verstanden.", "Erledigt.", "Befehl ausgeführt."],
+        "errors": ["Befehl konnte nicht ausgeführt werden.", "Ein Fehler ist aufgetreten."],
+        "prefix": "",
+    },
+    "friendly": {
+        "greeting": "Hey! Was kann ich für dich tun?",
+        "confirmations": ["Klar!",
+         "Mach ich gerne!", "Alles klar!", "Ist erledigt!"],
+        "errors": ["Hm, das hat nicht geklappt.", "Da ist etwas schief gelaufen."],
+        "prefix": "Super Idee! ",
+    },
+    "casual": {
+        "greeting": "Ja, was gibt's?",
+        "confirmations": ["Done.", "Geht klar.", "Fertig.", "Ja."],
+        "errors": ["Hat nicht funktioniert.", "Fehler."],
+        "prefix": "",
+    },
+    "cautious": {
+        "greeting": "Ich bin bereit. Wie kann ich helfen?",
+        "confirmations": ["Befehl ausgeführt. Soll ich bestätigen?", "Erledigt. Alles sicher."],
+        "errors": ["Befehl konnte nicht ausgeführt werden. Sicherheitshalber abgebrochen."],
+        "prefix": "Ich empfehle: ",
+    },
+}
+
+
+# Voice command patterns (compiled for performance)
+class CommandPattern:
+    """Compiled command pattern with metadata."""
+    
+    def __init__(self, intent: str, patterns: list[str], entities_extractor: Optional[Callable] = None):
+        self.intent = intent
+        self.patterns = [re.compile(p, re.IGNORECASE) for p in patterns]
+        self.entities_extractor = entities_extractor
+    
+    def match(self, text: str) -> tuple[bool, dict]:
+        """Match text against patterns and extract entities."""
+        for pattern in self.patterns:
+            match = pattern.search(text)
+            if match:
+                entities = {}
+                if self.entities_extractor and match.groups():
+                    entities = self.entities_extractor(match)
+                return True, entities
+        return False, {}
+
+
+# Entity extractors
+def extract_temperature(match: re.Match) -> dict:
+    return {"temperature": match.group(1)}
+
+def extract_scene(match: re.Match) -> dict:
+    return {"scene": match.group(1)}
+
+def extract_automation(match: re.Match) -> dict:
+    return {"automation": match.group(1)}
+
+def extract_entity(match: re.Match) -> dict:
+    return {"entity": match.group(1)}
+
+
+# Command patterns
+COMMAND_PATTERNS = [
     # Light controls
-    "light_on": [
-        r"schalte das licht an",
-        r"licht an",
-        r"mach das licht an",
-        r"turn on the light",
-        r"lights on",
-    ],
-    "light_off": [
-        r"schalte das licht aus",
-        r"licht aus",
-        r"mach das licht aus",
-        r"turn off the light",
-        r"lights off",
-    ],
-    "light_toggle": [
-        r"schalte das licht",
-        r"toggle licht",
-        r"toggle the light",
-    ],
+    CommandPattern("light_on", [
+        r"schalte[s]?\s+(?:das\s+)?licht\s+an",
+        r"licht\s+an",
+        r"mach[e]?\s+(?:das\s+)?licht\s+an",
+        r"turn\s+on\s+(?:the\s+)?light",
+        r"lights?\s+on",
+        r"licht\s+einschalten",
+    ]),
+    CommandPattern("light_off", [
+        r"schalte[s]?\s+(?:das\s+)?licht\s+aus",
+        r"licht\s+aus",
+        r"mach[e]?\s+(?:das\s+)?licht\s+aus",
+        r"turn\s+off\s+(?:the\s+)?light",
+        r"lights?\s+off",
+        r"licht\s+ausschalten",
+    ]),
+    CommandPattern("light_toggle", [
+        r"schalte[s]?\s+(?:das\s+)?licht",
+        r"toggle\s+licht",
+        r"toggle\s+the\s+light",
+        r"licht\s+umschalten",
+    ]),
     
     # Climate controls
-    "climate_warmer": [
+    CommandPattern("climate_warmer", [
         r"wärmer",
         r"heizer",
-        r"warmer",
-        r"warmer machen",
-        r"turn up the heat",
-        r"warmer",
-    ],
-    "climate_cooler": [
+        r"wärmer\s+machen",
+        r"turn\s+up\s+(?:the\s+)?heat",
+        r"wärmer\s+stellen",
+        r"temperatur\s+erhöhen",
+    ]),
+    CommandPattern("climate_cooler", [
         r"kühler",
         r"kälter",
-        r"kühler machen",
-        r"turn down the heat",
-        r"cooler",
-    ],
-    "climate_set": [
-        r"setze temperatur auf (\d+)",
-        r"temperatur (\d+) grad",
-        r"set temperature to (\d+)",
-    ],
+        r"kühler\s+machen",
+        r"turn\s+down\s+(?:the\s+)?heat",
+        r"kühler\s+stellen",
+        r"temperatur\s+verringern",
+    ]),
+    CommandPattern("climate_set", [
+        r"setze\s+temperatur\s+auf\s+(\d+)",
+        r"temperatur\s+(\d+)\s+grad",
+        r"set\s+temperature\s+to\s+(\d+)",
+        r"temperatur\s+auf\s+(\d+)\s+grad",
+    ], extract_temperature),
     
     # Media controls
-    "media_play": [
-        r"play",
-        r"wiedergabe",
+    CommandPattern("media_play", [
+        r"\bplay\b",
+        r"wiedergabe\s+start",
         r"abspielen",
-        r"start",
-    ],
-    "media_pause": [
-        r"pause",
+        r"starten",
+    ]),
+    CommandPattern("media_pause", [
+        r"\bpause\b",
         r"pausieren",
-    ],
-    "media_stop": [
-        r"stop",
+    ]),
+    CommandPattern("media_stop", [
+        r"\bstop\b",
         r"stopp",
         r"stoppen",
-    ],
-    "media_volume_up": [
+    ]),
+    CommandPattern("media_volume_up", [
         r"lauter",
-        r"volume up",
-        r" Lauter",
-    ],
-    "media_volume_down": [
+        r"volume\s+up",
+        r"Lauter\s+stellen",
+    ]),
+    CommandPattern("media_volume_down", [
         r"leiser",
-        r"volume down",
-    ],
+        r"volume\s+down",
+        r"Leiser\s+stellen",
+    ]),
     
     # Scene activations
-    "scene_activate": [
-        r"aktiviere szene (.+)",
-        r"szene (.+)",
-        r"activate scene (.+)",
-        r"scene (.+)",
-    ],
+    CommandPattern("scene_activate", [
+        r"aktiviere\s+szene\s+(.+)",
+        r"szene\s+(.+)",
+        r"activate\s+scene\s+(.+)",
+        r"scene\s+(.+)",
+    ], extract_scene),
     
     # Automation triggers
-    "automation_trigger": [
-        r"starte automation (.+)",
-        r"trigger automation (.+)",
-        r"führe automation aus (.+)",
-    ],
+    CommandPattern("automation_trigger", [
+        r"starte\s+automation\s+(.+)",
+        r"trigger\s+automation\s+(.+)",
+        r"führe\s+automation\s+aus\s+(.+)",
+        r"automation\s+(.+)\s+starten",
+    ], extract_automation),
     
     # Status queries
-    "status_query": [
-        r"wie ist der status von (.+)",
-        r"status von (.+)",
-        r"what is the status of (.+)",
-        r"ist (.+) an",
-        r"is (.+) on",
-    ],
+    CommandPattern("status_query", [
+        r"wie\s+ist\s+der\s+status\s+von\s+(.+)",
+        r"status\s+von\s+(.+)",
+        r"what\s+is\s+the\s+status\s+of\s+(.+)",
+        r"ist\s+(.+)\s+an",
+        r"is\s+(.+)\s+on",
+        r"wie\s+steht\s+(.+)",
+    ], extract_entity),
     
     # Help
-    "help": [
-        r"hilfe",
-        r"help",
-        r"was kannst du",
-        r"what can you do",
-    ],
-}
+    CommandPattern("help", [
+        r"\bhilfe\b",
+        r"\bhelp\b",
+        r"was\s+kannst\s+du",
+        r"was\s+geht",
+    ]),
+    
+    # Quick search integration
+    CommandPattern("search", [
+        r"suche\s+nach\s+(.+)",
+        r"finde\s+(.+)",
+        r"search\s+for\s+(.+)",
+    ], extract_entity),
+]
 
 
 @dataclass
@@ -141,7 +222,7 @@ class VoiceCommand:
 class TTSRequest:
     """TTS output request."""
     text: str
-    entity_id: Optional[str] = None  # TTS entity to use
+    entity_id: Optional[str] = None
     language: str = "de"
     cache: bool = True
 
@@ -149,27 +230,95 @@ class TTSRequest:
 class VoiceContextModule(CopilotModule):
     """Voice Context Module for speech control and TTS."""
     
+    def __init__(self):
+        self._command_handlers: dict[str, Callable] = {}
+        self._tts_default_entity: Optional[str] = None
+        self._character_service = None
+        self._voice_tone = "neutral"
+    
     @property
     def name(self) -> str:
         return "voice_context"
     
     @property
     def version(self) -> str:
-        return "1.0.0"
+        return "1.1.0"
     
-    def __init__(self):
-        self._command_handlers: dict[str, Callable] = {}
-        self._tts_default_entity: Optional[str] = None
+    @property
+    def voice_tone(self) -> str:
+        """Get current voice tone."""
+        return self._voice_tone
+    
+    def set_character_service(self, service) -> None:
+        """Set character service for voice_tone integration."""
+        self._character_service = service
+        self._update_voice_tone()
+    
+    def _update_voice_tone(self) -> None:
+        """Update voice tone from character service."""
+        if self._character_service:
+            try:
+                preset = self._character_service.get_current_preset()
+                self._voice_tone = preset.voice.tone
+                _LOGGER.info("Voice tone set to: %s", self._voice_tone)
+            except Exception as e:
+                _LOGGER.debug("Could not get voice tone: %s", e)
+    
+    def _get_tone_config(self) -> dict:
+        """Get voice tone configuration."""
+        return VOICE_TONE_CONFIGS.get(self._voice_tone, VOICE_TONE_CONFIGS["formal"])
+    
+    def _format_response(self, key: str, default: str = "") -> str:
+        """Format response text based on voice tone."""
+        tone_config = self._get_tone_config()
+        
+        if key == "greeting":
+            # Use character service greeting if available
+            if self._character_service:
+                try:
+                    return self._character_service.get_greeting()
+                except:
+                    pass
+            return tone_config.get("greeting", default)
+        
+        elif key == "confirmations":
+            if self._character_service:
+                try:
+                    return self._character_service.get_confirmation()
+                except:
+                    pass
+            return random.choice(tone_config.get("confirmations", [default]))
+        
+        elif key == "errors":
+            if self._character_service:
+                try:
+                    preset = self._character_service.get_current_preset()
+                    return random.choice(preset.voice.errors)
+                except:
+                    pass
+            return tone_config.get("errors", [default])[0]
+        
+        return default
     
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         """Set up the voice context module."""
-        _LOGGER.info("Setting up Voice Context Module")
+        _LOGGER.info("Setting up Voice Context Module v%s", self.version)
+        
+        # Get character service if available
+        try:
+            if hasattr(ctx, 'coordinator') and ctx.coordinator:
+                self._character_service = getattr(ctx.coordinator, 'character_service', None)
+                if self._character_service:
+                    self._update_voice_tone()
+        except Exception as e:
+            _LOGGER.debug("Character service not available: %s", e)
         
         # Initialize voice state
         hass_data = ctx.hass.data.setdefault(DOMAIN, {}).setdefault("voice_context", {})
         hass_data["initialized"] = True
         hass_data["last_command"] = None
         hass_data["tts_history"] = []
+        hass_data["voice_tone"] = self._voice_tone
         
         # Find default TTS entity
         self._discover_tts_entities(ctx.hass)
@@ -177,27 +326,36 @@ class VoiceContextModule(CopilotModule):
         # Register services
         self._register_services(ctx.hass)
         
-        _LOGGER.info("Voice Context Module initialized, default TTS: %s", self._tts_default_entity)
+        _LOGGER.info("Voice Context Module initialized, tone: %s, TTS: %s", 
+                    self._voice_tone, self._tts_default_entity)
     
     def _discover_tts_entities(self, hass: HomeAssistant) -> None:
         """Discover available TTS entities."""
         # Look for TTS entities (media_player with TTS capability)
         media_states = hass.states.async_all("media_player")
         
+        # Priority: Sonos, then smart speakers, then any media player
+        priorities = ["sonos", "google_home", "echo", "homepod"]
+        
+        for priority in priorities:
+            for entity in media_states:
+                entity_id = entity.entity_id.lower()
+                if priority in entity_id:
+                    self._tts_default_entity = entity.entity_id
+                    _LOGGER.info("Found priority TTS entity: %s", entity.entity_id)
+                    return
+        
+        # Check for TTS capability
         for entity in media_states:
-            # Check if it supports TTS
             if entity.attributes.get("supported_features", 0) & 0x1000:  # MEDIA_FEATURE_TTS
                 self._tts_default_entity = entity.entity_id
-                _LOGGER.info("Found TTS entity: %s", entity.entity_id)
+                _LOGGER.info("Found TTS capable entity: %s", entity.entity_id)
                 return
         
-        # Fallback: try to find any Sonos or smart speaker
-        for entity in media_states:
-            device_class = entity.attributes.get("device_class")
-            if device_class in ["speaker", "tv"]:
-                self._tts_default_entity = entity.entity_id
-                _LOGGER.info("Using media player as TTS: %s", entity.entity_id)
-                return
+        # Fallback: use first available
+        if media_states:
+            self._tts_default_entity = media_states[0].entity_id
+            _LOGGER.info("Using fallback media player as TTS: %s", self._tts_default_entity)
     
     def _register_services(self, hass: HomeAssistant) -> None:
         """Register voice services."""
@@ -222,11 +380,15 @@ class VoiceContextModule(CopilotModule):
             success = await self.speak(hass, text, entity_id, language)
             
             # Store in history
-            hass.data[DOMAIN]["voice_context"]["tts_history"].append({
+            history = hass.data.get(DOMAIN, {}).get("voice_context", {}).get("tts_history", [])
+            history.append({
                 "text": text,
                 "entity_id": entity_id,
                 "success": success,
             })
+            # Keep only last 50
+            if len(history) > 50:
+                history = history[-50:]
             
             return {"success": success, "text": text}
         
@@ -241,7 +403,8 @@ class VoiceContextModule(CopilotModule):
             result = await self._execute_intent(hass, command)
             
             # Store last command
-            hass.data[DOMAIN]["voice_context"]["last_command"] = {
+            voice_data = hass.data.setdefault(DOMAIN, {}).setdefault("voice_context", {})
+            voice_data["last_command"] = {
                 "text": text,
                 "intent": command.intent,
                 "entities": command.entities,
@@ -256,13 +419,24 @@ class VoiceContextModule(CopilotModule):
                 "last_command": voice_data.get("last_command"),
                 "tts_available": self._tts_default_entity is not None,
                 "default_tts_entity": self._tts_default_entity,
+                "voice_tone": self._voice_tone,
             }
+        
+        async def set_voice_tone_service(call) -> dict:
+            """Set voice tone."""
+            tone = call.data.get("tone", "formal")
+            if tone in VOICE_TONE_CONFIGS:
+                self._voice_tone = tone
+                hass.data.setdefault(DOMAIN, {}).setdefault("voice_context", {})["voice_tone"] = tone
+                return {"success": True, "voice_tone": tone}
+            return {"success": False, "error": "Invalid tone"}
         
         # Register services
         hass.services.async_register(DOMAIN, "parse_command", parse_command_service)
         hass.services.async_register(DOMAIN, "speak", speak_service)
         hass.services.async_register(DOMAIN, "execute_command", execute_voice_command_service)
         hass.services.async_register(DOMAIN, "get_voice_state", get_voice_state_service)
+        hass.services.async_register(DOMAIN, "set_voice_tone", set_voice_tone_service)
     
     def parse_command(self, text: str) -> VoiceCommand:
         """Parse voice command text into structured command."""
@@ -272,31 +446,22 @@ class VoiceContextModule(CopilotModule):
         best_score = 0.0
         
         # Try each intent pattern
-        for intent, patterns in COMMAND_PATTERNS.items():
-            for pattern in patterns:
-                match = re.search(pattern, text_lower)
-                if match:
-                    # Calculate confidence based on pattern specificity
-                    score = len(pattern) / (len(text_lower) + 1)
-                    
-                    if score > best_score:
-                        best_score = score
-                        best_match = VoiceCommand(
-                            intent=intent,
-                            raw_text=text,
-                            confidence=min(score * 10, 1.0),
-                        )
-                        
-                        # Extract captured groups as entities
-                        if match.groups():
-                            if intent == "climate_set":
-                                best_match.entities["temperature"] = match.group(1)
-                            elif intent == "scene_activate":
-                                best_match.entities["scene"] = match.group(1)
-                            elif intent == "automation_trigger":
-                                best_match.entities["automation"] = match.group(1)
-                            elif intent == "status_query":
-                                best_match.entities["entity"] = match.group(1)
+        for cmd_pattern in COMMAND_PATTERNS:
+            matched, entities = cmd_pattern.match(text_lower)
+            if matched:
+                # Calculate confidence based on pattern specificity
+                # Longer patterns = more specific = higher confidence
+                pattern_length = max(len(p.pattern) for p in cmd_pattern.patterns)
+                score = min(pattern_length / (len(text_lower) + 1) * 2, 1.0)
+                
+                if score > best_score:
+                    best_score = score
+                    best_match = VoiceCommand(
+                        intent=cmd_pattern.intent,
+                        raw_text=text,
+                        confidence=score,
+                        entities=entities,
+                    )
         
         # Default to unknown if no match
         if not best_match:
@@ -314,26 +479,26 @@ class VoiceContextModule(CopilotModule):
         entities = command.entities
         
         try:
+            # Execute based on intent
             if intent == "light_on":
-                # Find and turn on lights
                 await self._handle_light(hass, "on", entities)
-                return {"success": True, "message": "Licht eingeschaltet"}
+                return {"success": True, "message": self._format_response("confirmations", "Licht eingeschaltet")}
             
             elif intent == "light_off":
                 await self._handle_light(hass, "off", entities)
-                return {"success": True, "message": "Licht ausgeschaltet"}
+                return {"success": True, "message": self._format_response("confirmations", "Licht ausgeschaltet")}
             
             elif intent == "light_toggle":
                 await self._handle_light(hass, "toggle", entities)
-                return {"success": True, "message": "Licht umgeschaltet"}
+                return {"success": True, "message": self._format_response("confirmations", "Licht umgeschaltet")}
             
             elif intent == "climate_warmer":
                 await self._handle_climate(hass, "warmer")
-                return {"success": True, "message": "Wärmer eingestellt"}
+                return {"success": True, "message": self._format_response("confirmations", "Wärmer eingestellt")}
             
             elif intent == "climate_cooler":
                 await self._handle_climate(hass, "cooler")
-                return {"success": True, "message": "Kühler eingestellt"}
+                return {"success": True, "message": self._format_response("confirmations", "Kühler eingestellt")}
             
             elif intent == "climate_set":
                 temp = entities.get("temperature", "21")
@@ -342,23 +507,23 @@ class VoiceContextModule(CopilotModule):
             
             elif intent == "media_play":
                 await self._handle_media(hass, "play")
-                return {"success": True, "message": "Wiedergabe gestartet"}
+                return {"success": True, "message": self._format_response("confirmations", "Wiedergabe gestartet")}
             
             elif intent == "media_pause":
                 await self._handle_media(hass, "pause")
-                return {"success": True, "message": "Wiedergabe pausiert"}
+                return {"success": True, "message": self._format_response("confirmations", "Wiedergabe pausiert")}
             
             elif intent == "media_stop":
                 await self._handle_media(hass, "stop")
-                return {"success": True, "message": "Wiedergabe gestoppt"}
+                return {"success": True, "message": self._format_response("confirmations", "Wiedergabe gestoppt")}
             
             elif intent == "media_volume_up":
                 await self._handle_volume(hass, "up")
-                return {"success": True, "message": "Lauter gestellt"}
+                return {"success": True, "message": self._format_response("confirmations", "Lauter gestellt")}
             
             elif intent == "media_volume_down":
                 await self._handle_volume(hass, "down")
-                return {"success": True, "message": "Leiser gestellt"}
+                return {"success": True, "message": self._format_response("confirmations", "Leiser gestellt")}
             
             elif intent == "scene_activate":
                 scene = entities.get("scene", "")
@@ -375,6 +540,11 @@ class VoiceContextModule(CopilotModule):
                 status = await self._handle_status(hass, entity)
                 return {"success": True, "message": status}
             
+            elif intent == "search":
+                entity = entities.get("entity", "")
+                results = await self._handle_search(hass, entity)
+                return {"success": True, "message": results}
+            
             elif intent == "help":
                 return {
                     "success": True,
@@ -384,19 +554,18 @@ class VoiceContextModule(CopilotModule):
             else:
                 return {
                     "success": False,
-                    "message": "Befehl nicht erkannt",
+                    "message": self._format_response("errors", "Befehl nicht erkannt"),
                 }
                 
         except Exception as e:
             _LOGGER.error("Error executing voice command: %s", e)
             return {
                 "success": False,
-                "message": f"Fehler: {str(e)}",
+                "message": self._format_response("errors", f"Fehler: {str(e)}"),
             }
     
     async def _handle_light(self, hass: HomeAssistant, action: str, entities: dict) -> None:
         """Handle light commands."""
-        # Find lights - could be specific or all
         light_entity = entities.get("light")
         
         if light_entity:
@@ -409,12 +578,8 @@ class VoiceContextModule(CopilotModule):
                     break
             
             if target:
-                if action == "on":
-                    await hass.services.async_call("light", "turn_on", {"entity_id": target})
-                elif action == "off":
-                    await hass.services.async_call("light", "turn_off", {"entity_id": target})
-                else:
-                    await hass.services.async_call("light", "toggle", {"entity_id": target})
+                service = "turn_on" if action == "on" else ("turn_off" if action == "off" else "toggle")
+                await hass.services.async_call("light", service, {"entity_id": target})
         else:
             # Toggle all lights
             if action == "on":
@@ -468,12 +633,14 @@ class VoiceContextModule(CopilotModule):
         if not target:
             target = media_players[0].entity_id
         
-        if action == "play":
-            await hass.services.async_call("media_player", "media_play", {"entity_id": target})
-        elif action == "pause":
-            await hass.services.async_call("media_player", "media_pause", {"entity_id": target})
-        elif action == "stop":
-            await hass.services.async_call("media_player", "media_stop", {"entity_id": target})
+        service_map = {
+            "play": "media_play",
+            "pause": "media_pause",
+            "stop": "media_stop",
+        }
+        
+        if action in service_map:
+            await hass.services.async_call("media_player", service_map[action], {"entity_id": target})
     
     async def _handle_volume(self, hass: HomeAssistant, direction: str) -> None:
         """Handle volume commands."""
@@ -508,12 +675,11 @@ class VoiceContextModule(CopilotModule):
     
     async def _handle_scene(self, hass: HomeAssistant, scene_name: str) -> None:
         """Handle scene activation."""
-        # Find matching scene
         scenes = hass.states.async_all("scene")
         
         target = None
         for scene in scenes:
-            if scene_name in scene.entity_id or scene_name in scene.name.lower():
+            if scene_name.lower() in scene.entity_id or scene_name.lower() in scene.name.lower():
                 target = scene.entity_id
                 break
         
@@ -530,7 +696,7 @@ class VoiceContextModule(CopilotModule):
         
         target = None
         for automation in automations:
-            if automation_name in automation.entity_id or automation_name in automation.name.lower():
+            if automation_name.lower() in automation.entity_id or automation_name.lower() in automation.name.lower():
                 target = automation.entity_id
                 break
         
@@ -539,12 +705,11 @@ class VoiceContextModule(CopilotModule):
     
     async def _handle_status(self, hass: HomeAssistant, entity_name: str) -> str:
         """Handle status query."""
-        # Find entity
         entities = hass.states.async_all()
         
         target = None
         for entity in entities:
-            if entity_name in entity.entity_id or entity_name in entity.name.lower():
+            if entity_name.lower() in entity.entity_id or entity_name.lower() in entity.name.lower():
                 target = entity
                 break
         
@@ -554,13 +719,37 @@ class VoiceContextModule(CopilotModule):
         else:
             return f"Entität '{entity_name}' nicht gefunden"
     
+    async def _handle_search(self, hass: HomeAssistant, query: str) -> str:
+        """Handle search query - integrates with QuickSearchModule."""
+        try:
+            # Try to get quick search module
+            quick_search = None
+            if hasattr(self, '_quick_search_module'):
+                quick_search = self._quick_search_module
+            else:
+                # Try to find via coordinator or direct call
+                from .quick_search import QuickSearchModule
+                quick_search = QuickSearchModule()
+            
+            if quick_search:
+                results = await quick_search.async_combined_search(hass, query, limit=5)
+                if results.results:
+                    response = "Gefunden: "
+                    response += ", ".join([r.title for r in results.results[:3]])
+                    return response
+                return f"Keine Ergebnisse für '{query}'"
+        except Exception as e:
+            _LOGGER.debug("Search error: %s", e)
+        
+        return f"Suche nach '{query}' nicht möglich"
+    
     def _get_help_text(self) -> str:
         """Get help text for available commands."""
         return (
             "Verfügbare Befehle: "
             "Licht an/aus, Temperatur wärmer/kühler, "
             "Szene [name], Status von [gerät], "
-            " Lauter/leiser, Hilfe"
+            " Lauter/leiser, Suche nach [name], Hilfe"
         )
     
     async def speak(
@@ -586,8 +775,61 @@ class VoiceContextModule(CopilotModule):
             })
             return True
         except Exception as e:
-            _LOGGER.error("TTS error: %s", e)
-            return False
+            # Fallback to media player
+            try:
+                await hass.services.async_call("media_player", "play_media", {
+                    "entity_id": target_entity,
+                    "media_content_type": "music",
+                    "media_content_id": f"https://translate.google.com/translate_tts?tl={language}&q={text}",
+                })
+                return True
+            except Exception as e2:
+                _LOGGER.error("TTS error: %s, fallback: %s", e, e2)
+                return False
+    
+    async def async_generate_voice_suggestions(
+        self,
+        hass: HomeAssistant,
+        context: str = "",
+    ) -> list[dict[str, Any]]:
+        """Generate voice suggestions based on context.
+        
+        Integrates with Character System for voice_tone aware formatting.
+        """
+        suggestions = []
+        
+        # Get active entities for context
+        lights_on = [s for s in hass.states.async_all("light") if s.state == "on"]
+        climate_on = hass.states.async_all("climate")
+        
+        # Time-based suggestions
+        from datetime import datetime
+        hour = datetime.now().hour
+        
+        if hour < 6 or hour > 22:
+            suggestions.append({
+                "type": "time_awareness",
+                "text": "Es ist spät. Soll ich leiser sprechen?",
+                "action": "set_voice_tone",
+                "params": {"tone": "casual"},
+                "confidence": 0.8,
+            })
+        
+        # Energy saving suggestion
+        if lights_on and hour > 23:
+            suggestions.append({
+                "type": "energy",
+                "text": "Noch Lichter an. Soll ich sie ausschalten?",
+                "action": "light_off",
+                "confidence": 0.7,
+            })
+        
+        # Format suggestions with character voice
+        if self._character_service and suggestions:
+            for suggestion in suggestions:
+                suggestion["formatted_text"] = self._character_service.format_suggestion(suggestion["text"])
+        
+        return suggestions
     
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload the module."""
@@ -596,6 +838,7 @@ class VoiceContextModule(CopilotModule):
         ctx.hass.services.async_remove(DOMAIN, "speak")
         ctx.hass.services.async_remove(DOMAIN, "execute_command")
         ctx.hass.services.async_remove(DOMAIN, "get_voice_state")
+        ctx.hass.services.async_remove(DOMAIN, "set_voice_tone")
         
         _LOGGER.info("Voice Context Module unloaded")
         return True

@@ -161,16 +161,24 @@ class MLContextModule(CopilotModule):
         config = self.entry.options or self.entry.data
         ml_entities = config.get("ml_entities", [])
         
+        # Get current mood context
+        mood_context = self._get_current_mood()
+        
         for entity_id in ml_entities:
             state = self.hass.states.get(entity_id)
             if state:
+                # Build event context with mood awareness
+                event_context = {
+                    "timestamp": state.last_updated.timestamp(),
+                    "attributes": dict(state.attributes),
+                    "mood": mood_context.get("mood", "unknown"),
+                    "mood_confidence": mood_context.get("confidence", 0.0),
+                }
+                
                 self._ml_context.record_event(
                     device_id=entity_id,
                     event_type=state.state,
-                    context={
-                        "timestamp": state.last_updated.timestamp(),
-                        "attributes": dict(state.attributes),
-                    }
+                    context=event_context,
                 )
                 
     async def async_unload_entry(self, entry: ConfigEntry) -> bool:
@@ -206,10 +214,56 @@ class MLContextModule(CopilotModule):
         device_id: str,
         event_type: str,
     ) -> Dict[str, Any]:
-        """Get habit prediction for a device event."""
+        """Get habit prediction for a device event with mood weighting."""
         if not self._ml_context:
             return {"status": "disabled"}
-        return self._ml_context.get_habit_prediction(device_id, event_type)
+        
+        # Get base prediction from ML context
+        prediction = self._ml_context.get_habit_prediction(device_id, event_type)
+        
+        # Get current mood for weighting
+        mood_context = self._get_current_mood()
+        current_mood = mood_context.get("mood", "unknown")
+        
+        # Apply mood-based confidence adjustment
+        if prediction.get("predicted"):
+            base_confidence = prediction.get("confidence", 0.0)
+            
+            # Mood-specific adjustments
+            mood_adjustments = {
+                "relax": {"media": 0.15, "light": 0.1, "climate": 0.1},
+                "active": {"media": -0.1, "light": 0.15, "climate": 0.05},
+                "focus": {"media": -0.15, "light": 0.1, "climate": 0.1},
+                "sleep": {"media": -0.2, "light": -0.15, "climate": 0.15},
+                "morning": {"media": 0.05, "light": 0.15, "climate": 0.1},
+                "evening": {"media": 0.1, "light": -0.1, "climate": 0.05},
+            }
+            
+            # Get device category for adjustment
+            device_category = self._get_device_category(device_id)
+            adjustment = mood_adjustments.get(current_mood, {}).get(device_category, 0.0)
+            
+            # Apply adjustment with bounds
+            adjusted_confidence = max(0.0, min(1.0, base_confidence + adjustment))
+            
+            prediction["confidence"] = adjusted_confidence
+            prediction["predicted"] = adjusted_confidence >= 0.5
+            prediction["mood_adjusted"] = True
+            prediction["mood_context"] = mood_context
+        
+        return prediction
+    
+    def _get_device_category(self, device_id: str) -> str:
+        """Get category for a device ID."""
+        if "media" in device_id.lower() or "tv" in device_id.lower():
+            return "media"
+        elif "light" in device_id.lower():
+            return "light"
+        elif "climate" in device_id.lower() or "temperature" in device_id.lower():
+            return "climate"
+        elif "switch" in device_id.lower() or "outlet" in device_id.lower():
+            return "switch"
+        return "other"
         
     def get_energy_recommendations(
         self,

@@ -142,6 +142,49 @@ def _store_key(entry_id: str) -> str:
     return f"{DOMAIN}.events_forwarder.{entry_id}"
 
 
+def _rate_limit_refill(st: _ForwarderState) -> None:
+    """Refill rate limit tokens based on elapsed time."""
+    if not st.rate_limit_enabled:
+        return
+    
+    now = time.time()
+    if st.rate_limit_last_refill == 0:
+        st.rate_limit_last_refill = now
+        return
+    
+    elapsed = now - st.rate_limit_last_refill
+    st.rate_limit_tokens = min(
+        st.rate_limit_max_tokens,
+        st.rate_limit_tokens + (elapsed * st.rate_limit_refill_rate)
+    )
+    st.rate_limit_last_refill = now
+
+
+def _rate_limit_consume(st: _ForwarderState, cost: float = 1.0) -> bool:
+    """Try to consume tokens from the rate limiter. Returns True if allowed."""
+    if not st.rate_limit_enabled:
+        return True
+    
+    _rate_limit_refill(st)
+    
+    if st.rate_limit_tokens >= cost:
+        st.rate_limit_tokens -= cost
+        return True
+    return False
+
+
+def _get_backoff_delay(st: _ForwarderState) -> float:
+    """Calculate exponential backoff delay based on error streak."""
+    if st.backoff_level <= 0:
+        return 0.0
+    return min(st.backoff_base_delay * (2 ** st.backoff_level), 60.0)
+
+
+def _reset_backoff(st: _ForwarderState) -> None:
+    """Reset backoff after successful request."""
+    st.backoff_level = 0
+
+
 @dataclass(slots=True)
 class _ForwarderState:
     unsub_state: Callable[[], None] | None = None

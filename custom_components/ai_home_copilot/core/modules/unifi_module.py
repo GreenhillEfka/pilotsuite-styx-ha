@@ -1,24 +1,29 @@
-"""UniFi Module v0.1 - Network & Wi-Fi diagnostics.
+"""UniFi Module v0.2 - Network & Wi-Fi diagnostics.
 
-Implements the unifi_module v0.1 spec as a CopilotModule.
+Implements the unifi_module v0.2 spec as a CopilotModule.
 
 Provides:
 - WAN quality checks (loss, latency, jitter, outages)
 - Wi-Fi roaming analysis (ping-pong, sticky clients, roam failures)
 - AP/Radio health (retries, utilization, DFS events)
 - Baselines & anomaly detection
+- Presence integration (client location, signal strength)
+
+v0.2 Changes:
+- Uses UnifiContextCoordinator for data collection
+- Added Presence integration hooks
+- Improved error handling
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set, Tuple
-from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+
+from dataclasses import dataclass
 import statistics
 
-import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_track_time_interval
@@ -27,52 +32,21 @@ import voluptuous as vol
 from ...const import DOMAIN
 from ..module import CopilotModule, ModuleContext
 
+# Import from existing unifi_context module (avoid duplication)
+if TYPE_CHECKING:
+    from ...unifi_context import (
+        UnifiContextCoordinator,
+        UnifiSnapshot,
+        UnifiClient,
+        WanStatus,
+        RoamingEvent,
+        TrafficBaselines,
+    )
+
 _LOGGER = logging.getLogger(__name__)
 
 
 # ========== Data Classes ==========
-
-@dataclass
-class WANMetrics:
-    """WAN quality metrics."""
-    interface: str
-    timestamp: datetime
-    packet_loss_percent: Optional[float] = None
-    latency_ms: Optional[float] = None
-    jitter_ms: Optional[float] = None
-    outage_count: int = 0
-    is_active: bool = True
-    
-
-@dataclass
-class ClientMetrics:
-    """Wi-Fi client metrics."""
-    mac: str
-    name: Optional[str]
-    current_ap: str
-    rssi: Optional[int] = None
-    snr: Optional[int] = None
-    roam_count_24h: int = 0
-    disconnect_count_24h: int = 0
-    last_disconnect_reason: Optional[str] = None
-    session_duration_avg_min: Optional[float] = None
-
-
-@dataclass
-class APMetrics:
-    """AP/Radio health metrics."""
-    ap_name: str
-    mac: str
-    channel_2g: Optional[int] = None
-    channel_5g: Optional[int] = None
-    utilization_2g_percent: Optional[float] = None
-    utilization_5g_percent: Optional[float] = None
-    retries_2g_percent: Optional[float] = None
-    retries_5g_percent: Optional[float] = None
-    client_count_2g: int = 0
-    client_count_5g: int = 0
-    dfs_event_count_24h: int = 0
-
 
 @dataclass
 class Candidate:
@@ -90,71 +64,121 @@ class Candidate:
 # ========== Module Implementation ==========
 
 class UniFiModule:
-    """UniFi Module v0.1 implementation."""
+    """UniFi Module v0.2 implementation."""
+
+    # Threshold configuration
+    DEFAULT_THRESHOLDS = {
+        "wan_loss_warning": 1.0,  # %
+        "wan_loss_critical": 3.0,
+        "wan_latency_warning": 50.0,  # ms
+        "wan_latency_critical": 100.0,
+        "wan_jitter_warning": 20.0,  # ms
+        "wan_jitter_critical": 30.0,
+        "roam_rate_high": 6,  # per hour
+        "rssi_sticky_threshold": -75,  # dBm
+        "ap_utilization_high": 70.0,  # %
+        "ap_retries_high": 20.0,  # %
+    }
+
+    def __init__(self) -> None:
+        self._hass: HomeAssistant | None = None
+        self._entry_id: str | None = None
+        self._coordinator: "UnifiContextCoordinator | None" = None
+        self._thresholds: Dict[str, float] = {}
+        self._baseline_data: Dict[str, Any] = {}
+        self._candidates: List[Candidate] = []
+        self._last_check: datetime | None = None
+        self._polling_unsub: Any = None
 
     @property
     def name(self) -> str:
         return "unifi_module"
 
+    @property
+    def coordinator(self) -> "UnifiContextCoordinator | None":
+        """Get the UniFi coordinator for external access."""
+        return self._coordinator
+
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         """Set up the UniFi module for this config entry."""
-        hass = ctx.hass
-        entry = ctx.entry
-        
-        # Initialize module data
+        self._hass = ctx.hass
+        self._entry_id = ctx.entry.entry_id
+
+        # Initialize data storage
         if DOMAIN not in hass.data:
             hass.data[DOMAIN] = {}
-        
-        if entry.entry_id not in hass.data[DOMAIN]:
-            hass.data[DOMAIN][entry.entry_id] = {}
-        
-        entry_data = hass.data[DOMAIN][entry.entry_id]
+
+        if self._entry_id not in hass.data[DOMAIN]:
+            hass.data[DOMAIN][self._entry_id] = {}
+
+        entry_data = hass.data[DOMAIN][self._entry_id]
         entry_data["unifi_module"] = {
-            "config": self._create_default_config(entry),
-            "baseline_data": {},  # Rolling baseline storage
+            "config": self._create_default_config(ctx.entry),
+            "baseline_data": {},
             "last_check": None,
             "candidates": [],
             "polling_unsub": None,
         }
-        
+
         unifi_data = entry_data["unifi_module"]
-        
+
+        # Get thresholds from config
+        config = unifi_data["config"]
+        self._thresholds = config.get("thresholds", self.DEFAULT_THRESHOLDS)
+
+        # Try to get the coordinator from unifi_context_module
+        self._coordinator = self._get_unifi_coordinator(ctx)
+
+        if self._coordinator is None:
+            _LOGGER.warning(
+                "UniFi module: no UnifiContextCoordinator found. "
+                "Network diagnostics will be limited."
+            )
+
         # Register services
-        await self._register_services(hass, entry.entry_id)
-        
+        await self._register_services(ctx.hass, self._entry_id)
+
         # Set up periodic checks (every 15 minutes)
         unifi_data["polling_unsub"] = async_track_time_interval(
-            hass,
-            lambda _: asyncio.create_task(self._periodic_check(hass, entry.entry_id)),
-            timedelta(minutes=15),
+            ctx.hass,
+            lambda _: ctx.hass.async_create_task(self._periodic_check()),
+            timedelta(minutes=config.get("check_interval_minutes", 15)),
         )
-        
+
         # Run initial check
-        await self._periodic_check(hass, entry.entry_id)
-        
-        _LOGGER.info("UniFi module v0.1 initialized for entry %s", entry.entry_id)
+        await self._periodic_check()
+
+        _LOGGER.info("UniFi module v0.2 initialized for entry %s", self._entry_id)
+
+    def _get_unifi_coordinator(self, ctx: ModuleContext) -> "UnifiContextCoordinator | None":
+        """Get the UnifiContextCoordinator from unifi_context_module."""
+        try:
+            entry_data = ctx.hass.data[DOMAIN].get(ctx.entry.entry_id, {})
+            context_module = entry_data.get("unifi_context_module")
+            if context_module and hasattr(context_module, "coordinator"):
+                return context_module.coordinator
+        except Exception as e:
+            _LOGGER.debug("Could not get UnifiContextCoordinator: %s", e)
+        return None
 
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload the UniFi module."""
-        hass = ctx.hass
-        entry = ctx.entry
-        
         try:
-            entry_data = hass.data[DOMAIN][entry.entry_id]
+            entry_data = ctx.hass.data[DOMAIN].get(ctx.entry.entry_id, {})
             unifi_data = entry_data.get("unifi_module", {})
-            
+
             # Cancel polling
             polling_unsub = unifi_data.get("polling_unsub")
             if polling_unsub:
                 polling_unsub()
-            
+
             # Clear data
             if "unifi_module" in entry_data:
                 del entry_data["unifi_module"]
-            
-            _LOGGER.info("UniFi module unloaded for entry %s", entry.entry_id)
+
+            _LOGGER.info("UniFi module unloaded for entry %s", ctx.entry.entry_id)
             return True
-            
+
         except Exception as e:
             _LOGGER.error("Error unloading UniFi module: %s", e)
             return False
@@ -165,79 +189,79 @@ class UniFiModule:
             "enabled": True,
             "check_interval_minutes": 15,
             "baseline_days": 14,
-            "thresholds": {
-                "wan_loss_warning": 1.0,  # %
-                "wan_loss_critical": 3.0,
-                "wan_jitter_warning": 20.0,  # ms
-                "wan_jitter_critical": 30.0,
-                "roam_rate_high": 6,  # per hour
-                "rssi_sticky_threshold": -75,  # dBm
-                "ap_utilization_high": 70.0,  # %
-                "ap_retries_high": 20.0,  # %
-            }
+            "thresholds": self.DEFAULT_THRESHOLDS.copy(),
         }
 
     async def _register_services(self, hass: HomeAssistant, entry_id: str) -> None:
         """Register UniFi module services."""
-        
+
         async def handle_run_diagnostics(call: ServiceCall) -> None:
             """Run UniFi diagnostics on demand."""
-            await self._periodic_check(hass, entry_id)
-            
-        async def handle_get_report(call: ServiceCall) -> None:
+            await self._periodic_check()
+
+        async def handle_get_report(call: ServiceCall) -> Dict[str, Any]:
             """Get current UniFi diagnostic report."""
-            report = await self._generate_report(hass, entry_id)
-            _LOGGER.info("UniFi Report:\n%s", report)
-        
+            return await self._generate_report()
+
+        async def handle_get_clients(call: ServiceCall) -> List[Dict[str, Any]]:
+            """Get connected clients."""
+            return self.get_clients_snapshot()
+
         service_prefix = f"{DOMAIN}_unifi"
-        
+
         hass.services.async_register(
             DOMAIN, f"{service_prefix}_run_diagnostics", handle_run_diagnostics
         )
         hass.services.async_register(
             DOMAIN, f"{service_prefix}_get_report", handle_get_report
         )
+        hass.services.async_register(
+            DOMAIN, f"{service_prefix}_get_clients", handle_get_clients
+        )
 
-    async def _periodic_check(self, hass: HomeAssistant, entry_id: str) -> None:
+    async def _periodic_check(self) -> None:
         """Periodic diagnostic check."""
+        if not self._coordinator:
+            _LOGGER.debug("UniFi periodic check skipped: no coordinator")
+            return
+
         try:
-            entry_data = hass.data[DOMAIN][entry_id]
-            unifi_data = entry_data["unifi_module"]
-            
-            if not unifi_data["config"]["enabled"]:
+            # Refresh coordinator data
+            await self._coordinator.async_refresh()
+
+            snapshot = self._coordinator.data
+            if not snapshot:
+                _LOGGER.warning("UniFi periodic check: no data available")
                 return
-            
+
             _LOGGER.debug("Running UniFi periodic diagnostics")
-            
-            # Collect data
-            wan_metrics = await self._collect_wan_metrics(hass)
-            client_metrics = await self._collect_client_metrics(hass)
-            ap_metrics = await self._collect_ap_metrics(hass)
-            
+
             # Run checks and generate candidates
-            candidates = []
-            
+            candidates: List[Candidate] = []
+
             # Check A: WAN Quality
-            candidates.extend(await self._check_wan_quality(wan_metrics, unifi_data))
-            
+            candidates.extend(self._check_wan_quality(snapshot))
+
             # Check B: WAN Failover
-            candidates.extend(await self._check_wan_failover(wan_metrics, unifi_data))
-            
+            candidates.extend(self._check_wan_failover(snapshot))
+
             # Check C: Roaming
-            candidates.extend(await self._check_roaming(client_metrics, unifi_data))
-            
+            candidates.extend(self._check_roaming(snapshot))
+
             # Check D: AP Health
-            candidates.extend(await self._check_ap_health(ap_metrics, unifi_data))
-            
-            # Check E: Baselines & Anomalies
-            candidates.extend(await self._check_baselines(
-                wan_metrics, client_metrics, ap_metrics, unifi_data
-            ))
-            
+            candidates.extend(self._check_ap_health(snapshot))
+
             # Store results
-            unifi_data["candidates"] = candidates
-            unifi_data["last_check"] = datetime.now()
-            
+            self._candidates = candidates
+            self._last_check = datetime.now()
+
+            # Update hass data
+            if self._entry_id:
+                entry_data = self._hass.data[DOMAIN].get(self._entry_id, {})
+                if "unifi_module" in entry_data:
+                    entry_data["unifi_module"]["candidates"] = candidates
+                    entry_data["unifi_module"]["last_check"] = self._last_check
+
             # Log summary
             if candidates:
                 _LOGGER.info(
@@ -247,459 +271,362 @@ class UniFiModule:
                 )
             else:
                 _LOGGER.debug("UniFi diagnostics: all checks passed")
-                
+
         except Exception as e:
             _LOGGER.error("Error in UniFi periodic check: %s", e, exc_info=True)
 
-    # ========== Data Collection ==========
+    # ========== Presence Integration ==========
 
-    async def _collect_wan_metrics(self, hass: HomeAssistant) -> List[WANMetrics]:
-        """Collect WAN metrics from UniFi integration or API."""
-        metrics = []
-        
-        try:
-            # Try to get WAN data from UniFi integration entities
-            # Look for sensor.unifi_* entities with WAN data
-            
-            # Fallback: Try direct API call if configured
-            # (Implementation depends on available UniFi integration)
-            
-            # For now, create mock data structure
-            # Real implementation would parse UniFi entities or API
-            _LOGGER.debug("Collecting WAN metrics (placeholder)")
-            
-        except Exception as e:
-            _LOGGER.error("Error collecting WAN metrics: %s", e)
-        
-        return metrics
+    def get_clients_snapshot(self) -> List[Dict[str, Any]]:
+        """Get current clients for Presence module.
 
-    async def _collect_client_metrics(self, hass: HomeAssistant) -> List[ClientMetrics]:
-        """Collect Wi-Fi client metrics."""
-        metrics = []
-        
-        try:
-            # Parse UniFi device_tracker entities and associated sensors
-            # Look for RSSI, AP association, etc.
-            
-            _LOGGER.debug("Collecting client metrics (placeholder)")
-            
-        except Exception as e:
-            _LOGGER.error("Error collecting client metrics: %s", e)
-        
-        return metrics
+        Returns:
+            List of client dicts with location, signal, and status info.
+        """
+        if not self._coordinator or not self._coordinator.data:
+            return []
 
-    async def _collect_ap_metrics(self, hass: HomeAssistant) -> List[APMetrics]:
-        """Collect AP/Radio health metrics."""
-        metrics = []
-        
+        snapshot = self._coordinator.data
+        clients = []
+
+        for client in snapshot.clients:
+            clients.append({
+                "mac": client.mac,
+                "name": client.name,
+                "ip": client.ip,
+                "status": client.status,
+                "device_type": client.device_type,
+                "connected_ap": client.connected_ap,
+                "signal_dbm": client.signal_dbm,
+                "roaming": client.roaming,
+                "last_seen": client.last_seen,
+                # Presence-relevant fields
+                "is_online": client.status == "online",
+                "signal_strength": self._get_signal_level(client.signal_dbm),
+            })
+
+        return clients
+
+    def get_clients_by_ap(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Get clients grouped by AP for room-based presence."""
+        clients_by_ap: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+        for client in self.get_clients_snapshot():
+            ap = client.get("connected_ap", "unknown")
+            clients_by_ap[ap].append(client)
+
+        return dict(clients_by_ap)
+
+    def get_client_by_mac(self, mac: str) -> Optional[Dict[str, Any]]:
+        """Get specific client by MAC address."""
+        for client in self.get_clients_snapshot():
+            if client.get("mac", "").lower() == mac.lower():
+                return client
+        return None
+
+    def get_roaming_events_recent(self, minutes: int = 30) -> List[Dict[str, Any]]:
+        """Get recent roaming events for activity detection."""
+        if not self._coordinator or not self._coordinator.data:
+            return []
+
+        snapshot = self._coordinator.data
+        events = []
+
         try:
-            # Parse UniFi AP entities
-            # Look for channel, utilization, client count
-            
-            _LOGGER.debug("Collecting AP metrics (placeholder)")
-            
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
+            cutoff = now - timedelta(minutes=minutes)
+
+            for event in snapshot.roaming_events:
+                event_time = datetime.fromisoformat(event.timestamp.replace("Z", "+00:00"))
+                if event_time >= cutoff:
+                    events.append({
+                        "client_mac": event.client_mac,
+                        "client_name": event.client_name,
+                        "from_ap": event.from_ap,
+                        "to_ap": event.to_ap,
+                        "timestamp": event.timestamp,
+                        "signal_strength": event.signal_strength,
+                    })
         except Exception as e:
-            _LOGGER.error("Error collecting AP metrics: %s", e)
-        
-        return metrics
+            _LOGGER.debug("Error processing roaming events: %s", e)
+
+        return events
+
+    def get_wan_status(self) -> Optional[Dict[str, Any]]:
+        """Get current WAN status."""
+        if not self._coordinator or not self._coordinator.data:
+            return None
+
+        wan = self._coordinator.data.wan
+        return {
+            "online": wan.online,
+            "latency_ms": wan.latency_ms,
+            "packet_loss_percent": wan.packet_loss_percent,
+            "uptime_seconds": wan.uptime_seconds,
+            "ip_address": wan.ip_address,
+            "gateway": wan.gateway,
+            "dns_servers": wan.dns_servers,
+        }
+
+    @staticmethod
+    def _get_signal_level(signal_dbm: Optional[int]) -> str:
+        """Convert dBm to signal level string."""
+        if signal_dbm is None:
+            return "unknown"
+        if signal_dbm >= -50:
+            return "excellent"
+        if signal_dbm >= -60:
+            return "good"
+        if signal_dbm >= -70:
+            return "fair"
+        return "poor"
 
     # ========== Check A: WAN Quality ==========
 
-    async def _check_wan_quality(
-        self, wan_metrics: List[WANMetrics], unifi_data: Dict
-    ) -> List[Candidate]:
+    def _check_wan_quality(self, snapshot: "UnifiSnapshot") -> List[Candidate]:
         """Check WAN loss, latency, jitter."""
         candidates = []
-        thresholds = unifi_data["config"]["thresholds"]
-        
-        for wan in wan_metrics:
-            # Check packet loss
-            if wan.packet_loss_percent is not None:
-                if wan.packet_loss_percent >= thresholds["wan_loss_critical"]:
-                    candidates.append(Candidate(
-                        id=f"wan_loss_{wan.interface}",
-                        type="candidate.net.wan_quality.degraded",
-                        severity="critical",
-                        summary=f"WAN {wan.interface}: Packet loss {wan.packet_loss_percent:.1f}% (critical)",
-                        evidence={
-                            "interface": wan.interface,
-                            "packet_loss_percent": wan.packet_loss_percent,
-                            "latency_ms": wan.latency_ms,
-                            "jitter_ms": wan.jitter_ms,
-                            "timestamp": wan.timestamp.isoformat(),
-                        },
-                        suggested_actions=[
-                            "Check modem/ONT logs for signal issues",
-                            "Verify physical WAN cable connections",
-                            "Contact ISP if issue persists",
-                            "Consider enabling additional monitoring (ping sensor)",
-                        ],
-                        tags=["net", "wan", "loss"],
-                        timestamp=datetime.now(),
-                    ))
-                elif wan.packet_loss_percent >= thresholds["wan_loss_warning"]:
-                    candidates.append(Candidate(
-                        id=f"wan_loss_{wan.interface}",
-                        type="candidate.net.wan_quality.degraded",
-                        severity="warning",
-                        summary=f"WAN {wan.interface}: Packet loss {wan.packet_loss_percent:.1f}% (degraded)",
-                        evidence={
-                            "interface": wan.interface,
-                            "packet_loss_percent": wan.packet_loss_percent,
-                            "latency_ms": wan.latency_ms,
-                            "jitter_ms": wan.jitter_ms,
-                            "timestamp": wan.timestamp.isoformat(),
-                        },
-                        suggested_actions=[
-                            "Monitor WAN connection over next hour",
-                            "Check for local interference or device issues",
-                        ],
-                        tags=["net", "wan", "loss"],
-                        timestamp=datetime.now(),
-                    ))
-            
-            # Check jitter
-            if wan.jitter_ms is not None:
-                if wan.jitter_ms >= thresholds["wan_jitter_critical"]:
-                    candidates.append(Candidate(
-                        id=f"wan_jitter_{wan.interface}",
-                        type="candidate.net.wan_quality.jitter",
-                        severity="critical",
-                        summary=f"WAN {wan.interface}: High jitter {wan.jitter_ms:.1f}ms (impacts VoIP/video)",
-                        evidence={
-                            "interface": wan.interface,
-                            "jitter_ms": wan.jitter_ms,
-                            "latency_ms": wan.latency_ms,
-                            "timestamp": wan.timestamp.isoformat(),
-                        },
-                        suggested_actions=[
-                            "Check for QoS/traffic shaping misconfigurations",
-                            "Verify no bandwidth saturation",
-                            "Contact ISP about line quality",
-                        ],
-                        tags=["net", "wan", "jitter"],
-                        timestamp=datetime.now(),
-                    ))
-            
-            # Check outages
-            if wan.outage_count >= 3:
-                candidates.append(Candidate(
-                    id=f"wan_outages_{wan.interface}",
-                    type="candidate.net.wan_outages.recurrent",
-                    severity="warning",
-                    summary=f"WAN {wan.interface}: {wan.outage_count} outages in 24h",
-                    evidence={
-                        "interface": wan.interface,
-                        "outage_count": wan.outage_count,
-                        "timestamp": wan.timestamp.isoformat(),
-                    },
-                    suggested_actions=[
-                        "Review gateway logs for pattern (time-of-day correlation)",
-                        "Check modem power supply and temperature",
-                        "Verify line quality with ISP",
-                    ],
-                    tags=["net", "wan", "outages"],
-                    timestamp=datetime.now(),
-                ))
-        
+        wan = snapshot.wan
+
+        # Check packet loss
+        if wan.packet_loss_percent >= self._thresholds.get("wan_loss_critical", 3.0):
+            candidates.append(Candidate(
+                id=f"wan_loss_{wan.ip_address or 'default'}",
+                type="candidate.net.wan_quality.degraded",
+                severity="critical",
+                summary=f"WAN: Packet loss {wan.packet_loss_percent:.1f}% (critical)",
+                evidence={
+                    "packet_loss_percent": wan.packet_loss_percent,
+                    "latency_ms": wan.latency_ms,
+                    "ip_address": wan.ip_address,
+                    "timestamp": snapshot.timestamp,
+                },
+                suggested_actions=[
+                    "Check modem/ONT logs for signal issues",
+                    "Verify physical WAN cable connections",
+                    "Contact ISP if issue persists",
+                ],
+                tags=["net", "wan", "loss"],
+                timestamp=datetime.now(),
+            ))
+        elif wan.packet_loss_percent >= self._thresholds.get("wan_loss_warning", 1.0):
+            candidates.append(Candidate(
+                id=f"wan_loss_{wan.ip_address or 'default'}",
+                type="candidate.net.wan_quality.degraded",
+                severity="warning",
+                summary=f"WAN: Packet loss {wan.packet_loss_percent:.1f}% (degraded)",
+                evidence={
+                    "packet_loss_percent": wan.packet_loss_percent,
+                    "latency_ms": wan.latency_ms,
+                    "ip_address": wan.ip_address,
+                    "timestamp": snapshot.timestamp,
+                },
+                suggested_actions=[
+                    "Monitor WAN connection over next hour",
+                    "Check for local interference or device issues",
+                ],
+                tags=["net", "wan", "loss"],
+                timestamp=datetime.now(),
+            ))
+
+        # Check latency
+        if wan.latency_ms >= self._thresholds.get("wan_latency_critical", 100.0):
+            candidates.append(Candidate(
+                id="wan_latency_high",
+                type="candidate.net.wan_quality.latency",
+                severity="critical",
+                summary=f"WAN: High latency {wan.latency_ms:.0f}ms (critical)",
+                evidence={
+                    "latency_ms": wan.latency_ms,
+                    "packet_loss_percent": wan.packet_loss_percent,
+                    "timestamp": snapshot.timestamp,
+                },
+                suggested_actions=[
+                    "Check for bandwidth saturation",
+                    "Review QoS settings",
+                    "Contact ISP about line quality",
+                ],
+                tags=["net", "wan", "latency"],
+                timestamp=datetime.now(),
+            ))
+        elif wan.latency_ms >= self._thresholds.get("wan_latency_warning", 50.0):
+            candidates.append(Candidate(
+                id="wan_latency_high",
+                type="candidate.net.wan_quality.latency",
+                severity="warning",
+                summary=f"WAN: Elevated latency {wan.latency_ms:.0f}ms",
+                evidence={
+                    "latency_ms": wan.latency_ms,
+                    "timestamp": snapshot.timestamp,
+                },
+                suggested_actions=[
+                    "Monitor for sustained elevation",
+                    "Check local network usage",
+                ],
+                tags=["net", "wan", "latency"],
+                timestamp=datetime.now(),
+            ))
+
         return candidates
 
     # ========== Check B: WAN Failover ==========
 
-    async def _check_wan_failover(
-        self, wan_metrics: List[WANMetrics], unifi_data: Dict
-    ) -> List[Candidate]:
+    def _check_wan_failover(self, snapshot: "UnifiSnapshot") -> List[Candidate]:
         """Check for unexpected WAN failovers."""
         candidates = []
-        
-        # Look for inactive WANs or recent failover events
-        inactive_wans = [w for w in wan_metrics if not w.is_active]
-        
-        for wan in inactive_wans:
+        wan = snapshot.wan
+
+        if not wan.online:
             candidates.append(Candidate(
-                id=f"wan_failover_{wan.interface}",
-                type="candidate.net.wan_failover.unexpected",
-                severity="warning",
-                summary=f"WAN {wan.interface} is inactive (failover or down)",
+                id="wan_offline",
+                type="candidate.net.wan_outage",
+                severity="critical",
+                summary="WAN is offline",
                 evidence={
-                    "interface": wan.interface,
-                    "is_active": wan.is_active,
-                    "timestamp": wan.timestamp.isoformat(),
+                    "ip_address": wan.ip_address,
+                    "uptime_seconds": wan.uptime_seconds,
+                    "timestamp": snapshot.timestamp,
                 },
                 suggested_actions=[
-                    "Verify if this is expected maintenance",
                     "Check gateway WAN status page",
-                    "Review recent gateway events",
+                    "Verify physical connection",
+                    "Review gateway logs",
                 ],
-                tags=["net", "wan", "failover"],
+                tags=["net", "wan", "outage"],
                 timestamp=datetime.now(),
             ))
-        
+
         return candidates
 
     # ========== Check C: Roaming ==========
 
-    async def _check_roaming(
-        self, client_metrics: List[ClientMetrics], unifi_data: Dict
-    ) -> List[Candidate]:
+    def _check_roaming(self, snapshot: "UnifiSnapshot") -> List[Candidate]:
         """Check for roaming issues."""
         candidates = []
-        thresholds = unifi_data["config"]["thresholds"]
-        
-        for client in client_metrics:
-            # Check for ping-pong roaming
-            if client.roam_count_24h >= thresholds["roam_rate_high"] * 24:
+        roam_threshold = self._thresholds.get("roam_rate_high", 6)
+        rssi_threshold = self._thresholds.get("rssi_sticky_threshold", -75)
+
+        # Track roam counts per client
+        roam_counts: Dict[str, int] = defaultdict(int)
+        for event in snapshot.roaming_events:
+            roam_counts[event.client_mac] += 1
+
+        for client in snapshot.clients:
+            # Check for excessive roaming
+            roam_count = roam_counts.get(client.mac, 0)
+            if roam_count >= roam_threshold * 24:  # Daily threshold
                 candidates.append(Candidate(
                     id=f"roam_pingpong_{client.mac}",
                     type="candidate.wifi.roam.pingpong",
                     severity="warning",
-                    summary=f"Client {client.name or client.mac}: Excessive roaming ({client.roam_count_24h} times/day)",
+                    summary=f"Client {client.name or client.mac}: Excessive roaming ({roam_count} times)",
                     evidence={
                         "client_mac": client.mac,
                         "client_name": client.name,
-                        "roam_count_24h": client.roam_count_24h,
-                        "current_ap": client.current_ap,
-                        "rssi": client.rssi,
+                        "roam_count": roam_count,
+                        "current_ap": client.connected_ap,
+                        "signal_dbm": client.signal_dbm,
                     },
                     suggested_actions=[
                         "Review AP placement and signal overlap",
                         "Check roaming thresholds (minimum RSSI)",
                         "Consider adjusting band steering settings",
-                        "Verify 802.11r Fast Roaming configuration",
                     ],
                     tags=["wifi", "roam", "pingpong"],
                     timestamp=datetime.now(),
                 ))
-            
-            # Check for sticky clients
-            if client.rssi is not None and client.rssi < thresholds["rssi_sticky_threshold"]:
+
+            # Check for sticky clients with weak signal
+            if client.signal_dbm is not None and client.signal_dbm < rssi_threshold:
                 candidates.append(Candidate(
                     id=f"sticky_client_{client.mac}",
                     type="candidate.wifi.client.sticky",
                     severity="warning",
-                    summary=f"Client {client.name or client.mac}: Weak signal (RSSI {client.rssi} dBm) but not roaming",
+                    summary=f"Client {client.name or client.mac}: Weak signal ({client.signal_dbm} dBm)",
                     evidence={
                         "client_mac": client.mac,
                         "client_name": client.name,
-                        "current_ap": client.current_ap,
-                        "rssi": client.rssi,
-                        "snr": client.snr,
+                        "current_ap": client.connected_ap,
+                        "signal_dbm": client.signal_dbm,
                     },
                     suggested_actions=[
                         "Client device may have aggressive roaming threshold",
                         "Reduce AP transmit power to encourage roaming",
-                        "Enable minimum RSSI in WLAN settings (carefully)",
                         "Check if stronger AP is available nearby",
                     ],
                     tags=["wifi", "client", "sticky"],
                     timestamp=datetime.now(),
                 ))
-            
-            # Check for roam failures
-            if client.last_disconnect_reason and "auth" in client.last_disconnect_reason.lower():
-                candidates.append(Candidate(
-                    id=f"roam_fail_{client.mac}",
-                    type="candidate.wifi.roam.failures",
-                    severity="warning",
-                    summary=f"Client {client.name or client.mac}: Disconnect with auth issue (possible roam failure)",
-                    evidence={
-                        "client_mac": client.mac,
-                        "client_name": client.name,
-                        "disconnect_reason": client.last_disconnect_reason,
-                        "disconnect_count_24h": client.disconnect_count_24h,
-                    },
-                    suggested_actions=[
-                        "Check for PMF (Protected Management Frames) mismatches",
-                        "Verify 802.11r configuration consistency across APs",
-                        "Review WPA/WPA2/WPA3 settings",
-                    ],
-                    tags=["wifi", "roam", "failures"],
-                    timestamp=datetime.now(),
-                ))
-        
+
         return candidates
 
     # ========== Check D: AP Health ==========
 
-    async def _check_ap_health(
-        self, ap_metrics: List[APMetrics], unifi_data: Dict
-    ) -> List[Candidate]:
+    def _check_ap_health(self, snapshot: "UnifiSnapshot") -> List[Candidate]:
         """Check AP/Radio health."""
         candidates = []
-        thresholds = unifi_data["config"]["thresholds"]
-        
-        for ap in ap_metrics:
-            # Check utilization
-            if ap.utilization_2g_percent and ap.utilization_2g_percent >= thresholds["ap_utilization_high"]:
+
+        # Group clients by AP to get counts
+        ap_clients: Dict[str, int] = defaultdict(int)
+        for client in snapshot.clients:
+            if client.connected_ap:
+                ap_clients[client.connected_ap] += 1
+
+        # Note: Full AP metrics would require additional API endpoints
+        # This is a simplified check based on client counts
+        for ap_name, client_count in ap_clients.items():
+            if client_count >= 20:  # High client density
                 candidates.append(Candidate(
-                    id=f"ap_util_2g_{ap.mac}",
-                    type="candidate.wifi.ap.utilization.high",
+                    id=f"ap_high_clients_{ap_name}",
+                    type="candidate.wifi.ap.clients.high",
                     severity="warning",
-                    summary=f"AP {ap.ap_name}: High 2.4 GHz utilization ({ap.utilization_2g_percent:.1f}%)",
+                    summary=f"AP {ap_name}: High client count ({client_count})",
                     evidence={
-                        "ap_name": ap.ap_name,
-                        "ap_mac": ap.mac,
-                        "utilization_percent": ap.utilization_2g_percent,
-                        "client_count": ap.client_count_2g,
-                        "channel": ap.channel_2g,
+                        "ap_name": ap_name,
+                        "client_count": client_count,
                     },
                     suggested_actions=[
                         "Consider adding another AP in the area",
-                        "Move devices to 5 GHz band if possible",
-                        "Check for high-bandwidth IoT devices",
+                        "Review bandwidth-intensive clients",
                     ],
-                    tags=["wifi", "ap", "utilization"],
+                    tags=["wifi", "ap", "clients"],
                     timestamp=datetime.now(),
                 ))
-            
-            if ap.utilization_5g_percent and ap.utilization_5g_percent >= thresholds["ap_utilization_high"]:
-                candidates.append(Candidate(
-                    id=f"ap_util_5g_{ap.mac}",
-                    type="candidate.wifi.ap.utilization.high",
-                    severity="warning",
-                    summary=f"AP {ap.ap_name}: High 5 GHz utilization ({ap.utilization_5g_percent:.1f}%)",
-                    evidence={
-                        "ap_name": ap.ap_name,
-                        "ap_mac": ap.mac,
-                        "utilization_percent": ap.utilization_5g_percent,
-                        "client_count": ap.client_count_5g,
-                        "channel": ap.channel_5g,
-                    },
-                    suggested_actions=[
-                        "Consider adding another AP in the area",
-                        "Review high-bandwidth clients",
-                        "Check channel width (80 MHz may be too wide)",
-                    ],
-                    tags=["wifi", "ap", "utilization"],
-                    timestamp=datetime.now(),
-                ))
-            
-            # Check retries
-            if ap.retries_2g_percent and ap.retries_2g_percent >= thresholds["ap_retries_high"]:
-                candidates.append(Candidate(
-                    id=f"ap_retries_2g_{ap.mac}",
-                    type="candidate.wifi.ap.retries.high",
-                    severity="warning",
-                    summary=f"AP {ap.ap_name}: High 2.4 GHz retries ({ap.retries_2g_percent:.1f}%)",
-                    evidence={
-                        "ap_name": ap.ap_name,
-                        "ap_mac": ap.mac,
-                        "retries_percent": ap.retries_2g_percent,
-                        "channel": ap.channel_2g,
-                    },
-                    suggested_actions=[
-                        "Check for interference (neighbors, Bluetooth, microwaves)",
-                        "Consider channel 1, 6, or 11 only",
-                        "Verify channel width is 20 MHz",
-                    ],
-                    tags=["wifi", "ap", "retries"],
-                    timestamp=datetime.now(),
-                ))
-            
-            # Check DFS events
-            if ap.dfs_event_count_24h >= 2:
-                candidates.append(Candidate(
-                    id=f"ap_dfs_{ap.mac}",
-                    type="candidate.wifi.ap.dfs.instability",
-                    severity="info",
-                    summary=f"AP {ap.ap_name}: Multiple DFS events ({ap.dfs_event_count_24h} in 24h)",
-                    evidence={
-                        "ap_name": ap.ap_name,
-                        "ap_mac": ap.mac,
-                        "dfs_event_count_24h": ap.dfs_event_count_24h,
-                        "channel_5g": ap.channel_5g,
-                    },
-                    suggested_actions=[
-                        "DFS channels may be unstable in your location",
-                        "Consider manually selecting non-DFS channels (36-48, 149-165)",
-                        "Monitor for weather radar activity if near airport/coast",
-                    ],
-                    tags=["wifi", "ap", "dfs"],
-                    timestamp=datetime.now(),
-                ))
-        
-        return candidates
 
-    # ========== Check E: Baselines & Anomalies ==========
-
-    async def _check_baselines(
-        self,
-        wan_metrics: List[WANMetrics],
-        client_metrics: List[ClientMetrics],
-        ap_metrics: List[APMetrics],
-        unifi_data: Dict,
-    ) -> List[Candidate]:
-        """Check for baseline anomalies."""
-        candidates = []
-        
-        # Placeholder for baseline logic
-        # Real implementation would:
-        # 1. Load historical data from unifi_data["baseline_data"]
-        # 2. Compute rolling statistics (median, IQR) per time-of-day bucket
-        # 3. Compare current metrics to baseline
-        # 4. Flag anomalies (z-score > 2 or value > median + 2*IQR)
-        
-        _LOGGER.debug("Baseline check (placeholder - not implemented in v0.1)")
-        
         return candidates
 
     # ========== Reporting ==========
 
-    async def _generate_report(self, hass: HomeAssistant, entry_id: str) -> str:
-        """Generate human-readable report."""
-        try:
-            entry_data = hass.data[DOMAIN][entry_id]
-            unifi_data = entry_data["unifi_module"]
-            
-            candidates = unifi_data.get("candidates", [])
-            last_check = unifi_data.get("last_check")
-            
-            if not candidates:
-                return "✅ UniFi Network Health: All checks passed\n"
-            
-            # Group by severity
-            critical = [c for c in candidates if c.severity == "critical"]
-            warning = [c for c in candidates if c.severity == "warning"]
-            info = [c for c in candidates if c.severity == "info"]
-            
-            report_lines = [
-                "🔍 UniFi Network Diagnostic Report",
-                f"Last check: {last_check.strftime('%Y-%m-%d %H:%M:%S') if last_check else 'Never'}",
-                "",
-            ]
-            
-            if critical:
-                report_lines.append(f"🔴 Critical Issues ({len(critical)}):")
-                for c in critical:
-                    report_lines.append(f"  • {c.summary}")
-                report_lines.append("")
-            
-            if warning:
-                report_lines.append(f"⚠️  Warnings ({len(warning)}):")
-                for c in warning:
-                    report_lines.append(f"  • {c.summary}")
-                report_lines.append("")
-            
-            if info:
-                report_lines.append(f"ℹ️  Info ({len(info)}):")
-                for c in info:
-                    report_lines.append(f"  • {c.summary}")
-                report_lines.append("")
-            
-            # Top 3 actions
-            report_lines.append("📋 Recommended Actions:")
-            action_count = 0
-            for c in critical + warning:
-                for action in c.suggested_actions[:1]:  # First action only
-                    report_lines.append(f"  {action_count + 1}. {action}")
-                    action_count += 1
-                    if action_count >= 3:
-                        break
-                if action_count >= 3:
-                    break
-            
-            return "\n".join(report_lines)
-            
-        except Exception as e:
-            _LOGGER.error("Error generating UniFi report: %s", e)
-            return f"Error generating report: {e}"
+    async def _generate_report(self) -> Dict[str, Any]:
+        """Generate diagnostic report."""
+        if not self._candidates:
+            return {
+                "status": "healthy",
+                "message": "All UniFi checks passed",
+                "timestamp": self._last_check.isoformat() if self._last_check else None,
+            }
+
+        # Group by severity
+        critical = [c for c in self._candidates if c.severity == "critical"]
+        warning = [c for c in self._candidates if c.severity == "warning"]
+        info = [c for c in self._candidates if c.severity == "info"]
+
+        return {
+            "status": "issues_found",
+            "critical_count": len(critical),
+            "warning_count": len(warning),
+            "info_count": len(info),
+            "issues": [
+                {
+                    "id": c.id,
+                    "type": c.type,
+                    "severity": c.severity,
+                    "summary": c.summary,
+                    "suggested_actions": c.suggested_actions,
+                }
+                for c in self._candidates
+            ],
+            "timestamp": self._last_check.isoformat() if self._last_check else None,
+            "wan_status": self.get_wan_status(),
+        }
