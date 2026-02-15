@@ -18,6 +18,10 @@ from copilot_core.api.v1.dashboard import bp as dashboard_bp
 from copilot_core.knowledge_graph.api import bp as knowledge_graph_bp
 from copilot_core.tags.api import bp as tags_bp
 
+# New feature APIs
+from copilot_core.api.v1.search import bp as search_bp
+from copilot_core.api.v1.notifications import bp as notifications_bp
+
 api_v1 = Blueprint("api_v1", __name__, url_prefix="/api/v1")
 
 # Compose sub-modules.
@@ -38,3 +42,7 @@ api_v1.register_blueprint(user_preferences_bp)
 api_v1.register_blueprint(dashboard_bp)
 api_v1.register_blueprint(knowledge_graph_bp)
 api_v1.register_blueprint(tags_bp)
+
+# Register new feature APIs
+api_v1.register_blueprint(search_bp)
+api_v1.register_blueprint(notifications_bp)

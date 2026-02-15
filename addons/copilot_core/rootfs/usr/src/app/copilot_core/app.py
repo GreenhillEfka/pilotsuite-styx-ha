@@ -233,6 +233,36 @@ def create_app() -> Flask:
                             "/api/v1/dashboard/brain-summary"
                         ]
                     },
+                    "search": {
+                        "enabled": True,
+                        "version": "1.0.0",
+                        "description": "Quick search for entities, automations, scripts, scenes, and services",
+                        "endpoints": [
+                            "/api/v1/search",
+                            "/api/v1/search/entities",
+                            "/api/v1/search/stats",
+                            "/api/v1/search/index"
+                        ]
+                    },
+                    "notifications": {
+                        "enabled": True,
+                        "version": "1.0.0",
+                        "description": "Push notification system for alerts, mood changes, and suggestions",
+                        "endpoints": [
+                            "/api/v1/notifications/send",
+                            "/api/v1/notifications",
+                            "/api/v1/notifications/subscribe",
+                            "/api/v1/notifications/subscriptions"
+                        ]
+                    },
+                    "voice_context": {
+                        "enabled": True,
+                        "version": "1.0.0",
+                        "description": "Voice assistant integration for mood-based context",
+                        "endpoints": [
+                            "/api/v1/voice_context"
+                        ]
+                    },
                 },
             }
         )
