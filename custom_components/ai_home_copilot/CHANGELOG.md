@@ -2,6 +2,38 @@
 
 All notable changes to AI Home CoPilot will be documented in this file.
 
+## [0.9.4] - 2026-02-15
+
+### Added
+- **Quick Search Module** (`core/modules/quick_search.py`):
+  - Entity Search: Search all HA entities by name, state, domain
+  - Automation Search: Search automations by name, trigger, action
+  - Service Search: Search available services by domain, service name
+  - Quick Actions: Direct access to commonly used entities/services
+  - Services: `ai_home_copilot.search_entities`, `ai_home_copilot.search_automations`, `ai_home_copilot.search_services`, `ai_home_copilot.quick_action`
+
+- **Voice Context Module** (`core/modules/voice_context.py`):
+  - Voice Command Parser: Parse voice commands into structured actions
+  - TTS Output: Text-to-speech via HA TTS services
+  - Voice State Tracking: Track voice assistant states
+  - Command Templates: Predefined command patterns (German/English)
+  - Supported commands: Light on/off, Climate control, Media control, Scene activation, Automation trigger, Status queries
+  - Services: `ai_home_copilot.parse_command`, `ai_home_copilot.speak`, `ai_home_copilot.execute_command`, `ai_home_copilot.get_voice_state`
+
+- **Calendar Integration** (existing: `calendar_context.py`):
+  - Calendar Events → Neurons integration
+  - calendar.load neuron (CalendarLoadSensor)
+  - Termine-basiertes Context (Meeting detection, Focus/Social/Relax keywords)
+  - Mood-Weight Berechnung aus Kalender
+
+- **Mobile Dashboard** (existing: `mobile_dashboard_cards.py`):
+  - Responsive Cards für mobile Geräte
+  - Touch-friendly UI mit min 44px Tap-Targets
+  - Quick Actions Card, Mood Status Card, Entity Quick Access Card
+  - Notification Badge Card, Calendar Today Card, Quick Search Card
+
+---
+
 ## [0.9.3] - 2026-02-15
 
 ### Added
