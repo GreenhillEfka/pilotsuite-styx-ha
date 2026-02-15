@@ -21,8 +21,8 @@ from homeassistant.helpers import entity_registry
 from homeassistant.const import EVENT_STATE_CHANGED
 
 from ...const import DOMAIN
-from ..module_connector import SIGNAL_ACTIVITY_UPDATED
-from .core.module import CopilotModule
+from ...module_connector import SIGNAL_ACTIVITY_UPDATED
+from .module import CopilotModule
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -447,7 +447,7 @@ class CameraContextModule(CopilotModule):
     ) -> None:
         """Forward events to module connector for Activity/Presence neurons."""
         try:
-            from ..module_connector import get_module_connector
+            from ...module_connector import get_module_connector
             
             connector = await get_module_connector(self._hass, self._entry_id)
             

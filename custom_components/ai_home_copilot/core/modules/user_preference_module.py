@@ -1,6 +1,6 @@
 """User Preference Module - Multi-User Preference Learning.
 
-v0.8.0 - MVP Implementation
+v0.9.0 - Optimized with Character System Integration
 """
 from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, field
@@ -37,6 +37,21 @@ class LearnedPattern:
             "last_occurrence": self.last_occurrence,
             "confirmed": self.confirmed,
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "LearnedPattern":
+        """Create from dictionary."""
+        return cls(
+            pattern_id=data.get("pattern_id", ""),
+            trigger=data.get("trigger", ""),
+            action=data.get("action", ""),
+            context=data.get("context", {}),
+            confidence=data.get("confidence", 0.0),
+            occurrences=data.get("occurrences", 1),
+            first_learned=data.get("first_learned"),
+            last_occurrence=data.get("last_occurrence"),
+            confirmed=data.get("confirmed", False),
+        )
 
 
 @dataclass
@@ -45,7 +60,7 @@ class UserPreference:
     user_id: str
     display_name: str = ""
     preferences: Dict[str, Any] = field(default_factory=lambda: {"light_brightness_default": 0.7})
-    learned_patterns: List[Any] = field(default_factory=list)
+    learned_patterns: List[LearnedPattern] = field(default_factory=list)
     mood_history: List[Dict[str, Any]] = field(default_factory=list)
     last_updated: datetime = field(default_factory=datetime.utcnow)
     
@@ -55,10 +70,30 @@ class UserPreference:
             "user_id": self.user_id,
             "display_name": self.display_name,
             "preferences": self.preferences,
-            "learned_patterns": self.learned_patterns if isinstance(self.learned_patterns, list) else [],
+            "learned_patterns": [p.to_dict() if isinstance(p, LearnedPattern) else p for p in self.learned_patterns],
             "mood_history": self.mood_history,
             "last_updated": self.last_updated.isoformat() if self.last_updated else None,
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UserPreference":
+        """Create from dictionary."""
+        patterns = data.get("learned_patterns", [])
+        if patterns and isinstance(patterns[0], dict):
+            patterns = [LearnedPattern.from_dict(p) for p in patterns]
+        
+        last_updated = data.get("last_updated")
+        if isinstance(last_updated, str):
+            last_updated = datetime.fromisoformat(last_updated)
+        
+        return cls(
+            user_id=data.get("user_id", ""),
+            display_name=data.get("display_name", ""),
+            preferences=data.get("preferences", {"light_brightness_default": 0.7}),
+            learned_patterns=patterns,
+            mood_history=data.get("mood_history", []),
+            last_updated=last_updated or datetime.utcnow(),
+        )
 
 
 class ModuleContext:
@@ -75,10 +110,10 @@ class ModuleContext:
 
 
 class UserPreferenceModule:
-    """User preference handling module."""
+    """User preference handling module with Multi-User Preference Learning (MUPL)."""
     
     NAME = "user_preference"
-    VERSION = "0.8.0"
+    VERSION = "0.9.0"
     
     def __init__(self, hass: Any, config: Dict[str, Any]):
         self.hass = hass
@@ -87,13 +122,13 @@ class UserPreferenceModule:
             "users": {},
             "config": {"learning_enabled": True}
         }
-        self._users: Dict[str, UserPreference] = {}
         self._active_user: Optional[str] = None
         self._active_zone: Optional[str] = None
         self._learning_enabled: bool = True
         self._mood_history: List[Dict[str, Any]] = []
         self._tracked_users: set = set()
         self._store = None  # HA storage store (injected or mocked in tests)
+        self._character_profile: Optional[Dict[str, Any]] = None  # Character System integration
     
     @property
     def name(self) -> str:

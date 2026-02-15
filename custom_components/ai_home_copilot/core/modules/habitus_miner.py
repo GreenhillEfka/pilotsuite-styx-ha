@@ -203,9 +203,9 @@ class HabitusMinerModule:
             vol.Optional("max_rules", default=100): vol.All(vol.Coerce(int), vol.Range(min=1, max=1000)),
         })
 
-        if not hass.services.has_service(DOMAIN, "_rules"):
+        if not hass.services.has_service(DOMAIN, "habitus_mine_rules"):
 
-           habitus_mine async def handle_mine_rules(call: ServiceCall) -> dict[str, Any] | None:
+            async def handle_mine_rules(call: ServiceCall) -> dict[str, Any] | None:
                 """Handle rule mining service call."""
                 return await self._handle_mine_rules(hass, entry, call)
 
