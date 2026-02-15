@@ -1,5 +1,33 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.20] - 2026-02-15
+
+### Added
+- **Neurons Module** (`copilot_core/neurons/`):
+  - `BaseNeuron` abstract class with evaluate(), update(), decay(), reset()
+  - `NeuronState` dataclass for neuron state tracking
+  - `NeuronConfig` dataclass for neuron configuration
+  - `NeuronType` enum: CONTEXT, STATE, MOOD
+  - `MoodType` enum: relax, focus, active, sleep, away, alert, social, recovery
+- **Context Neurons** (`neurons/context.py`):
+  - `PresenceNeuron`: Evaluates presence in zones/house
+  - `TimeOfDayNeuron`: Maps time to continuous value (night/morning/day/evening)
+  - `LightLevelNeuron`: Evaluates ambient light from lux sensors and sun position
+  - `WeatherNeuron`: Evaluates weather conditions
+  - Factory: `create_context_neuron(name, config)`
+- **Features**:
+  - EMA smoothing for stable values
+  - Decay when inactive
+  - Threshold triggering with callbacks
+  - Full test coverage
+
+### Architecture
+- Neuron hierarchy: Context → State → Mood
+- Each neuron outputs 0.0-1.0 value with confidence
+- Mood neurons aggregate inputs for suggestion triggers
+
+---
+
 ## [0.4.19] - 2026-02-15
 
 ### Added
