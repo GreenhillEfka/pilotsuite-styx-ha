@@ -1,5 +1,24 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.6.1] - 2026-02-15
+
+### Added
+- **Cross-Home Sharing**: Multi-Home Sync for federated learning
+  - `copilot_core/federation/` - Multi-home sync module
+  - Shared entities API for opt-in pattern sharing
+  - Privacy-preserving aggregation across homes
+  - Federated pattern learning support
+- **Phase 5 Complete**: All Phase 5 features released
+  - Interactive Visualization ✅
+  - Cross-Home Sharing ✅
+  - Collective Intelligence ✅
+
+### Changed
+- Synced version to 0.6.1
+- All Phase 5 features now released and documented
+
+---
+
 ## [0.6.0] - 2026-02-15
 
 ### Added

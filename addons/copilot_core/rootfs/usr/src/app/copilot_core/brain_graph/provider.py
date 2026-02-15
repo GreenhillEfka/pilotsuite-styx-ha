@@ -18,13 +18,16 @@ def get_graph_service() -> BrainGraphService:
 
     cfg = current_app.config.get("COPILOT_CFG")
     data_dir = str(getattr(cfg, "data_dir", "/data"))
-    json_path = str(getattr(cfg, "brain_graph_json_path", f"{data_dir}/brain_graph.json"))
-    persist = bool(getattr(cfg, "brain_graph_persist", True))
+    db_path = str(getattr(cfg, "brain_graph_json_path", f"{data_dir}/brain_graph.db"))
+    nodes_max = int(getattr(cfg, "brain_graph_nodes_max", 500))
+    edges_max = int(getattr(cfg, "brain_graph_edges_max", 1500))
 
-    _STORE = BrainGraphStore(json_path=json_path, persist=persist)
-    _SVC = BrainGraphService(
-        _STORE,
-        nodes_max=int(getattr(cfg, "brain_graph_nodes_max", 500)),
-        edges_max=int(getattr(cfg, "brain_graph_edges_max", 1500)),
+    _STORE = BrainGraphStore(
+        db_path=db_path,
+        max_nodes=nodes_max,
+        max_edges=edges_max,
+        node_min_score=0.1,
+        edge_min_weight=0.1
     )
+    _SVC = BrainGraphService(_STORE)
     return _SVC

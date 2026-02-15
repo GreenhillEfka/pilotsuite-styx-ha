@@ -158,12 +158,24 @@ def create_app() -> Flask:
     def version():
         return jsonify({"version": cfg.version, "time": _now_iso()})
 
+    @app.get("/api/v1/status")
+    def api_status():
+        return jsonify(
+            {
+                "ok": True,
+                "time": _now_iso(),
+                "version": cfg.version,
+                "port": int(os.environ.get("PORT", "8909")),
+            }
+        )
+
     @app.get("/api/v1/capabilities")
     def capabilities():
         return jsonify(
             {
                 "ok": True,
                 "time": _now_iso(),
+                "version": cfg.version,
                 "modules": {
                     "events": {
                         "enabled": True,
@@ -195,13 +207,24 @@ def create_app() -> Flask:
                         "edges_max": cfg.brain_graph_edges_max,
                         "feeding_enabled": True,
                     },
-                    "habitus_dashboard_cards": {
+                    "vector_store": {
                         "enabled": True,
                         "version": "0.1.0",
-                        "description": "Dashboard pattern recommendations for Home Assistant Lovelace",
+                        "description": "Vector operations for semantic search and embeddings",
                         "endpoints": [
-                            "/api/v1/habitus/dashboard_cards",
-                            "/api/v1/habitus/dashboard_cards/health"
+                            "/api/v1/vector/store",
+                            "/api/v1/vector/search",
+                            "/api/v1/vector/get/:id",
+                            "/api/v1/vector/delete/:id",
+                            "/api/v1/vector/stats"
+                        ]
+                    },
+                    "dashboard": {
+                        "enabled": True,
+                        "version": "0.1.0",
+                        "description": "Dashboard data endpoints",
+                        "endpoints": [
+                            "/api/v1/dashboard/brain-summary"
                         ]
                     },
                 },
