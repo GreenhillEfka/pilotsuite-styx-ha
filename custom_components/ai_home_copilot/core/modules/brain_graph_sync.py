@@ -29,7 +29,7 @@ class BrainGraphSyncModule:
             entry = ctx.entry
             
             # Get Core connection details from config entry
-            core_url = entry.data.get("core_url", "http://localhost:5000")
+            core_url = entry.data.get("core_url", "http://localhost:8099")
             access_token = entry.data.get("access_token", "")
             
             if not core_url or not access_token:
