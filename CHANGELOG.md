@@ -1,6 +1,7 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## [0.9.3] - 2026-02-15
 
 ### Added
@@ -389,6 +390,19 @@
   - `/graph/patterns` → `/graph/state`
 - **Brain Graph Sync**: Updated connection test endpoint
 =======
+=======
+## [0.8.2] - 2026-02-15
+
+### Added
+- **OpenAPI Specification** (`docs/openapi.yaml`):
+  - Complete service documentation for HA Integration
+  - Tag Registry, Media Context v2, N3 Forwarder, Ops Runbook, MUPL services
+  - Request schemas with examples
+  - Service call patterns for automations/scripts
+
+---
+
+>>>>>>> origin/dev/openapi-spec-v0.8.2
 ## [0.8.1] - 2026-02-15
 
 ### Added
@@ -396,9 +410,12 @@
   - `TTLCache`: Thread-safe TTL cache with automatic expiration
   - `EntityStateCache`: Batch entity queries to reduce HA API calls
   - `DomainFilter`: Efficient domain-filtered state queries
+  - `LazyHistoryLoader`: On-demand history loading with TTL caching
   - Mood score caching (30s TTL) for <500ms response times
   - Entity cache invalidation on state changes
   - Brain graph sync optimization with domain filtering
+  - History prefetch queue for background loading
+  - Batch history queries with concurrent fetching
 
 - **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
   - `ActionAttributor` class for attributing HA actions to specific users
