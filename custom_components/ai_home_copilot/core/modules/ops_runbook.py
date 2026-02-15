@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from ..base import CopilotModule
+from ..module import CopilotModule
 from ...ops_runbook import async_setup_ops_runbook
 from ...ops_runbook_store import OpsRunbookStore
 from ...ops_runbook_entities import async_setup_ops_runbook_entities
