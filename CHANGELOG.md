@@ -1,5 +1,38 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.2] - 2026-02-15
+
+### Added
+- **OpenAPI Specification** (`docs/openapi.yaml`): Complete API documentation for Core Add-on integration
+- **Knowledge Graph API Endpoints** (Core Add-on v0.4.18):
+  - Node/Edge CRUD operations
+  - Graph queries (structural, contextual, semantic)
+  - Zone/Mood pattern queries
+  - HA state and Habitus pattern import
+
+### Changed
+- Updated INDEX.md with v0.8.2 features and API reference
+
+---
+
+## [0.8.1] - 2026-02-15
+
+### Added
+- **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
+  - `ActionAttributor` class for attributing HA actions to specific users
+  - Multiple attribution sources: Presence, Device Ownership, Room Location, Time Patterns
+  - Weighted confidence scoring across all sources
+  - Action history storage for preference learning
+
+### Fixed
+- **Pipeline Health Sensor**: Corrected API endpoints
+  - `/candidates/stats` → `/candidates`
+  - `/habitus/health` → `/habitus/status`
+  - `/graph/patterns` → `/graph/state`
+- **Brain Graph Sync**: Updated connection test endpoint
+
+---
+
 ## [0.8.0] - 2026-02-15
 
 ### Added
