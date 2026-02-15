@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -58,6 +60,13 @@ from .sensors.voice_context import (
     VoiceContextSensor,
     VoicePromptSensor,
 )
+from .mood_dashboard import (
+    MoodDashboardEntity,
+    MoodHistoryEntity,
+    MoodExplanationEntity,
+)
+from .calendar_context import CalendarContextEntity
+from .suggestion_panel import SuggestionQueue
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -151,6 +160,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         for user_id in user_pref_data.get("users", {}).keys():
             entities.append(UserPreferenceSensor(hass, entry, user_pref_data, user_id))
 
+    # Mood Dashboard entities (Neural System)
+    entities.extend([
+        MoodDashboardEntity(entry.entry_id),
+        MoodHistoryEntity(entry.entry_id),
+        MoodExplanationEntity(entry.entry_id),
+    ])
+
+    # Calendar Context entity (Neural System)
+    calendar_config = data.get("calendar_context", {}) if isinstance(data, dict) else {}
+    if calendar_config.get("enabled", False):
+        from .calendar_context import CalendarContextModule
+        module = CalendarContextModule(hass, entry.entry_id, calendar_config)
+        await module.async_setup()
+        entities.append(CalendarContextEntity(entry.entry_id, module))
+        data["calendar_context_module"] = module
+
     async_add_entities(entities, True)
 
 
@@ -164,3 +189,127 @@ class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.version
+
+
+class ZoneOccupancySensor(SensorEntity):
+    """Sensor for zone occupancy tracking."""
+    
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:home-account"
+    
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, user_pref_data: dict) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._user_pref_data = user_pref_data
+        self._attr_unique_id = f"{entry.entry_id}_zone_occupancy"
+        self._attr_name = "CoPilot Zone Occupancy"
+    
+    @property
+    def native_value(self) -> str:
+        active_users = self._user_pref_data.get("active_users", {})
+        if not active_users:
+            return "empty"
+        return f"{len(active_users)} zones"
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "zones": self._user_pref_data.get("active_users", {}),
+            "primary_user": self._user_pref_data.get("primary_user"),
+            "tracked_users": list(self._user_pref_data.get("users", {}).keys()),
+        }
+
+
+class UserPresenceSensor(SensorEntity):
+    """Sensor for overall user presence."""
+    
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:account-check"
+    
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, user_pref_data: dict) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._user_pref_data = user_pref_data
+        self._attr_unique_id = f"{entry.entry_id}_user_presence"
+        self._attr_name = "CoPilot User Presence"
+    
+    @property
+    def native_value(self) -> str:
+        users = self._user_pref_data.get("users", {})
+        if not users:
+            return "unknown"
+        
+        # Check if any user is home
+        for user_id, user_data in users.items():
+            if user_data.get("state") == "home":
+                return "home"
+        return "away"
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        users = self._user_pref_data.get("users", {})
+        return {
+            "users_count": len(users),
+            "learning_mode": self._user_pref_data.get("learning_mode", "passive"),
+        }
+
+
+class UserPreferenceSensor(SensorEntity):
+    """Sensor for individual user preferences."""
+    
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:account-cog"
+    
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        user_pref_data: dict,
+        user_id: str,
+    ) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._user_pref_data = user_pref_data
+        self._user_id = user_id
+        self._attr_unique_id = f"{entry.entry_id}_user_pref_{user_id}"
+        self._attr_name = f"CoPilot User {user_id}"
+    
+    @property
+    def native_value(self) -> str:
+        user_data = self._user_pref_data.get("users", {}).get(self._user_id, {})
+        return user_data.get("state", "unknown")
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        user_data = self._user_pref_data.get("users", {}).get(self._user_id, {})
+        return {
+            "preferences": user_data.get("preferences", {}),
+            "patterns_count": len(user_data.get("learned_patterns", [])),
+            "mood_history_count": len(user_data.get("mood_history", [])),
+        }
+
+
+class SuggestionQueueSensor(SensorEntity):
+    """Sensor for suggestion queue status."""
+    
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:lightbulb-outline"
+    
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_suggestion_queue"
+        self._attr_name = "CoPilot Suggestions"
+        self._queue_data: dict[str, Any] = {}
+    
+    @property
+    def native_value(self) -> int:
+        return self._queue_data.get("pending_count", 0)
+    
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self._queue_data
+    
+    def update_queue(self, queue_data: dict[str, Any]) -> None:
+        self._queue_data = queue_data
+        self.async_write_ha_state()

@@ -198,6 +198,18 @@
       "title": "Zone pattern: {title}",
       "description": "CoPilot discovered a pattern in zone **{zone}**.\n\n**Pattern:** {pattern}\n**Confidence:** {confidence}% | **Lift:** {lift}x\n**Safety:** {safety_status}\n\n{mood_context}\n\nClick **Fix** to review and create an automation."
     },
+    "mood_update": {
+      "title": "CoPilot Mood: {mood_name}",
+      "description": "Current mood: **{mood_name}** ({mood_value}%)\n\nConfidence: {confidence}%\nTrend: {trend}\n\nTop factors:\n{factors}\n\nClick **Learn more** to see detailed mood analysis."
+    },
+    "suggestion_pending": {
+      "title": "CoPilot Suggestion: {pattern}",
+      "description": "**Confidence:** {confidence}% | **Lift:** {lift}x\n**Zone:** {zone}\n**Mood Match:** {mood_context}\n**Risk:** {risk}\n\n{evidence}\n\nActions: [Accept] [Reject] [Snooze 4h]"
+    },
+    "calendar_context": {
+      "title": "Calendar Context: {status}",
+      "description": "**Upcoming:** {next_meeting}\n**Focus Weight:** {focus_weight}%\n**Social Weight:** {social_weight}%\n\n{events_count} events today, {conflicts} conflicts detected."
+    },
     "log_manifest_parse_error": {
       "title": "Custom integration has invalid manifest.json: {integration}",
       "description": "Home Assistant reported errors parsing manifest.json for this custom integration. This can prevent startup or break other components. Click Fix to disable the integration (reversible)."
