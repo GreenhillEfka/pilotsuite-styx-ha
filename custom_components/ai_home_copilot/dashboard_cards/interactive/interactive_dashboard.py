@@ -20,7 +20,7 @@ from typing import Any, Callable, Optional
 
 from homeassistant.core import HomeAssistant
 
-_LOGLogger(__name__GER = logging.get)
+_LOGGER = logging.getLogger(__name__)
 
 
 # ============================================================================
