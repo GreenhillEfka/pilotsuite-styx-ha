@@ -1,5 +1,17 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.7] - 2026-02-15
+
+### Fixed
+- **API Response Parsing**: coordinator.py now correctly extracts `data` from API responses
+- **Mood Sensor**: Now receives actual mood data from neural system
+- **Neuron Sensor**: Correctly extracts neuron states from API response
+
+### Changed
+- coordinator.py: `async_get_mood()` and `async_get_neurons()` extract `.data` from responses
+
+---
+
 ## [0.8.6] - 2026-02-15
 
 ### Added

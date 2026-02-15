@@ -41,7 +41,10 @@ class CopilotApiClient:
         try:
             async with self._session.get(url, headers=headers, timeout=5) as resp:
                 if resp.status == 200:
-                    return await resp.json()
+                    data = await resp.json()
+                    # API returns {success: true, data: {...}}
+                    # Extract the data part
+                    return data.get("data", data)
         except Exception as e:
             _LOGGER.debug("Mood API not available: %s", e)
         return {"mood": "unknown", "confidence": 0.0}
@@ -54,7 +57,9 @@ class CopilotApiClient:
         try:
             async with self._session.get(url, headers=headers, timeout=5) as resp:
                 if resp.status == 200:
-                    return await resp.json()
+                    data = await resp.json()
+                    # API returns {success: true, data: {...}}
+                    return data.get("data", data)
         except Exception as e:
             _LOGGER.debug("Neurons API not available: %s", e)
         return {"neurons": {}}
@@ -67,7 +72,8 @@ class CopilotApiClient:
         try:
             async with self._session.post(url, json=context, headers=headers, timeout=10) as resp:
                 if resp.status == 200:
-                    return await resp.json()
+                    data = await resp.json()
+                    return data.get("data", data)
         except Exception as e:
             _LOGGER.warning("Neural evaluation failed: %s", e)
         return {}
@@ -92,9 +98,6 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         
         token = config.get(CONF_TOKEN, "")
         self.api = CopilotApiClient(session, base_url, token)
-        
-        # Cache for neural data
-        self._neural_data: Dict[str, Any] = {}
         
         super().__init__(
             hass,
@@ -149,14 +152,14 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         }
         
         # Get relevant states
-        entity_ids = [
+        entity_patterns = [
             "person.", "binary_sensor.", "sensor.temperature", 
             "sensor.humidity", "sensor.light", "sensor.illuminance",
             "weather.", "light.", "media_player."
         ]
         
-        for pattern in entity_ids:
-            for entity_id in self._hass.states.async_entity_ids():
+        for entity_id in self._hass.states.async_entity_ids():
+            for pattern in entity_patterns:
                 if entity_id.startswith(pattern):
                     state = self._hass.states.get(entity_id)
                     if state:
@@ -164,6 +167,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                             "state": state.state,
                             "attributes": dict(state.attributes)
                         }
+                    break
         
         # Evaluate
         return await self.api.async_evaluate_neurons(context)
