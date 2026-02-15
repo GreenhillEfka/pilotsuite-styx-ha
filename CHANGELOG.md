@@ -1,5 +1,33 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.9.2] - 2026-02-15
+
+### Added
+- **Interactive Brain Graph Panel** (`brain_graph_panel.py`):
+  - Full D3.js interactive visualization with zoom/pan
+  - Filter by Node Kind, Zone, or text search
+  - Click nodes for detailed info panel
+  - Color-coded node types (light, sensor, zone, media_player, etc.)
+  - Legend with all node kinds
+  - Stats display (node/edge counts)
+  - Privacy-first: all data stays local, no external dependencies
+  - Output: `/local/ai_home_copilot/brain_graph_panel.html`
+
+- **Button Entity**: `button.ai_home_copilot_publish_brain_graph_panel`
+  - Fetches graph state from Core API
+  - Generates interactive HTML file
+  - Lovelace iframe card ready
+
+### Changed
+- Manifest version synced to 0.9.2
+- All Phase 5 visualization components now complete
+
+### Technical
+- Full py_compile validation passing
+- Graph limits: 200 nodes, 400 edges
+- Mid-emphasis score normalization for better visualization
+- SVG rendering with CSS animations
+
 ## [0.9.1] - 2026-02-15
 
 ### Added
