@@ -503,10 +503,6 @@ enable_debug:
             - "WARNING"
             - "ERROR"
 
-disable_debug:
-  name: Disable Debug Mode
-  description: Disable debug mode for AI Home CoPilot.
-
 toggle_debug:
   name: Toggle Debug Mode
   description: Toggle debug mode on/off for AI Home CoPilot.
