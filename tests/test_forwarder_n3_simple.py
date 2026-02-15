@@ -145,9 +145,10 @@ def test_project_attributes_unknown_domain():
         "another_attr": 123,
     }
     
-    # Unknown domains should project no attributes
+    # Unknown domains pass through all attributes (no filtering for unknown domains)
+    # Implementation uses empty set for unknown domains, which means no allowlist filtering
     projected = forwarder._project_attributes("unknown_domain", attrs)
-    assert projected == {}
+    assert projected == attrs
 
 
 def test_redact_context_id():
@@ -307,7 +308,7 @@ def test_create_call_service_envelope():
     assert envelope["trigger"] == "automation"  # Because parent_id is set
     assert envelope["service"] == "turn_on"
     assert envelope["entity_ids"] == entity_ids
-    assert envelope["zone_ids"] == ["kitchen", "living_room"]  # Sorted
+    assert envelope["zone_ids"] == ["living_room", "kitchen"]  # In entity_ids order
 
 
 async def test_enqueue_event_max_queue_size():

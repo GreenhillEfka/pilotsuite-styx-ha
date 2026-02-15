@@ -1,0 +1,22 @@
+# Brain Graph Panel - Lovelace Card
+# Füge dies zu deiner lovelace.yaml hinzu:
+
+title: Gehirn
+cards:
+  - type: custom:ai_home_copilot
+    card_type: brain_graph
+    title: 🧠 Neuronales Netz
+    refresh_interval: 30
+    
+  - type: entities
+    title: 🧠 Aktive Neuronen
+    show_header_toggle: false
+    entities:
+      - entity: sensor.brain_graph_mood
+        name: Aktueller Mood
+      - entity: sensor.brain_graph_energy
+        name: Energy Level
+      - entity: sensor.brain_graph_presence
+        name: Presence Score
+      - entity: sensor.brain_graph_activity
+        name: Aktivität

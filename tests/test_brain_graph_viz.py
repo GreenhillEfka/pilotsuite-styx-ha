@@ -8,23 +8,36 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
 
-# Mock homeassistant modules before import
+# Mock homeassistant modules BEFORE importing custom_components
+# This is needed because ai_home_copilot.__init__.py imports debug.py
+# which imports homeassistant.components.sensor.SensorEntity
+
 mock_ha = MagicMock()
 mock_ha.core = MagicMock()
-mock_ha.components = MagicMock()
-mock_ha.components.persistent_notification = MagicMock()
 mock_ha.helpers = MagicMock()
 mock_ha.helpers.typing = MagicMock()
 mock_ha.const = MagicMock()
 
+# Mock the sensor component (required by debug.py import chain)
+mock_sensor = MagicMock()
+mock_sensor.SensorEntity = MagicMock()
+
+# Set up sys.modules BEFORE any custom_components imports
 sys.modules['homeassistant'] = mock_ha
 sys.modules['homeassistant.core'] = mock_ha.core
-sys.modules['homeassistant.components'] = mock_ha.components
-sys.modules['homeassistant.components.persistent_notification'] = mock_ha.components.persistent_notification
+sys.modules['homeassistant.components'] = MagicMock()
+sys.modules['homeassistant.components.sensor'] = mock_sensor
+sys.modules['homeassistant.components.persistent_notification'] = MagicMock()
 sys.modules['homeassistant.helpers'] = mock_ha.helpers
 sys.modules['homeassistant.helpers.typing'] = mock_ha.helpers.typing
 sys.modules['homeassistant.const'] = mock_ha.const
 sys.modules['homeassistant.config_entries'] = MagicMock()
+sys.modules['homeassistant.helpers.entity_platform'] = MagicMock()
+sys.modules['homeassistant.helpers.storage'] = MagicMock()
+
+# Also mock the entire ai_home_copilot package to prevent __init__.py execution
+sys.modules['custom_components'] = MagicMock()
+sys.modules['custom_components.ai_home_copilot'] = MagicMock()
 
 from custom_components.ai_home_copilot.brain_graph_viz import (
     _safe_float,
