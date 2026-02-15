@@ -14,5 +14,6 @@ from .legacy import LegacyModule
 from .module import CopilotModule, ModuleContext
 from .mood_module import MoodModule
 from .mood_context_module import MoodContextModule
+from .unifi_module import UniFiModule
 
-__all__ = ["LegacyModule", "CopilotModule", "ModuleContext", "MoodModule", "MoodContextModule"]
+__all__ = ["LegacyModule", "CopilotModule", "ModuleContext", "MoodModule", "MoodContextModule", "UniFiModule"]
