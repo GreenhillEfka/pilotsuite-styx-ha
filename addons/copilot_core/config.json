@@ -41,6 +41,7 @@
       },
       "lovelace_cards": {
         "enabled": true,
+        "auto_import": true,
         "cards": ["mood", "neurons", "habitus"]
       }
     },
@@ -80,6 +81,7 @@
       },
       "lovelace_cards": {
         "enabled": "bool",
+        "auto_import": "bool",
         "cards": "list(mood|neurons|habitus)"
       }
     },
