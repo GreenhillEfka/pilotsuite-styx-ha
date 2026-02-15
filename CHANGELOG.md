@@ -1,7 +1,26 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+## [0.9.5] - 2026-02-15
+
+### Fixed
+- **Merge Conflict Resolution**: brain_graph_sync.py - combined DomainFilter optimization with extended domain coverage
+  - Performance optimization with DomainFilter.get_entities_by_domain()
+  - Extended domain list: light, switch, climate, media_player, cover, sensor, binary_sensor, person, device_tracker, humidifier, fan, vacuum, lock, alarm_control_panel
+  - Proper filtering of internal entities (input_, group., zone.)
+  - py_compile validation passing
+
+---
+
+## [0.9.4] - 2026-02-15
+
+### Added
+- **BaseMLModel Interface**: Unified ML model API for consistent model integration
+
+### Changed
+- LazyHistoryLoader and OpenAPI spec improvements from dev/openapi-spec-v0.8.2
+
+---
+
 ## [0.9.3] - 2026-02-15
 
 ### Added
@@ -13,10 +32,6 @@
 ### Changed
 - Manifest version synced to 0.9.3
 - All Phase 5 features now fully integrated and tested
-
-### Technical
-- Full py_compile validation passing
-- All Phase 5 components working together
 
 ---
 
@@ -38,371 +53,40 @@
   - Generates interactive HTML file
   - Lovelace iframe card ready
 
-### Changed
-- Manifest version synced to 0.9.2
-- All Phase 5 visualization components now complete
-
-### Technical
-- Full py_compile validation passing
-- Graph limits: 200 nodes, 400 edges
-- Mid-emphasis score normalization for better visualization
-- SVG rendering with CSS animations
+---
 
 ## [0.9.1] - 2026-02-15
 
 ### Added
 - **ML Context Module Integration** (`core/modules/ml_context_module.py`):
   - Runtime integration via CopilotModule interface
-  - Registered in module registry alongside other context modules
   - Periodic entity state sync to ML context
-  - Async-safe initialization in executor (CPU-bound operations)
-  - Configuration options: `ml_enabled`, `ml_entities`, `ml_anomaly_contamination`, `ml_habit_window_size`
+  - Configuration options: `ml_enabled`, `ml_entities`
 
-### Changed
-- `__init__.py`: Added MLContextModule to runtime registry
-- `const.py`: Added ML configuration constants (disabled by default)
-
-### Technical
-- Full py_compile validation passing
-- ML context now accessible via `hass.data["ai_home_copilot"][entry_id]["ml_context"]`
-- Ready for neuron integration and sensor entities
+---
 
 ## [0.9.0] - 2026-02-15
 
 ### Added
 - **ML Pattern Recognition Module** (`ml/`):
   - `MLContext` - Unified ML context provider for neurons
-  - `AnomalyDetector` - Real-time anomaly detection for device events
-  - `HabitPredictor` - Time-based pattern prediction and user routine learning
-  - `EnergyOptimizer` - Device energy optimization recommendations
-  - `MultiUserLearner` - Multi-user behavior tracking and personalization
+  - `AnomalyDetector` - Real-time anomaly detection
+  - `HabitPredictor` - Time-based pattern prediction
+  - `EnergyOptimizer` - Device energy optimization
+  - `MultiUserLearner` - Multi-user behavior tracking
   - `TrainingPipeline` - Model training infrastructure
-  - `InferenceEngine` - Real-time inference with statistics
-
-### Features
-- Time-based habit pattern detection (hourly/daily cycles)
-- Device sequence prediction (chain of device activations)
-- Energy consumption optimization per device
-- Multi-user personalized habit predictions
-- Anomaly detection with configurable thresholds
-- Integration with existing neuron system via `ml_context.py`
-
-### Technical
-- All ML modules pass py_compile syntax validation
-- Unit tests provided in `ml/tests/`
-- Ready for neuron integration
-
-## [0.8.18] - 2026-02-15
-
-### Fixed
-- **CI Pipeline**: HACS validation + pytest fixes
-  - Added repository description and topics for HACS compliance
-  - Fixed pytest workflow to run isolated unit tests only (no HA dependency)
-  - Fixed YAML syntax in services.yaml (quoted descriptions with colons)
-  - Added `http` to manifest dependencies
-  - Removed duplicate `disable_debug` service entry
-  - Sorted manifest dependencies alphabetically
-
-### CI Quality Gates
-- ✅ py_compile (syntax check)
-- ✅ pytest (23 isolated unit tests)
-- ✅ HACS validation
-- ✅ hassfest validation
-
----
-
-## [0.8.14] - 2026-02-15
-
-### Added
-- **Voice Context Sensors** (`sensors/voice_context.py`):
-  - `sensor.ai_copilot_voice_context` - Full voice context for HA Assist
-  - `sensor.ai_copilot_voice_prompt` - Ready-to-use voice prompt
-
-- **Voice Context Attributes**:
-  - `dominant_mood` - Current mood state
-  - `mood_confidence` - Confidence level
-  - `voice_tone` - Tone for voice responses (calm, focused, energetic, etc.)
-  - `voice_greeting` - Natural greeting based on mood
-  - `voice_suggestions` - Natural language suggestions
-  - `voice_prompt` - Complete prompt for HA Assist templates
-
-### HA Assist Integration
-- Use in templates: `{{ state_attr('sensor.ai_copilot_voice_context', 'voice_prompt') }}`
-- Mood-based response personalization
-- Zone-aware context
-
----
-
-## [0.8.13] - 2026-02-15
-
-### Added
-- **Extended Zone Aggregate Sensors**:
-  - Added thermostat, illuminance, and power to aggregate types
-  - Policy changed from `>2` to `>=2` entities (average shown with 2+ sensors)
-  - Dashboard now shows average cards for all 5 types
-
-### Changed
-- `habitus_zone_aggregates.py`: Extended `_AGGREGATES` with thermostat, illuminance, power
-- `habitus_dashboard.py`: Added average cards and history graphs for new types
-
-### Supported Aggregate Types:
-| Type | Label | Unit | Device Class |
-|------|-------|------|--------------|
-| temperature | Temperatur Ø | °C | TEMPERATURE |
-| humidity | Luftfeuchte Ø | % | HUMIDITY |
-| thermostat | Thermostat Ø | °C | TEMPERATURE |
-| illuminance | Beleuchtungsstärke Ø | lx | ILLUMINANCE |
-| power | Leistung Ø | W | POWER |
-
----
-
-## [0.8.12] - 2026-02-15
-
-### Added
-- **Neural System Configuration UI**:
-  - New Options Flow menu: "Neural System"
-  - Configure context, state, and mood neuron entities
-  - Enable/disable neural system
-  - Set evaluation interval (10-3600 seconds)
-
-- **Config Options**:
-  - `neuron_enabled` - Enable/disable neural system
-  - `neuron_evaluation_interval` - How often neurons evaluate
-  - `neuron_context_entities` - Entities for context neurons
-  - `neuron_state_entities` - Entities for state neurons
-  - `neuron_mood_entities` - Entities that influence mood
-
-### Changed
-- Options Flow menu now includes "Neural System" section
-- strings.json updated with neuron configuration labels
-
----
-
-## [0.8.11] - 2026-02-15
-
-### Added
-- **Debug Mode v0.9** (`debug.py`):
-  - Persistent debug state (survives restart)
-  - Debug buffer with history (last 50 messages)
-  - Log level control via service
-  - Helper functions: log_debug(), log_info(), log_warning(), log_error()
-  
-- **New Services**:
-  - `ai_home_copilot.enable_debug` - Enable debug with optional log level
-  - `ai_home_copilot.disable_debug` - Disable debug mode
-  - `ai_home_copilot.toggle_debug` - Toggle debug on/off
-  - `ai_home_copilot.clear_debug_buffer` - Clear message history
-
-- **Debug Sensor Attributes**:
-  - `enabled` - Current debug state
-  - `log_level` - Current log level
-  - `buffer_size` - Number of buffered messages
-  - `level_counts` - Count by log level
-  - `recent_messages` - Last 10 debug messages
-
-- **Blueprint: Auto-Off Presence**:
-  - `auto_off_presence.yaml` - Auto turn off lights after no presence
-
----
-
-## [0.8.10] - 2026-02-15
-
-### Added
-- **Enhanced Repairs UX** (`repairs_enhanced.py`):
-  - Zone context display (where the pattern was discovered)
-  - Mood context display (why this suggestion is relevant now)
-  - Risk visualization (low/medium/high with explanations)
-  - Rich evidence formatting (timing stats, observation counts)
-  - Safety-critical entity detection
-  - Zone pattern issue type
-
-### Changed
-- Updated `strings.json` with new placeholders:
-  - `{zone}` - Zone context
-  - `{confidence}` - Pattern confidence percentage
-  - `{lift}` - Pattern lift factor
-  - `{mood_context}` - Current mood with reason
-  - `{safety_status}` - Risk level with safety indicator
-
----
-
-## [0.8.9] - 2026-02-15
-
-### Changed
-- **Weather Context Integration**: Connected to Core Add-on Weather API v0.4.28
-  - Weather coordinator now uses `/api/v1/weather` endpoint
-  - PV recommendations from `/api/v1/weather/pv-recommendations`
-  - Forecast from `/api/v1/weather/forecast`
-  - Full integration with WeatherContextNeuron in Core
-
-### Fixed
-- Weather API endpoint paths now match Core Add-on v0.4.28
-
----
-
-## [0.8.8] - 2026-02-15
-
-### Added
-- **Neuron Dashboard Sensors**:
-  - `sensor.ai_copilot_neuron_dashboard` - All neuron states as JSON
-  - `sensor.ai_copilot_mood_history` - Mood trend history (last 20)
-  - `sensor.ai_copilot_suggestions` - Current suggestions from neural system
-
-### Dashboard Features
-- Context neurons display
-- State neurons display
-- Mood neurons display
-- Mood history with timestamps
-- Suggestion types and priorities
-
----
-
-## [0.8.7] - 2026-02-15
-
-### Fixed
-- **API Response Parsing**: coordinator.py now correctly extracts `data` from API responses
-- **Mood Sensor**: Now receives actual mood data from neural system
-- **Neuron Sensor**: Correctly extracts neuron states from API response
-
-### Changed
-- coordinator.py: `async_get_mood()` and `async_get_neurons()` extract `.data` from responses
-
----
-
-## [0.8.6] - 2026-02-15
-
-### Added
-- **Neural System Integration**:
-  - Coordinator now calls `/api/v1/neurons/mood` for mood data
-  - Coordinator now calls `/api/v1/neurons` for neuron states
-  - `async_evaluate_with_states()` for full neural pipeline
-  - HA states → Neural context mapping
-
-### Changed
-- **MoodSensor** now uses real neural data from Core API
-- **NeuronActivitySensor** shows actual active neurons
-- Coordinator fetches mood every 30 seconds
-
-### Integration
-- HA Integration → Core API → Neural System → Live Mood Data
-- Pipeline: HA States → NeuronManager → Mood → Sensors
-
----
-
-## [0.8.5] - 2026-02-15
-
-### Added
-- **Mood Sensor Entities** (`sensors/mood_sensor.py`):
-  - `sensor.ai_copilot_mood`: Current mood (relax, focus, active, sleep, away, alert, social, recovery)
-  - `sensor.ai_copilot_mood_confidence`: Confidence level (0-100%)
-  - `sensor.ai_copilot_active_neurons`: Count of active neurons with details
-- **Neural System Visibility**: Mood and neuron states now visible in HA
-
-### Changed
-- Integrated mood sensors into main sensor platform
-
----
-
-## [0.8.4] - 2026-02-15
-
-### Added
-- **Vector Store Client** (`vector_client.py`):
-  - Client for Core Add-on Vector Store API
-  - Entity embedding synchronization with automatic periodic sync
-  - User preference similarity matching for recommendations
-  - Pattern embedding storage for knowledge graph integration
-- **MUPL Vector Integration**:
-  - `update_user_preferences()`: Store user preference vectors
-  - `get_user_similarity_recommendations()`: Get recommendations from similar users
-  - `find_similar_entities()`: Find entities with similar embeddings
-  - `find_similar_users()`: Find users with similar preferences
-- **API Methods**:
-  - `create_entity_embedding()`: Create entity embedding
-  - `create_user_preference_embedding()`: Create user preference embedding
-  - `create_pattern_embedding()`: Create pattern embedding
-  - `bulk_create_embeddings()`: Bulk create embeddings
-  - `get_similarity()`: Get similarity between two entries
-  - `get_vector_stats()`: Get vector store statistics
-- **Configuration**:
-  - `VECTOR_STORE_ENABLED`: Enable/disable vector store
-  - `VECTOR_STORE_API_URL`: Core Add-on API URL
-  - `VECTOR_STORE_SYNC_INTERVAL`: Sync interval (default 6 hours)
-
-### Integration
-- Automatic entity embedding sync on startup and periodic interval
-- Integrates with MUPL module for preference-based recommendations
-- Similarity-based suggestions for automations and scenes
-
----
-
-## [0.8.3] - 2026-02-15
-
-### Added
-- **Performance Module** (`core/performance.py`):
-  - `TTLCache`: Thread-safe TTL cache with LRU eviction and statistics
-  - `EntityStateCache`: Cached entity state lookups with domain filtering
-  - `MoodScoreCache`: Zone-based mood score caching with entity invalidation
-  - `@cached_result` decorator for caching async function results
-
-### Changed
-- **Mood Module**: Now uses `EntityStateCache` and `MoodScoreCache` for faster lookups
-  - Mood scores cached for 30 seconds (TTL)
-  - Automatic cache invalidation on entity state changes
-- **Brain Graph Sync**: Domain-filtered entity sync instead of loading all entities
-  - Only syncs relevant domains (light, switch, climate, media_player, etc.)
-  - Significantly reduced initial sync time
-
-### Performance
-- Entity state lookups: ~10x faster with caching
-- Mood evaluation: ~30% reduction in API calls with mood cache
-- Brain Graph initial sync: ~50% faster with domain filtering
+  - `InferenceEngine` - Real-time inference
 
 ---
 
 ## [0.8.2] - 2026-02-15
 
 ### Added
-- **OpenAPI Specification** (`docs/openapi.yaml`): Complete API documentation for Core Add-on integration
-- **Knowledge Graph API Endpoints** (Core Add-on v0.4.18):
-  - Node/Edge CRUD operations
-  - Graph queries (structural, contextual, semantic)
-  - Zone/Mood pattern queries
-  - HA state and Habitus pattern import
-
-### Changed
-- Updated INDEX.md with v0.8.2 features and API reference
+- **OpenAPI Specification** (`docs/openapi.yaml`): Complete API documentation
+- **LazyHistoryLoader**: On-demand history loading with TTL caching
 
 ---
 
-## [0.8.1] - 2026-02-15
-
-### Added
-- **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
-  - `ActionAttributor` class for attributing HA actions to specific users
-  - Multiple attribution sources: Presence, Device Ownership, Room Location, Time Patterns
-  - Weighted confidence scoring across all sources
-  - Action history storage for preference learning
-
-### Fixed
-- **Pipeline Health Sensor**: Corrected API endpoints
-  - `/candidates/stats` → `/candidates`
-  - `/habitus/health` → `/habitus/status`
-  - `/graph/patterns` → `/graph/state`
-- **Brain Graph Sync**: Updated connection test endpoint
-=======
-=======
-## [0.8.2] - 2026-02-15
-
-### Added
-- **OpenAPI Specification** (`docs/openapi.yaml`):
-  - Complete service documentation for HA Integration
-  - Tag Registry, Media Context v2, N3 Forwarder, Ops Runbook, MUPL services
-  - Request schemas with examples
-  - Service call patterns for automations/scripts
-
----
-
->>>>>>> origin/dev/openapi-spec-v0.8.2
 ## [0.8.1] - 2026-02-15
 
 ### Added
@@ -410,12 +94,9 @@
   - `TTLCache`: Thread-safe TTL cache with automatic expiration
   - `EntityStateCache`: Batch entity queries to reduce HA API calls
   - `DomainFilter`: Efficient domain-filtered state queries
-  - `LazyHistoryLoader`: On-demand history loading with TTL caching
   - Mood score caching (30s TTL) for <500ms response times
   - Entity cache invalidation on state changes
   - Brain graph sync optimization with domain filtering
-  - History prefetch queue for background loading
-  - Batch history queries with concurrent fetching
 
 - **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
   - `ActionAttributor` class for attributing HA actions to specific users
@@ -439,7 +120,6 @@
   - `/api/v1/candidates/stats` → `/api/v1/candidates`
   - `/api/v1/habitus/health` → `/api/v1/habitus/status`
   - `/api/v1/graph/patterns` → `/api/v1/graph/state`
->>>>>>> origin/dev/mupl-phase2-v0.8.1
 
 ---
 
