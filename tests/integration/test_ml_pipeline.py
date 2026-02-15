@@ -8,6 +8,9 @@ import numpy as np
 from pathlib import Path
 import importlib.util
 
+# All tests in this module require HA installation
+pytestmark = pytest.mark.integration
+
 # Use absolute path
 PROJECT_ROOT = Path("/config/.openclaw/workspace/ai_home_copilot_hacs_repo")
 

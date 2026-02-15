@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
-# import pytest  # Not available in test environment
+import pytest
 
 from custom_components.ai_home_copilot.forwarder_n3 import (
     N3EventForwarder,
