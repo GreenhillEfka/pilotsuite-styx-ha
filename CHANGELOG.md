@@ -1,5 +1,27 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.14] - 2026-02-15
+
+### Added
+- **Voice Context Sensors** (`sensors/voice_context.py`):
+  - `sensor.ai_copilot_voice_context` - Full voice context for HA Assist
+  - `sensor.ai_copilot_voice_prompt` - Ready-to-use voice prompt
+
+- **Voice Context Attributes**:
+  - `dominant_mood` - Current mood state
+  - `mood_confidence` - Confidence level
+  - `voice_tone` - Tone for voice responses (calm, focused, energetic, etc.)
+  - `voice_greeting` - Natural greeting based on mood
+  - `voice_suggestions` - Natural language suggestions
+  - `voice_prompt` - Complete prompt for HA Assist templates
+
+### HA Assist Integration
+- Use in templates: `{{ state_attr('sensor.ai_copilot_voice_context', 'voice_prompt') }}`
+- Mood-based response personalization
+- Zone-aware context
+
+---
+
 ## [0.8.13] - 2026-02-15
 
 ### Added

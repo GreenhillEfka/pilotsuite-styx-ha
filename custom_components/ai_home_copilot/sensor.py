@@ -54,6 +54,10 @@ from .sensors.neuron_dashboard import (
     MoodHistorySensor,
     SuggestionSensor,
 )
+from .sensors.voice_context import (
+    VoiceContextSensor,
+    VoicePromptSensor,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -80,6 +84,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         MoodSensor(coordinator),
         MoodConfidenceSensor(coordinator),
         NeuronActivitySensor(coordinator),
+        # Voice Context Sensors (HA Assist)
+        VoiceContextSensor(coordinator),
+        VoicePromptSensor(coordinator),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)
