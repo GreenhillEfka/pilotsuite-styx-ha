@@ -1,309 +1,674 @@
-from __future__ import annotations
+"""
+Brain Graph service providing high-level graph operations.
+"""
 
-import hashlib
-import math
-import re
 import time
-from dataclasses import asdict
-from typing import Any, Iterable
+from typing import Dict, List, Optional, Any, Tuple
 
-from copilot_core.brain_graph.model import EdgeType, GraphEdge, GraphNode, NodeKind
-from copilot_core.brain_graph.store import BrainGraphStore
-
-
-_RE_EMAIL = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
-_RE_URL = re.compile(r"https?://", re.IGNORECASE)
-_RE_IP = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
-_RE_PHONE = re.compile(r"\+?\d[\d\s().-]{7,}\d")
-
-
-def now_ms() -> int:
-    return int(time.time() * 1000)
-
-
-def _stable_edge_id(from_id: str, type_: str, to_id: str) -> str:
-    raw = f"{from_id}|{type_}|{to_id}".encode("utf-8")
-    h = hashlib.sha256(raw).hexdigest()[:16]
-    return f"e:{h}"
-
-
-def _sanitize_meta(meta: dict[str, Any] | None, *, max_bytes: int = 2048) -> dict[str, Any] | None:
-    if not meta or not isinstance(meta, dict):
-        return None
-
-    out: dict[str, Any] = {}
-    for k, v in meta.items():
-        if not isinstance(k, str):
-            continue
-        # Keep only simple scalar values.
-        if isinstance(v, (int, float, bool)):
-            out[k] = v
-        elif isinstance(v, str):
-            s = v.strip()
-            # Redact likely sensitive patterns.
-            if _RE_EMAIL.search(s) or _RE_URL.search(s) or _RE_IP.search(s) or _RE_PHONE.search(s):
-                continue
-            # Truncate strings.
-            if len(s) > 120:
-                s = s[:120] + "…"
-            out[k] = s
-        else:
-            continue
-
-    # Enforce max size (roughly)
-    try:
-        if len(str(out).encode("utf-8")) > max_bytes:
-            # If too big, drop entirely (v0.1 simplicity)
-            return None
-    except Exception:
-        return None
-
-    return out or None
+from .model import GraphNode, GraphEdge, NodeKind, EdgeType
+from .store import GraphStore
 
 
 class BrainGraphService:
+    """High-level service for brain graph operations."""
+    
     def __init__(
-        self,
-        store: BrainGraphStore,
-        *,
-        nodes_max: int = 500,
-        edges_max: int = 1500,
-        node_half_life_ms: int = 24 * 3600 * 1000,
-        edge_half_life_ms: int = 12 * 3600 * 1000,
-        node_min: float = 0.05,
-        edge_min: float = 0.05,
+        self, 
+        store: Optional[GraphStore] = None,
+        node_half_life_hours: float = 24.0,
+        edge_half_life_hours: float = 12.0
     ):
-        self.store = store
-        self.nodes_max = nodes_max
-        self.edges_max = edges_max
-        self.node_half_life_ms = node_half_life_ms
-        self.edge_half_life_ms = edge_half_life_ms
-        self.node_min = node_min
-        self.edge_min = edge_min
-
+        self.store = store or GraphStore()
+        self.node_half_life_hours = node_half_life_hours
+        self.edge_half_life_hours = edge_half_life_hours
+    
     def touch_node(
         self,
         node_id: str,
-        *,
         delta: float = 1.0,
-        label: str | None = None,
-        kind: NodeKind = "concept",
-        domain: str | None = None,
-        meta_patch: dict[str, Any] | None = None,
-        now: int | None = None,
+        label: Optional[str] = None,
+        kind: Optional[NodeKind] = None,
+        domain: Optional[str] = None,
+        meta_patch: Optional[Dict[str, Any]] = None,
+        source: Optional[Dict[str, str]] = None,
+        tags: Optional[List[str]] = None
     ) -> GraphNode:
-        t = int(now or now_ms())
-        n = self.store.nodes.get(node_id)
-        if n is None:
-            n = GraphNode(
-                id=node_id,
-                kind=kind,
-                label=label or node_id,
-                domain=domain,
-                updated_at_ms=t,
-                score=max(0.0, float(delta)),
-                meta=_sanitize_meta(meta_patch),
-            )
-            self.store.nodes[node_id] = n
-        else:
-            n.score = float(n.score) + float(delta)
-            n.updated_at_ms = t
-            if label:
-                n.label = label
-            if domain:
-                n.domain = domain
+        """Touch a node, updating its score and metadata."""
+        now_ms = int(time.time() * 1000)
+        
+        # Get existing node or create new one
+        existing_node = self.store.get_node(node_id)
+        
+        if existing_node:
+            # Update existing node
+            new_score = max(0.0, existing_node.effective_score(now_ms, self.node_half_life_hours) + delta)
+            new_label = label or existing_node.label
+            new_kind = kind or existing_node.kind
+            new_domain = domain or existing_node.domain
+            new_source = source or existing_node.source
+            new_tags = tags or existing_node.tags
+            
+            # Merge meta
+            new_meta = existing_node.meta.copy() if existing_node.meta else {}
             if meta_patch:
-                merged = dict(n.meta or {})
-                merged.update(_sanitize_meta(meta_patch) or {})
-                n.meta = _sanitize_meta(merged)
-
-        return n
-
+                new_meta.update(meta_patch)
+        else:
+            # Create new node  
+            if not label or not kind:
+                raise ValueError("label and kind are required for new nodes")
+                
+            new_score = max(0.0, delta)
+            new_label = label
+            new_kind = kind
+            new_domain = domain
+            new_source = source
+            new_tags = tags
+            new_meta = meta_patch or {}
+        
+        # Create updated node
+        updated_node = GraphNode(
+            id=node_id,
+            kind=new_kind,
+            label=new_label,
+            updated_at_ms=now_ms,
+            score=new_score,
+            domain=new_domain,
+            source=new_source,
+            tags=new_tags,
+            meta=new_meta,
+        )
+        
+        # Store the node
+        self.store.upsert_node(updated_node)
+        
+        # Trigger pruning periodically (every ~100 operations)
+        import random
+        if random.randint(1, 100) == 1:
+            self.store.prune_graph(now_ms)
+        
+        return updated_node
+    
     def touch_edge(
         self,
-        from_id: str,
-        type_: EdgeType,
-        to_id: str,
-        *,
+        from_node: str,
+        edge_type: EdgeType,
+        to_node: str,
         delta: float = 1.0,
-        meta_patch: dict[str, Any] | None = None,
-        now: int | None = None,
+        meta_patch: Optional[Dict[str, Any]] = None,
+        evidence: Optional[Dict[str, str]] = None
     ) -> GraphEdge:
-        t = int(now or now_ms())
-        edge_id = _stable_edge_id(from_id, type_, to_id)
-        e = self.store.edges.get(edge_id)
-        if e is None:
-            e = GraphEdge(
-                id=edge_id,
-                from_id=from_id,
-                to_id=to_id,
-                type=type_,
-                updated_at_ms=t,
-                weight=max(0.0, float(delta)),
-                meta=_sanitize_meta(meta_patch),
-            )
-            self.store.edges[edge_id] = e
-        else:
-            e.weight = float(e.weight) + float(delta)
-            e.updated_at_ms = t
+        """Touch an edge, updating its weight and metadata."""
+        now_ms = int(time.time() * 1000)
+        
+        edge_id = GraphEdge.create_id(from_node, edge_type, to_node)
+        
+        # Get existing edge or create new one
+        existing_edges = self.store.get_edges(from_node=from_node, to_node=to_node, edge_types=[edge_type])
+        existing_edge = next((e for e in existing_edges if e.id == edge_id), None)
+        
+        if existing_edge:
+            # Update existing edge
+            new_weight = max(0.0, existing_edge.effective_weight(now_ms, self.edge_half_life_hours) + delta)
+            new_evidence = evidence or existing_edge.evidence
+            
+            # Merge meta
+            new_meta = existing_edge.meta.copy() if existing_edge.meta else {}
             if meta_patch:
-                merged = dict(e.meta or {})
-                merged.update(_sanitize_meta(meta_patch) or {})
-                e.meta = _sanitize_meta(merged)
-        return e
-
-    def _decay(self, value: float, age_ms: int, half_life_ms: int) -> float:
-        if value <= 0:
-            return 0.0
-        if age_ms <= 0:
-            return float(value)
-        if half_life_ms <= 0:
-            return float(value)
-        # exponential decay: v * 0.5^(age/half_life)
-        return float(value) * math.pow(0.5, float(age_ms) / float(half_life_ms))
-
-    def _effective_node_score(self, n: GraphNode, t: int) -> float:
-        return self._decay(float(n.score), t - int(n.updated_at_ms), self.node_half_life_ms)
-
-    def _effective_edge_weight(self, e: GraphEdge, t: int) -> float:
-        return self._decay(float(e.weight), t - int(e.updated_at_ms), self.edge_half_life_ms)
-
-    def prune(self, *, now: int | None = None) -> None:
-        t = int(now or now_ms())
-
-        # 1) drop low-weight edges
-        eff_edges: list[tuple[str, float, int]] = []  # (id, eff_w, updated)
-        for eid, e in list(self.store.edges.items()):
-            w = self._effective_edge_weight(e, t)
-            if w < self.edge_min:
-                self.store.edges.pop(eid, None)
-            else:
-                eff_edges.append((eid, w, int(e.updated_at_ms)))
-
-        # 2) keep top-K edges
-        if len(eff_edges) > self.edges_max:
-            eff_edges.sort(key=lambda x: (x[1], x[2]), reverse=True)
-            keep = {eid for (eid, _, _) in eff_edges[: self.edges_max]}
-            for eid in list(self.store.edges.keys()):
-                if eid not in keep:
-                    self.store.edges.pop(eid, None)
-
-        # 3) drop nodes with low score and no remaining edges
-        incident: set[str] = set()
-        for e in self.store.edges.values():
-            incident.add(e.from_id)
-            incident.add(e.to_id)
-
-        eff_nodes: list[tuple[str, float, int]] = []
-        for nid, n in list(self.store.nodes.items()):
-            s = self._effective_node_score(n, t)
-            if s < self.node_min and nid not in incident:
-                self.store.nodes.pop(nid, None)
-            else:
-                eff_nodes.append((nid, s, int(n.updated_at_ms)))
-
-        # 4) keep top-K nodes
-        if len(eff_nodes) > self.nodes_max:
-            eff_nodes.sort(key=lambda x: (x[1], x[2]), reverse=True)
-            keep_nodes = {nid for (nid, _, _) in eff_nodes[: self.nodes_max]}
-            for nid in list(self.store.nodes.keys()):
-                if nid not in keep_nodes:
-                    self.store.nodes.pop(nid, None)
-
-            # remove edges incident to removed nodes
-            for eid, e in list(self.store.edges.items()):
-                if e.from_id not in keep_nodes or e.to_id not in keep_nodes:
-                    self.store.edges.pop(eid, None)
-
-    def export_state(
+                new_meta.update(meta_patch)
+        else:
+            # Create new edge
+            new_weight = max(0.0, delta)
+            new_evidence = evidence
+            new_meta = meta_patch or {}
+        
+        # Create updated edge
+        updated_edge = GraphEdge(
+            id=edge_id,
+            from_node=from_node,
+            to_node=to_node,
+            edge_type=edge_type,
+            updated_at_ms=now_ms,
+            weight=new_weight,
+            evidence=new_evidence,
+            meta=new_meta,
+        )
+        
+        # Store the edge
+        self.store.upsert_edge(updated_edge)
+        
+        return updated_edge
+    
+    def link(
         self,
-        *,
-        kind: Iterable[str] | None = None,
-        domain: Iterable[str] | None = None,
-        center: str | None = None,
+        from_node: str,
+        edge_type: EdgeType, 
+        to_node: str,
+        initial_weight: float = 1.0,
+        evidence: Optional[Dict[str, str]] = None,
+        meta: Optional[Dict[str, Any]] = None
+    ) -> GraphEdge:
+        """Create or strengthen a link between nodes."""
+        return self.touch_edge(
+            from_node=from_node,
+            edge_type=edge_type,
+            to_node=to_node,
+            delta=initial_weight,
+            evidence=evidence,
+            meta_patch=meta
+        )
+    
+    def get_graph_state(
+        self,
+        kinds: Optional[List[NodeKind]] = None,
+        domains: Optional[List[str]] = None,
+        center_node: Optional[str] = None,
         hops: int = 1,
-        limit_nodes: int = 500,
-        limit_edges: int = 1500,
-        now: int | None = None,
-    ) -> dict[str, Any]:
-        """Export a bounded, privacy-first view of the graph.
-
-        This intentionally omits meta/evidence in v0.1.
-        """
-        t = int(now or now_ms())
-        self.prune(now=t)
-
-        kinds = {k for k in (kind or []) if isinstance(k, str)}
-        domains = {d for d in (domain or []) if isinstance(d, str)}
-
-        # Initial node selection
-        nodes = list(self.store.nodes.values())
-        if kinds:
-            nodes = [n for n in nodes if n.kind in kinds]
-        if domains:
-            nodes = [n for n in nodes if (n.domain or "") in domains]
-
-        # Neighborhood mode
-        if center and isinstance(center, str) and center:
-            selected: set[str] = set([center]) if center in self.store.nodes else set()
-            frontier = set(selected)
-            for _ in range(max(0, min(int(hops), 2))):
-                nxt: set[str] = set()
-                for e in self.store.edges.values():
-                    if e.from_id in frontier:
-                        nxt.add(e.to_id)
-                    if e.to_id in frontier:
-                        nxt.add(e.from_id)
-                nxt = {nid for nid in nxt if nid in self.store.nodes}
-                nxt -= selected
-                selected |= nxt
-                frontier = nxt
-            nodes = [self.store.nodes[nid] for nid in selected]
-
-        # Top-K nodes by effective score
-        nodes.sort(key=lambda n: (self._effective_node_score(n, t), int(n.updated_at_ms)), reverse=True)
-        limit_nodes = max(1, min(int(limit_nodes), self.nodes_max))
-        nodes = nodes[:limit_nodes]
-        keep_ids = {n.id for n in nodes}
-
-        # Edges among kept nodes
-        edges = [e for e in self.store.edges.values() if e.from_id in keep_ids and e.to_id in keep_ids]
-        edges.sort(key=lambda e: (self._effective_edge_weight(e, t), int(e.updated_at_ms)), reverse=True)
-        limit_edges = max(1, min(int(limit_edges), self.edges_max))
-        edges = edges[:limit_edges]
-
+        limit_nodes: Optional[int] = None,
+        limit_edges: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Get current graph state with optional filtering."""
+        now_ms = int(time.time() * 1000)
+        
+        if center_node:
+            # Get neighborhood
+            nodes, edges = self.store.get_neighborhood(
+                center_node=center_node,
+                hops=hops,
+                max_nodes=limit_nodes,
+                max_edges=limit_edges
+            )
+        else:
+            # Get filtered nodes
+            nodes = self.store.get_nodes(
+                kinds=kinds,
+                domains=domains,
+                limit=limit_nodes
+            )
+            
+            # Get edges between these nodes
+            node_ids = {node.id for node in nodes}
+            all_edges = []
+            
+            for node in nodes:
+                node_edges = self.store.get_edges(from_node=node.id)
+                for edge in node_edges:
+                    if edge.to_node in node_ids and edge not in all_edges:
+                        all_edges.append(edge)
+            
+            # Apply edge limit
+            if limit_edges and len(all_edges) > limit_edges:
+                all_edges = sorted(all_edges, key=lambda e: e.effective_weight(now_ms), reverse=True)[:limit_edges]
+                
+            edges = all_edges
+        
+        # Convert to serializable format
         return {
             "version": 1,
-            "generated_at_ms": t,
-            "limits": {"nodes_max": self.nodes_max, "edges_max": self.edges_max},
+            "generated_at_ms": now_ms,
+            "limits": {
+                "nodes_max": self.store.max_nodes,
+                "edges_max": self.store.max_edges,
+            },
             "nodes": [
                 {
-                    "id": n.id,
-                    "kind": n.kind,
-                    "label": n.label,
-                    **({"domain": n.domain} if n.domain else {}),
-                    "score": round(self._effective_node_score(n, t), 6),
-                    "updated_at_ms": int(n.updated_at_ms),
+                    "id": node.id,
+                    "kind": node.kind,
+                    "label": node.label,
+                    "domain": node.domain,
+                    "score": node.effective_score(now_ms, self.node_half_life_hours),
+                    "updated_at_ms": node.updated_at_ms,
+                    "source": node.source,
+                    "tags": node.tags,
+                    "meta": node.meta,
                 }
-                for n in nodes
+                for node in nodes
             ],
             "edges": [
                 {
-                    "id": e.id,
-                    "from": e.from_id,
-                    "to": e.to_id,
-                    "type": e.type,
-                    "weight": round(self._effective_edge_weight(e, t), 6),
-                    "updated_at_ms": int(e.updated_at_ms),
+                    "id": edge.id,
+                    "from": edge.from_node,
+                    "to": edge.to_node,
+                    "type": edge.edge_type,
+                    "weight": edge.effective_weight(now_ms, self.edge_half_life_hours),
+                    "updated_at_ms": edge.updated_at_ms,
+                    "evidence": edge.evidence,
+                    "meta": edge.meta,
                 }
-                for e in edges
-            ],
+                for edge in edges
+            ]
         }
-
-    def persist_best_effort(self) -> None:
-        # Persist after pruning; only minimal serialization is used.
-        self.prune()
-        self.store.save_best_effort()
-
-    def debug_counts(self) -> dict[str, int]:
-        return {"nodes": len(self.store.nodes), "edges": len(self.store.edges)}
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get current graph statistics."""
+        store_stats = self.store.get_stats()
+        
+        return {
+            **store_stats,
+            "config": {
+                "node_half_life_hours": self.node_half_life_hours,
+                "edge_half_life_hours": self.edge_half_life_hours,
+                "node_min_score": self.store.node_min_score,
+                "edge_min_weight": self.store.edge_min_weight,
+            }
+        }
+    
+    def prune_now(self) -> Dict[str, int]:
+        """Manually trigger graph pruning."""
+        return self.store.prune_graph()
+    
+    def process_ha_event(self, event_data: Dict[str, Any]):
+        """Process a Home Assistant event and update the graph."""
+        event_type = event_data.get("event_type", "")
+        
+        if event_type == "state_changed":
+            self._process_state_change(event_data)
+        elif event_type == "call_service":
+            self._process_service_call(event_data)
+        
+        # Trigger inference: look for causal relationships between recent events
+        self._infer_triggers(event_data)
+    
+    def _infer_triggers(self, event_data: Dict[str, Any]):
+        """Infer causal relationships between events based on timing."""
+        event_type = event_data.get("event_type", "")
+        timestamp_ms = int(time.time() * 1000)
+        
+        if event_type != "state_changed":
+            return  # Only infer triggers for state changes
+            
+        entity_id = event_data.get("data", {}).get("entity_id", "")
+        context_id = event_data.get("context", {}).get("id", "")
+        parent_id = event_data.get("context", {}).get("parent_id", "")
+        
+        if not entity_id:
+            return
+            
+        # Look for service calls in the last 10 seconds that might have caused this
+        # This would ideally query recent events, but for now we'll use a simple heuristic
+        # based on the context parent_id (HA provides this for triggered events)
+        
+        if parent_id:
+            # This state change was likely triggered by a service call
+            trigger_node_id = f"ha.trigger:{parent_id[:8]}"  # Shortened for privacy
+            
+            self.touch_node(
+                node_id=trigger_node_id,
+                kind="event",
+                label=f"Trigger {parent_id[:8]}",
+                source={"system": "ha", "name": "context_inference"},
+                tags=["trigger", "causal"]
+            )
+            
+            # Link trigger to affected entity
+            self.link(
+                from_node=trigger_node_id,
+                edge_type="triggered_by",
+                to_node=f"ha.entity:{entity_id}",
+                evidence={"kind": "context_parent", "ref": parent_id[:8]}
+            )
+    
+    def infer_patterns(self) -> Dict[str, Any]:
+        """Infer common patterns from the current graph state."""
+        now_ms = int(time.time() * 1000)
+        
+        # Get all nodes and edges
+        all_nodes = self.store.get_nodes(limit=None)
+        all_edges = self.store.get_edges()
+        
+        patterns = {
+            "frequently_controlled_entities": [],
+            "zone_activity_hubs": [],
+            "service_usage_patterns": [],
+            "trigger_chains": []
+        }
+        
+        # Pattern 1: Most controlled entities (high service call correlation)
+        entity_control_scores = {}
+        for edge in all_edges:
+            if (edge.edge_type == "affects" and 
+                edge.from_node.startswith("ha.service:") and 
+                edge.to_node.startswith("ha.entity:")):
+                
+                entity_id = edge.to_node
+                score = edge.effective_weight(now_ms, self.edge_half_life_hours)
+                entity_control_scores[entity_id] = entity_control_scores.get(entity_id, 0) + score
+        
+        top_controlled = sorted(entity_control_scores.items(), key=lambda x: x[1], reverse=True)[:5]
+        patterns["frequently_controlled_entities"] = [
+            {"entity_id": entity_id.replace("ha.entity:", ""), "control_score": score}
+            for entity_id, score in top_controlled
+        ]
+        
+        # Pattern 2: Zone activity (entities + triggers in zones)
+        zone_activity = {}
+        for edge in all_edges:
+            if edge.edge_type == "in_zone" and edge.to_node.startswith("zone:"):
+                zone_id = edge.to_node
+                weight = edge.effective_weight(now_ms, self.edge_half_life_hours)
+                zone_activity[zone_id] = zone_activity.get(zone_id, 0) + weight
+        
+        top_zones = sorted(zone_activity.items(), key=lambda x: x[1], reverse=True)[:3]
+        patterns["zone_activity_hubs"] = [
+            {"zone_id": zone_id.replace("zone:", ""), "activity_score": score}
+            for zone_id, score in top_zones
+        ]
+        
+        return patterns
+    
+    def get_zone_entities(self, zone_id: str) -> Dict[str, Any]:
+        """
+        Get all entities in a specific zone.
+        
+        Args:
+            zone_id: Zone identifier (e.g., "zone:kitchen" or "kitchen")
+            
+        Returns:
+            Dict with entities, edges, and zone info
+        """
+        now_ms = int(time.time() * 1000)
+        
+        # Normalize zone_id
+        if not zone_id.startswith("zone:"):
+            zone_id = f"zone:{zone_id}"
+        
+        # Get zone node
+        zone_node = self.store.get_node(zone_id)
+        if not zone_node:
+            return {"error": f"Zone not found: {zone_id}"}
+        
+        # Get all edges from/to zone
+        zone_edges = self.store.get_edges(to_node=zone_id, edge_types=["in_zone"])
+        entity_node_ids = set()
+        
+        for edge in zone_edges:
+            if edge.from_node.startswith("ha.entity:"):
+                entity_node_ids.add(edge.from_node)
+        
+        # Get entity nodes
+        entities = []
+        for node_id in entity_node_ids:
+            node = self.store.get_node(node_id)
+            if node:
+                entities.append({
+                    "id": node.id,
+                    "label": node.label,
+                    "kind": node.kind,
+                    "domain": node.domain,
+                    "score": node.effective_score(now_ms, self.node_half_life_hours),
+                    "updated_at_ms": node.updated_at_ms
+                })
+        
+        # Sort by score
+        entities.sort(key=lambda x: x["score"], reverse=True)
+        
+        return {
+            "zone": {
+                "id": zone_node.id,
+                "label": zone_node.label,
+                "score": zone_node.effective_score(now_ms, self.node_half_life_hours)
+            },
+            "entities": entities,
+            "entity_count": len(entities),
+            "edges": [
+                {"from": e.from_node, "to": e.to_node, "weight": e.effective_weight(now_ms)}
+                for e in zone_edges
+            ]
+        }
+    
+    def get_zones(self) -> List[Dict[str, Any]]:
+        """
+        Get all zones from the brain graph.
+        
+        Returns:
+            List of zone dictionaries with metadata
+        """
+        now_ms = int(time.time() * 1000)
+        
+        all_nodes = self.store.get_nodes(kinds=["zone"])
+        zones = []
+        
+        for node in all_nodes:
+            # Get entity count for this zone
+            zone_edges = self.store.get_edges(to_node=node.id, edge_types=["in_zone"])
+            entity_count = len([
+                e for e in zone_edges 
+                if e.from_node.startswith("ha.entity:")
+            ])
+            
+            zones.append({
+                "id": node.id,
+                "label": node.label,
+                "score": node.effective_score(now_ms, self.node_half_life_hours),
+                "entity_count": entity_count,
+                "updated_at_ms": node.updated_at_ms
+            })
+        
+        # Sort by score (activity level)
+        zones.sort(key=lambda x: x["score"], reverse=True)
+        
+        return zones
+    
+    def _process_state_change(self, event_data: Dict[str, Any]):
+        """Process a state change event with enhanced zone inference."""
+        # Extract entity info
+        entity_id = event_data.get("data", {}).get("entity_id", "")
+        if not entity_id:
+            return
+            
+        new_state = event_data.get("data", {}).get("new_state", {})
+        state_value = new_state.get("state", "")
+        domain = entity_id.split(".")[0] if "." in entity_id else "unknown"
+        
+        # Create/update entity node with higher salience for interactive entities
+        salience_boost = 1.5 if domain in ['light', 'switch', 'cover', 'media_player'] else 1.0
+        
+        entity_node = self.touch_node(
+            node_id=f"ha.entity:{entity_id}",
+            kind="entity",
+            label=entity_id.split(".")[-1].replace("_", " ").title(),
+            domain=domain,
+            source={"system": "ha", "name": "state_changed"},
+            delta=salience_boost
+        )
+        
+        # Enhanced zone inference from state values and attributes
+        self._infer_and_link_zones(entity_id, state_value, new_state.get("attributes", {}))
+        
+        # Link to device if device_id is available
+        device_id = new_state.get("attributes", {}).get("device_id")
+        if device_id:
+            device_node = self.touch_node(
+                node_id=f"ha.device:{device_id}",
+                kind="device",
+                label=f"Device {device_id[:8]}",
+                source={"system": "ha", "name": "device_registry"}
+            )
+            
+            self.link(
+                from_node=f"ha.entity:{entity_id}",
+                edge_type="controls",
+                to_node=f"ha.device:{device_id}",
+                evidence={"kind": "device_registry", "ref": entity_id}
+            )
+    
+    def _infer_and_link_zones(self, entity_id: str, state_value: str, attributes: Dict[str, Any]):
+        """Infer zone relationships from entity state and attributes."""
+        domain = entity_id.split(".")[0]
+        entity_node_id = f"ha.entity:{entity_id}"
+        
+        # Method 1: Direct zone from state (person, device_tracker)
+        if domain in ['person', 'device_tracker'] and state_value:
+            if state_value not in ['unknown', 'unavailable', '']:
+                zone_id = f"zone:{state_value}"
+                zone_label = state_value.replace("_", " ").title()
+                
+                # Create/update zone node
+                self.touch_node(
+                    node_id=zone_id,
+                    kind="zone", 
+                    label=zone_label,
+                    source={"system": "ha", "name": "zone_inference"}
+                )
+                
+                # Link entity to zone
+                self.link(
+                    from_node=entity_node_id,
+                    edge_type="in_zone",
+                    to_node=zone_id,
+                    evidence={"kind": "state_inference", "ref": f"state={state_value}"}
+                )
+        
+        # Method 2: Area from friendly_name patterns
+        friendly_name = attributes.get("friendly_name", "")
+        if friendly_name:
+            # Extract potential area/room from friendly name
+            # Common patterns: "Kitchen Light", "Living Room TV", "Bedroom Fan"
+            words = friendly_name.lower().split()
+            potential_zones = []
+            
+            # Look for common room/area words
+            room_indicators = [
+                'kitchen', 'bedroom', 'bathroom', 'living', 'dining', 'office',
+                'garage', 'basement', 'attic', 'hallway', 'entryway', 'patio',
+                'balcony', 'study', 'guest', 'master', 'kids', 'family'
+            ]
+            
+            for word in words:
+                if word in room_indicators:
+                    potential_zones.append(word)
+            
+            # Create zone links for detected areas
+            for zone_name in potential_zones:
+                zone_id = f"zone:{zone_name}"
+                zone_label = zone_name.title()
+                
+                self.touch_node(
+                    node_id=zone_id,
+                    kind="zone",
+                    label=zone_label,
+                    source={"system": "ha", "name": "friendly_name_inference"}
+                )
+                
+                self.link(
+                    from_node=entity_node_id,
+                    edge_type="in_zone", 
+                    to_node=zone_id,
+                    initial_weight=0.7,  # Lower confidence than direct state
+                    evidence={"kind": "name_inference", "ref": f"friendly_name={friendly_name}"}
+                )
+        
+        # Method 3: Entity ID patterns (e.g., "light.kitchen_main")
+        entity_name = entity_id.split(".")[-1] if "." in entity_id else entity_id
+        name_parts = entity_name.replace("_", " ").split()
+        
+        for part in name_parts:
+            if part.lower() in ['kitchen', 'bedroom', 'bathroom', 'living', 'dining', 'office', 'garage']:
+                zone_id = f"zone:{part.lower()}"
+                zone_label = part.title()
+                
+                self.touch_node(
+                    node_id=zone_id,
+                    kind="zone",
+                    label=zone_label,
+                    source={"system": "ha", "name": "entity_name_inference"}
+                )
+                
+                self.link(
+                    from_node=entity_node_id,
+                    edge_type="in_zone",
+                    to_node=zone_id,
+                    initial_weight=0.5,  # Lowest confidence
+                    evidence={"kind": "entity_name_inference", "ref": f"entity_id={entity_id}"}
+                )
+        
+    def _process_service_call(self, event_data: Dict[str, Any]):
+        """Process a service call event with enhanced intentional action tracking."""
+        service_data = event_data.get("data", {})
+        domain = service_data.get("domain", "")
+        service = service_data.get("service", "")
+        
+        if not domain or not service:
+            return
+            
+        # Create/update service node with high salience (intentional actions matter more)
+        service_id = f"{domain}.{service}"
+        service_node = self.touch_node(
+            node_id=f"ha.service:{service_id}",
+            kind="concept", 
+            label=f"{domain.title()} {service.replace('_', ' ').title()}",
+            source={"system": "ha", "name": "call_service"},
+            delta=2.0,  # Higher salience for intentional actions
+            tags=["service_call", domain]
+        )
+        
+        # Extract and link target entities
+        call_data = service_data.get("service_data", {})
+        target_entities = self._extract_target_entities(call_data)
+        
+        # Create stronger links to affected entities (intentional correlation)
+        for entity_id in target_entities:
+            # Boost entity salience when explicitly controlled
+            self.touch_node(
+                node_id=f"ha.entity:{entity_id}",
+                delta=1.2,  # Boost controlled entities
+                source={"system": "ha", "name": "service_target"}
+            )
+            
+            # Create strong intentional edge
+            self.link(
+                from_node=f"ha.service:{service_id}",
+                edge_type="affects",
+                to_node=f"ha.entity:{entity_id}",
+                initial_weight=1.5,  # Stronger than passive correlations
+                evidence={"kind": "service_call", "ref": service_id, "summary": f"{service} → {entity_id}"}
+            )
+            
+            # If entity has known zones, link service to zones too (spatial intent)
+            entity_edges = self.store.get_edges(from_node=f"ha.entity:{entity_id}")
+            for edge in entity_edges:
+                if edge.edge_type == "in_zone" and edge.to_node.startswith("zone:"):
+                    self.link(
+                        from_node=f"ha.service:{service_id}",
+                        edge_type="affects",
+                        to_node=edge.to_node,
+                        initial_weight=0.8,  # Lower than direct entity link
+                        evidence={"kind": "spatial_inference", "ref": f"via {entity_id}"}
+                    )
+    
+    def _extract_target_entities(self, service_data: Dict[str, Any]) -> List[str]:
+        """Extract target entity IDs from service call data."""
+        targets = []
+        
+        # Method 1: Direct entity_id parameter
+        entity_id = service_data.get("entity_id")
+        if entity_id:
+            if isinstance(entity_id, str):
+                targets.append(entity_id)
+            elif isinstance(entity_id, list):
+                targets.extend([e for e in entity_id if isinstance(e, str)])
+        
+        # Method 2: area_id (would target all entities in area)
+        area_id = service_data.get("area_id")
+        if area_id:
+            # This would require HA area registry integration
+            # For now, we'll create an area concept node
+            area_node_id = f"ha.area:{area_id}"
+            self.touch_node(
+                node_id=area_node_id,
+                kind="zone",
+                label=f"Area {area_id}",
+                source={"system": "ha", "name": "area_registry"}
+            )
+        
+        # Method 3: device_id (would target entities of that device)
+        device_id = service_data.get("device_id")
+        if device_id:
+            device_node_id = f"ha.device:{device_id}"
+            self.touch_node(
+                node_id=device_node_id,
+                kind="device", 
+                label=f"Device {device_id[:8]}",
+                source={"system": "ha", "name": "device_registry"}
+            )
+        
+        return targets

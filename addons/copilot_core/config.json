@@ -2,57 +2,45 @@
   "name": "AI Home CoPilot Core (MVP)",
   "slug": "copilot_core",
   "description": "MVP Core Service for AI Home CoPilot (health/version endpoints; scaffold for neurons/moods/synapses).",
-  "version": "0.2.5",
+  "version": "0.4.14",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": ["amd64", "aarch64"],
   "startup": "services",
   "boot": "auto",
   "init": false,
   "ingress": true,
-  "ingress_port": 8909,
+  "ingress_port": 8099,
   "panel_icon": "mdi:brain",
   "panel_title": "CoPilot",
   "ports": {
-    "8909/tcp": 8909
+    "8099/tcp": 8099
   },
   "ports_description": {
-    "8909/tcp": "CoPilot Core HTTP API"
+    "8099/tcp": "CoPilot Core HTTP API"
   },
-  "webui": "http://[HOST]:[PORT:8909]/",
+  "webui": "http://[HOST]:[PORT:8099]/",
   "options": {
     "log_level": "info",
     "auth_token": "",
-
-    "events_persist": false,
-    "events_cache_max": 500,
-    "events_idempotency_ttl_seconds": 1200,
-    "events_idempotency_lru_max": 10000,
-
-    "candidates_persist": false,
-    "candidates_max": 500,
-
-    "mood_window_seconds": 3600,
-
-    "brain_graph_persist": true,
-    "brain_graph_nodes_max": 500,
-    "brain_graph_edges_max": 1500
+    "brain_graph": {
+      "max_nodes": 500,
+      "max_edges": 1500,
+      "node_half_life_hours": 24.0,
+      "edge_half_life_hours": 12.0,
+      "node_min_score": 0.1,
+      "edge_min_weight": 0.1
+    }
   },
   "schema": {
     "log_level": "list(trace|debug|info|warning|error)",
     "auth_token": "password?",
-
-    "events_persist": "bool",
-    "events_cache_max": "int",
-    "events_idempotency_ttl_seconds": "int",
-    "events_idempotency_lru_max": "int",
-
-    "candidates_persist": "bool",
-    "candidates_max": "int",
-
-    "mood_window_seconds": "int",
-
-    "brain_graph_persist": "bool",
-    "brain_graph_nodes_max": "int",
-    "brain_graph_edges_max": "int"
+    "brain_graph": {
+      "max_nodes": "int(100..5000)",
+      "max_edges": "int(300..15000)",
+      "node_half_life_hours": "float(1.0..168.0)",
+      "edge_half_life_hours": "float(1.0..168.0)",
+      "node_min_score": "float(0.01..1.0)",
+      "edge_min_weight": "float(0.01..1.0)"
+    }
   }
 }

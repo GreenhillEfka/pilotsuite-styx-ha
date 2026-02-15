@@ -1,6 +1,22 @@
-# Python
+# Python artifacts
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
 
-# OS
+# Build outputs
+build/
+dist/
+*.egg-info/
+.coverage
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+
+# Editor/OS noise
 .DS_Store
+.idea/
+.vscode/
+
+.venv/

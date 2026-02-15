@@ -3,6 +3,15 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 0.2.7
+- Brain Graph Ops: `POST /api/v1/graph/ops` (v0.1: touch_edge; idempotent; allowlist: observed_with, controls).
+
+## 0.2.6
+- Dev Surface: `GET /api/v1/dev/status`.
+- Diagnostics Contract: `GET /api/v1/dev/support_bundle` liefert ein privacy-first, bounded ZIP.
+- DevLogs ingest: Payloads werden vor Persistenz best-effort sanitisiert.
+- Graph→Candidates Bridge: `GET /api/v1/candidates/graph_candidates` (Preview, bounded).
+
 ## 0.2.5
 - Brain Graph wird jetzt aus eingehenden `/api/v1/events` Batches gefüttert (privacy-first, bounded).
 - Capabilities zeigen `brain_graph.feeding_enabled`.
