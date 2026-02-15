@@ -1,5 +1,22 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.8] - 2026-02-15
+
+### Added
+- **Neuron Dashboard Sensors**:
+  - `sensor.ai_copilot_neuron_dashboard` - All neuron states as JSON
+  - `sensor.ai_copilot_mood_history` - Mood trend history (last 20)
+  - `sensor.ai_copilot_suggestions` - Current suggestions from neural system
+
+### Dashboard Features
+- Context neurons display
+- State neurons display
+- Mood neurons display
+- Mood history with timestamps
+- Suggestion types and priorities
+
+---
+
 ## [0.8.7] - 2026-02-15
 
 ### Fixed

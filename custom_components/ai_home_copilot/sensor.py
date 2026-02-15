@@ -49,6 +49,11 @@ from .sensors.mood_sensor import (
     MoodConfidenceSensor,
     NeuronActivitySensor,
 )
+from .sensors.neuron_dashboard import (
+    NeuronDashboardSensor,
+    MoodHistorySensor,
+    SuggestionSensor,
+)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
