@@ -1,5 +1,21 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.27] - 2026-02-15
+
+### Fixed
+- **BrainGraphStore naming**: Renamed `GraphStore` to `BrainGraphStore` with backwards-compatible alias
+  - `brain_graph/store.py`: Class renamed to `BrainGraphStore`
+  - `brain_graph/__init__.py`: Added `GraphStore` alias
+  - `brain_graph/service.py`: Added `GraphStore` alias
+  - `core_setup.py`: Added `GraphStore` alias
+- **Dataclass field ordering**: Fixed `habitus_miner/model.py` Rule dataclass
+  - Non-default fields (`observation_period_days`, `baseline_p_b`) now come before default fields
+- **Obsolete tests**: Disabled `test_tag_assignment_store.py` and `test_tag_registry.py`
+  - Tests were for old `tagging/` module removed in v0.4.25
+  - Renamed to `.py.disabled` to prevent import errors
+
+---
+
 ## [0.4.26] - 2026-02-15
 
 ### Fixed
