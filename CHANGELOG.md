@@ -1,6 +1,6 @@
 # Changelog - AI Home CoPilot Core Add-on
 
-## [0.6.3] - 2026-02-15
+## [0.7.0] - 2026-02-15
 
 ### Fixed
 - Energy API Blueprint registered in api/v1/blueprint.py
