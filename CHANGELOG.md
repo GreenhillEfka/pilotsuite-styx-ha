@@ -1,5 +1,35 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.10.0] - 2026-02-15
+
+### Added
+- **Camera Context Module**: New core module for camera-based context detection
+  - Motion detection events tracking
+  - Presence detection (person/vehicle/animal)
+  - Activity tracking (walking/running/sitting)
+  - Zone monitoring (entered/left/lingered)
+- **Camera Entities**: Specialized camera entities for Habitus
+  - `motion_detection_camera`: Motion detection binary sensor
+  - `presence_camera`: Presence logging
+  - `activity_camera`: Activity tracking sensor
+  - `zone_camera`: Zone monitoring
+- **Mobile Dashboard Cards**: Mobile-optimized dashboard cards
+  - Quick Actions Card (compact actions)
+  - Mood Status Card (with quick toggles)
+  - Entity Quick Access Card (favorites)
+  - Notification Badge Card (alerts)
+  - Calendar Today Card (events)
+  - Quick Search Card (entity/automation search)
+- **Quick Search Service**: Fast entity/automation search
+- **Comprehensive Dashboard**: Full dashboard with all card types
+- **Camera State Management**: Coordinator extension for camera state
+
+### Fixed
+- **Import Fix**: Camera import (Camera → CameraEntity removal)
+- py_compile validation passing
+
+---
+
 ## [0.9.8] - 2026-02-15
 
 ### Fixed

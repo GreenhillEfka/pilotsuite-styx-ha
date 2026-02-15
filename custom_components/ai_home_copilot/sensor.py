@@ -98,6 +98,12 @@ from .mood_dashboard import (
 )
 from .calendar_context import CalendarContextEntity
 from .suggestion_panel import SuggestionQueue
+from .camera_entities import (
+    CameraMotionHistorySensor,
+    CameraPresenceHistorySensor,
+    CameraActivityHistorySensor,
+    CameraZoneActivitySensor,
+)
 
 # Mobile Dashboard Cards
 from .mobile_dashboard_cards import (
@@ -247,6 +253,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         MobileDashboardSensor(hass, entry),
         MobileQuickActionsSensor(hass, entry),
         MobileEntityGridSensor(hass, entry),
+    ])
+
+    # Camera Context Sensors (Habitus Camera Integration)
+    entities.extend([
+        CameraMotionHistorySensor(coordinator, entry),
+        CameraPresenceHistorySensor(coordinator, entry),
+        CameraActivityHistorySensor(coordinator, entry),
+        CameraZoneActivitySensor(coordinator, entry),
     ])
 
     async_add_entities(entities, True)

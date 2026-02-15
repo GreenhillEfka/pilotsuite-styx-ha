@@ -27,6 +27,8 @@ from .core.modules.unifi_context_module import UnifiContextModule
 from .core.modules.weather_context_module import WeatherContextModule
 from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
 from .core.modules.ml_context_module import MLContextModule
+from .core.modules.quick_search import QuickSearchModule
+from .core.modules.voice_context import VoiceContextModule
 from .debug import DebugModeSensor
 from .services_setup import async_register_all_services
 from .button import (
@@ -99,6 +101,8 @@ _MODULES = [
     "weather_context",
     "knowledge_graph_sync",
     "ml_context",
+    "quick_search",
+    "voice_context",
 ]
 
 
