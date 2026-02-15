@@ -7,12 +7,10 @@ Sensors:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ..const import DOMAIN
@@ -37,12 +35,16 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:door"
     _attr_should_poll = True
     
-    def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        coordinator: CopilotDataUpdateCoordinator,
+        hass: HomeAssistant,
+    ) -> None:
         super().__init__(coordinator)
         self._hass = hass
-        self._attr_native_value = "unknown"
-        self._camera_detected_room = None
-        self._camera_person_detected = False
+        self._attr_native_value: str = "unknown"
+        self._camera_detected_room: str | None = None
+        self._camera_person_detected: bool = False
     
     async def async_update(self) -> None:
         """Update presence room based on HA states.
@@ -53,7 +55,7 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
         3. Camera zone events (spatial context)
         4. Motion sensor area
         """
-        # Find person entities and their States
+        # Find person entities and their states
         person_states = self._hass.states.async_all("person")
         
         # Find device_tracker entities
@@ -67,12 +69,12 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
         ]
         
         # Check for camera presence/zone events via module connector
-        camera_room = None
-        person_detected = False
+        camera_room: str | None = None
+        person_detected: bool = False
         try:
             from ..module_connector import get_module_connector
             
-            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
+            entry_id = self.coordinator.config_entry.entry_id if hasattr(self.coordinator, 'config_entry') else "default"
             connector = await get_module_connector(self._hass, entry_id)
             activity_context = connector.activity_context
             
@@ -89,7 +91,7 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
         
         # Determine primary room with presence
         # Priority: person zone > device_tracker zone > camera zone > motion sensor area
-        primary_room = "none"
+        primary_room: str = "none"
         
         for person in person_states:
             if person.state != "home":
@@ -125,14 +127,28 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
         self._camera_detected_room = camera_room
         self._camera_person_detected = person_detected
         
+        # Calculate presence metrics for mood integration
+        home_count = sum(1 for p in person_states if p.state == "home")
+        
+        # Social mood factor: multiple people = more social
+        is_social: bool = home_count > 1
+        
+        # Active mood factor: motion detected = active
+        is_active: bool = len(motion_active) > 0 or person_detected
+        
         # Set extra attributes
         self._attr_extra_state_attributes = {
-            "active_persons": len([p for p in person_states if p.state == "home"]),
+            "active_persons": home_count,
             "motion_sensors_active": len(motion_active),
             "device_trackers_home": len([t for t in device_tracker_states if t.state == "home"]),
             "camera_room": camera_room,
             "camera_person_detected": person_detected,
             "sources": ["person", "device_tracker", "camera_zone", "motion_sensor"],
+            # Mood integration
+            "social": is_social,
+            "active": is_active,
+            "social_score": min(home_count / 3, 1.0),  # 0-1 scale, max at 3 people
+            "active_score": min((len(motion_active) + int(person_detected)) / 3, 1.0),
         }
 
 
@@ -142,10 +158,14 @@ class PresencePersonSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "AI CoPilot Presence Person"
     _attr_unique_id = "ai_copilot_presence_person"
     _attr_icon = "mdi:account-group"
-    _attr_native_unit_of_measurement = "persons"
+    _attr_native_unit_of_measurement: str = "persons"
     _attr_should_poll = True
     
-    def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        coordinator: CopilotDataUpdateCoordinator,
+        hass: HomeAssistant,
+    ) -> None:
         super().__init__(coordinator)
         self._hass = hass
     
@@ -156,10 +176,16 @@ class PresencePersonSensor(CoordinatorEntity, SensorEntity):
         home_count = sum(1 for p in person_states if p.state == "home")
         away_count = sum(1 for p in person_states if p.state == "not_home")
         
+        # Social mood factor: multiple people = more social
+        is_social: bool = home_count > 1
+        
         self._attr_native_value = home_count
         self._attr_extra_state_attributes = {
             "home": home_count,
             "away": away_count,
             "total": len(person_states),
             "persons_home": [p.name for p in person_states if p.state == "home"],
+            # Mood integration
+            "social": is_social,
+            "social_score": min(home_count / 3, 1.0),
         }

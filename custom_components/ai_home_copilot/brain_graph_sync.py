@@ -154,7 +154,7 @@ class BrainGraphSync:
         except Exception as err:
             log_error_with_context(
                 _LOGGER, err, "Brain Graph sync startup",
-                {"host": self._host, "port": self._port}
+                {"core_url": self.core_url}
             )
             if self._session:
                 await self._session.close()
@@ -187,7 +187,7 @@ class BrainGraphSync:
         except Exception as err:
             log_error_with_context(
                 _LOGGER, err, "Brain Graph connection test",
-                {"endpoint": f"{self._base_url}/api/v1/graph/stats"}
+                {"endpoint": f"{self.core_url}/api/v1/graph/stats"}
             )
             return False
     
@@ -509,7 +509,7 @@ class BrainGraphSync:
         except Exception as err:
             log_error_with_context(
                 _LOGGER, err, "Brain Graph stats retrieval",
-                {"endpoint": f"{self._base_url}/api/v1/graph/stats"},
+                {"endpoint": f"{self.core_url}/api/v1/graph/stats"},
                 level=logging.DEBUG
             )
         return None

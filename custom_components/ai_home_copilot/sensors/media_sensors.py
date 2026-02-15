@@ -7,11 +7,10 @@ Sensors:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from ..const import DOMAIN
@@ -28,7 +27,11 @@ class MediaActivitySensor(CoordinatorEntity, SensorEntity):
     _attr_icon = "mdi:play-circle"
     _attr_should_poll = True
     
-    def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        coordinator: CopilotDataUpdateCoordinator,
+        hass: HomeAssistant,
+    ) -> None:
         super().__init__(coordinator)
         self._hass = hass
     
@@ -47,12 +50,26 @@ class MediaActivitySensor(CoordinatorEntity, SensorEntity):
         else:
             activity = "multi"
         
+        # Mood integration
+        # Active: media playing indicates activity
+        is_active: bool = len(playing) > 0
+        # Social: multiple players or TV could indicate social gathering
+        is_social: bool = len(playing) > 1 or any(
+            p.attributes.get("friendly_name", "").lower() in ("tv", "fernseher", "living room tv", "wohnzimmer tv")
+            for p in playing
+        )
+        
         self._attr_native_value = activity
         self._attr_extra_state_attributes = {
             "playing": len(playing),
             "paused": len(paused),
             "idle": len(idle),
             "players_playing": [p.name for p in playing],
+            # Mood integration
+            "active": is_active,
+            "social": is_social,
+            "active_score": min(len(playing) / 3, 1.0),
+            "social_score": 1.0 if is_social else 0.0,
         }
 
 
@@ -62,10 +79,14 @@ class MediaIntensitySensor(CoordinatorEntity, SensorEntity):
     _attr_name = "AI CoPilot Media Intensity"
     _attr_unique_id = "ai_copilot_media_intensity"
     _attr_icon = "mdi:volume-high"
-    _attr_native_unit_of_measurement = "%"
+    _attr_native_unit_of_measurement: str = "%"
     _attr_should_poll = True
     
-    def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
+    def __init__(
+        self,
+        coordinator: CopilotDataUpdateCoordinator,
+        hass: HomeAssistant,
+    ) -> None:
         super().__init__(coordinator)
         self._hass = hass
     
@@ -73,8 +94,8 @@ class MediaIntensitySensor(CoordinatorEntity, SensorEntity):
         """Calculate media intensity."""
         media_states = self._hass.states.async_all("media_player")
         
-        total_volume = 0
-        playing_count = 0
+        total_volume: float = 0.0
+        playing_count: int = 0
         
         for media in media_states:
             if media.state == "playing":
@@ -82,7 +103,7 @@ class MediaIntensitySensor(CoordinatorEntity, SensorEntity):
                 volume = media.attributes.get("volume_level", 0.5)
                 total_volume += volume
         
-        avg_volume = (total_volume / playing_count * 100) if playing_count > 0 else 0
+        avg_volume: float = (total_volume / playing_count * 100) if playing_count > 0 else 0.0
         
         if playing_count == 0:
             intensity = "off"
@@ -93,8 +114,15 @@ class MediaIntensitySensor(CoordinatorEntity, SensorEntity):
         else:
             intensity = "high"
         
+        # Mood integration
+        # Active: higher intensity = more active
+        active_score: float = avg_volume / 100.0 if playing_count > 0 else 0.0
+        
         self._attr_native_value = intensity
         self._attr_extra_state_attributes = {
             "avg_volume": round(avg_volume, 1),
             "playing": playing_count,
+            # Mood integration
+            "active": playing_count > 0,
+            "active_score": active_score,
         }

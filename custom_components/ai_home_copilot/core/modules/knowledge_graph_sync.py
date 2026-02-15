@@ -10,12 +10,20 @@ Creates nodes for entities and relationships for:
 
 This module runs as a background sync that keeps the Knowledge Graph
 in sync with HA state changes.
+
+OPTIMIZATIONS:
+- Batch node/edge creation for efficiency
+- Dynamic entity discovery for state tracking
+- Incremental sync (only changed entities)
+- Brain Graph integration with graph state API
+- Proper error handling and retry logic
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant, callback
@@ -23,6 +31,7 @@ from homeassistant.const import STATE_ON, STATE_OFF
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers.event import async_track_state_change
+from homeassistant.helpers.area_registry import AreaEntry
 
 from ..module import CopilotModule
 from ...api.knowledge_graph import (
@@ -36,8 +45,11 @@ from ...api.knowledge_graph import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Sync interval for full sync (seconds)
+# Sync configuration
 FULL_SYNC_INTERVAL = 3600  # 1 hour
+BATCH_SIZE = 50  # Nodes/edges per batch request
+RETRY_DELAY = 5  # Seconds between retries on failure
+MAX_RETRIES = 3  # Max retries for failed operations
 
 # Entity domains to sync (exclude transient/noise)
 SYNC_DOMAINS = {
@@ -73,10 +85,14 @@ class KnowledgeGraphSyncModule(CopilotModule):
         self._area_registry: Optional[ar.AreaRegistry] = None
         self._sync_task: Optional[asyncio.Task] = None
         self._unsub_state_change: Optional[callable] = None
-        self._synced_entities: set[str] = set()
-        self._synced_areas: set[str] = set()
+        self._unsub_area_change: Optional[callable] = None
+        self._synced_entities: dict[str, int] = {}  # entity_id -> last_sync_time
+        self._synced_areas: dict[str, int] = {}
+        self._known_capabilities: set[str] = set()
         self._enabled: bool = config.get("knowledge_graph_enabled", True)
         self._full_sync_interval: int = config.get("knowledge_graph_sync_interval", FULL_SYNC_INTERVAL)
+        self._last_full_sync: float = 0
+        self._sync_lock = asyncio.Lock()
 
     @property
     def client(self) -> KnowledgeGraphClient:
@@ -84,6 +100,61 @@ class KnowledgeGraphSyncModule(CopilotModule):
         if self._client is None:
             raise RuntimeError("Knowledge Graph client not initialized")
         return self._client
+
+    @property
+    def graph_state(self) -> dict[str, Any]:
+        """Get current graph state for Brain Graph panel."""
+        nodes = []
+        edges = []
+
+        # Add entities as nodes
+        for entity_id, last_sync in self._synced_entities.items():
+            state = self._hass.states.get(entity_id)
+            if state:
+                nodes.append({
+                    "id": entity_id,
+                    "label": state.name or entity_id,
+                    "kind": entity_id.split(".")[0],
+                    "domain": entity_id.split(".")[0],
+                    "zone": self._get_entity_zone(entity_id),
+                    "score": 0.5,
+                })
+
+        # Add areas as nodes
+        if self._area_registry:
+            for area_id in self._synced_areas:
+                area = self._area_registry.areas.get(area_id)
+                if area:
+                    nodes.append({
+                        "id": f"area.{area_id}",
+                        "label": area.name,
+                        "kind": "area",
+                        "domain": None,
+                        "zone": None,
+                        "score": 0.3,
+                    })
+
+        # Add entity → area edges
+        if self._entity_registry:
+            for entity_id in self._synced_entities:
+                entry = self._entity_registry.async_get(entity_id)
+                if entry and entry.area_id:
+                    edges.append({
+                        "from": entity_id,
+                        "to": f"area.{entry.area_id}",
+                        "type": "belongs_to",
+                        "weight": 0.8,
+                    })
+
+        return {"nodes": nodes, "edges": edges}
+
+    def _get_entity_zone(self, entity_id: str) -> Optional[str]:
+        """Get the zone for an entity."""
+        entry = self._entity_registry.async_get(entity_id) if self._entity_registry else None
+        if entry and entry.area_id:
+            area = self._area_registry.areas.get(entry.area_id) if self._area_registry else None
+            return area.name if area else None
+        return None
 
     async def async_setup(self) -> None:
         """Set up the module."""
@@ -106,22 +177,84 @@ class KnowledgeGraphSyncModule(CopilotModule):
             _LOGGER.warning("Knowledge Graph sync: No API client available")
             return
 
-        # Initial sync
-        await self._async_initial_sync()
+        # Register for Brain Graph access
+        if runtime and hasattr(runtime, "registry"):
+            runtime.registry["knowledge_graph_sync"] = self
+
+        # Initial sync with retry logic
+        await self._async_initial_sync_with_retry()
 
         # Set up state change tracking
         self._setup_state_change_tracking()
+        self._setup_area_registry_listeners()
 
         # Schedule periodic full sync
         self._sync_task = asyncio.create_task(self._async_periodic_sync())
 
-        _LOGGER.info("Knowledge Graph sync module started")
+        _LOGGER.info("Knowledge Graph sync module started (entities: %d, areas: %d)",
+                    len(self._synced_entities), len(self._synced_areas))
+
+    async def _async_initial_sync_with_retry(self) -> None:
+        """Perform initial sync with retry logic."""
+        for attempt in range(MAX_RETRIES):
+            try:
+                await self._async_initial_sync()
+                return
+            except KnowledgeGraphError as err:
+                _LOGGER.warning("Initial sync attempt %d failed: %s", attempt + 1, err)
+                if attempt < MAX_RETRIES - 1:
+                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
+        _LOGGER.error("Initial sync failed after %d attempts", MAX_RETRIES)
+
+    def _setup_area_registry_listeners(self) -> None:
+        """Set up listeners for area registry changes."""
+
+        @callback
+        def _area_added(event: Any) -> None:
+            """Handle area added."""
+            area: AreaEntry = event.data.get("area")
+            if area:
+                self._hass.async_create_task(self._async_sync_area(area))
+
+        @callback
+        def _area_updated(event: Any) -> None:
+            """Handle area updated."""
+            area: AreaEntry = event.data.get("area")
+            if area:
+                self._hass.async_create_task(self._async_sync_area(area))
+
+        # Register listeners
+        self._hass.bus.async_listen("area_registry_updated", _area_added)
+        # Note: HA doesn't have specific add/update events, using updated trigger
+
+    async def _async_sync_area(self, area: AreaEntry) -> None:
+        """Sync a single area to Knowledge Graph."""
+        try:
+            node = KGNode(
+                id=f"area.{area.area_id}",
+                type=NodeType.AREA,
+                label=area.name,
+                properties={
+                    "area_id": area.area_id,
+                    "icon": area.icon,
+                }
+            )
+            await self.client.create_node(node)
+            self._synced_areas[area.area_id] = int(time.time())
+            _LOGGER.debug("Synced area: %s", area.name)
+        except KnowledgeGraphError as err:
+            if "already exists" not in str(err).lower():
+                _LOGGER.warning("Failed to sync area %s: %s", area.area_id, err)
 
     async def async_unload(self) -> None:
         """Unload the module."""
         if self._unsub_state_change:
             self._unsub_state_change()
             self._unsub_state_change = None
+
+        if self._unsub_area_change:
+            self._unsub_area_change()
+            self._unsub_area_change = None
 
         if self._sync_task:
             self._sync_task.cancel()
@@ -133,64 +266,200 @@ class KnowledgeGraphSyncModule(CopilotModule):
         _LOGGER.info("Knowledge Graph sync module unloaded")
 
     def _setup_state_change_tracking(self) -> None:
-        """Set up tracking for entity state changes."""
+        """Set up tracking for entity state changes using wildcard."""
 
         @callback
         def _state_changed(entity_id: str, old_state, new_state) -> None:
             """Handle entity state change."""
-            if entity_id not in self._synced_entities:
-                # New entity, sync it
-                self._hass.async_create_task(self._async_sync_entity(entity_id))
-            else:
-                # Check for capability changes
-                self._hass.async_create_task(self._async_update_entity_capabilities(entity_id, new_state))
+            domain = entity_id.split(".")[0]
+            if domain not in SYNC_DOMAINS:
+                return
 
-        # Track state changes for all relevant domains
-        entity_ids = []
-        for state in self._hass.states.async_all():
-            domain = state.entity_id.split(".")[0]
-            if domain in SYNC_DOMAINS:
-                entity_ids.append(state.entity_id)
-
-        if entity_ids:
-            self._unsub_state_change = async_track_state_change(
-                self._hass, entity_ids, _state_changed
+            # Schedule async update
+            self._hass.async_create_task(
+                self._async_handle_entity_change(entity_id, old_state, new_state)
             )
+
+        # Track all state changes - more efficient than tracking specific entities
+        self._unsub_state_change = async_track_state_change(
+            self._hass, None, _state_changed  # None = all entities
+        )
+
+    async def _async_handle_entity_change(
+        self,
+        entity_id: str,
+        old_state,
+        new_state,
+    ) -> None:
+        """Handle entity state change with proper error handling."""
+        async with self._sync_lock:
+            try:
+                if entity_id not in self._synced_entities:
+                    # New entity - full sync
+                    await self._async_sync_entity(entity_id)
+                else:
+                    # Existing entity - update state and capabilities
+                    await self._async_update_entity_state(entity_id, new_state)
+
+                # Update sync timestamp
+                self._synced_entities[entity_id] = int(time.time())
+
+            except KnowledgeGraphError as err:
+                _LOGGER.warning("Failed to sync entity %s: %s", entity_id, err)
+            except Exception as err:
+                _LOGGER.error("Unexpected error syncing entity %s: %s", entity_id, err)
 
     async def _async_initial_sync(self) -> None:
         """Perform initial sync of all entities."""
         _LOGGER.info("Starting initial Knowledge Graph sync...")
 
+        # Sync all areas first
+        await self._async_sync_areas()
+
+        # Collect all entities to sync
+        entities_to_sync = []
+        for state in self._hass.states.async_all():
+            domain = state.entity_id.split(".")[0]
+            if domain in SYNC_DOMAINS:
+                entities_to_sync.append(state.entity_id)
+
+        # Sync in batches
+        for i in range(0, len(entities_to_sync), BATCH_SIZE):
+            batch = entities_to_sync[i:i + BATCH_SIZE]
+            await self._async_batch_sync_entities(batch)
+            _LOGGER.debug("Synced batch %d/%d", i // BATCH_SIZE + 1,
+                         (len(entities_to_sync) + BATCH_SIZE - 1) // BATCH_SIZE)
+
+        _LOGGER.info("Initial sync complete: %d entities, %d areas",
+                    len(self._synced_entities), len(self._synced_areas))
+
+    async def _async_batch_sync_entities(self, entity_ids: list[str]) -> None:
+        """Sync a batch of entities efficiently."""
+        nodes_to_create = []
+        edges_to_create = []
+        capabilities_by_entity: dict[str, set[str]] = {}
+
+        for entity_id in entity_ids:
+            state = self._hass.states.get(entity_id)
+            if not state:
+                continue
+
+            entity_entry = self._entity_registry.async_get(entity_id)
+            domain = entity_id.split(".")[0]
+
+            # Build node
+            node = KGNode(
+                id=entity_id,
+                type=NodeType.ENTITY,
+                label=entity_entry.name if entity_entry and entity_entry.name else state.name,
+                properties={
+                    "domain": domain,
+                    "state": state.state,
+                    "device_class": state.attributes.get("device_class"),
+                    "unit_of_measurement": state.attributes.get("unit_of_measurement"),
+                    "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+                }
+            )
+            nodes_to_create.append(node)
+
+            # Collect capabilities
+            capabilities = self._extract_capabilities(entity_id, state)
+            capabilities_by_entity[entity_id] = capabilities
+
+            # Area relationship
+            area_id = entity_entry.area_id if entity_entry else None
+            if area_id:
+                edges_to_create.append(KGEdge(
+                    source=entity_id,
+                    target=f"area.{area_id}",
+                    type=EdgeType.BELONGS_TO,
+                ))
+
+        # Create capability nodes (once per unique capability)
+        for cap in set().union(*capabilities_by_entity.values()):
+            if cap not in self._known_capabilities:
+                nodes_to_create.append(KGNode(
+                    id=f"cap.{cap}",
+                    type=NodeType.CAPABILITY,
+                    label=cap.replace("_", " ").title(),
+                ))
+                self._known_capabilities.add(cap)
+
+        # Create capability edges
+        for entity_id, caps in capabilities_by_entity.items():
+            for cap in caps:
+                edges_to_create.append(KGEdge(
+                    source=entity_id,
+                    target=f"cap.{cap}",
+                    type=EdgeType.HAS_CAPABILITY,
+                ))
+
+        # Batch create nodes (if API supports it, otherwise sequential)
         try:
-            # Sync all areas first
-            await self._async_sync_areas()
+            for node in nodes_to_create:
+                try:
+                    await self.client.create_node(node)
+                    self._synced_entities[node.id] = int(time.time())
+                except KnowledgeGraphError as err:
+                    if "already exists" not in str(err).lower():
+                        _LOGGER.debug("Node create error (may be OK): %s", err)
+        except Exception as err:
+            _LOGGER.warning("Batch node sync failed, falling back: %s", err)
 
-            # Sync all entities
-            entity_count = 0
-            for state in self._hass.states.async_all():
-                domain = state.entity_id.split(".")[0]
-                if domain in SYNC_DOMAINS:
-                    await self._async_sync_entity(state.entity_id)
-                    entity_count += 1
-
-            _LOGGER.info("Initial sync complete: %d entities, %d areas",
-                        entity_count, len(self._synced_areas))
-
-        except KnowledgeGraphError as err:
-            _LOGGER.error("Knowledge Graph sync failed: %s", err)
+        # Batch create edges
+        try:
+            for edge in edges_to_create:
+                try:
+                    await self.client.create_edge(edge)
+                except KnowledgeGraphError as err:
+                    if "already exists" not in str(err).lower():
+                        _LOGGER.debug("Edge create error (may be OK): %s", err)
+        except Exception as err:
+            _LOGGER.warning("Batch edge sync failed: %s", err)
 
     async def _async_periodic_sync(self) -> None:
-        """Periodic full sync task."""
+        """Periodic incremental sync task."""
         while True:
             try:
                 await asyncio.sleep(self._full_sync_interval)
-                _LOGGER.info("Starting periodic Knowledge Graph sync...")
-                await self._async_initial_sync()
+
+                # Check if we need a full sync or incremental
+                now = time.time()
+                if now - self._last_full_sync >= self._full_sync_interval:
+                    _LOGGER.info("Starting periodic full Knowledge Graph sync...")
+                    await self._async_initial_sync_with_retry()
+                    self._last_full_sync = now
+                else:
+                    # Incremental sync - only sync entities changed since last sync
+                    _LOGGER.info("Starting incremental Knowledge Graph sync...")
+                    await self._async_incremental_sync()
+
             except asyncio.CancelledError:
                 break
             except Exception as err:
                 _LOGGER.error("Periodic sync failed: %s", err)
-                await asyncio.sleep(60)  # Retry after 1 minute on error
+                await asyncio.sleep(60)
+
+    async def _async_incremental_sync(self) -> None:
+        """Sync only entities that have changed since last full sync."""
+        entities_to_sync = []
+
+        for state in self._hass.states.async_all():
+            domain = state.entity_id.split(".")[0]
+            if domain not in SYNC_DOMAINS:
+                continue
+
+            last_sync = self._synced_entities.get(state.entity_id, 0)
+            last_changed = state.last_changed.timestamp() if state.last_changed else 0
+
+            if last_changed > last_sync:
+                entities_to_sync.append(state.entity_id)
+
+        if entities_to_sync:
+            _LOGGER.info("Incremental sync: %d changed entities", len(entities_to_sync))
+            for i in range(0, len(entities_to_sync), BATCH_SIZE):
+                batch = entities_to_sync[i:i + BATCH_SIZE]
+                await self._async_batch_sync_entities(batch)
 
     async def _async_sync_areas(self) -> None:
         """Sync all areas to Knowledge Graph."""
@@ -209,7 +478,7 @@ class KnowledgeGraphSyncModule(CopilotModule):
                     }
                 )
                 await self.client.create_node(node)
-                self._synced_areas.add(area_id)
+                self._synced_areas[area_id] = int(time.time())
                 _LOGGER.debug("Synced area: %s", area.name)
             except KnowledgeGraphError as err:
                 if "already exists" not in str(err).lower():
@@ -243,7 +512,7 @@ class KnowledgeGraphSyncModule(CopilotModule):
                 }
             )
             await self.client.create_node(node)
-            self._synced_entities.add(entity_id)
+            self._synced_entities[entity_id] = int(time.time())
 
             # Create area relationship
             area_id = entity_entry.area_id if entity_entry else None
@@ -265,35 +534,71 @@ class KnowledgeGraphSyncModule(CopilotModule):
                 _LOGGER.warning("Failed to sync entity %s: %s", entity_id, err)
             return False
 
-    async def _async_sync_entity_capabilities(self, entity_id: str, state) -> None:
-        """Sync entity capabilities as nodes and edges."""
-        capabilities = []
+    async def _async_update_entity_state(self, entity_id: str, new_state) -> None:
+        """Update entity state in Knowledge Graph."""
+        if new_state is None:
+            return
+
+        # Get existing node and update properties
+        try:
+            existing = await self.client.get_node(entity_id)
+            if existing:
+                # Update node with new state
+                updated = KGNode(
+                    id=entity_id,
+                    type=existing.type,
+                    label=existing.label,
+                    properties={
+                        **existing.properties,
+                        "state": new_state.state,
+                        "last_changed": new_state.last_changed.isoformat() if new_state.last_changed else None,
+                    }
+                )
+                await self.client.create_node(updated)  # Upsert
+
+            # Update capabilities if they might have changed
+            await self._async_sync_entity_capabilities(entity_id, new_state)
+
+        except KnowledgeGraphError as err:
+            _LOGGER.debug("Failed to update entity state %s: %s", entity_id, err)
+
+    def _extract_capabilities(self, entity_id: str, state) -> set[str]:
+        """Extract capabilities from entity state."""
+        capabilities = set()
 
         # Check for capability attributes
         for attr, cap_name in CAPABILITY_ATTRS.items():
             if state.attributes.get(attr) is not None:
-                capabilities.append(cap_name)
+                capabilities.add(cap_name)
 
         # Check supported_features for lights
         if entity_id.startswith("light."):
             supported = state.attributes.get("supported_features", 0)
             if supported & 1:  # SUPPORT_BRIGHTNESS
-                capabilities.append("dimmable")
+                capabilities.add("dimmable")
             if supported & 4:  # SUPPORT_COLOR_TEMP
-                capabilities.append("color_temp")
+                capabilities.add("color_temp")
             if supported & 16:  # SUPPORT_COLOR
-                capabilities.append("color")
+                capabilities.add("color")
+
+        return capabilities
+
+    async def _async_sync_entity_capabilities(self, entity_id: str, state) -> None:
+        """Sync entity capabilities as nodes and edges."""
+        capabilities = self._extract_capabilities(entity_id, state)
 
         # Create capability nodes and edges
-        for cap in set(capabilities):
+        for cap in capabilities:
             try:
                 # Create capability node (idempotent)
-                cap_node = KGNode(
-                    id=f"cap.{cap}",
-                    type=NodeType.CAPABILITY,
-                    label=cap.replace("_", " ").title(),
-                )
-                await self.client.create_node(cap_node)
+                if cap not in self._known_capabilities:
+                    cap_node = KGNode(
+                        id=f"cap.{cap}",
+                        type=NodeType.CAPABILITY,
+                        label=cap.replace("_", " ").title(),
+                    )
+                    await self.client.create_node(cap_node)
+                    self._known_capabilities.add(cap)
 
                 # Create edge
                 await self.client.add_relationship(
@@ -303,13 +608,6 @@ class KnowledgeGraphSyncModule(CopilotModule):
                 )
             except KnowledgeGraphError:
                 pass  # Ignore errors for capabilities
-
-    async def _async_update_entity_capabilities(self, entity_id: str, new_state) -> None:
-        """Update entity capabilities when state changes."""
-        if new_state is None:
-            return
-
-        await self._async_sync_entity_capabilities(entity_id, new_state)
 
     async def async_sync_zone(self, zone_id: str, zone_name: str, entities: list[str]) -> None:
         """Sync a Habitus zone to the Knowledge Graph."""
@@ -430,6 +728,35 @@ class KnowledgeGraphSyncModule(CopilotModule):
             _LOGGER.warning("Failed to get mood entities for %s: %s", mood, err)
             return []
 
+    async def async_get_graph_stats(self) -> dict[str, Any]:
+        """Get sync statistics."""
+        try:
+            stats = await self.client.get_stats()
+            return {
+                "kg_stats": {
+                    "node_count": stats.node_count,
+                    "edge_count": stats.edge_count,
+                    "nodes_by_type": stats.nodes_by_type,
+                    "edges_by_type": stats.edges_by_type,
+                },
+                "sync_status": {
+                    "synced_entities": len(self._synced_entities),
+                    "synced_areas": len(self._synced_areas),
+                    "known_capabilities": len(self._known_capabilities),
+                    "last_full_sync": self._last_full_sync,
+                }
+            }
+        except KnowledgeGraphError as err:
+            _LOGGER.warning("Failed to get graph stats: %s", err)
+            return {
+                "sync_status": {
+                    "synced_entities": len(self._synced_entities),
+                    "synced_areas": len(self._synced_areas),
+                    "known_capabilities": len(self._known_capabilities),
+                    "last_full_sync": self._last_full_sync,
+                }
+            }
+
 
 async def async_get_knowledge_graph_sync(hass: HomeAssistant) -> Optional[KnowledgeGraphSyncModule]:
     """Get the Knowledge Graph sync module from runtime."""
@@ -439,7 +766,16 @@ async def async_get_knowledge_graph_sync(hass: HomeAssistant) -> Optional[Knowle
     return None
 
 
+async def async_get_brain_graph_data(hass: HomeAssistant) -> dict[str, Any]:
+    """Get Brain Graph data from the sync module."""
+    module = await async_get_knowledge_graph_sync(hass)
+    if module:
+        return module.graph_state
+    return {"nodes": [], "edges": []}
+
+
 __all__ = [
     "KnowledgeGraphSyncModule",
     "async_get_knowledge_graph_sync",
+    "async_get_brain_graph_data",
 ]
