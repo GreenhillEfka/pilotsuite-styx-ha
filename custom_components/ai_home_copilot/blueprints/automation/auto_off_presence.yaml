@@ -1,0 +1,49 @@
+blueprint:
+  name: "AI CoPilot: Licht-Auto-Off (Bad/Toilette)"
+  description: >
+    Schaltet Licht automatisch aus, wenn keine Anwesenheit erkannt wird.
+    Vorschlag vom CoPilot basierend auf Beobachtung: Bad/Toilette Licht an ohne Anwesenheit.
+  domain: automation
+  input:
+    presence_entity:
+      name: Anwesenheitssensor
+      description: Binary sensor für Anwesenheit im Raum
+      selector:
+        entity:
+          domain: binary_sensor
+    light_entities:
+      name: Lichter
+      description: Lichter die ausgeschaltet werden sollen
+      selector:
+        entity:
+          domain: light
+          multiple: true
+    delay_minutes:
+      name: Verzögerung (Minuten)
+      description: Wie lange ohne Anwesenheit bevor Licht ausgeht
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit: Minuten
+
+trigger:
+  - platform: state
+    entity_id: !input presence_entity
+    to: "off"
+    for:
+      minutes: !input delay_minutes
+
+action:
+  - service: light.turn_off
+    target:
+      entity_id: !input light_entities
+  - service: notify.persistent_notification
+    data:
+      title: "CoPilot: Licht-Auto-Off"
+      message: >
+        Licht automatisch ausgeschaltet nach {{ delay_minutes }} Minuten ohne Anwesenheit.
+        Raum: {{ area_name(light_entities[0]) | default('Unbekannt') }}
+
+mode: single

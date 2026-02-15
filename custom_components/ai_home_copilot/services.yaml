@@ -483,3 +483,35 @@ set_debug:
       example: true
       selector:
         boolean:
+
+# ─── Debug Mode ──────────────────────────────────────────────────────────────
+
+enable_debug:
+  name: Enable Debug Mode
+  description: Enable debug mode for AI Home CoPilot with optional log level.
+  fields:
+    log_level:
+      name: Log Level
+      description: Log level for debug mode (DEBUG, INFO, WARNING, ERROR).
+      required: false
+      example: "DEBUG"
+      selector:
+        select:
+          options:
+            - "DEBUG"
+            - "INFO"
+            - "WARNING"
+            - "ERROR"
+
+disable_debug:
+  name: Disable Debug Mode
+  description: Disable debug mode for AI Home CoPilot.
+
+toggle_debug:
+  name: Toggle Debug Mode
+  description: Toggle debug mode on/off for AI Home CoPilot.
+
+clear_debug_buffer:
+  name: Clear Debug Buffer
+  description: Clear the debug message buffer.
+

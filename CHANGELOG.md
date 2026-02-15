@@ -1,5 +1,32 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.11] - 2026-02-15
+
+### Added
+- **Debug Mode v0.9** (`debug.py`):
+  - Persistent debug state (survives restart)
+  - Debug buffer with history (last 50 messages)
+  - Log level control via service
+  - Helper functions: log_debug(), log_info(), log_warning(), log_error()
+  
+- **New Services**:
+  - `ai_home_copilot.enable_debug` - Enable debug with optional log level
+  - `ai_home_copilot.disable_debug` - Disable debug mode
+  - `ai_home_copilot.toggle_debug` - Toggle debug on/off
+  - `ai_home_copilot.clear_debug_buffer` - Clear message history
+
+- **Debug Sensor Attributes**:
+  - `enabled` - Current debug state
+  - `log_level` - Current log level
+  - `buffer_size` - Number of buffered messages
+  - `level_counts` - Count by log level
+  - `recent_messages` - Last 10 debug messages
+
+- **Blueprint: Auto-Off Presence**:
+  - `auto_off_presence.yaml` - Auto turn off lights after no presence
+
+---
+
 ## [0.8.10] - 2026-02-15
 
 ### Added
