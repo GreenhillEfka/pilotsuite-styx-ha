@@ -1,5 +1,18 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.25] - 2026-02-15
+
+### Removed
+- **Redundant modules cleaned up**:
+  - `mood/` directory (replaced by `neurons/mood.py`)
+  - `tagging/` directory (duplicate of `tags/`)
+  
+### Changed
+- Reduced module count from 22 to 20
+- Cleaner module structure
+
+---
+
 ## [0.4.24] - 2026-02-15
 
 ### Fixed
