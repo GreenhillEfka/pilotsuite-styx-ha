@@ -58,7 +58,8 @@ class TestHabitusZonesDashboardErrors:
         """Verify error keys are defined in strings.json."""
         with open("custom_components/ai_home_copilot/strings.json", "r") as f:
             data = json.load(f)
-        errors = data.get("error", {})
+        # Error keys are under config.error, not top-level error
+        errors = data.get("config", {}).get("error", {})
         assert "generation_failed" in errors
         assert "publish_failed" in errors
         assert "no_dashboard_generated" in errors

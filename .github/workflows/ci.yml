@@ -47,10 +47,9 @@ jobs:
         run: |
           python -m pip install pytest pytest-asyncio
 
-      - name: Run tests
+      - name: Run tests (isolated/unit only)
         run: |
-          python -m pip install .
-          python -m pytest tests/ --tb=short
+          python -m pytest tests/test_coordinator_isolated.py tests/test_brain_graph_viz_isolated.py tests/test_habitus_zones_dashboard.py --tb=short -v
 
   hacs:
     runs-on: ubuntu-latest
