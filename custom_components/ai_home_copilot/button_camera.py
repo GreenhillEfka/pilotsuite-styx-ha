@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -15,8 +15,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .coordinator import CopilotDataUpdateCoordinator
 from .camera_dashboard import generate_camera_dashboard_v2_yaml
+
+if TYPE_CHECKING:
+    from .coordinator import CopilotDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

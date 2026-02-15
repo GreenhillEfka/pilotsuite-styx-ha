@@ -10,12 +10,15 @@ Each module inherits from CopilotModule and implements the lifecycle methods.
 
 from __future__ import annotations
 
-from .legacy import LegacyModule
-from .module import CopilotModule, ModuleContext
-from .mood_module import MoodModule
-from .mood_context_module import MoodContextModule
-from .user_preference_module import UserPreferenceModule
-from .unifi_module import UniFiModule
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .legacy import LegacyModule
+    from .module import CopilotModule, ModuleContext
+    from .mood_module import MoodModule
+    from .mood_context_module import MoodContextModule
+    from .user_preference_module import UserPreferenceModule
+    from .unifi_module import UniFiModule
 
 __all__ = [
     "LegacyModule",

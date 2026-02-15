@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
-from .coordinator import CopilotDataUpdateCoordinator
 from .entity import CopilotBaseEntity
+
+if TYPE_CHECKING:
+    from .coordinator import CopilotDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

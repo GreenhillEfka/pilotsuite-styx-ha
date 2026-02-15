@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from homeassistant.components.camera import Camera
@@ -26,7 +26,9 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .entity import CopilotBaseEntity
-from .coordinator import CopilotCoordinator
+
+if TYPE_CHECKING:
+    from .coordinator import CopilotDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

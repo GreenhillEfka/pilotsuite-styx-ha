@@ -1,13 +1,16 @@
 """Base classes for AI Home CoPilot buttons."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from homeassistant.components.button import ButtonEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .coordinator import CopilotDataUpdateCoordinator
+if TYPE_CHECKING:
+    from .coordinator import CopilotDataUpdateCoordinator
 
 
-class CopilotBaseEntity(CoordinatorEntity[CopilotDataUpdateCoordinator]):
+class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
     """Base entity for AI Home CoPilot buttons."""
     _attr_has_entity_name = True
 

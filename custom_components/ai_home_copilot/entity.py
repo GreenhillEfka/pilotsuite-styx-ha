@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .coordinator import CopilotDataUpdateCoordinator
+if TYPE_CHECKING:
+    from .coordinator import CopilotDataUpdateCoordinator
 
 
-class CopilotBaseEntity(CoordinatorEntity[CopilotDataUpdateCoordinator]):
+class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
     _attr_has_entity_name = True
 
     def __init__(self, coordinator: CopilotDataUpdateCoordinator) -> None:

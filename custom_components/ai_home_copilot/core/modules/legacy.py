@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from ...blueprints import async_install_blueprints
 from ...const import DOMAIN
-from ...coordinator import CopilotDataUpdateCoordinator
 from ...devlog_push import async_setup_devlog_push
 from ...ha_errors_digest import async_setup_ha_errors_digest
 from ...seed_adapter import async_setup_seed_adapter
@@ -14,6 +15,9 @@ from ...media_context_v2_setup import async_setup_media_context_v2, async_unload
 from ...webhook import async_register_webhook, async_unregister_webhook
 from ...core_v1 import async_fetch_core_capabilities
 from ..module import ModuleContext
+
+if TYPE_CHECKING:
+    from ...coordinator import CopilotDataUpdateCoordinator
 
 
 PLATFORMS: list[str] = ["binary_sensor", "sensor", "button", "text", "number", "select"]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -10,26 +11,51 @@ from .blueprints import async_install_blueprints
 from .core.runtime import CopilotRuntime
 
 _LOGGER = logging.getLogger(__name__)
-from .core.modules.legacy import LegacyModule
-from .core.modules.events_forwarder import EventsForwarderModule
-from .core.modules.dev_surface import DevSurfaceModule
-from .core.modules.performance_scaling import PerformanceScalingModule
-from .core.modules.habitus_miner import HabitusMinerModule
-from .core.modules.ops_runbook import OpsRunbookModule
-from .core.modules.unifi_module import UniFiModule
-from .core.modules.brain_graph_sync import BrainGraphSyncModule
-from .core.modules.candidate_poller import CandidatePollerModule
-from .core.modules.media_context_module import MediaContextModule
-from .core.modules.mood_context_module import MoodContextModule
-from .core.modules.mood_module import MoodModule
-from .core.modules.energy_context_module import EnergyContextModule
-from .core.modules.unifi_context_module import UnifiContextModule
-from .core.modules.weather_context_module import WeatherContextModule
-from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
-from .core.modules.ml_context_module import MLContextModule
-from .core.modules.camera_context_module import CameraContextModule
-from .core.modules.quick_search import QuickSearchModule
-from .core.modules.voice_context import VoiceContextModule
+
+if TYPE_CHECKING:
+    from .core.modules.legacy import LegacyModule
+    from .core.modules.events_forwarder import EventsForwarderModule
+    from .core.modules.dev_surface import DevSurfaceModule
+    from .core.modules.performance_scaling import PerformanceScalingModule
+    from .core.modules.habitus_miner import HabitusMinerModule
+    from .core.modules.ops_runbook import OpsRunbookModule
+    from .core.modules.unifi_module import UniFiModule
+    from .core.modules.brain_graph_sync import BrainGraphSyncModule
+    from .core.modules.candidate_poller import CandidatePollerModule
+    from .core.modules.media_context_module import MediaContextModule
+    from .core.modules.mood_context_module import MoodContextModule
+    from .core.modules.mood_module import MoodModule
+    from .core.modules.energy_context_module import EnergyContextModule
+    from .core.modules.unifi_context_module import UnifiContextModule
+    from .core.modules.weather_context_module import WeatherContextModule
+    from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
+    from .core.modules.ml_context_module import MLContextModule
+    from .core.modules.camera_context_module import CameraContextModule
+    from .core.modules.quick_search import QuickSearchModule
+    from .core.modules.voice_context import VoiceContextModule
+else:
+    # Runtime imports - these are loaded lazily to avoid circular imports
+    LegacyModule = None
+    EventsForwarderModule = None
+    DevSurfaceModule = None
+    PerformanceScalingModule = None
+    HabitusMinerModule = None
+    OpsRunbookModule = None
+    UniFiModule = None
+    BrainGraphSyncModule = None
+    CandidatePollerModule = None
+    MediaContextModule = None
+    MoodContextModule = None
+    MoodModule = None
+    EnergyContextModule = None
+    UnifiContextModule = None
+    WeatherContextModule = None
+    KnowledgeGraphSyncModule = None
+    MLContextModule = None
+    CameraContextModule = None
+    QuickSearchModule = None
+    VoiceContextModule = None
+
 from .debug import DebugModeSensor
 from .services_setup import async_register_all_services
 from .button import (
@@ -128,6 +154,29 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     runtime = CopilotRuntime.get(hass)
+    
+    # Import modules at runtime to avoid circular imports
+    from .core.modules.legacy import LegacyModule
+    from .core.modules.events_forwarder import EventsForwarderModule
+    from .core.modules.dev_surface import DevSurfaceModule
+    from .core.modules.performance_scaling import PerformanceScalingModule
+    from .core.modules.habitus_miner import HabitusMinerModule
+    from .core.modules.ops_runbook import OpsRunbookModule
+    from .core.modules.unifi_module import UniFiModule
+    from .core.modules.brain_graph_sync import BrainGraphSyncModule
+    from .core.modules.candidate_poller import CandidatePollerModule
+    from .core.modules.media_context_module import MediaContextModule
+    from .core.modules.mood_context_module import MoodContextModule
+    from .core.modules.mood_module import MoodModule
+    from .core.modules.energy_context_module import EnergyContextModule
+    from .core.modules.unifi_context_module import UnifiContextModule
+    from .core.modules.weather_context_module import WeatherContextModule
+    from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
+    from .core.modules.ml_context_module import MLContextModule
+    from .core.modules.camera_context_module import CameraContextModule
+    from .core.modules.quick_search import QuickSearchModule
+    from .core.modules.voice_context import VoiceContextModule
+    
     _module_classes = {
         "legacy": LegacyModule,
         "performance_scaling": PerformanceScalingModule,
