@@ -1,5 +1,29 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.34] - 2026-02-15
+
+### Added
+- **Swagger UI Documentation** (`api/v1/swagger_ui.py`):
+  - `/api/v1/docs` - Interactive Swagger UI documentation
+  - `/api/v1/docs/openapi.yaml` - OpenAPI 3.0.3 spec (raw)
+  - `/api/v1/docs/openapi.json` - OpenAPI spec as JSON
+  - `/api/v1/docs/validate` - Spec validation endpoint
+
+### Features
+- Interactive try-it-out for all API endpoints
+- Deep linking for direct endpoint navigation
+- Syntax highlighting (monokai theme)
+- Request duration display
+- Filter and search capabilities
+- Standalone layout without topbar
+
+### Developer Experience
+- Auto-loads from `docs/openapi.yaml` (embedded in add-on)
+- Fallback to inline minimal spec if file missing
+- Validates spec structure with version/path count
+
+---
+
 ## [0.4.33] - 2026-02-15
 
 ### Added
