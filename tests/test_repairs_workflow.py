@@ -8,10 +8,15 @@ Tests:
 - async_create_fix_flow factory
 - async_sync_decision_to_core (feedback loop)
 - Decision state transitions
+
+Requires Home Assistant installation.
 """
 from __future__ import annotations
 
 import pytest
+
+# Mark as integration test - requires HA installation
+pytestmark = pytest.mark.integration
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 from typing import Any

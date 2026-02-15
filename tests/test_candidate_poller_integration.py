@@ -6,11 +6,16 @@ Tests:
 - Candidate → HA Repairs conversion
 - Decision sync-back to Core (accept/dismiss/defer)
 - Graceful failure modes (Core unreachable, malformed responses)
+
+Requires Home Assistant installation.
 """
 from __future__ import annotations
 
 import asyncio
 import pytest
+
+# Mark as integration test - requires HA installation
+pytestmark = pytest.mark.integration
 from unittest.mock import AsyncMock, MagicMock, patch, call
 from typing import Any
 
