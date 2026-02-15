@@ -87,6 +87,11 @@ class N3EventForwarder:
         
         # Zone mapping
         self._entity_to_zone: Dict[str, str] = {}
+
+        # User context tracking (local-only; never forwarded to Core)
+        self._last_user_actions_by_zone: Dict[str, Dict[str, Any]] = {}
+        self._user_presence_by_zone: Dict[str, Dict[str, float]] = {}
+        self._user_last_zone_by_user: Dict[str, str] = {}
         
         # State listeners
         self._unsub_state_listener = None
@@ -246,6 +251,12 @@ class N3EventForwarder:
         )
         
         if envelope:
+            self._track_user_action_from_event(
+                event=event,
+                zone_ids=[envelope.get("zone_id")],
+                entity_id=entity_id,
+                kind="state_changed",
+            )
             await self._enqueue_event(envelope)
 
     async def _handle_call_service_event(self, event: Event):
@@ -286,6 +297,12 @@ class N3EventForwarder:
         )
         
         if envelope:
+            self._track_user_action_from_event(
+                event=event,
+                zone_ids=envelope.get("zone_ids") or [],
+                entity_id=entity_ids[0] if entity_ids else None,
+                kind="call_service",
+            )
             await self._enqueue_event(envelope)
 
     def _create_state_change_envelope(
@@ -459,6 +476,38 @@ class N3EventForwarder:
             return [str(eid) for eid in entity_id_value if isinstance(eid, str)]
         
         return []
+
+    def _track_user_action_from_event(
+        self,
+        *,
+        event: Event,
+        zone_ids: List[Optional[str]],
+        entity_id: Optional[str],
+        kind: str,
+    ) -> None:
+        """Track last user actions per zone and store user presence mapping (local-only)."""
+        context = getattr(event, "context", None)
+        user_id = getattr(context, "user_id", None) if context else None
+        if not user_id:
+            return
+
+        now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        now_ts = time.time()
+
+        for zone_id in zone_ids:
+            if not zone_id:
+                continue
+
+            self._last_user_actions_by_zone[zone_id] = {
+                "user_id": user_id,
+                "ts": now_iso,
+                "kind": kind,
+                "entity_id": entity_id,
+            }
+
+            zone_presence = self._user_presence_by_zone.setdefault(zone_id, {})
+            zone_presence[user_id] = now_ts
+            self._user_last_zone_by_user[user_id] = zone_id
 
     def _should_forward_entity(self, entity_id: str, domain: str) -> bool:
         """Check if entity should be forwarded based on debounce rules."""

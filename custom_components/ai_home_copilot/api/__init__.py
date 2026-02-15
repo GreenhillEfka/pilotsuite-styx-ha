@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import aiohttp
 
-from .const import HEADER_AUTH
+from ..const import HEADER_AUTH
 
 
 @dataclass
@@ -133,3 +133,9 @@ class CopilotApiClient:
 
 
 import asyncio  # keep at end to avoid circulars in some HA loaders
+
+__all__ = [
+    "CopilotStatus",
+    "CopilotApiError",
+    "CopilotApiClient",
+]

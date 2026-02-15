@@ -121,6 +121,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         # Best-effort: never break setup because of aggregates.
         pass
 
+    # User Preference sensors
+    user_pref_data = data.get("user_preference_module", {}) if isinstance(data, dict) else {}
+    if user_pref_data:
+        entities.append(ZoneOccupancySensor(hass, entry, user_pref_data))
+        entities.append(UserPresenceSensor(hass, entry, user_pref_data))
+        # Add per-user sensors
+        for user_id in user_pref_data.get("users", {}).keys():
+            entities.append(UserPreferenceSensor(hass, entry, user_pref_data, user_id))
+
     async_add_entities(entities, True)
 
 

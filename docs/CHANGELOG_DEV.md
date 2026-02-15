@@ -7,6 +7,40 @@ Dieses Dokument listet **Work-in-progress** Änderungen, die noch **nicht** als 
 
 ## Unreleased (development)
 
+### WIP: v0.8.0 (Multi-User Preference Learning)
+
+**Status:** Phase 1 Implementation - User Detection + Preference Storage
+
+#### Added
+- **👥 Multi-User Preference Learning (MUPL) Module**: Phase 1 of user detection and preference learning
+  - Automatic discovery of `person.*` entities from Home Assistant
+  - Presence tracking via state change subscriptions
+  - Preference storage with exponential smoothing (α=0.3)
+  - Device affinity tracking (which user uses which device)
+  - Privacy-first: All data stored locally in HA storage, opt-in by default
+  - Services: `mupl_learn_preference`, `mupl_set_user_priority`, `mupl_delete_user_data`, `mupl_export_user_data`, `mupl_detect_active_users`, `mupl_get_aggregated_mood`
+  - Entities: `sensor.ai_copilot_active_users`, `sensor.ai_copilot_mood_{user}`
+  - Config options: `mupl_enabled`, `mupl_privacy_mode`, `mupl_min_interactions`, `mupl_retention_days`
+
+- **📊 User-Specific Mood**: Extended mood context to support per-user mood tracking
+  - Each user gets their own mood sensor with comfort/frugality/joy weights
+  - Aggregated mood for multi-user conflict resolution (priority-weighted)
+  - Integration with existing Mood Context module
+
+- **🔒 Privacy Features**: GDPR-compliant data handling
+  - `mupl_delete_user_data`: Delete all stored data for a user
+  - `mupl_export_user_data`: Export all data for a user (data portability)
+  - Configurable retention (default 90 days)
+  - Opt-in privacy mode (default)
+
+#### Design Document
+- `docs/MUPL_DESIGN.md`: Complete architecture, data model, and implementation phases
+
+#### Next Phases
+- Phase 2: Action Attribution + Learning (service call context analysis)
+- Phase 3: Multi-User Mood + Aggregation (conflict resolution UI)
+- Phase 4: UI Integration + Services (dashboard cards, preference UI)
+
 ### WIP: v0.4.1 (Brain Graph Sync Integration)
 **Status:** Implementation complete, compile-clean, integration ready.
 

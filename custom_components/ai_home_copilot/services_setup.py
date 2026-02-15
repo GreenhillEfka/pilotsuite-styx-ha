@@ -350,6 +350,148 @@ def _register_habitus_dashboard_cards_services(hass: HomeAssistant) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Multi-User Preference Learning (MUPL) services
+# ---------------------------------------------------------------------------
+
+def _register_mupl_services(hass: HomeAssistant) -> None:
+    """Register Multi-User Preference Learning v0.8.0 services."""
+    
+    if not hass.services.has_service(DOMAIN, "mupl_learn_preference"):
+        
+        async def _handle_learn_preference(call: ServiceCall) -> None:
+            from .multi_user_preferences import get_mupl_module
+            mupl = get_mupl_module(hass)
+            if not mupl:
+                return
+            user_id = call.data.get("user_id")
+            pref_type = call.data.get("preference_type")
+            value = call.data.get("value")
+            zone = call.data.get("zone")
+            await mupl.set_preference(user_id, pref_type, value, zone)
+            
+        hass.services.async_register(
+            DOMAIN,
+            "mupl_learn_preference",
+            _handle_learn_preference,
+            schema=vol.Schema(
+                {
+                    vol.Required("user_id"): str,
+                    vol.Required("preference_type"): str,
+                    vol.Required("value"): vol.Any(float, dict),
+                    vol.Optional("zone"): str,
+                }
+            ),
+        )
+        
+    if not hass.services.has_service(DOMAIN, "mupl_set_user_priority"):
+        
+        async def _handle_set_priority(call: ServiceCall) -> None:
+            from .multi_user_preferences import get_mupl_module
+            mupl = get_mupl_module(hass)
+            if not mupl:
+                return
+            user_id = call.data.get("user_id")
+            priority = float(call.data.get("priority", 0.5))
+            await mupl.set_user_priority(user_id, priority)
+            
+        hass.services.async_register(
+            DOMAIN,
+            "mupl_set_user_priority",
+            _handle_set_priority,
+            schema=vol.Schema(
+                {
+                    vol.Required("user_id"): str,
+                    vol.Required("priority"): vol.All(
+                        vol.Coerce(float),
+                        vol.Range(min=0.0, max=1.0),
+                    ),
+                }
+            ),
+        )
+        
+    if not hass.services.has_service(DOMAIN, "mupl_delete_user_data"):
+        
+        async def _handle_delete_data(call: ServiceCall) -> None:
+            from .multi_user_preferences import get_mupl_module
+            mupl = get_mupl_module(hass)
+            if not mupl:
+                return
+            user_id = call.data.get("user_id")
+            await mupl.delete_user_data(user_id)
+            
+        hass.services.async_register(
+            DOMAIN,
+            "mupl_delete_user_data",
+            _handle_delete_data,
+            schema=vol.Schema({vol.Required("user_id"): str}),
+        )
+        
+    if not hass.services.has_service(DOMAIN, "mupl_export_user_data"):
+        
+        async def _handle_export_data(call: ServiceCall) -> None:
+            from .multi_user_preferences import get_mupl_module
+            mupl = get_mupl_module(hass)
+            if not mupl:
+                return
+            user_id = call.data.get("user_id")
+            data = await mupl.export_user_data(user_id)
+            # Fire event with exported data
+            hass.bus.async_fire(
+                f"{DOMAIN}_mupl_user_data_exported",
+                {"user_id": user_id, "data": data},
+            )
+            
+        hass.services.async_register(
+            DOMAIN,
+            "mupl_export_user_data",
+            _handle_export_data,
+            schema=vol.Schema({vol.Required("user_id"): str}),
+        )
+        
+    if not hass.services.has_service(DOMAIN, "mupl_detect_active_users"):
+        
+        async def _handle_detect_users(_: ServiceCall) -> None:
+            from .multi_user_preferences import get_mupl_module
+            mupl = get_mupl_module(hass)
+            if not mupl:
+                return
+            active_users = await mupl.detect_active_users()
+            # Fire event with results
+            hass.bus.async_fire(
+                f"{DOMAIN}_mupl_active_users_detected",
+                {"users": active_users, "count": len(active_users)},
+            )
+            
+        hass.services.async_register(
+            DOMAIN,
+            "mupl_detect_active_users",
+            _handle_detect_users,
+        )
+        
+    if not hass.services.has_service(DOMAIN, "mupl_get_aggregated_mood"):
+        
+        async def _handle_get_mood(call: ServiceCall) -> None:
+            from .multi_user_preferences import get_mupl_module
+            mupl = get_mupl_module(hass)
+            if not mupl:
+                return
+            user_ids = call.data.get("user_ids")
+            mood = mupl.get_aggregated_mood(user_ids)
+            # Fire event with results
+            hass.bus.async_fire(
+                f"{DOMAIN}_mupl_aggregated_mood",
+                {"mood": mood, "user_ids": user_ids},
+            )
+            
+        hass.services.async_register(
+            DOMAIN,
+            "mupl_get_aggregated_mood",
+            _handle_get_mood,
+            schema=vol.Schema({vol.Optional("user_ids"): [str]}),
+        )
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -360,3 +502,4 @@ def async_register_all_services(hass: HomeAssistant) -> None:
     _register_forwarder_n3_services(hass)
     _register_ops_runbook_services(hass)
     _register_habitus_dashboard_cards_services(hass)
+    _register_mupl_services(hass)

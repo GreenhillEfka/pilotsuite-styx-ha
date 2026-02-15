@@ -113,6 +113,59 @@ class MoodContextModule:
     def get_zone_mood(self, zone_id: str) -> Optional[Dict[str, Any]]:
         """Get mood snapshot for a specific zone."""
         return self._zone_moods.get(zone_id)
+
+    def _clamp(self, value: float, low: float = 0.0, high: float = 1.0) -> float:
+        return max(low, min(high, value))
+
+    def _get_user_preference(self, user_id: str, zone_id: str) -> Optional[Dict[str, Any]]:
+        if not user_id or not zone_id:
+            return None
+
+        try:
+            from .user_preference_module import UserPreferenceModule  # type: ignore
+        except Exception:  # noqa: BLE001
+            return None
+
+        dom = self.hass.data.get(DOMAIN, {})
+        module = dom.get("user_preference_module")
+        if isinstance(module, UserPreferenceModule):
+            return module.get_user_preference(user_id, zone_id)
+
+        # Fallback: search entry data for a registered module.
+        for entry_data in dom.values():
+            if isinstance(entry_data, dict):
+                candidate = entry_data.get("user_preference_module")
+                if isinstance(candidate, UserPreferenceModule):
+                    return candidate.get_user_preference(user_id, zone_id)
+
+        return None
+
+    def get_mood_for_user(self, user_id: str, zone_id: str) -> Optional[Dict[str, Any]]:
+        """Get user-weighted mood for a zone.
+
+        Falls back to zone mood if no user preference exists.
+        """
+        mood = self.get_zone_mood(zone_id)
+        if not mood:
+            return None
+
+        pref = self._get_user_preference(user_id, zone_id)
+        if not pref:
+            return dict(mood)
+
+        comfort = float(mood.get("comfort", 0.5))
+        frugality = float(mood.get("frugality", 0.5))
+        joy = float(mood.get("joy", 0.5))
+
+        comfort_bias = float(pref.get("comfort_bias", 0.0))
+        frugality_bias = float(pref.get("frugality_bias", 0.0))
+        joy_bias = float(pref.get("joy_bias", 0.0))
+
+        weighted = dict(mood)
+        weighted["comfort"] = self._clamp(comfort + comfort_bias)
+        weighted["frugality"] = self._clamp(frugality + frugality_bias)
+        weighted["joy"] = self._clamp(joy + joy_bias)
+        return weighted
     
     def get_all_moods(self) -> Dict[str, Dict[str, Any]]:
         """Get all cached zone moods."""

@@ -1,5 +1,20 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.0] - 2026-02-15
+
+### Added
+- **User Preference Module**: Local per-user preference storage with comfort/frugality/joy biases
+- **User Preference API**: Local endpoints for reading/updating user preferences
+  - `GET /api/v1/user/{user_id}/preferences`
+  - `GET /api/v1/user/{user_id}/zone/{zone_id}/preference`
+  - `POST /api/v1/user/{user_id}/preference`
+- **User-weighted Mood**: `get_mood_for_user(user_id, zone_id)` with fallback to zone mood
+- **Forwarder N3 Context Tracking**: Local user-action tracking per zone (no Core forwarding)
+- **Config Flow**: `enable_user_preferences` toggle (default: true)
+- **Tests**: New unit tests for user preference storage and weighting
+
+---
+
 ## [0.7.6] - 2026-02-15
 
 ### Added

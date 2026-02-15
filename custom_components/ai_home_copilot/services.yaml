@@ -369,6 +369,107 @@ habitus_configure_mining:
           max: 168
           mode: box
 
+# ─── Multi-User Preference Learning (MUPL) ────────────────────────────────────
+
+mupl_learn_preference:
+  name: MUPL – Learn Preference
+  description: Lernt eine Präferenz für einen bestimmten User.
+  fields:
+    user_id:
+      name: User ID
+      description: User ID (person.entity_id).
+      required: true
+      example: "person.efka"
+      selector:
+        text:
+    preference_type:
+      name: Preference Type
+      description: Art der Präferenz (light_brightness, media_volume, temperature, mood_weights).
+      required: true
+      example: "light_brightness"
+      selector:
+        select:
+          options:
+            - "light_brightness"
+            - "media_volume"
+            - "temperature"
+            - "mood_weights"
+    value:
+      name: Value
+      description: Präferenz-Wert (0.0-1.0 für brightness/volume, Grad für temperature, oder dict für mood_weights).
+      required: true
+      example: 0.8
+      selector:
+        object:
+    zone:
+      name: Zone
+      description: Optional: Zone-spezifische Präferenz.
+      example: "wohnzimmer"
+      selector:
+        text:
+
+mupl_set_user_priority:
+  name: MUPL – Set User Priority
+  description: Setzt die Priorität eines Users für Multi-User Konfliktauflösung.
+  fields:
+    user_id:
+      name: User ID
+      description: User ID (person.entity_id).
+      required: true
+      example: "person.efka"
+      selector:
+        text:
+    priority:
+      name: Priority
+      description: Priorität (0.0-1.0, höher = wichtiger).
+      required: true
+      example: 0.8
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.1
+          mode: slider
+
+mupl_delete_user_data:
+  name: MUPL – Delete User Data
+  description: Löscht alle gespeicherten Daten eines Users (Privacy/GDPR).
+  fields:
+    user_id:
+      name: User ID
+      description: User ID (person.entity_id).
+      required: true
+      example: "person.efka"
+      selector:
+        text:
+
+mupl_export_user_data:
+  name: MUPL – Export User Data
+  description: Exportiert alle gespeicherten Daten eines Users (Privacy/GDPR).
+  fields:
+    user_id:
+      name: User ID
+      description: User ID (person.entity_id).
+      required: true
+      example: "person.efka"
+      selector:
+        text:
+
+mupl_detect_active_users:
+  name: MUPL – Detect Active Users
+  description: Erkennt aktuell anwesende User und gibt sie zurück.
+
+mupl_get_aggregated_mood:
+  name: MUPL – Get Aggregated Mood
+  description: Aggregiert den Mood aller aktiven User.
+  fields:
+    user_ids:
+      name: User IDs
+      description: Optional: Liste spezifischer User-IDs (leer = alle aktiven User).
+      example: '["person.efka", "person.partner"]'
+      selector:
+        object:
+
 # ─── Debug Mode ──────────────────────────────────────────────────────────────
 
 set_debug:

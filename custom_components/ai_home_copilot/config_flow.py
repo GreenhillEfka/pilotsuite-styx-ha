@@ -22,6 +22,7 @@ from .const import (
     CONF_WEBHOOK_URL,
     CONF_WATCHDOG_ENABLED,
     CONF_WATCHDOG_INTERVAL_SECONDS,
+    CONF_ENABLE_USER_PREFERENCES,
     CONF_DEVLOG_PUSH_ENABLED,
     CONF_DEVLOG_PUSH_INTERVAL_SECONDS,
     CONF_DEVLOG_PUSH_PATH,
@@ -44,6 +45,27 @@ from .const import (
     CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     CONF_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
     CONF_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
+    # User Preference Module
+    CONF_USER_PREFERENCE_ENABLED,
+    CONF_TRACKED_USERS,
+    CONF_PRIMARY_USER,
+    CONF_USER_LEARNING_MODE,
+    DEFAULT_USER_PREFERENCE_ENABLED,
+    DEFAULT_TRACKED_USERS,
+    DEFAULT_PRIMARY_USER,
+    DEFAULT_USER_LEARNING_MODE,
+    USER_LEARNING_MODES,
+    # Multi-User Preference Learning (MUPL) Module v0.8.0
+    CONF_MUPL_ENABLED,
+    CONF_MUPL_PRIVACY_MODE,
+    CONF_MUPL_MIN_INTERACTIONS,
+    CONF_MUPL_RETENTION_DAYS,
+    DEFAULT_MUPL_ENABLED,
+    DEFAULT_MUPL_PRIVACY_MODE,
+    DEFAULT_MUPL_MIN_INTERACTIONS,
+    DEFAULT_MUPL_RETENTION_DAYS,
+    MUPL_PRIVACY_MODES,
+    # Other defaults
     DEFAULT_HOST,
     DEFAULT_PORT,
     DEFAULT_MEDIA_MUSIC_PLAYERS,
@@ -59,6 +81,7 @@ from .const import (
     DEFAULT_MEDIA_MUSIC_PLAYERS,
     DEFAULT_MEDIA_TV_PLAYERS,
     DEFAULT_WATCHDOG_INTERVAL_SECONDS,
+    DEFAULT_ENABLE_USER_PREFERENCES,
     DEFAULT_DEVLOG_PUSH_ENABLED,
     DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS,
     DEFAULT_DEVLOG_PUSH_PATH,
@@ -189,6 +212,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             if isinstance(additional_entities_csv, str):
                 user_input[CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES] = _parse_csv(additional_entities_csv)
 
+            # Normalize tracked users (comma-separated list -> list[str])
+            tracked_users_csv = user_input.get(CONF_TRACKED_USERS)
+            if isinstance(tracked_users_csv, str):
+                user_input[CONF_TRACKED_USERS] = _parse_csv(tracked_users_csv)
+
             # Token handling: if empty string provided, explicitly remove token
             if CONF_TOKEN in user_input:
                 token = user_input.get(CONF_TOKEN, "").strip()
@@ -269,6 +297,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                         CONF_WATCHDOG_INTERVAL_SECONDS, DEFAULT_WATCHDOG_INTERVAL_SECONDS
                     ),
                 ): int,
+                vol.Optional(
+                    CONF_ENABLE_USER_PREFERENCES,
+                    default=data.get(
+                        CONF_ENABLE_USER_PREFERENCES, DEFAULT_ENABLE_USER_PREFERENCES
+                    ),
+                ): bool,
                 # Core API v1: HA -> Core event forwarder (opt-in, allowlist=Habitus zones).
                 vol.Optional(
                     CONF_EVENTS_FORWARDER_ENABLED,
@@ -414,6 +448,42 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 vol.Optional(
                     CONF_DEVLOG_PUSH_MAX_CHARS,
                     default=data.get(CONF_DEVLOG_PUSH_MAX_CHARS, DEFAULT_DEVLOG_PUSH_MAX_CHARS),
+                ): int,
+
+                # User Preference Module (Multi-user learning)
+                vol.Optional(
+                    CONF_USER_PREFERENCE_ENABLED,
+                    default=data.get(CONF_USER_PREFERENCE_ENABLED, DEFAULT_USER_PREFERENCE_ENABLED),
+                ): bool,
+                vol.Optional(
+                    CONF_TRACKED_USERS,
+                    default=_as_csv(data.get(CONF_TRACKED_USERS, DEFAULT_TRACKED_USERS)),
+                ): str,
+                vol.Optional(
+                    CONF_PRIMARY_USER,
+                    default=data.get(CONF_PRIMARY_USER, DEFAULT_PRIMARY_USER or ""),
+                ): str,
+                vol.Optional(
+                    CONF_USER_LEARNING_MODE,
+                    default=data.get(CONF_USER_LEARNING_MODE, DEFAULT_USER_LEARNING_MODE),
+                ): vol.In(USER_LEARNING_MODES),
+
+                # Multi-User Preference Learning (MUPL) Module v0.8.0
+                vol.Optional(
+                    CONF_MUPL_ENABLED,
+                    default=data.get(CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED),
+                ): bool,
+                vol.Optional(
+                    CONF_MUPL_PRIVACY_MODE,
+                    default=data.get(CONF_MUPL_PRIVACY_MODE, DEFAULT_MUPL_PRIVACY_MODE),
+                ): vol.In(MUPL_PRIVACY_MODES),
+                vol.Optional(
+                    CONF_MUPL_MIN_INTERACTIONS,
+                    default=data.get(CONF_MUPL_MIN_INTERACTIONS, DEFAULT_MUPL_MIN_INTERACTIONS),
+                ): int,
+                vol.Optional(
+                    CONF_MUPL_RETENTION_DAYS,
+                    default=data.get(CONF_MUPL_RETENTION_DAYS, DEFAULT_MUPL_RETENTION_DAYS),
                 ): int,
             }
         )
