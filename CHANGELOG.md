@@ -1,5 +1,24 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.8.18] - 2026-02-15
+
+### Fixed
+- **CI Pipeline**: HACS validation + pytest fixes
+  - Added repository description and topics for HACS compliance
+  - Fixed pytest workflow to run isolated unit tests only (no HA dependency)
+  - Fixed YAML syntax in services.yaml (quoted descriptions with colons)
+  - Added `http` to manifest dependencies
+  - Removed duplicate `disable_debug` service entry
+  - Sorted manifest dependencies alphabetically
+
+### CI Quality Gates
+- ✅ py_compile (syntax check)
+- ✅ pytest (23 isolated unit tests)
+- ✅ HACS validation
+- ✅ hassfest validation
+
+---
+
 ## [0.8.14] - 2026-02-15
 
 ### Added
