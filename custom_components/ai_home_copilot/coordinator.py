@@ -132,6 +132,9 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
             # Get neuron states
             neurons_data = await self.api.async_get_neurons()
             
+            # Get habit learning data from ML context if available
+            habit_data = await self._get_habit_learning_data()
+            
             # Combine all data
             return {
                 "ok": status.get("ok", True),
@@ -140,10 +143,72 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 "neurons": neurons_data.get("neurons", {}),
                 "dominant_mood": mood_data.get("mood", "unknown"),
                 "mood_confidence": mood_data.get("confidence", 0.0),
+                # Include habit learning data
+                "habit_summary": habit_data.get("habit_summary", {}),
+                "predictions": habit_data.get("predictions", []),
+                "sequences": habit_data.get("sequences", []),
             }
         except Exception as err:
             _LOGGER.error("Error fetching Copilot data: %s", err)
             raise UpdateFailed(str(err)) from err
+    
+    async def _get_habit_learning_data(self) -> Dict[str, Any]:
+        """Get habit learning data from ML context."""
+        try:
+            # Try to get ML context from hass.data
+            entry_data = self._hass.data.get("ai_home_copilot", {})
+            
+            for entry_id, data in entry_data.items():
+                ml_context = data.get("ml_context")
+                if ml_context and ml_context.habit_predictor:
+                    # Get habit summary
+                    summary = ml_context.habit_predictor.get_habit_summary(hours=24)
+                    
+                    # Build predictions
+                    predictions = []
+                    for device_id, device_info in summary.get("device_patterns", {}).items():
+                        for event_type in device_info.get("event_types", []):
+                            pred = ml_context.get_habit_prediction(device_id, event_type)
+                            if pred.get("predicted"):
+                                predictions.append({
+                                    "pattern": f"{device_id}:{event_type}",
+                                    "confidence": pred.get("confidence", 0),
+                                    "predicted": True,
+                                    "details": pred.get("details", {}),
+                                })
+                    
+                    # Build sequences
+                    sequences = []
+                    for start_device, seq_list in ml_context.habit_predictor.sequence_patterns.items():
+                        if seq_list:
+                            seq_pred = ml_context.habit_predictor.predict_sequence(start_device)
+                            if seq_pred.get("predicted"):
+                                sequences.append({
+                                    "sequence": seq_pred.get("sequence", []),
+                                    "confidence": seq_pred.get("confidence", 0),
+                                    "occurrences": seq_pred.get("occurrences", 0),
+                                    "predicted": True,
+                                })
+                    
+                    return {
+                        "habit_summary": {
+                            "total_patterns": summary.get("total_patterns", 0),
+                            "time_patterns": summary.get("time_patterns", {}),
+                            "sequences": summary.get("sequences", {}),
+                            "device_patterns": summary.get("device_patterns", {}),
+                            "last_update": summary.get("last_update"),
+                        },
+                        "predictions": predictions,
+                        "sequences": sequences,
+                    }
+        except Exception as e:
+            _LOGGER.debug("Could not get habit learning data: %s", e)
+        
+        return {
+            "habit_summary": {},
+            "predictions": [],
+            "sequences": [],
+        }
     
     @callback
     def async_get_mood(self) -> Dict[str, Any]:

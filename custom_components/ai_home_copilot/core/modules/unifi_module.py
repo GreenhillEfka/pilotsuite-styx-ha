@@ -105,11 +105,11 @@ class UniFiModule:
         self._entry_id = ctx.entry.entry_id
 
         # Initialize data storage
-        if DOMAIN not in hass.data:
-            hass.data[DOMAIN] = {}
+        if DOMAIN not in ctx.hass.data:
+            ctx.hass.data[DOMAIN] = {}
 
-        if self._entry_id not in hass.data[DOMAIN]:
-            hass.data[DOMAIN][self._entry_id] = {}
+        if self._entry_id not in ctx.hass.data[DOMAIN]:
+            ctx.hass.data[DOMAIN][self._entry_id] = {}
 
         entry_data = hass.data[DOMAIN][self._entry_id]
         entry_data["unifi_module"] = {

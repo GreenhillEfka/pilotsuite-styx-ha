@@ -68,24 +68,37 @@ class MoodContextModule:
         logger.info("MoodContextModule: Stopped")
     
     async def _polling_loop(self) -> None:
-        """Continuous polling loop."""
+        """Continuous polling loop with exponential backoff on errors."""
         first_run = True
+        consecutive_errors = 0
+        base_interval = self._polling_interval_seconds
+        max_backoff = 300  # Max 5 minutes backoff
+        
         while self._enabled:
             try:
                 if first_run:
                     # Initial delay to let Core start
                     await asyncio.sleep(10)
                     first_run = False
-                else:
-                    await asyncio.sleep(self._polling_interval_seconds)
                 
                 if self._enabled:
                     await self._fetch_moods()
+                    # Reset error count on success
+                    consecutive_errors = 0
+                
+                # Normal interval between polls
+                await asyncio.sleep(base_interval)
             
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"MoodContextModule polling error: {e}")
+                consecutive_errors += 1
+                logger.error(f"MoodContextModule polling error ({consecutive_errors}x): {e}")
+                
+                # Exponential backoff
+                backoff = min(base_interval * (2 ** consecutive_errors), max_backoff)
+                logger.debug(f"Backing off for {backoff}s before retry")
+                await asyncio.sleep(backoff)
     
     async def _fetch_moods(self) -> None:
         """Fetch mood data from Core API."""
@@ -202,7 +215,7 @@ class MoodContextModule:
         if not mood:
             return False  # No mood data, allow energy-saving
         
-        # Suppress if entertai ment is happening
+        # Suppress if entertainment is happening
         if mood.get("joy", 0) > 0.6:
             return True
         
@@ -270,3 +283,131 @@ class MoodContextModule:
             "average_joy": round(avg_joy, 2),
             "zones_with_media": sum(1 for m in moods if m.get("media_active", False)),
         }
+    
+    # ===== Character System Integration =====
+    
+    def get_character_mood_context(self, zone_id: str, character_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get mood context formatted for Character System consumption.
+        
+        Args:
+            zone_id: The zone to get mood context for
+            character_id: Optional character ID for user-specific mood weighting
+            
+        Returns:
+            Dict with mood values formatted for character responses
+        """
+        # Get base mood for zone
+        if character_id:
+            mood = self.get_mood_for_user(character_id, zone_id)
+        else:
+            mood = self.get_zone_mood(zone_id)
+        
+        if not mood:
+            return {
+                "zone_active": False,
+                "energy_level": "neutral",
+                "preferred_suggestions": [],
+                "mood_summary": "unknown",
+            }
+        
+        joy = mood.get("joy", 0.5)
+        comfort = mood.get("comfort", 0.5)
+        frugality = mood.get("frugality", 0.5)
+        media_active = mood.get("media_active", False)
+        time_of_day = mood.get("time_of_day", "unknown")
+        
+        # Determine energy level
+        if media_active or joy > 0.6:
+            energy_level = "high"
+        elif joy < 0.3 and comfort < 0.4:
+            energy_level = "low"
+        else:
+            energy_level = "neutral"
+        
+        # Determine preferred suggestion types
+        preferred = []
+        if joy > 0.5:
+            preferred.append("entertainment")
+        if comfort > 0.6:
+            preferred.append("comfort")
+        if frugality > 0.6 and joy < 0.4:
+            preferred.append("energy_saving")
+        preferred.append("security")  # Always relevant
+        
+        # Create mood summary for character
+        if joy > 0.7:
+            mood_summary = "happy"
+        elif joy < 0.3:
+            mood_summary = "low"
+        elif comfort > 0.7:
+            mood_summary = "relaxed"
+        elif frugality > 0.7:
+            mood_summary = "focused"
+        else:
+            mood_summary = "neutral"
+        
+        return {
+            "zone_active": media_active or joy > 0.3,
+            "energy_level": energy_level,
+            "preferred_suggestions": preferred,
+            "mood_summary": mood_summary,
+            "values": {
+                "joy": round(joy, 2),
+                "comfort": round(comfort, 2),
+                "frugality": round(frugality, 2),
+            },
+            "context": {
+                "media_active": media_active,
+                "time_of_day": time_of_day,
+            },
+        }
+    
+    def should_character_speak(self, zone_id: str, character_id: Optional[str] = None) -> bool:
+        """Determine if the character should initiate a conversation in this zone.
+        
+        Args:
+            zone_id: The zone to check
+            character_id: Optional character/user ID for preferences
+            
+        Returns:
+            True if character should speak, False otherwise
+        """
+        context = self.get_character_mood_context(zone_id, character_id)
+        
+        # Don't interrupt high-energy activities
+        if context.get("energy_level") == "high" and context.get("context", {}).get("media_active"):
+            return False
+        
+        # Check if zone is active (someone present)
+        if not context.get("zone_active", False):
+            return False
+        
+        return True
+    
+    def get_conversation_starter(self, zone_id: str, character_id: Optional[str] = None) -> Optional[str]:
+        """Get an appropriate conversation starter based on current mood.
+        
+        Args:
+            zone_id: The zone to get context for
+            character_id: Optional character/user ID for personalized starters
+            
+        Returns:
+            A suggestion type string or None if no good starter available
+        """
+        context = self.get_character_mood_context(zone_id, character_id)
+        
+        if not context.get("zone_active"):
+            return None
+        
+        mood_summary = context.get("mood_summary", "neutral")
+        
+        # Return suggestion types based on mood
+        starters = {
+            "happy": "entertainment",
+            "relaxed": "comfort",
+            "focused": "energy_saving",
+            "low": "comfort",
+            "neutral": None,  # No specific starter
+        }
+        
+        return starters.get(mood_summary)

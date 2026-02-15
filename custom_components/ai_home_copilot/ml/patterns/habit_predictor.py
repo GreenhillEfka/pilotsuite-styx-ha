@@ -15,14 +15,15 @@ class HabitPredictor:
     - Time-based pattern detection
     - Device usage prediction
     - Activity sequence modeling
-    - Confidence scoring
+    - Confidence scoring with recency weighting
+    - Mood-aware predictions
     """
     
     def __init__(
         self,
         min_samples_per_pattern: int = 3,
         prediction_horizon_hours: int = 12,
-        confidence_threshold: float = 0.7,
+        confidence_threshold: float = 0.5,  # Lowered from 0.7 for more predictions
         enabled: bool = True,
     ):
         """
@@ -46,6 +47,11 @@ class HabitPredictor:
             lambda: defaultdict(list)
         )
         
+        # Mood-aware patterns (NEW)
+        self.mood_patterns: Dict[str, Dict[str, List[float]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        
         # Statistics
         self.pattern_confidence: Dict[str, float] = {}
         self.last_prediction_time: Dict[str, float] = {}
@@ -66,7 +72,7 @@ class HabitPredictor:
             device_id: ID of the device
             event_type: Type of event (on, off, state_change, etc.)
             timestamp: When the event occurred
-            context: Additional context (location, user, etc.)
+            context: Additional context (location, user, mood, etc.)
         """
         if not self.enabled:
             return
@@ -82,6 +88,10 @@ class HabitPredictor:
         
         # Update time patterns
         self._update_time_pattern(device_id, event_type, timestamp)
+        
+        # Update mood patterns if mood context available
+        if context.get("mood") and context["mood"] != "unknown":
+            self._update_mood_pattern(device_id, event_type, context["mood"], timestamp)
         
         # Update sequence patterns if we have device chain
         if context.get("device_chain"):
@@ -126,6 +136,25 @@ class HabitPredictor:
         pattern_key = f"{device_id}_{event_type}"
         self.time_patterns[pattern_key][hour].append(timestamp)
         self.time_patterns[pattern_key][f"day_{day_of_week}"].append(timestamp)
+        
+    def _update_mood_pattern(
+        self,
+        device_id: str,
+        event_type: str,
+        mood: str,
+        timestamp: float,
+    ) -> None:
+        """Update mood-associated patterns."""
+        pattern_key = f"{device_id}_{event_type}"
+        self.mood_patterns[pattern_key][mood].append(timestamp)
+        
+        # Keep only recent events (30 days)
+        cutoff = timestamp - (30 * 24 * 3600)
+        for mood_key in self.mood_patterns[pattern_key]:
+            self.mood_patterns[pattern_key][mood_key] = [
+                t for t in self.mood_patterns[pattern_key][mood_key]
+                if t >= cutoff
+            ]
         
     def _update_sequence_pattern(
         self,

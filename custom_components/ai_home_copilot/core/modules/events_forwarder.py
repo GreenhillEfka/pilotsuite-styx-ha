@@ -405,6 +405,8 @@ class EventsForwarderModule:
         data["events_forwarder_last_success_ts"] = None
         data["events_forwarder_last_error_at"] = None
         data["events_forwarder_last_error_ts"] = None
+        data["events_forwarder_rate_limit_tokens"] = st.rate_limit_max_tokens
+        data["events_forwarder_backoff_level"] = 0
 
         def _schedule_task(coro_fn) -> None:
             """Schedule a coroutine function on the HA event loop.
@@ -702,12 +704,32 @@ class EventsForwarderModule:
                 st.unsub_timer()
             st.unsub_timer = None
 
+            # Check rate limit before proceeding
+            if not _rate_limit_consume(st, cost=1.0):
+                # Rate limited - schedule retry with delay
+                delay = 1.0 / st.rate_limit_refill_rate
+                st.unsub_timer = async_call_later(hass, delay, _flush_timer)
+                st.flushing = False
+                data["events_forwarder_last"] = {
+                    "sent": 0,
+                    "time": _now_iso(),
+                    "status": "rate_limited",
+                }
+                return
+
+            # Apply exponential backoff if needed
+            backoff_delay = _get_backoff_delay(st)
+            if backoff_delay > 0:
+                _LOGGER.debug("Events forwarder: backing off %.1fs (level %d)", backoff_delay, st.backoff_level)
+                await asyncio.sleep(backoff_delay)
+
             if st.queue is None:
                 st.queue = []
 
             if not st.queue:
                 data["events_forwarder_queue_len"] = 0
                 data["events_forwarder_persistent_queue_len"] = 0
+                _reset_backoff(st)
                 st.flushing = False
                 return
 
@@ -736,6 +758,9 @@ class EventsForwarderModule:
                 st.last_success_ts = time.time()
                 st.first_error_ts = None
 
+                # Reset backoff after successful send
+                _reset_backoff(st)
+
                 # store last stats for diagnostics
                 data["events_forwarder_last"] = {
                     "sent": len(items),
@@ -746,6 +771,7 @@ class EventsForwarderModule:
                 data["events_forwarder_error_streak"] = st.error_streak
                 data["events_forwarder_last_success_at"] = data["events_forwarder_last"]["time"]
                 data["events_forwarder_last_success_ts"] = st.last_success_ts
+                data["events_forwarder_rate_limit_tokens"] = st.rate_limit_tokens
 
                 _persist_mark_dirty()
             except asyncio.CancelledError:
@@ -765,6 +791,7 @@ class EventsForwarderModule:
             except Exception as err:  # noqa: BLE001
                 st.error_total += 1
                 st.error_streak += 1
+                st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
                 now_ts = time.time()
                 st.last_error_ts = now_ts
                 if st.first_error_ts is None:
@@ -780,8 +807,9 @@ class EventsForwarderModule:
                 data["events_forwarder_error_streak"] = st.error_streak
                 data["events_forwarder_last_error_at"] = data["events_forwarder_last"]["time"]
                 data["events_forwarder_last_error_ts"] = st.last_error_ts
+                data["events_forwarder_backoff_level"] = st.backoff_level
 
-                _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s", err)
+                _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s (backoff level %d)", err, st.backoff_level)
 
                 # Re-queue items (front), keep order.
                 st.queue = items + (st.queue or [])
@@ -796,6 +824,11 @@ class EventsForwarderModule:
 
                 data["events_forwarder_queue_len"] = len(st.queue)
                 data["events_forwarder_persistent_queue_len"] = len(st.queue)
+
+                # Schedule retry with backoff
+                retry_delay = _get_backoff_delay(st)
+                if retry_delay > 0:
+                    st.unsub_timer = async_call_later(hass, retry_delay, _flush_timer)
 
                 _persist_mark_dirty()
 
