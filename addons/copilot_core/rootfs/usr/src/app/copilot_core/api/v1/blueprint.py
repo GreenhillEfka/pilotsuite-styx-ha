@@ -11,6 +11,7 @@ from copilot_core.api.v1.graph_ops import bp as graph_ops_bp
 from copilot_core.api.v1.vector import bp as vector_bp
 from copilot_core.api.v1.neurons import bp as neurons_bp
 from copilot_core.api.v1.weather import bp as weather_bp
+from copilot_core.api.v1.voice_context_bp import bp as voice_context_bp
 from copilot_core.knowledge_graph.api import bp as knowledge_graph_bp
 
 api_v1 = Blueprint("api_v1", __name__, url_prefix="/api/v1")
@@ -27,4 +28,5 @@ api_v1.register_blueprint(graph_ops_bp)
 api_v1.register_blueprint(vector_bp)
 api_v1.register_blueprint(neurons_bp)
 api_v1.register_blueprint(weather_bp)
+api_v1.register_blueprint(voice_context_bp)
 api_v1.register_blueprint(knowledge_graph_bp)

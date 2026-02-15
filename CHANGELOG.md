@@ -1,5 +1,29 @@
 # CHANGELOG - AI Home CoPilot Core
 
+## [0.4.32] - 2026-02-15
+
+### Added
+- **Voice Context API** (`api/v1/voice_context.py`):
+  - `/api/v1/voice/context` - GET current voice context
+  - `/api/v1/voice/context` - POST update from neural system
+  - `/api/v1/voice/prompt` - GET natural language prompt
+  - `/api/v1/voice/mood_history` - GET mood trend history
+  - `/api/v1/voice/suggestions` - GET voice-friendly suggestions
+
+- **VoiceContextProvider** (`voice_context.py`):
+  - Mood-to-tone mapping (relax, focus, active, sleep, away, alert, social, recovery)
+  - Zone-based context (Wohnzimmer, Schlafzimmer, Küche, Büro, Bad)
+  - Natural language suggestion generation
+  - Mood history tracking
+
+### Features
+- HA 2025.8+ Assist integration ready
+- Mood-based voice response personalization
+- Zone context for location-aware responses
+- Proactive suggestions in natural language
+
+---
+
 ## [0.4.31] - 2026-02-15
 
 ### Added
