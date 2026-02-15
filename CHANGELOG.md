@@ -1,5 +1,6 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+<<<<<<< HEAD
 ## [0.9.3] - 2026-02-15
 
 ### Added
@@ -387,6 +388,41 @@
   - `/habitus/health` → `/habitus/status`
   - `/graph/patterns` → `/graph/state`
 - **Brain Graph Sync**: Updated connection test endpoint
+=======
+## [0.8.1] - 2026-02-15
+
+### Added
+- **Performance Optimization** (`core/performance.py`):
+  - `TTLCache`: Thread-safe TTL cache with automatic expiration
+  - `EntityStateCache`: Batch entity queries to reduce HA API calls
+  - `DomainFilter`: Efficient domain-filtered state queries
+  - Mood score caching (30s TTL) for <500ms response times
+  - Entity cache invalidation on state changes
+  - Brain graph sync optimization with domain filtering
+
+- **MUPL Phase 2: Action Attribution** (`core/mupl/action_attribution.py`):
+  - `ActionAttributor` class for attributing HA actions to specific users
+  - Multiple attribution sources:
+    - `PresenceAttribution`: Based on who is home
+    - `DeviceOwnershipAttribution`: Based on device ownership mapping
+    - `RoomLocationAttribution`: Based on room presence sensors
+    - `TimePatternAttribution`: Based on historical time patterns
+  - Weighted confidence scoring across all sources
+  - Action history storage for preference learning
+  - API: `get_user_actions()`, `get_entity_actions()`, `get_action_history()`
+- **MUPL Documentation** (`docs/MUPL_PHASE2.md`):
+  - Architecture overview
+  - Data models for action logging and preferences
+  - API endpoints specification
+  - Service definitions
+  - Test coverage plan
+
+### Fixed
+- Pipeline Health API endpoints updated to match Core Add-on routes:
+  - `/api/v1/candidates/stats` → `/api/v1/candidates`
+  - `/api/v1/habitus/health` → `/api/v1/habitus/status`
+  - `/api/v1/graph/patterns` → `/api/v1/graph/state`
+>>>>>>> origin/dev/mupl-phase2-v0.8.1
 
 ---
 

@@ -104,9 +104,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 # Re-export all button classes for backward compatibility
-from .button_safety import (
+from .button_safety_backup import (
     CopilotSafetyBackupCreateButton,
     CopilotSafetyBackupStatusButton,
+)
+from .button_safety import (
+    CopilotRollbackLastFixButton,
 )
 from .button_system import (
     CopilotGenerateOverviewButton,

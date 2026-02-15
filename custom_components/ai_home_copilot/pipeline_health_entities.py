@@ -87,21 +87,21 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
 
         # 1) Candidates API
         try:
-            resp = await api.async_get("/api/v1/candidates/stats")
-            components["candidates"] = "ok" if isinstance(resp, dict) else "error"
+            resp = await api.async_get("/api/v1/candidates")
+            components["candidates"] = "ok" if isinstance(resp, dict) and resp.get("ok") else "error"
         except Exception:  # noqa: BLE001
             components["candidates"] = "unreachable"
 
         # 2) Habitus Mining API
         try:
-            resp = await api.async_get("/api/v1/habitus/health")
+            resp = await api.async_get("/api/v1/habitus/status")
             components["habitus"] = "ok" if isinstance(resp, dict) else "error"
         except Exception:  # noqa: BLE001
             components["habitus"] = "unreachable"
 
         # 3) Brain Graph API
         try:
-            resp = await api.async_get("/api/v1/graph/patterns")
+            resp = await api.async_get("/api/v1/graph/state")
             components["brain_graph"] = "ok" if isinstance(resp, dict) else "error"
         except Exception:  # noqa: BLE001
             components["brain_graph"] = "unreachable"

@@ -6,15 +6,19 @@ import sys
 import os
 import numpy as np
 from pathlib import Path
+import importlib.util
 
-# Add project root to Python path for imports
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+# Use absolute path
+PROJECT_ROOT = Path("/config/.openclaw/workspace/ai_home_copilot_hacs_repo")
 
-# Add custom_components to path
-custom_components = project_root / "custom_components"
-if custom_components.exists():
-    sys.path.insert(0, str(custom_components))
+
+def load_module_from_file(module_name, file_path):
+    """Load a module from file path directly without package imports."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 class TestMLPipelineIntegration:
@@ -31,7 +35,7 @@ class TestMLPipelineIntegration:
         # 5. Inference produces valid results
         
         # For now, test ML module structure
-        ml_path = Path("custom_components/ai_home_copilot/ml")
+        ml_path = PROJECT_ROOT / "custom_components" / "ai_home_copilot" / "ml"
         assert ml_path.exists()
         assert (ml_path / "patterns").exists()
         assert (ml_path / "training").exists()
@@ -48,9 +52,12 @@ class TestMLPipelineIntegration:
         # 3. Real-time anomaly scoring
         # 4. Anomaly alert generation
         
-        # Import from patterns module directly via custom_components path
-        from ai_home_copilot import ml
-        from ai_home_copilot.ml.patterns.anomaly_detector import AnomalyDetector
+        # Load anomaly_detector directly without triggering package imports
+        ml_patterns_dir = PROJECT_ROOT / "custom_components" / "ai_home_copilot" / "ml" / "patterns"
+        
+        # Load anomaly_detector
+        anomaly_file = ml_patterns_dir / "anomaly_detector.py"
+        AnomalyDetector = load_module_from_file("anomaly_detector", str(anomaly_file)).AnomalyDetector
         
         detector = AnomalyDetector(
             window_size=50,
@@ -80,8 +87,12 @@ class TestMLPipelineIntegration:
         # 2. Pattern learning
         # 3. Prediction generation
         
-        from ai_home_copilot import ml
-        from ai_home_copilot.ml.patterns.habit_predictor import HabitPredictor
+        # Load habit_predictor directly without triggering package imports
+        ml_patterns_dir = PROJECT_ROOT / "custom_components" / "ai_home_copilot" / "ml" / "patterns"
+        
+        # Load habit_predictor
+        habit_file = ml_patterns_dir / "habit_predictor.py"
+        HabitPredictor = load_module_from_file("habit_predictor", str(habit_file)).HabitPredictor
         
         predictor = HabitPredictor(
             min_samples_per_pattern=2,

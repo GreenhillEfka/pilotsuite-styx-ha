@@ -29,6 +29,7 @@ from homeassistant.const import (
 
 from .const import DOMAIN
 from .core.error_helpers import log_error_with_context
+from .core.performance import get_entity_cache, DomainFilter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -324,6 +325,7 @@ class BrainGraphSync:
                 
                 await self._send_edge_update(edge_data)
     
+<<<<<<< HEAD
     async def _sync_entity_states(self, domains: Optional[List[str]] = None):
         """Sync current entity states as state nodes.
         
@@ -344,6 +346,24 @@ class BrainGraphSync:
                 state = self.hass.states.get(entity_id)
                 if state and state.state not in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
                     await self._sync_entity_state(entity_id, state)
+=======
+    async def _sync_entity_states(self):
+        """Sync current entity states as state nodes with domain filtering."""
+        # Get relevant domains only (performance optimization)
+        relevant_domains = {"light", "switch", "sensor", "binary_sensor", "climate", 
+                          "media_player", "cover", "lock", "person", "device_tracker"}
+        
+        # Use domain filter instead of fetching all states
+        states = DomainFilter.get_entities_by_domain(self.hass, relevant_domains)
+        
+        for entity_id, state in states.items():
+            # Skip unavailable/unknown states and internal entities
+            if (state.state in [STATE_UNAVAILABLE, STATE_UNKNOWN] or 
+                entity_id.startswith(('input_', 'group.', 'zone.'))):
+                continue
+                
+            await self._sync_entity_state(entity_id, state)
+>>>>>>> origin/dev/mupl-phase2-v0.8.1
     
     async def _sync_entity_state(self, entity_id: str, state):
         """Sync a single entity state to Brain Graph."""
