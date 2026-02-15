@@ -5,6 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .debug import DebugModeSensor
 from .entity import CopilotBaseEntity
 from .media_entities import (
     MusicActiveCountSensor,
@@ -64,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
         PipelineHealthSensor(coordinator),
+        DebugModeSensor(hass),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)

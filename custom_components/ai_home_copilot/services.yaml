@@ -368,3 +368,17 @@ habitus_configure_mining:
           min: 1
           max: 168
           mode: box
+
+# ─── Debug Mode ──────────────────────────────────────────────────────────────
+
+set_debug:
+  name: Set Debug Mode
+  description: Aktiviert oder deaktiviert den Debug-Modus für erweiterte Logs.
+  fields:
+    enabled:
+      name: Enabled
+      description: Debug-Modus an/aus.
+      required: true
+      example: true
+      selector:
+        boolean:

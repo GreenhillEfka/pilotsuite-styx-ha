@@ -21,6 +21,7 @@ from .core.modules.mood_module import MoodModule
 from .core.modules.energy_context_module import EnergyContextModule
 from .core.modules.unifi_context_module import UnifiContextModule
 from .core.modules.weather_context_module import WeatherContextModule
+from .debug import DebugModeSensor
 from .services_setup import async_register_all_services
 
 _MODULES = [
