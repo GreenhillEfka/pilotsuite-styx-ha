@@ -1,5 +1,13 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.7.4] - 2026-02-15
+
+### Security
+- **Core API compatibility**: Updated for log_fixer_tx API authentication (v0.4.16)
+- **Repairs fixes**: Synced with Core security enhancements
+
+---
+
 ## [0.7.3] - 2026-02-14
 
 ### 📊 Habitus Dashboard Cards — Lovelace UI Cards v0.1
