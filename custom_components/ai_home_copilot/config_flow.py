@@ -153,6 +153,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Check if user wants to use setup wizard
+            if user_input.get("use_wizard"):
+                return await self.async_step_wizard()
+            
             try:
                 await _validate_input(self.hass, user_input)
             except Exception as err:  # noqa: BLE001
@@ -174,6 +178,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_TOKEN, description={"suggested_value": "Optional: OpenClaw Gateway Auth Token"}): str,
                 # Use a plain string to maximize compatibility (no selector).
                 vol.Optional(CONF_TEST_LIGHT, default="", description={"suggested_value": "Optional: light.example_entity_id for connectivity test"}): str,
+                # Setup wizard option
+                vol.Optional("use_wizard", default=False): bool,
             }
         )
 
@@ -181,6 +187,47 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth(self, user_input: dict | None = None) -> FlowResult:
         return await self.async_step_user(user_input)
+
+    async def async_step_wizard(self, user_input: dict | None = None) -> FlowResult:
+        """Setup wizard - guided configuration for new users."""
+        from .setup_wizard import SetupWizard, generate_wizard_config
+        
+        if not hasattr(self, "_wizard"):
+            self._wizard = SetupWizard(self.hass)
+        
+        wizard = self._wizard
+        
+        if user_input is None:
+            # Start wizard - discovery step
+            return self.async_show_form(
+                step_id="wizard_discovery",
+                data_schema=vol.Schema({
+                    vol.Optional("auto_discover", default=True): bool,
+                }),
+                description_placeholders={
+                    "description": "Setup Wizard will scan your Home Assistant for compatible devices and suggest optimal configuration."
+                }
+            )
+        
+        # Perform discovery
+        discovered = await wizard.discover_entities()
+        
+        # Get zone suggestions
+        zone_suggestions = wizard.get_zone_suggestions()
+        
+        # Generate zone selection schema
+        zone_options = [(z["area_id"], f"{z['name']} ({z['entity_count']} entities)") for z in zone_suggestions]
+        
+        return self.async_show_form(
+            step_id="wizard_zones",
+            data_schema=vol.Schema({
+                vol.Required("selected_zones"): vol.In(zone_options) if zone_options else str,
+            }),
+            description_placeholders={
+                "found_zones": str(len(zone_suggestions)),
+                "found_players": str(len(discovered.get("media_players", []))),
+            }
+        )
 
 
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
