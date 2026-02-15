@@ -6,9 +6,12 @@ via the /api/v1/graph endpoints. This creates a real-time knowledge graph
 of HA entities, their relationships, and state transitions.
 
 Privacy-first: only essential entity metadata and anonymized state patterns.
+
+Security: entity_id sanitization prevents injection in node IDs.
 """
 import logging
 import json
+import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Set
 import asyncio
@@ -28,6 +31,53 @@ from .const import DOMAIN
 from .core.error_helpers import log_error_with_context
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def sanitize_entity_id(entity_id: str) -> str:
+    """Sanitize entity_id for use in node IDs.
+    
+    Removes/replaces characters that could cause issues in node IDs:
+    - Non-alphanumeric characters (except underscore, dot, hyphen)
+    - Unicode characters
+    
+    Args:
+        entity_id: The entity_id to sanitize (e.g., "light.kitchen_lamp")
+    
+    Returns:
+        Sanitized entity_id safe for use in node IDs
+    """
+    if not entity_id:
+        return "unknown"
+    
+    # Keep only alphanumeric, underscore, dot, and hyphen
+    sanitized = re.sub(r'[^\w.\-]', '_', entity_id)
+    
+    # Collapse multiple underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    
+    # Fallback if empty after sanitization
+    if not sanitized:
+        return "unknown"
+    
+    return sanitized
+
+
+def sanitize_node_id(node_type: str, identifier: str) -> str:
+    """Create a sanitized node ID from type and identifier.
+    
+    Args:
+        node_type: The node type (e.g., "entity", "area", "device")
+        identifier: The identifier (e.g., entity_id, area_id)
+    
+    Returns:
+        Sanitized node ID (e.g., "entity:light_kitchen_lamp")
+    """
+    safe_type = re.sub(r'[^a-z0-9_]', '_', node_type.lower())
+    safe_id = sanitize_entity_id(identifier)
+    return f"{safe_type}:{safe_id}"
 
 
 class BrainGraphSync:
@@ -206,10 +256,13 @@ class BrainGraphSync:
             # Skip disabled entities
             if entity.disabled:
                 continue
+            
+            # Sanitize entity_id for safe node ID construction
+            safe_entity_id = sanitize_entity_id(entity.entity_id)
                 
             # Create entity node
             node_data = {
-                "node_id": f"entity:{entity.entity_id}",
+                "node_id": f"entity:{safe_entity_id}",
                 "node_type": "entity",
                 "properties": {
                     "name": entity.original_name or entity.entity_id.split('.')[-1],
@@ -225,7 +278,7 @@ class BrainGraphSync:
             # Create device relationship if entity has device
             if entity.device_id:
                 edge_data = {
-                    "source_id": f"entity:{entity.entity_id}",
+                    "source_id": f"entity:{safe_entity_id}",
                     "target_id": f"device:{entity.device_id}",
                     "edge_type": "belongs_to",
                     "properties": {
@@ -244,7 +297,7 @@ class BrainGraphSync:
                     
             if area_id:
                 edge_data = {
-                    "source_id": f"entity:{entity.entity_id}",
+                    "source_id": f"entity:{safe_entity_id}",
                     "target_id": f"area:{area_id}",
                     "edge_type": "located_in",
                     "properties": {
@@ -269,8 +322,12 @@ class BrainGraphSync:
     async def _sync_entity_state(self, entity_id: str, state):
         """Sync a single entity state to Brain Graph."""
         try:
+            # Sanitize entity_id for safe node ID construction
+            safe_entity_id = sanitize_entity_id(entity_id)
+            safe_state = sanitize_entity_id(str(state.state)) if state.state else "unknown"
+            
             # Create state node
-            state_node_id = f"state:{entity_id}:{state.state}"
+            state_node_id = f"state:{safe_entity_id}:{safe_state}"
             node_data = {
                 "node_id": state_node_id,
                 "node_type": "state",
@@ -287,7 +344,7 @@ class BrainGraphSync:
             
             # Create relationship from entity to current state
             edge_data = {
-                "source_id": f"entity:{entity_id}",
+                "source_id": f"entity:{safe_entity_id}",
                 "target_id": state_node_id,
                 "edge_type": "has_state",
                 "properties": {
@@ -301,7 +358,7 @@ class BrainGraphSync:
         except Exception as err:
             log_error_with_context(
                 _LOGGER, err, f"Brain Graph state sync for {entity_id}",
-                {"entity_id": entity_id, "state": str(new_state.state) if new_state else None},
+                {"entity_id": entity_id, "state": str(state.state) if state else None},
                 level=logging.DEBUG
             )
     
@@ -366,9 +423,11 @@ class BrainGraphSync:
                 target_entities = [target_entities]
                 
             for entity_id in target_entities:
+                # Sanitize entity_id for safe edge construction
+                safe_entity_id = sanitize_entity_id(entity_id)
                 edge_data = {
                     "source_id": f"service:{domain}.{service}:{event.time_fired.timestamp()}",
-                    "target_id": f"entity:{entity_id}",
+                    "target_id": f"entity:{safe_entity_id}",
                     "edge_type": "targets",
                     "properties": {
                         "timestamp": event.time_fired.isoformat(),
