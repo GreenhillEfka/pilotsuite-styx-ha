@@ -102,7 +102,7 @@ def _sanitize(text: str, *, max_chars: int) -> str:
 
 
 def _sha1(text: str) -> str:
-    return hashlib.sha1(text.encode("utf-8", errors="ignore")).hexdigest()
+    return hashlib.blake2b(text.encode("utf-8", errors="ignore")).hexdigest()[:32]
 
 
 def _get_store(hass: HomeAssistant) -> Store:
