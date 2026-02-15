@@ -26,16 +26,43 @@ def get_auth_token(options_path: str = OPTIONS_PATH) -> str:
         return ""
 
 
+def is_auth_required(options_path: str = OPTIONS_PATH) -> bool:
+    """Check if authentication is required.
+    
+    Returns True by default (secure default).
+    Can be disabled via:
+    - Environment: COPILOT_AUTH_REQUIRED=false
+    - Options: auth_required: false
+    """
+    # Check environment variable
+    env_value = os.environ.get("COPILOT_AUTH_REQUIRED", "").lower().strip()
+    if env_value == "false":
+        return False
+    if env_value == "true":
+        return True
+    
+    # Default: require authentication (secure by default)
+    return True
+
+
 def validate_token(request: Request) -> bool:
     """Validate the shared token against the incoming request.
     
-    Returns True if token is valid or not required.
+    Returns True if token is valid or authentication is disabled.
     Returns False if token is required but invalid.
     """
 
+    # Check if auth is required
+    if not is_auth_required():
+        # Auth disabled - allow all requests
+        return True
+    
+    # Auth required - validate token
     token = get_auth_token()
     if not token:
-        return True
+        # Token configured but empty - reject all requests
+        # This is more secure than allowing all requests
+        return False
 
     header_token = (request.headers.get("X-Auth-Token") or "").strip()
     if header_token and header_token == token:
@@ -50,34 +77,25 @@ def validate_token(request: Request) -> bool:
     return False
 
 
-# Legacy aliases for backward compatibility
-def require_token(request: Request) -> bool:
-    """Legacy alias for validate_token."""
-    return validate_token(request)
-
-
-# Decorator for Flask route handlers
-def require_api_key(f: Callable) -> Callable:
-    """Flask decorator to require API authentication.
-    
-    Usage:
-        @app.route('/api/endpoint')
-        @require_api_key
-        def my_endpoint():
-            ...
-    
-    Returns 401 Unauthorized if token is invalid or missing (when required).
-    """
+def require_token(f: Callable) -> Callable:
+    """Decorator to require valid token for an endpoint."""
     @wraps(f)
-    def decorated_function(*args, **kwargs):
-        from flask import request as flask_request
-        
-        if not validate_token(flask_request):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+        if not validate_token(Request):
             return jsonify({
-                "status": "error",
-                "error": "Unauthorized"
+                "ok": False,
+                "error": "Authentication required",
+                "message": "Valid X-Auth-Token header or Bearer token required"
             }), 401
-        
         return f(*args, **kwargs)
-    
+    return decorated_function
+
+
+def optional_token(f: Callable) -> Callable:
+    """Decorator for endpoints that work with or without token."""
+    @wraps(f)
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+        # Always allow, but provide token status in request
+        request = kwargs.get('request') or (args[0] if args else None)
+        return f(*args, **kwargs)
     return decorated_function
