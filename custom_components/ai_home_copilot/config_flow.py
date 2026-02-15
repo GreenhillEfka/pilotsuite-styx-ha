@@ -131,10 +131,21 @@ from .setup_wizard import (
 # Wizard step constants
 STEP_DISCOVERY = "discovery"
 STEP_ZONES = "zones"
+STEP_ZONE_ENTITIES = "zone_entities"  # NEW: Configure entities per zone
 STEP_ENTITIES = "entities"
 STEP_FEATURES = "features"
 STEP_NETWORK = "network"
 STEP_REVIEW = "review"
+
+# Entity roles for zone configuration
+ZONE_ENTITY_ROLES = {
+    "motion": {"icon": "mdi:motion-sensor", "label": "Bewegung"},
+    "lights": {"icon": "mdi:lightbulb", "label": "Lichter"},
+    "sensors": {"icon": "mdi:thermometer", "label": "Sensoren"},
+    "media": {"icon": "mdi:television", "label": "Media"},
+    "climate": {"icon": "mdi:thermostat", "label": "Klima"},
+    "covers": {"icon": "mdi:blinds", "label": "Jalousien"},
+}
 
 
 def _as_csv(value) -> str:
@@ -291,6 +302,39 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "hint": "Select zones or skip with empty selection."
                     }
                 )
+            elif wizard_step == STEP_ZONE_ENTITIES:
+                # NEW: Configure entities per zone
+                selected_zones = self._data.get("zones", {}).get("selected_zones", [])
+                if not selected_zones:
+                    # No zones selected, skip to next step
+                    self._wizard_step = STEP_ENTITIES
+                    return await self._handle_wizard_step(user_input={})
+                
+                # Get entity suggestions for each zone
+                zone_entities_schema = {}
+                for zone_id in selected_zones:
+                    # Get zone info
+                    zone_info = wizard.get_zone_info(zone_id)
+                    zone_name = zone_info.get("name", zone_id) if zone_info else zone_id
+                    
+                    # Create schema for each zone
+                    for role, config in ZONE_ENTITY_ROLES.items():
+                        key = f"{zone_id}_{role}"
+                        zone_entities_schema[vol.Optional(key)] = selector({
+                            "entity": {
+                                "filter": [{"domain": config.get("domain", "sensor")}],
+                                "multiple": True,
+                            }
+                        })
+                
+                return self.async_show_form(
+                    step_id="wizard_zone_entities",
+                    data_schema=vol.Schema(zone_entities_schema) if zone_entities_schema else vol.Schema({}),
+                    description_placeholders={
+                        "zone_count": str(len(selected_zones)),
+                        "hint": "Configure entities for each zone (optional)."
+                    }
+                )
             elif wizard_step == STEP_ENTITIES:
                 suggestions = wizard.suggest_media_players()
                 return self.async_show_form(
@@ -387,6 +431,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             
         elif wizard_step == STEP_ZONES:
             self._data["selected_zones"] = user_input.get("selected_zones", [])
+            # NEW: Go to zone entity configuration
+            self._wizard_step = STEP_ZONE_ENTITIES
+            return await self.async_step_wizard(None)
+            
+        elif wizard_step == STEP_ZONE_ENTITIES:
+            # NEW: Store zone entities
+            zone_entities = {}
+            for key, value in user_input.items():
+                if value and isinstance(value, list):
+                    zone_entities[key] = value
+            self._data["zone_entities"] = zone_entities
             self._wizard_step = STEP_ENTITIES
             return await self.async_step_wizard(None)
             

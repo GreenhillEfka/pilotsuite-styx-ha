@@ -164,6 +164,14 @@ class SetupWizard:
         prioritized.sort(key=lambda z: z["entity_count"], reverse=True)
         return prioritized
     
+    def get_zone_info(self, zone_id: str) -> Dict:
+        """Get info for a specific zone."""
+        zones = self._discovered_entities.get("zones", [])
+        for zone in zones:
+            if zone.get("area_id") == zone_id:
+                return zone
+        return {"area_id": zone_id, "name": zone_id, "entity_count": 0}
+    
     def suggest_media_players(self) -> Dict[str, List[str]]:
         """Suggest media player configuration."""
         media_players = self._discovered_entities.get("media_players", [])
