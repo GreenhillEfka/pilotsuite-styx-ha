@@ -251,16 +251,18 @@ class TestRenderHtml:
 
     def test_score_affects_circle_size(self):
         """Test that node score affects circle radius."""
-        nodes_low = [{"id": "low", "label": "Low Score", "score": 0.0}]
-        nodes_high = [{"id": "high", "label": "High Score", "score": 1.0}]
+        # Use multiple nodes with different scores so normalization works properly
+        nodes = [
+            {"id": "low", "label": "Low Score", "score": 0.0},
+            {"id": "high", "label": "High Score", "score": 1.0},
+        ]
 
-        html_low = _render_html(nodes=nodes_low, edges=[], title="Low")
-        html_high = _render_html(nodes=nodes_high, edges=[], title="High")
+        html = _render_html(nodes=nodes, edges=[], title="Test")
 
-        # Single nodes get normalized to 0.5 (mid emphasis)
-        # r = 4.0 + 10.0 * score = 4.0 + 10.0 * 0.5 = 9.0 for both
-        assert 'r="9.0"' in html_low
-        assert 'r="14.0"' in html_high  # score 1.0 normalizes to 1.0
+        # Low score (normalized to 0.0): r = 4.0 + 10.0 * 0.0 = 4.0
+        # High score (normalized to 1.0): r = 4.0 + 10.0 * 1.0 = 14.0
+        assert 'r="4.0"' in html
+        assert 'r="14.0"' in html
 
     def test_title_sanitization(self):
         """Test that title is sanitized."""

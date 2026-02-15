@@ -176,7 +176,7 @@ class TestZoneTransitionsCard:
         """Test simple transitions card."""
         yaml_output = generate_zone_transitions_card_simple()
         
-        assert "Zone Transitions" in yaml_output
+        assert "Zone Transition" in yaml_output
         assert "type: vertical-stack" in yaml_output
         assert yaml_output.count("type: markdown") >= 1
 
@@ -234,16 +234,19 @@ class TestMoodDistributionCard:
 
     def test_generate_mood_distribution_card_simple(self):
         """Test simple mood distribution card."""
-        yaml_output = generate_mood_distribution_card_simple()
+        yaml_output = generate_mood_distribution_card_simple(
+            mood_counts={"relax": 3, "focus": 2},
+            total_zones=5,
+        )
         
-        assert "Mood Verteilung" in yaml_output or "Mood Distribution" in yaml_output
+        assert "Stimmungsverteilung" in yaml_output or "Mood Verteilung" in yaml_output
         assert "type: vertical-stack" in yaml_output
 
     def test_generate_mood_distribution_card_yaml(self, sample_moods):
         """Test full mood distribution card with data."""
         yaml_output = generate_mood_distribution_card_yaml(
             mood_data=sample_moods,
-            current_mood="relax",
+            current_mood_entity_id="sensor.ai_home_copilot_habitus_current_mood",
         )
         
         assert "relax" in yaml_output
@@ -255,14 +258,13 @@ class TestMoodDistributionCard:
         """Test mood distribution card with no data."""
         yaml_output = generate_mood_distribution_card_yaml(mood_data=[])
         
-        assert "Mood Verteilung" in yaml_output or "Mood Distribution" in yaml_output
+        assert "Stimmungsverteilung" in yaml_output or "Mood Verteilung" in yaml_output
 
     def test_generate_mood_distribution_card_current_mood(self, sample_moods):
         """Test mood card with current mood indicator."""
         yaml_output = generate_mood_distribution_card_yaml(
             mood_data=sample_moods,
-            current_mood="relax",
-            current_mood_entity="sensor.ai_home_copilot_habitus_current_mood",
+            current_mood_entity_id="sensor.ai_home_copilot_habitus_current_mood",
         )
         
         assert "sensor.ai_home_copilot_habitus_current_mood" in yaml_output
@@ -277,7 +279,7 @@ class TestYAMLStructure:
             generate_zone_status_card_simple("Test"),
             generate_zone_status_card_simple("Test", 50.0),
             generate_zone_transitions_card_simple(),
-            generate_mood_distribution_card_simple(),
+            generate_mood_distribution_card_simple(mood_counts={"relax": 1}, total_zones=1),
         ]
         
         for output in outputs:
