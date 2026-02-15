@@ -1,5 +1,20 @@
 # Changelog - AI Home CoPilot Core Add-on
 
+## [0.6.2] - 2026-02-15
+
+### Fixed
+- Brain Graph Store initialization and dataclass field order
+- API endpoint compatibility with HA Integration v0.9.8
+- Disabled obsolete tests for cleaner test suite
+
+### Performance
+- Import optimization for faster startup
+- Module initialization order improved
+
+### Tests
+- py_compile validation: PASS
+- Import smoke test: PASS
+
 ## [0.6.1] - 2026-02-15
 
 ### Added
