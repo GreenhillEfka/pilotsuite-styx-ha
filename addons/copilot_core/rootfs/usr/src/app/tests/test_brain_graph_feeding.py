@@ -36,9 +36,11 @@ class TestBrainGraphFeeding(unittest.TestCase):
         )
         
         # Reset lazy singletons
-        from copilot_core.brain_graph import provider
-        provider._STORE = None
-        provider._SVC = None
+        from copilot_core.api.v1 import events as events_api
+        events_api._STORE = None
+        from copilot_core.brain_graph import provider as graph_provider
+        graph_provider._STORE = None
+        graph_provider._SVC = None
         
         return app
 

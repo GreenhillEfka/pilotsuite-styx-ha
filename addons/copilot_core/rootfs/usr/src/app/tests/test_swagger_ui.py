@@ -12,7 +12,7 @@ from copilot_core.api.v1.swagger_ui import bp as swagger_ui_bp
 def app():
     """Create test app with swagger_ui blueprint."""
     app = Flask(__name__)
-    app.register_blueprint(swagger_ui_bp)
+    app.register_blueprint(swagger_ui_bp, url_prefix="/api/v1/docs")
     return app
 
 

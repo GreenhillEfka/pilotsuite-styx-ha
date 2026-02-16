@@ -6,6 +6,7 @@ Tests for brain graph service layer.
 import time
 import tempfile
 import os
+import pytest
 from copilot_core.brain_graph.service import BrainGraphService
 from copilot_core.brain_graph.store import BrainGraphStore as GraphStore
 
@@ -75,7 +76,7 @@ def test_touch_node_update():
             meta_patch={"new_field": "value"}
         )
         
-        assert node2.score == 3.0  # 1.0 + 2.0
+        assert node2.score == pytest.approx(3.0, abs=1e-6)  # 1.0 + 2.0
         assert node2.label == "Original"  # Unchanged
         assert node2.meta["new_field"] == "value"
         
@@ -145,7 +146,7 @@ def test_get_graph_state_basic():
         # Add a few nodes
         service.touch_node("node_1", label="Node 1", kind="entity", domain="light", delta=1.0)
         service.touch_node("node_2", label="Node 2", kind="entity", domain="sensor", delta=1.0)
-        service.link("node_1", "node_2", "relates_to", 0.5)
+        service.link("node_1", "relates_to", "node_2", 0.5)
         
         # Get state
         state = service.get_graph_state()
@@ -172,12 +173,12 @@ def test_get_graph_state_filtered():
         state = service.get_graph_state(kinds=["entity"])
         
         assert len(state["nodes"]) == 2
-        assert all(n.kind == "entity" for n in state["nodes"])
-        
+        assert all(n["kind"] == "entity" for n in state["nodes"])
+
         # Filter by domain
         state = service.get_graph_state(domains=["light"])
         assert len(state["nodes"]) == 1
-        assert state["nodes"][0].domain == "light"
+        assert state["nodes"][0]["domain"] == "light"
 
 
 def test_get_graph_state_neighborhood():
@@ -191,8 +192,8 @@ def test_get_graph_state_neighborhood():
         service.touch_node("center", label="Center", kind="entity", domain="light", delta=1.0)
         service.touch_node("neighbor_1", label="Neighbor 1", kind="entity", domain="sensor", delta=1.0)
         service.touch_node("neighbor_2", label="Neighbor 2", kind="entity", domain="sensor", delta=1.0)
-        service.link("center", "neighbor_1", "relates_to", 0.5)
-        service.link("center", "neighbor_2", "relates_to", 0.5)
+        service.link("center", "relates_to", "neighbor_1", 0.5)
+        service.link("center", "relates_to", "neighbor_2", 0.5)
         
         # Get neighborhood
         state = service.get_graph_state(center_node="center", hops=1)
@@ -215,9 +216,9 @@ def test_get_stats():
         # Get stats
         stats = service.get_stats()
         
-        assert "node_count" in stats
-        assert "edge_count" in stats
-        assert stats["node_count"] == 5
+        assert "nodes" in stats
+        assert "edges" in stats
+        assert stats["nodes"] == 5
 
 
 def test_ha_state_change_processing():

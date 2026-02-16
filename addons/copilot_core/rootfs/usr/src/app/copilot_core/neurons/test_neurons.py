@@ -100,15 +100,16 @@ class TestPresenceNeuron:
         config = NeuronConfig(
             name="presence.house",
             neuron_type=NeuronType.CONTEXT,
-            threshold=0.5
+            threshold=0.5,
+            smoothing_factor=1.0  # No smoothing for deterministic test
         )
         neuron = PresenceNeuron(config)
-        
+
         # Below threshold
         neuron.update(0.3)
         assert neuron.is_active is False
         assert neuron.state.trigger_count == 0
-        
+
         # Above threshold - should trigger
         neuron.update(0.7)
         assert neuron.is_active is True
@@ -242,10 +243,11 @@ class TestNeuronDecay:
         config = NeuronConfig(
             name="test",
             neuron_type=NeuronType.CONTEXT,
-            decay_rate=0.5  # 50% decay
+            decay_rate=0.5,  # 50% decay
+            smoothing_factor=1.0  # No smoothing for deterministic test
         )
         neuron = PresenceNeuron(config)
-        
+
         neuron.update(1.0)
         assert neuron.value == 1.0
         
@@ -258,7 +260,8 @@ class TestNeuronDecay:
         config = NeuronConfig(
             name="test",
             neuron_type=NeuronType.CONTEXT,
-            decay_rate=0.5
+            decay_rate=0.5,
+            smoothing_factor=1.0  # No smoothing for deterministic test
         )
         neuron = PresenceNeuron(config)
         

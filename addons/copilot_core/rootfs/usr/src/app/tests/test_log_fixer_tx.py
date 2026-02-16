@@ -6,9 +6,19 @@ Run with: python3 -m pytest tests/test_log_fixer_tx.py
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 from copilot_core.log_fixer_tx import TransactionLog, RenameOperation, SetEnabledOperation
 from copilot_core.log_fixer_tx.recovery import TransactionManager
+
+
+@pytest.fixture(autouse=True)
+def _allow_tmp_paths():
+    """Allow /tmp paths in tests for rename operations."""
+    with patch("copilot_core.log_fixer_tx.operations.validate_rename_path", return_value=True):
+        yield
 
 
 def test_transaction_log_basic():
@@ -147,22 +157,28 @@ def test_transaction_manager_full_flow():
         actor = {"service": "test", "user": "test", "host": "localhost"}
         tx_id = tm.begin_tx(actor, "Test rename transaction")
         
-        # Append intent
+        # Append intent (with inverse for rollback)
         operation = {
             "kind": "rename",
             "target": test_file,
             "before": {"path": test_file},
             "after": {"path": new_file},
+            "inverse": {
+                "kind": "rename",
+                "target": new_file,
+                "before": {"path": new_file},
+                "after": {"path": test_file},
+            },
         }
-        
+
         tm.append_intent(tx_id, 1, actor, operation)
-        
+
         # Apply transaction
         result = tm.apply_tx(tx_id)
         assert result["success"] is True
         assert Path(new_file).exists()
         assert not Path(test_file).exists()
-        
+
         # Rollback
         rollback_result = tm.rollback_tx(tx_id)
         assert rollback_result["success"] is True
@@ -190,12 +206,18 @@ def test_recovery_in_flight():
             "target": test_file,
             "before": {"path": test_file},
             "after": {"path": new_file},
+            "inverse": {
+                "kind": "rename",
+                "target": new_file,
+                "before": {"path": new_file},
+                "after": {"path": test_file},
+            },
         }
-        
+
         tm.append_intent(tx_id, 1, actor, operation)
-        
+
         # Don't apply - simulate crash
-        
+
         # New manager instance (simulates restart)
         tm2 = TransactionManager(log_path)
         

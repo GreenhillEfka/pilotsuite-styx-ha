@@ -363,7 +363,7 @@ class TagRegistry:
 def create_tag_service(registry: TagRegistry):
     """Erstellt das Tag Service Interface."""
     
-    async def create_tag(
+    def create_tag(
         tag_id: str,
         facet: str,
         display_de: Optional[str] = None,
@@ -378,7 +378,7 @@ def create_tag_service(registry: TagRegistry):
         )
         return {"status": "created", "tag_id": tag.id}
     
-    async def suggest_tag(
+    def suggest_tag(
         facet: str,
         key: str,
         namespace: str = "sys",
@@ -398,14 +398,14 @@ def create_tag_service(registry: TagRegistry):
             "message": "Learned tag — requires explicit confirmation before materialization",
         }
     
-    async def confirm_tag(tag_id: str) -> dict:
+    def confirm_tag(tag_id: str) -> dict:
         """Bestätigt einen Learned Tag."""
         tag = registry.confirm_learned_tag(tag_id)
         if tag:
             return {"status": "confirmed", "tag_id": tag.id}
         return {"status": "error", "message": "Tag not found or not learned"}
     
-    async def list_tags(facet: Optional[str] = None) -> dict:
+    def list_tags(facet: Optional[str] = None) -> dict:
         """Listet Tags auf."""
         facet_enum = TagFacet(facet) if facet else None
         tags = registry.list_tags(facet=facet_enum)
@@ -422,7 +422,7 @@ def create_tag_service(registry: TagRegistry):
             ]
         }
     
-    async def register_subject(
+    def register_subject(
         ha_id: str,
         ha_type: str,
         name: Optional[str] = None,
@@ -441,14 +441,14 @@ def create_tag_service(registry: TagRegistry):
         )
         return {"status": "registered", "subject_id": subject.canonical_id}
     
-    async def assign_tag(tag_id: str, subject_id: str) -> dict:
+    def assign_tag(tag_id: str, subject_id: str) -> dict:
         """Weist einem Subject einen Tag zu."""
         result = registry.assign_tag(tag_id, subject_id)
         if result:
             return {"status": "assigned", "tag_id": tag_id, "subject_id": subject_id}
         return {"status": "error", "message": "Tag or subject not found"}
     
-    async def export_labels() -> dict:
+    def export_labels() -> dict:
         """Exportiert Tags für HA-Label-Sync."""
         return {"labels": registry.export_ha_labels()}
     

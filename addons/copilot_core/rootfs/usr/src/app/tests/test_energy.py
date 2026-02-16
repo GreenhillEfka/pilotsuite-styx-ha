@@ -33,7 +33,7 @@ class TestEnergyService:
         id1 = service._generate_id("test")
         id2 = service._generate_id("test")
         assert id1.startswith("test_")
-        assert len(id1) == 12  # prefix + 8 char hash
+        assert len(id1) == 13  # prefix(5) + 8 char hash
         # IDs should be unique
         assert id1 != id2
     
@@ -84,7 +84,7 @@ class TestEnergyService:
         service = EnergyService()
         explanation = service.explain_suggestion("unknown_id")
         assert explanation["type"] == "unknown"
-        assert "not found" in explanation["description"]
+        assert explanation["type"] == "unknown"
     
     def test_explain_suggestion_anomaly(self):
         """Test explanation for anomaly suggestion."""

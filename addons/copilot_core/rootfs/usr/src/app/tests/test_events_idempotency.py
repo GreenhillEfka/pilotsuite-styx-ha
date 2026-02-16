@@ -37,10 +37,12 @@ class TestEventsIdempotency(unittest.TestCase):
             events_idempotency_lru_max=10_000,
         )
 
-        # Reset lazy singleton between tests
+        # Reset lazy singletons between tests
         from copilot_core.api.v1 import events as events_api
-
         events_api._STORE = None
+        from copilot_core.brain_graph import provider as graph_provider
+        graph_provider._STORE = None
+        graph_provider._SVC = None
 
         client = app.test_client()
         payload = {"type": "test", "text": "hello"}

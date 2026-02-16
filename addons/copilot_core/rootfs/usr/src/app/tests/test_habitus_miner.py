@@ -59,7 +59,7 @@ def test_norm_event_creation():
         key="light.test",  # Should be auto-formatted
         entity_id="light.test",
         domain="light",
-        transition=":on"
+        transition="on"
     )
     
     assert event.key == "light.test:on"

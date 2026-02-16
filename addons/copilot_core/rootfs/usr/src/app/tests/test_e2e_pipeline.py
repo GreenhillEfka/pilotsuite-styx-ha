@@ -120,7 +120,22 @@ def make_service_call_event(entity_id: str, service: str, ts: float, domain: str
     }
 
 
-class TestResult:
+import pytest
+
+
+@pytest.fixture
+def result():
+    """Provide a TestResult instance for pipeline tests."""
+    return _TestResult()
+
+
+@pytest.fixture
+def bg():
+    """Provide a BrainGraphService for pipeline tests."""
+    return BrainGraphService()
+
+
+class _TestResult:
     def __init__(self):
         self.passed = 0
         self.failed = 0
@@ -150,6 +165,10 @@ class TestResult:
         return f"{self.passed}/{total} passed" + (
             f" — FAILURES: {self.errors}" if self.errors else ""
         )
+
+
+# Keep alias for type annotations and standalone runner
+TestResult = _TestResult
 
 
 # ── Test 1: Event Processor → Brain Graph ────────────────────────────
@@ -289,12 +308,12 @@ def test_full_pipeline_candidates(result: TestResult):
             cid = c.candidate_id if hasattr(c, "candidate_id") else c.get("candidate_id", c.get("id"))
             result.ok(f"candidate created: {cid}")
 
-            cs.update_candidate(cid, state="offered")
+            cs.update_candidate_state(cid, new_state="offered")
             updated = cs.get_candidate(cid)
             state_val = updated.state if hasattr(updated, "state") else updated.get("state")
             result.check("candidate state → offered", state_val == "offered", f"got {state_val}")
 
-            cs.update_candidate(cid, state="accepted")
+            cs.update_candidate_state(cid, new_state="accepted")
             updated2 = cs.get_candidate(cid)
             state_val2 = updated2.state if hasattr(updated2, "state") else updated2.get("state")
             result.check("candidate state → accepted", state_val2 == "accepted", f"got {state_val2}")

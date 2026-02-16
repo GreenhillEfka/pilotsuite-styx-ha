@@ -13,8 +13,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
-from ..api.security import require_api_key
-
 logger = logging.getLogger(__name__)
 
 
@@ -177,7 +175,6 @@ class EnergyService:
         
         return 850.0  # Default
     
-    @require_api_key
     def get_energy_snapshot(self) -> EnergySnapshot:
         """Get complete energy snapshot."""
         if self._is_cache_valid():
@@ -213,7 +210,6 @@ class EnergyService:
             for device, data in self._baselines.items()
         }
     
-    @require_api_key
     def detect_anomalies(self) -> list[EnergyAnomaly]:
         """Detect energy consumption anomalies."""
         return self._detect_anomalies()
@@ -291,7 +287,6 @@ class EnergyService:
         
         return anomalies
     
-    @require_api_key
     def detect_shifting_opportunities(self) -> list[ShiftingOpportunity]:
         """Detect load shifting opportunities."""
         return self._detect_shifting_opportunities()
@@ -366,7 +361,6 @@ class EnergyService:
         
         return opportunities
     
-    @require_api_key
     def explain_suggestion(self, suggestion_id: str) -> dict[str, Any]:
         """Explain why an energy suggestion was made."""
         anomalies = self._detect_anomalies()
@@ -421,7 +415,6 @@ class EnergyService:
             "description": "Die Anfrage konnte keinem bekannten Vorschlag zugeordnet werden."
         }
     
-    @require_api_key
     def get_suppression_status(self) -> dict[str, Any]:
         """Check if energy suggestions should be suppressed."""
         anomalies = self._detect_anomalies()
@@ -436,7 +429,6 @@ class EnergyService:
             ]
         }
     
-    @require_api_key
     def get_health(self) -> dict[str, Any]:
         """Get service health status."""
         return {

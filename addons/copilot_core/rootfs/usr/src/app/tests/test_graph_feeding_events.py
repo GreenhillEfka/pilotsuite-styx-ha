@@ -30,9 +30,10 @@ class TestGraphFeedingFromEvents(unittest.TestCase):
             brain_graph_json_path=f"{self.tmpdir.name}/brain_graph.json",
         )
 
-        # Reset lazy singleton between tests
+        # Reset lazy singletons between tests
+        from copilot_core.api.v1 import events as events_api
+        events_api._STORE = None
         from copilot_core.brain_graph import provider
-
         provider._STORE = None
         provider._SVC = None
 
