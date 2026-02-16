@@ -1,9 +1,9 @@
-# AI Home CoPilot — HACS Integration
+# PilotSuite — HACS Integration (v0.14.0-alpha.1)
 
 [![Release](https://img.shields.io/github/v/release/GreenhillEfka/ai-home-copilot-ha)](https://github.com/GreenhillEfka/ai-home-copilot-ha/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 
-Home Assistant Custom Integration für den **AI Home CoPilot** — privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
+Home Assistant Custom Integration für **PilotSuite** (ehemals AI Home CoPilot) — privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
 
 Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8099) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **22 Core-Module** in Home Assistant bereit.
 

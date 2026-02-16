@@ -1,4 +1,15 @@
-# CHANGELOG - AI Home CoPilot HA Integration
+# CHANGELOG - PilotSuite HA Integration
+
+## [0.14.0-alpha.1] - 2026-02-16
+
+### Changed
+- **PilotSuite Umbenennung** (Display-Namen, Domain bleibt `ai_home_copilot`)
+- **Duplicate Entity ID Fix** (`CopilotBrainDashboardSummaryButton` aus `button_system.py` entfernt, kanonische Quelle ist `button_debug.py`)
+- **Household/Altersgruppen-Modul**
+- **Webhook Push Integration**
+- **Zone Aggregation Pattern**
+- **Deutsche Dokumentation** (CLAUDE.md, USER_MANUAL.md)
+- **Multi-User Test Suite**
 
 ## [0.13.4] - 2026-02-16
 

@@ -83,7 +83,7 @@ class HomeAlertsCountSensor(SensorEntity):
         self._attr_translation_key = "home_alerts_count"
         self._attr_device_info = {
             "identifiers": {("ai_home_copilot", entry.entry_id)},
-            "name": "AI Home CoPilot",
+            "name": "PilotSuite",
             "manufacturer": "PilotSuite",
             "model": "Home Alerts",
         }
@@ -130,7 +130,7 @@ class HomeHealthScoreSensor(SensorEntity):
         self._attr_translation_key = "home_health_score"
         self._attr_device_info = {
             "identifiers": {("ai_home_copilot", entry.entry_id)},
-            "name": "AI Home CoPilot",
+            "name": "PilotSuite",
             "manufacturer": "PilotSuite",
             "model": "Home Alerts",
         }
@@ -207,7 +207,7 @@ class HomeAlertsByCategorySensor(SensorEntity):
         self._attr_icon = self.CATEGORY_ICONS.get(category, "mdi:alert")
         self._attr_device_info = {
             "identifiers": {("ai_home_copilot", entry.entry_id)},
-            "name": "AI Home CoPilot",
+            "name": "PilotSuite",
             "manufacturer": "PilotSuite",
             "model": "Home Alerts",
         }

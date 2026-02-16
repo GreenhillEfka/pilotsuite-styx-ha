@@ -117,7 +117,6 @@ from .button_system import (
     CopilotDownloadHabitusDashboardButton,
     CopilotGeneratePilotSuiteDashboardButton,
     CopilotDownloadPilotSuiteDashboardButton,
-    CopilotBrainDashboardSummaryButton,
 )
 from .button_debug import (
     CopilotToggleLightButton,
@@ -141,4 +140,5 @@ from .button_debug import (
     CopilotDisableDebugButton,
     CopilotClearErrorDigestButton,
     CopilotClearAllLogsButton,
+    CopilotBrainDashboardSummaryButton,
 )

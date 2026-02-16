@@ -49,7 +49,7 @@ async def async_setup_entry(
 class ActiveUsersSensor(SensorEntity):
     """Sensor showing active (home) users."""
     
-    _attr_name = "AI CoPilot Active Users"
+    _attr_name = "PilotSuite Active Users"
     _attr_icon = "mdi:account-group"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_unique_id = f"{DOMAIN}_active_users"
@@ -92,7 +92,7 @@ class UserMoodSensor(SensorEntity):
         self._user_id = user_id
         self._user_name = user_name
         
-        self._attr_name = f"AI CoPilot Mood - {user_name}"
+        self._attr_name = f"PilotSuite Mood - {user_name}"
         self._attr_unique_id = f"{DOMAIN}_mood_{user_id.replace('.', '_')}"
         self._attr_extra_state_attributes = {}
         
@@ -136,7 +136,7 @@ class UserMoodSensor(SensorEntity):
 class AggregatedMoodSensor(SensorEntity):
     """Sensor showing aggregated mood across all active users."""
     
-    _attr_name = "AI CoPilot Aggregated Mood"
+    _attr_name = "PilotSuite Aggregated Mood"
     _attr_icon = "mdi:robot-happy"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_unique_id = f"{DOMAIN}_aggregated_mood"
