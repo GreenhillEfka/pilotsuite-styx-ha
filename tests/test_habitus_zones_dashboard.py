@@ -25,26 +25,26 @@ class TestHabitusZonesDashboardConfigFlow:
     def test_config_flow_imports(self):
         """Verify config_flow.py imports habitus_dashboard correctly."""
         # The config_flow should import from habitus_dashboard
-        with open("custom_components/ai_home_copilot/config_flow.py", "r") as f:
+        with open("custom_components/ai_home_copilot/config_options_flow.py", "r") as f:
             content = f.read()
         assert "async_generate_habitus_zones_dashboard" in content
         assert "async_publish_last_habitus_dashboard" in content
 
     def test_generate_dashboard_step_exists(self):
         """Verify async_step_generate_dashboard is defined."""
-        with open("custom_components/ai_home_copilot/config_flow.py", "r") as f:
+        with open("custom_components/ai_home_copilot/config_options_flow.py", "r") as f:
             content = f.read()
         assert "async_step_generate_dashboard" in content
 
     def test_publish_dashboard_step_exists(self):
         """Verify async_step_publish_dashboard is defined."""
-        with open("custom_components/ai_home_copilot/config_flow.py", "r") as f:
+        with open("custom_components/ai_home_copilot/config_options_flow.py", "r") as f:
             content = f.read()
         assert "async_step_publish_dashboard" in content
 
     def test_habitus_zones_menu_updated(self):
         """Verify habitus_zones menu includes dashboard options."""
-        with open("custom_components/ai_home_copilot/config_flow.py", "r") as f:
+        with open("custom_components/ai_home_copilot/config_options_flow.py", "r") as f:
             content = f.read()
         # Menu should include both dashboard options
         assert '"generate_dashboard"' in content

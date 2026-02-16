@@ -1,0 +1,296 @@
+"""OptionsFlowHandler for AI Home CoPilot config entry."""
+from __future__ import annotations
+
+import json
+import logging
+
+import voluptuous as vol
+import yaml
+
+from homeassistant import config_entries
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
+
+from .config_helpers import as_csv, parse_csv
+from .config_schema_builders import build_settings_schema, build_neuron_schema
+from .config_snapshot_flow import ConfigSnapshotOptionsFlow
+from .config_zones_flow import async_step_zone_form
+from .const import (
+    CONF_HOST,
+    CONF_PORT,
+    CONF_TOKEN,
+    CONF_WEBHOOK_URL,
+    CONF_MEDIA_MUSIC_PLAYERS,
+    CONF_MEDIA_TV_PLAYERS,
+    CONF_SUGGESTION_SEED_ENTITIES,
+    CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+    CONF_TRACKED_USERS,
+    CONF_NEURON_CONTEXT_ENTITIES,
+    CONF_NEURON_STATE_ENTITIES,
+    CONF_NEURON_MOOD_ENTITIES,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._entry = config_entry
+        ConfigSnapshotOptionsFlow.__init__(self, config_entry)
+
+    async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["settings", "habitus_zones", "neurons", "backup_restore"],
+        )
+
+    async def async_step_settings(self, user_input: dict | None = None) -> FlowResult:
+        if user_input is not None:
+            user_input.pop(CONF_WEBHOOK_URL, None)
+
+            clear_token = user_input.pop("_clear_token", False)
+            new_token = user_input.get(CONF_TOKEN, "")
+
+            if clear_token:
+                user_input[CONF_TOKEN] = ""
+            elif not new_token:
+                existing_token = self._entry.data.get(CONF_TOKEN, "")
+                user_input[CONF_TOKEN] = existing_token
+
+            # Normalize CSV fields
+            for field in (
+                CONF_SUGGESTION_SEED_ENTITIES,
+                CONF_MEDIA_MUSIC_PLAYERS,
+                CONF_MEDIA_TV_PLAYERS,
+                CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                CONF_TRACKED_USERS,
+            ):
+                csv_val = user_input.get(field)
+                if isinstance(csv_val, str):
+                    user_input[field] = parse_csv(csv_val)
+
+            if CONF_TOKEN in user_input:
+                token = user_input.get(CONF_TOKEN, "").strip()
+                if not token:
+                    user_input[CONF_TOKEN] = ""
+
+            return self.async_create_entry(title="", data=user_input)
+
+        data = {**self._entry.data, **self._entry.options}
+
+        webhook_id = data.get("webhook_id")
+        base = self.hass.config.internal_url or self.hass.config.external_url or ""
+        webhook_url = (
+            f"{base}/api/webhook/{webhook_id}"
+            if webhook_id and base
+            else (f"/api/webhook/{webhook_id}" if webhook_id else "(generated after first setup)")
+        )
+
+        current_token = data.get(CONF_TOKEN, "")
+        token_hint = "** AKTUELL GESETZT **" if current_token else "Leer lassen um Token zu löschen"
+
+        schema = build_settings_schema(data, webhook_url, token_hint)
+        return self.async_show_form(step_id="settings", data_schema=schema)
+
+    # ── Habitus zones ────────────────────────────────────────────────
+
+    async def async_step_habitus_zones(self, user_input: dict | None = None) -> FlowResult:
+        return self.async_show_menu(
+            step_id="habitus_zones",
+            menu_options=[
+                "create_zone",
+                "edit_zone",
+                "delete_zone",
+                "generate_dashboard",
+                "publish_dashboard",
+                "bulk_edit",
+                "back",
+            ],
+        )
+
+    async def async_step_back(self, user_input: dict | None = None) -> FlowResult:
+        return await self.async_step_init()
+
+    async def async_step_create_zone(self, user_input: dict | None = None) -> FlowResult:
+        return await async_step_zone_form(self, mode="create", user_input=user_input)
+
+    async def async_step_edit_zone(self, user_input: dict | None = None) -> FlowResult:
+        from .habitus_zones_store_v2 import async_get_zones_v2
+
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+        ids = [z.zone_id for z in zones]
+        if not ids:
+            return self.async_abort(reason="no_zones")
+
+        if user_input is None:
+            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            return self.async_show_form(step_id="edit_zone", data_schema=schema)
+
+        zid = str(user_input.get("zone_id", ""))
+        return await async_step_zone_form(self, mode="edit", user_input=None, zone_id=zid)
+
+    async def async_step_delete_zone(self, user_input: dict | None = None) -> FlowResult:
+        from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2
+
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+        ids = [z.zone_id for z in zones]
+        if not ids:
+            return self.async_abort(reason="no_zones")
+
+        if user_input is None:
+            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            return self.async_show_form(step_id="delete_zone", data_schema=schema)
+
+        zid = str(user_input.get("zone_id", ""))
+        remain = [z for z in zones if z.zone_id != zid]
+        await async_set_zones_v2(self.hass, self._entry.entry_id, remain)
+        return await self.async_step_habitus_zones()
+
+    async def async_step_bulk_edit(self, user_input: dict | None = None) -> FlowResult:
+        """Bulk editor to paste YAML/JSON (no 255-char limit) with validation."""
+        from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2_from_raw
+
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+        current = []
+        for z in zones:
+            item = {"id": z.zone_id, "name": z.name}
+            if isinstance(getattr(z, "entities", None), dict) and z.entities:
+                item["entities"] = z.entities
+            else:
+                item["entity_ids"] = z.entity_ids
+            current.append(item)
+
+        if user_input is not None:
+            raw_text = str(user_input.get("zones") or "").strip()
+            if not raw_text:
+                raw_text = "[]"
+
+            try:
+                try:
+                    raw = json.loads(raw_text)
+                except Exception:  # noqa: BLE001
+                    raw = yaml.safe_load(raw_text)
+
+                await async_set_zones_v2_from_raw(self.hass, self._entry.entry_id, raw)
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="bulk_edit",
+                    data_schema=vol.Schema(
+                        {
+                            vol.Required("zones", default=raw_text): selector.TextSelector(
+                                selector.TextSelectorConfig(multiline=True)
+                            )
+                        }
+                    ),
+                    errors={"base": "invalid_json"},
+                    description_placeholders={"hint": f"Parse/validation error: {err}"},
+                )
+
+            return await self.async_step_habitus_zones()
+
+        default = yaml.safe_dump(current, allow_unicode=True, sort_keys=False)
+        schema = vol.Schema(
+            {
+                vol.Required("zones", default=default): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                )
+            }
+        )
+
+        return self.async_show_form(
+            step_id="bulk_edit",
+            data_schema=schema,
+            description_placeholders={
+                "hint": (
+                    "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires motion/presence + light.\n\n"
+                    "Optional: use a categorized structure via `entities:` (role -> list of entity_ids), e.g.\n"
+                    "- entities: {motion: [...], lights: [...], brightness: [...], heating: [...], humidity: [...], co2: [...], cover: [...], door: [...], window: [...], lock: [...], media: [...], other: [...]}"
+                ),
+            },
+        )
+
+    # ── Dashboard generation ─────────────────────────────────────────
+
+    async def async_step_generate_dashboard(self, user_input: dict | None = None) -> FlowResult:
+        """Generate Lovelace dashboard YAML for all Habitus zones."""
+        from .habitus_dashboard import async_generate_habitus_zones_dashboard
+
+        if user_input is not None:
+            try:
+                path = await async_generate_habitus_zones_dashboard(self.hass, self._entry.entry_id)
+                return self.async_abort(
+                    reason="dashboard_generated",
+                    description_placeholders={"path": str(path)},
+                )
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="generate_dashboard",
+                    errors={"base": "generation_failed"},
+                    description_placeholders={"error": str(err)},
+                )
+
+        schema = vol.Schema({vol.Optional("confirm", default=True): bool})
+        return self.async_show_form(
+            step_id="generate_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "description": (
+                    "Creates a Lovelace YAML dashboard file for all Habitus zones. "
+                    "The file is saved in the `ai_home_copilot/` configuration folder."
+                )
+            },
+        )
+
+    async def async_step_publish_dashboard(self, user_input: dict | None = None) -> FlowResult:
+        """Publish the latest generated dashboard to www folder."""
+        from .habitus_dashboard import async_publish_last_habitus_dashboard
+
+        if user_input is not None:
+            try:
+                url = await async_publish_last_habitus_dashboard(self.hass)
+                return self.async_abort(
+                    reason="dashboard_published",
+                    description_placeholders={"url": url},
+                )
+            except FileNotFoundError:
+                return self.async_show_form(
+                    step_id="publish_dashboard",
+                    errors={"base": "no_dashboard_generated"},
+                    description_placeholders={
+                        "hint": "Generate a dashboard first using 'Generate dashboard YAML'."
+                    },
+                )
+            except Exception as err:  # noqa: BLE001
+                return self.async_show_form(
+                    step_id="publish_dashboard",
+                    errors={"base": "publish_failed"},
+                    description_placeholders={"error": str(err)},
+                )
+
+        schema = vol.Schema({vol.Optional("confirm", default=True): bool})
+        return self.async_show_form(
+            step_id="publish_dashboard",
+            data_schema=schema,
+            description_placeholders={
+                "description": (
+                    "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder "
+                    "for easy download. This creates a stable URL for the dashboard YAML."
+                )
+            },
+        )
+
+    # ── Neurons ──────────────────────────────────────────────────────
+
+    async def async_step_neurons(self, user_input: dict | None = None) -> FlowResult:
+        """Configure neural system entities."""
+        if user_input is not None:
+            for field in (CONF_NEURON_CONTEXT_ENTITIES, CONF_NEURON_STATE_ENTITIES, CONF_NEURON_MOOD_ENTITIES):
+                csv_val = user_input.get(field, "")
+                if isinstance(csv_val, str):
+                    user_input[field] = parse_csv(csv_val)
+
+            return self.async_create_entry(title="", data=user_input)
+
+        data = {**self._entry.data, **self._entry.options}
+        schema = vol.Schema(build_neuron_schema(data))
+        return self.async_show_form(step_id="neurons", data_schema=schema)
