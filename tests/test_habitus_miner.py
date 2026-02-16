@@ -86,14 +86,14 @@ class TestHabitusMinerModule:
     @pytest.mark.asyncio
     async def test_async_setup_registers_services(self, module, mock_ctx):
         """Test that services are registered on setup."""
-        with patch('homeassistant.core.HomeAssistant.services') as mock_services:
-            mock_services.has_service = MagicMock(return_value=False)
-            mock_services.async_register = MagicMock()
-            
-            await module.async_setup_entry(mock_ctx)
-            
-            # Check that services were registered
-            assert mock_services.async_register.called
+        # Mock services on the hass instance directly
+        mock_ctx.hass.services.has_service = MagicMock(return_value=False)
+        mock_ctx.hass.services.async_register = MagicMock()
+        
+        await module.async_setup_entry(mock_ctx)
+        
+        # Check that services were registered
+        assert mock_ctx.hass.services.async_register.called
 
     @pytest.mark.asyncio
     async def test_async_unload_entry(self, module, mock_ctx):
@@ -120,21 +120,20 @@ class TestHabitusMinerModule:
     @pytest.mark.asyncio
     async def test_zone_affinity_initialization(self, module, mock_ctx):
         """Test zone affinity is initialized from zones store."""
-        with patch('homeassistant.core.HomeAssistant.services') as mock_services:
-            mock_services.has_service = MagicMock(return_value=False)
+        mock_ctx.hass.services.has_service = MagicMock(return_value=False)
+        
+        # Mock zones store - patch at the source module where async_get_zones is defined
+        with patch('ai_home_copilot.habitus_zones_store.async_get_zones', new_callable=AsyncMock) as mock_zones:
+            mock_zone = MagicMock()
+            mock_zone.zone_id = "zone:wohnzimmer"
+            mock_zone.entity_ids = ["light.wohnzimmer", "sensor.temp"]
+            mock_zones.return_value = [mock_zone]
             
-            # Mock zones store
-            with patch('ai_home_copilot.core.modules.habitus_miner.async_get_zones', new_callable=AsyncMock) as mock_zones:
-                mock_zone = MagicMock()
-                mock_zone.zone_id = "zone:wohnzimmer"
-                mock_zone.entity_ids = ["light.wohnzimmer", "sensor.temp"]
-                mock_zones.return_value = [mock_zone]
-                
-                await module.async_setup_entry(mock_ctx)
-                
-                # Zone affinity should be populated
-                module_data = mock_ctx.hass.data[DOMAIN][mock_ctx.entry.entry_id]["habitus_miner"]
-                assert "light.wohnzimmer" in module_data["zone_affinity"]
+            await module.async_setup_entry(mock_ctx)
+            
+            # Zone affinity should be populated
+            module_data = mock_ctx.hass.data[DOMAIN][mock_ctx.entry.entry_id]["habitus_miner"]
+            assert "light.wohnzimmer" in module_data["zone_affinity"]
 
     @pytest.mark.asyncio
     async def test_handle_configure_mining_updates_config(self, module, mock_ctx):
@@ -158,10 +157,9 @@ class TestHabitusMinerModule:
     @pytest.mark.asyncio
     async def test_handle_reset_cache_clears_data(self, module, mock_ctx):
         """Test that reset cache clears all data."""
-        # Setup first
-        with patch('homeassistant.core.HomeAssistant.services') as mock_services:
-            mock_services.has_service = MagicMock(return_value=False)
-            await module.async_setup_entry(mock_ctx)
+        # Setup first - fix the mock path for services
+        mock_ctx.hass.services.has_service = MagicMock(return_value=False)
+        await module.async_setup_entry(mock_ctx)
         
         # Add some data
         module_data = mock_ctx.hass.data[DOMAIN][mock_ctx.entry.entry_id]["habitus_miner"]
@@ -169,12 +167,17 @@ class TestHabitusMinerModule:
         module_data["last_mining_ts"] = 12345
         module_data["discovered_rules"] = [{"A": "a", "B": "b"}]
         
-        # Create mock call
-        mock_call = MagicMock()
-        mock_call.data = {}
+        # Mock the coordinator import to avoid HA component issues
+        mock_coordinator = MagicMock()
+        mock_coordinator.api.post_with_auth = AsyncMock()
         
-        # Reset
-        result = await module._handle_reset_cache(mock_ctx.hass, mock_ctx.entry, mock_call)
+        with patch.dict('sys.modules', {'ai_home_copilot.coordinator': MagicMock(CopilotDataUpdateCoordinator=lambda *args: mock_coordinator)}):
+            # Create mock call
+            mock_call = MagicMock()
+            mock_call.data = {}
+            
+            # Reset
+            result = await module._handle_reset_cache(mock_ctx.hass, mock_ctx.entry, mock_call)
         
         assert result is not None
         assert result["success"] is True
