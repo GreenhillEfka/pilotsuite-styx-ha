@@ -92,7 +92,6 @@ class TestCoreAPICalls:
         """Test GET request to Core API."""
         from ai_home_copilot.core_v1 import async_call_core_api
         
-        mock_hass = Mock()
         mock_entry = Mock()
         mock_entry.data = {
             "host": "localhost",
@@ -113,7 +112,8 @@ class TestCoreAPICalls:
         mock_hass = Mock()
         mock_hass.data = {}
         
-        with patch('homeassistant.helpers.aiohttp_client.async_get_clientsession', return_value=mock_session):
+        # Patch at the module level where it's used
+        with patch('ai_home_copilot.core_v1.async_get_clientsession', return_value=mock_session):
             result = await async_call_core_api(
                 mock_hass,
                 mock_entry,
@@ -149,7 +149,8 @@ class TestCoreAPICalls:
         mock_hass = Mock()
         mock_hass.data = {}
         
-        with patch('homeassistant.helpers.aiohttp_client.async_get_clientsession', return_value=mock_session):
+        # Patch at the module level where it's used
+        with patch('ai_home_copilot.core_v1.async_get_clientsession', return_value=mock_session):
             result = await async_call_core_api(
                 mock_hass,
                 mock_entry,
@@ -179,7 +180,8 @@ class TestCoreAPICalls:
         mock_hass = Mock()
         mock_hass.data = {}
         
-        with patch('homeassistant.helpers.aiohttp_client.async_get_clientsession', return_value=mock_session):
+        # Patch at the module level where it's used
+        with patch('ai_home_copilot.core_v1.async_get_clientsession', return_value=mock_session):
             result = await async_call_core_api(
                 mock_hass,
                 mock_entry,

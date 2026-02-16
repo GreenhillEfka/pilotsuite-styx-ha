@@ -96,12 +96,26 @@ class TestTagMaterialization:
         """Test pending materialization detection."""
         from ai_home_copilot.tag_registry import _is_pending_materialization
         
-        # Pending with confirmed=False should be pending
+        # learned.* and candidate.* tags with non-confirmed status should be pending
+        result = _is_pending_materialization(
+            "learned.new_tag",
+            {"status": "pending", "confirmed": False}
+        )
+        assert result is True
+        
+        # candidate.* tags should also be pending
+        result = _is_pending_materialization(
+            "candidate.new_tag",
+            {"status": "pending", "confirmed": False}
+        )
+        assert result is True
+        
+        # user.* tags are NOT pending (they materialize normally)
         result = _is_pending_materialization(
             "user.new_tag",
             {"status": "pending", "confirmed": False}
         )
-        assert result is True
+        assert result is False
 
     def test_confirmed_not_pending(self):
         """Test confirmed tags are not pending."""

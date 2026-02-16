@@ -89,7 +89,7 @@ class TestUserPreferenceModule:
     
     def test_module_version(self, module):
         """Test module version."""
-        assert module.version == "0.8.0"
+        assert module.version == "0.9.0"
     
     def test_get_active_user_none_initially(self, module):
         """Test that active user is None initially."""

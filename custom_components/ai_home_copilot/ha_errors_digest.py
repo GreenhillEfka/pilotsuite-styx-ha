@@ -152,6 +152,17 @@ def _parse_traceback_signature(entry: list[str]) -> str:
     error_type = "Unknown"
     location = "unknown"
     
+    # Handle simple format: "ValueError@api.py error 1"
+    if len(entry) == 1 and "@" in entry[0]:
+        first_line = entry[0]
+        # Look for pattern: ErrorType@file.extension
+        import re
+        match = re.match(r'^(\w+Error|\w+Exception|\w+Warning)@(\S+)', first_line)
+        if match:
+            error_type = match.group(1)
+            location = match.group(2).split()[0]  # Get filename, ignore rest
+            return f"{error_type}@{location}"
+    
     # Look for Python exception patterns
     for line in entry:
         # Exception type at end of traceback
