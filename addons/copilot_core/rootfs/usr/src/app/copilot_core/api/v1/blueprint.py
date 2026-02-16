@@ -28,6 +28,10 @@ from copilot_core.energy.api import energy_bp
 from copilot_core.unifi.api import unifi_bp
 from copilot_core.system_health.api import system_health_bp
 
+# Phase 5: Cross-Home Sync and Collective Intelligence
+from copilot_core.sharing.api import sharing_bp
+from copilot_core.collective_intelligence.api import federated_bp
+
 api_v1 = Blueprint("api_v1", __name__, url_prefix="/api/v1")
 
 # Compose sub-modules.
@@ -58,3 +62,7 @@ api_v1.register_blueprint(user_hints_bp)
 api_v1.register_blueprint(energy_bp)
 api_v1.register_blueprint(unifi_bp)
 api_v1.register_blueprint(system_health_bp)
+
+# Register Phase 5 APIs (Cross-Home Sync and Collective Intelligence)
+api_v1.register_blueprint(sharing_bp)
+api_v1.register_blueprint(federated_bp)
