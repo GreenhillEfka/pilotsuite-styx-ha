@@ -63,20 +63,36 @@
 
 ---
 
-## AI Home CoPilot Projekt (Stand 2026-02-15 04:32)
+### Zone Conflict Resolution (2026-02-16)
+**Architektur-Entscheidung:**
+- Bei überlappenden Zones (Entity in mehreren aktiven Zones) wird automatisch konfliktgelöst
+- **Strategien (in Priorität):**
+  1. `HIERARCHY` - Spezifischere Zone (room > area > floor) gewinnt
+  2. `PRIORITY` - Höhere Priorität gewinnt
+  3. `USER_PROMPT` - Event feuern, User entscheidet
+  4. `MERGE` - Entities zusammenführen
+  5. `FIRST_WINS` - Erste aktive Zone gewinnt
+- **Default:** `HIERARCHY` - Child-Zones überschreiben Parent-Zones
+- **Implementation:** `ZoneConflictResolver` in `habitus_zones_store_v2.py`
 
-### Autopilot Aktiv (seit 2026-02-15 04:03)
-- **Branch**: `dev/autopilot-2026-02-15`
-- **State File**: `.openclaw/autopilot/state.json`
-- **Tasks File**: `.openclaw/autopilot/tasks.md`
-- **Check-Intervall**: 5 Minuten (Heartbeat)
-- **Workflow**: Dev → Freigabe → Main → Release
+**State Machine:**
+- Zone States: `idle` → `active` → `transitioning` → `idle`
+- States persistiert via HA Storage API
+- Events: `SIGNAL_HABITUS_ZONE_STATE_CHANGED`, `SIGNAL_HABITUS_ZONE_CONFLICT`
 
-### Versionen
-- **HA Integration**: v0.8.0 - Multi-User Preference Learning ✅
-- **Core Add-on**: v0.4.16 - Security Fix + Habitus Dashboard Cards API
+---
+
+## AI Home CoPilot Projekt (Stand 2026-02-16 02:50)
+
+### Versionen (aktuell)
+- **HA Integration**: v0.13.2 - Brain Graph Panel v0.8, Cross-Home Sync, Collective Intelligence ✅
+- **Core Add-on**: v0.8.3 - Brain Graph Panel API, Cross-Home Sync API, Collective Intelligence API ✅
 - **Neurons implementiert**: SystemHealth, UniFi, Energy
-- **Features komplett**: Tag System v0.2, Habitus Zones v2, Mood Context, Brain Graph, Debug Mode, MUPL
+- **Features komplett**: Tag System v0.2, Habitus Zones v2 (+ Conflict Resolution), Mood Context, Brain Graph v0.8, Debug Mode, MUPL
+
+### Sync Status (2026-02-16)
+- HA Integration: Clean, synced with origin ✅
+- Core Add-on: Clean, synced with origin ✅
 
 ### Autopilot Task Queue
 1. ~~Interactive Brain Graph Panel v0.7.6~~ ✅ RELEASED (2026-02-15)

@@ -1,5 +1,5 @@
 {
-  "lastCheck": "2026-02-15T03:49:00+01:00",
+  "lastCheck": "2026-02-16T04:16:00+01:00",
   "activeWorkers": 0,
   "maxWorkers": 3,
   "pendingTasks": [],
@@ -18,23 +18,34 @@
       "task": "Autopilot Cycle",
       "time": "2026-02-15T03:45:00+01:00",
       "result": "Completed M0-M3, awaiting user decision"
+    },
+    {
+      "task": "Decision Matrix Review",
+      "time": "2026-02-16T04:16:00+01:00",
+      "result": "All 6 architecture decisions verified, system stable"
     }
   ],
   "runningJobs": [],
   "problematicJobs": [
     {
-      "id": "90568659-7a0c-4e1c-aa7e-b79299c81e97",
-      "name": "Cron Job Results Monitor",
-      "errors": 6,
-      "issue": "cron delivery target is missing"
+      "id": "86af37ed-dde2-40df-9189-8069340a5ff8",
+      "name": "AI Home CoPilot: Decision Matrix (10min)",
+      "errors": 2,
+      "issue": "previous timeout (420s), now running"
     },
     {
-      "id": "9e079369-c01d-4b93-9545-9d4e947de8fd",
-      "name": "Codex Code Review",
+      "id": "f190bd53-938e-41c1-a05d-722c7ae5351a",
+      "name": "Perplexity deep audit",
       "errors": 1,
-      "issue": "cron delivery target is missing"
+      "issue": "cron delivery target failed"
+    },
+    {
+      "id": "8fb1185d-1e3a-4644-80d7-bbfde55036a8",
+      "name": "Modul Orchestrierung",
+      "errors": 1,
+      "issue": "cron delivery target failed"
     }
   ],
   "nextScheduled": null,
-  "notes": "All milestones complete. System stable. 2 jobs need delivery config fix."
+  "notes": "Phase 5 complete. All decisions implemented. System stable. Ready for v0.13.3 when user requests."
 }
