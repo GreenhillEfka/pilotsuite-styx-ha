@@ -2,6 +2,20 @@
 
 All notable changes to AI Home CoPilot will be documented in this file.
 
+## [0.9.6] - 2026-02-16
+
+### Added
+- **Cross-Home Sync Module** (`cross_home_sync.py`):
+  - Multi-home entity sharing via Core Add-on API
+  - Peer discovery for other CoPilot homes on network
+  - Entity share/unshare with permission control (read/read_write)
+  - State change sync to remote homes
+  - Conflict resolution (local_wins, remote_wins, merge)
+  - Shared entity registry with sync status tracking
+  - Tests: 9 unit tests
+
+---
+
 ## [0.9.5] - 2026-02-16
 
 ### Added
