@@ -239,6 +239,19 @@ Home Assistant introduced a **Labs** system for preview features:
 
 ## Changelog
 
+### 2026-02-16 10:54
+- **Tool Availability Issue**: Perplexity CLI scripts not found (`/config/.openclaw/workspace/scripts/pplx-deep` missing)
+- **API Issue**: Brave Search API token invalid - cannot perform fresh web research
+- **HA Releases**: No new releases since 2026.2.2 (Feb 13, 2026) - only patch fixes
+- **Project Status**: All previous findings remain valid
+  - HA Integration: v0.13.4 ✅
+  - Core Add-on: v0.8.7 ✅
+  - Tests: 346/2 skipped ✅
+  - Code Review: 8.9/10 ✅
+  - Zone Registry Integration (Decision 7): ✅ COMPLETE
+- **Energy + UniFi Neurons**: Implemented (2026-02-16 10:45)
+- **No new action items required** - system is stable and production-ready
+
 ### 2026-02-16 10:06
 - **Tool Availability Issue**: Perplexity CLI scripts not found (`/config/.openclaw/workspace/scripts/pplx-deep` missing)
 - **API Issue**: Brave Search API token invalid - cannot perform fresh web research

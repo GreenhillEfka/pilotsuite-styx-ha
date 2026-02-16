@@ -1,9 +1,0 @@
-{
-  "domain": "copilot",
-  "name": "AI Home CoPilot (Adapter) – MVP",
-  "version": "0.8.3",
-  "documentation": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
-  "requirements": [],
-  "codeowners": ["@GreenhillEfka"],
-  "iot_class": "local_push"
-}

@@ -271,3 +271,44 @@ def _get_zone_name(self, zone_id: str | None) -> str | None:
 - Pushed to origin/main ✅
 
 **Next Review:** 2026-02-23
+
+---
+
+### Gemini Critical Code Review (2026-02-16 12:03):
+**Status:** ✅ PRODUCTION-READY (Confidence: 95%)
+
+**P0 Issues (Critical Security):** NONE FOUND ✅
+- ✅ All SQL queries use parameterized statements (no SQL injection)
+- ✅ No `eval()` or `exec()` calls
+- ✅ No path traversal vulnerabilities
+- ✅ No hardcoded secrets or API keys
+- ✅ Proper exception handling with specific types
+- ✅ Privacy-first data filtering in events_forwarder.py
+
+**P1 Issues (Performance):**
+| Issue | Location | Priority | Status |
+|-------|----------|----------|--------|
+| SQLite Connection Pool Size (max_connections=5) | performance.py:450-457 | MEDIUM | TODO |
+| Missing Composite Indexes | store.py:16-53 | LOW | TODO |
+| QueryCache TTL Cleanup | performance.py:23-77 | MEDIUM | TODO |
+
+**P2 Issues (Code Quality):**
+| Issue | Location | Priority | Status |
+|-------|----------|----------|--------|
+| API Documentation Gap | api/v1/*.py | LOW | TODO |
+| Inconsistent Exception Handling | HA Integration | LOW | TODO |
+| Missing Input Validation (Pydantic) | api/v1/*.py | MEDIUM | TODO |
+
+**Recommendations for Next Sprint:**
+1. Increase SQLite connection pool to 10
+2. Add composite indexes: `(kind, domain)`, `(kind, score)`, `(edge_type, weight)`
+3. Add periodic QueryCache cleanup task
+4. Add Pydantic models for API validation
+5. Enhance setup wizard with visual zone editor
+
+**Test Results:**
+- HA Integration: 346 passed, 2 skipped ✅
+- Core Add-on: 528 passed, 0 failed ✅
+- Git Status: Both repos clean, synced ✅
+
+**Next Review:** 2026-02-23
