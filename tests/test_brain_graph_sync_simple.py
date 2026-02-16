@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 # Add the parent directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+
 def test_brain_graph_module_import():
     """Test that the BrainGraphSyncModule can be imported."""
     try:
@@ -19,15 +20,28 @@ def test_brain_graph_module_import():
         mock_module.async_unload_entry = MagicMock()
         mock_module.name = "brain_graph_sync"
         
-        print("✓ Module structure test passed")
-        return True
+        # Basic structure validation
+        assert mock_module.async_setup_entry is not None
+        assert mock_module.async_unload_entry is not None
         
     except Exception as err:
-        print(f"✗ Module import failed: {err}")
-        return False
+        raise AssertionError(f"Module import failed: {err}") from err
+
 
 def test_brain_graph_sync_class():
     """Test BrainGraphSync class structure."""
+    # Save original sys.modules state
+    original_modules = {}
+    modules_to_mock = [
+        'homeassistant', 'homeassistant.core', 'homeassistant.helpers',
+        'homeassistant.helpers.area_registry', 'homeassistant.helpers.device_registry',
+        'homeassistant.helpers.entity_registry', 'homeassistant.helpers.typing',
+        'homeassistant.const', 'homeassistant.config_entries', 'aiohttp'
+    ]
+    for mod in modules_to_mock:
+        if mod in sys.modules:
+            original_modules[mod] = sys.modules.pop(mod)
+    
     # Mock homeassistant modules to avoid import errors
     mock_ha = MagicMock()
     mock_ha.core = MagicMock() 
@@ -40,18 +54,18 @@ def test_brain_graph_sync_class():
     mock_ha.const.STATE_UNAVAILABLE = "unavailable"
     mock_ha.const.STATE_UNKNOWN = "unknown"
     
-    sys.modules['homeassistant'] = mock_ha
-    sys.modules['homeassistant.core'] = mock_ha.core
-    sys.modules['homeassistant.helpers'] = mock_ha.helpers
-    sys.modules['homeassistant.helpers.area_registry'] = mock_ha.helpers
-    sys.modules['homeassistant.helpers.device_registry'] = mock_ha.helpers
-    sys.modules['homeassistant.helpers.entity_registry'] = mock_ha.helpers
-    sys.modules['homeassistant.helpers.typing'] = mock_ha.helpers
-    sys.modules['homeassistant.const'] = mock_ha.const
-    sys.modules['homeassistant.config_entries'] = mock_ha.config_entries
-    sys.modules['aiohttp'] = MagicMock()
-    
     try:
+        sys.modules['homeassistant'] = mock_ha
+        sys.modules['homeassistant.core'] = mock_ha.core
+        sys.modules['homeassistant.helpers'] = mock_ha.helpers
+        sys.modules['homeassistant.helpers.area_registry'] = mock_ha.helpers
+        sys.modules['homeassistant.helpers.device_registry'] = mock_ha.helpers
+        sys.modules['homeassistant.helpers.entity_registry'] = mock_ha.helpers
+        sys.modules['homeassistant.helpers.typing'] = mock_ha.helpers
+        sys.modules['homeassistant.const'] = mock_ha.const
+        sys.modules['homeassistant.config_entries'] = mock_ha.config_entries
+        sys.modules['aiohttp'] = MagicMock()
+        
         from custom_components.ai_home_copilot.brain_graph_sync import BrainGraphSync
         
         # Test initialization
@@ -69,27 +83,17 @@ def test_brain_graph_sync_class():
         assert hasattr(sync, 'get_graph_stats')
         assert hasattr(sync, 'get_graph_snapshot_url')
         
-        # Test URL generation
-        url = sync.get_graph_snapshot_url()
+        # Test URL generation - get_graph_snapshot_url is now async
+        import asyncio
+        url = asyncio.get_event_loop().run_until_complete(sync.get_graph_snapshot_url())
         assert url == "http://localhost:5000/api/v1/graph/snapshot.svg"
         
-        print("✓ BrainGraphSync class test passed")
-        return True
-        
     except Exception as err:
-        print(f"✗ BrainGraphSync class test failed: {err}")
-        return False
-
-if __name__ == "__main__":
-    print("Brain Graph Sync Simple Tests")
-    
-    success = True
-    
-    success &= test_brain_graph_module_import()
-    success &= test_brain_graph_sync_class()
-    
-    if success:
-        print("✓ All tests passed")
-    else:
-        print("✗ Some tests failed")
-        sys.exit(1)
+        raise AssertionError(f"BrainGraphSync class test failed: {err}") from err
+    finally:
+        # Clean up sys.modules to avoid polluting other tests
+        for mod in modules_to_mock:
+            sys.modules.pop(mod, None)
+        # Restore original modules
+        for mod, module in original_modules.items():
+            sys.modules[mod] = module

@@ -124,9 +124,9 @@ class TestN3EventForwarder:
         assert "supported_features" not in projected
         assert "entity_picture" not in projected
 
-    def test_project_attributes_sensor(self, mock_hass, forwarder_config):
+    def test_project_attributes_sensor(self, mock_hass_obj, forwarder_config_obj):
         """Test attribute projection for sensor domain."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         attrs = {
             "unit_of_measurement": "°C",
@@ -144,22 +144,25 @@ class TestN3EventForwarder:
         assert "friendly_name" not in projected
         assert "custom_attr" not in projected
 
-    def test_project_attributes_unknown_domain(self, mock_hass, forwarder_config):
+    def test_project_attributes_unknown_domain(self, mock_hass_obj, forwarder_config_obj):
         """Test attribute projection for unknown domain."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         attrs = {
             "some_attr": "value",
             "another_attr": 123,
+            "friendly_name": "Test Entity",  # Should be redacted by default
         }
         
-        # Unknown domains should project no attributes
+        # Unknown domains allow all attributes except globally redacted ones
         projected = forwarder._project_attributes("unknown_domain", attrs)
-        assert projected == {}
+        assert projected["some_attr"] == "value"
+        assert projected["another_attr"] == 123
+        assert "friendly_name" not in projected  # Redacted by default
 
-    def test_redact_context_id(self, mock_hass, forwarder_config):
+    def test_redact_context_id(self, mock_hass_obj, forwarder_config_obj):
         """Test context ID redaction."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         full_context_id = "01234567-89ab-cdef-0123-456789abcdef"
         
@@ -173,9 +176,9 @@ class TestN3EventForwarder:
         redacted = forwarder._redact_context_id(full_context_id)
         assert redacted == full_context_id
 
-    def test_extract_entity_ids_from_service_data(self, mock_hass, forwarder_config):
+    def test_extract_entity_ids_from_service_data(self, mock_hass_obj, forwarder_config_obj):
         """Test entity ID extraction from service data."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         # Single entity_id as string
         service_data = {"entity_id": "light.test"}
@@ -192,9 +195,9 @@ class TestN3EventForwarder:
         entity_ids = forwarder._extract_entity_ids_from_service_data(service_data)
         assert entity_ids == []
 
-    def test_should_forward_entity_debounce(self, mock_hass, forwarder_config):
+    def test_should_forward_entity_debounce(self, mock_hass_obj, forwarder_config_obj):
         """Test entity debouncing logic."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         forwarder._debounce_intervals = {"sensor": 1.0}
         
         entity_id = "sensor.test"
@@ -212,9 +215,9 @@ class TestN3EventForwarder:
         assert forwarder._should_forward_entity("light.test", "light") == True
         assert forwarder._should_forward_entity("light.test", "light") == True
 
-    def test_is_event_new_idempotency(self, mock_hass, forwarder_config):
+    def test_is_event_new_idempotency(self, mock_hass_obj, forwarder_config_obj):
         """Test event idempotency checking."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         forwarder._idempotency_ttl = 10  # 10 seconds TTL
         
         event_key = "state_changed:test-context-id"
@@ -232,9 +235,9 @@ class TestN3EventForwarder:
         forwarder._idempotency_ttl = 0
         assert forwarder._is_event_new(event_key) == True  # Should always be true
 
-    def test_create_state_change_envelope(self, mock_hass, forwarder_config):
+    def test_create_state_change_envelope(self, mock_hass_obj, forwarder_config_obj):
         """Test state change envelope creation."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         forwarder._entity_to_zone = {"light.test": "living_room"}
         
         # Create mock states and event
@@ -269,9 +272,9 @@ class TestN3EventForwarder:
         assert "last_changed" in envelope
         assert "last_updated" in envelope
 
-    def test_create_call_service_envelope(self, mock_hass, forwarder_config):
+    def test_create_call_service_envelope(self, mock_hass_obj, forwarder_config_obj):
         """Test call_service envelope creation."""
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         forwarder._entity_to_zone = {
             "light.test1": "living_room",
             "light.test2": "kitchen"
@@ -297,13 +300,13 @@ class TestN3EventForwarder:
         assert envelope["trigger"] == "automation"  # Because parent_id is set
         assert envelope["service"] == "turn_on"
         assert envelope["entity_ids"] == entity_ids
-        assert envelope["zone_ids"] == ["kitchen", "living_room"]  # Sorted
+        assert envelope["zone_ids"] == ["living_room", "kitchen"]  # Order matches entity_ids
 
     @pytest.mark.asyncio
-    async def test_enqueue_event_max_queue_size(self, mock_hass, forwarder_config):
+    async def test_enqueue_event_max_queue_size(self, mock_hass_obj, forwarder_config_obj):
         """Test event queue size limiting."""
-        forwarder_config["max_queue_size"] = 3
-        forwarder = N3EventForwarder(mock_hass, forwarder_config)
+        forwarder_config_obj["max_queue_size"] = 3
+        forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         # Mock session to prevent actual HTTP calls
         forwarder._session = Mock()

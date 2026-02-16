@@ -2,6 +2,24 @@
 
 All notable changes to AI Home CoPilot will be documented in this file.
 
+## [0.9.5] - 2026-02-16
+
+### Added
+- **Collective Intelligence Module** (`collective_intelligence.py`):
+  - Federated Learning support for distributed pattern sharing
+  - Differential privacy with configurable epsilon (privacy-first)
+  - Support for multiple model types: habit, anomaly, preference, energy
+  - Pattern contribution threshold to ensure quality
+  - Aggregated intelligence from multiple homes
+  - Local model registration and versioning
+  - Pattern expiration and cleanup
+  - Tests: 11 unit tests
+
+### Fixed
+- **test_repairs_workflow.py**: Fix mock configuration for hass.data
+
+---
+
 ## [0.9.4] - 2026-02-15
 
 ### Added

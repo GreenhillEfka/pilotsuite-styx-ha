@@ -7,9 +7,21 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 
-# Mock homeassistant modules
+# Mock homeassistant modules - save original modules first
 import sys
 from unittest.mock import MagicMock
+
+# Save any pre-existing homeassistant modules
+_original_modules = {}
+modules_to_mock = [
+    'homeassistant', 'homeassistant.core', 'homeassistant.helpers',
+    'homeassistant.helpers.area_registry', 'homeassistant.helpers.device_registry',
+    'homeassistant.helpers.entity_registry', 'homeassistant.helpers.typing',
+    'homeassistant.const', 'homeassistant.config_entries'
+]
+for mod in modules_to_mock:
+    if mod in sys.modules:
+        _original_modules[mod] = sys.modules.pop(mod)
 
 # Create mock modules
 mock_ha = MagicMock()
@@ -39,6 +51,12 @@ sys.modules['homeassistant.const'] = mock_ha.const
 sys.modules['homeassistant.config_entries'] = MagicMock()
 
 from custom_components.ai_home_copilot.brain_graph_sync import BrainGraphSync
+
+# Restore original modules after import
+for mod in modules_to_mock:
+    sys.modules.pop(mod, None)
+for mod, module in _original_modules.items():
+    sys.modules[mod] = module
 
 
 class TestBrainGraphSync:
