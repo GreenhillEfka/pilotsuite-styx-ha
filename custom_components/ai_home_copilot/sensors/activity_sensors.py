@@ -3,6 +3,9 @@
 Sensors:
 - ActivityLevelSensor: Overall activity level in the home
 - ActivityStillnessSensor: Stillness/quiet detection
+
+REFACTORED (2026-02-16): Now uses Add-on API instead of direct HA states.
+The Add-on NeuronManager evaluates activity and returns structured data.
 """
 from __future__ import annotations
 
@@ -22,136 +25,193 @@ from ..coordinator import CopilotDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
+async def _get_activity_from_api(
+    coordinator: CopilotDataUpdateCoordinator,
+    hass: HomeAssistant,
+) -> Dict[str, Any]:
+    """Get activity data from Add-on Neuron API.
+    
+    Calls /api/v1/neurons endpoint which returns evaluated neuron states.
+    The Add-on NeuronManager handles all the activity evaluation logic.
+    
+    Returns:
+        {
+            "level": str,           # idle, low, moderate, high
+            "score": int,           # Activity score
+            "motion_count": int,    # Active motion sensors
+            "media_playing": int,   # Playing media players
+            "lights_on": int,       # Lights on
+            "camera_motion": bool,  # Camera detected motion
+            "stillness": str,       # sleeping, still, quiet, active
+        }
+    """
+    result = {
+        "level": "unknown",
+        "score": 0,
+        "motion_count": 0,
+        "media_playing": 0,
+        "lights_on": 0,
+        "camera_motion": False,
+        "stillness": "unknown",
+    }
+    
+    try:
+        # Get neuron evaluation from Add-on API
+        neurons_data = await coordinator.async_get_neurons()
+        
+        # Extract activity/context data from neurons
+        context = neurons_data.get("context", {})
+        activity_data = context.get("activity", {})
+        
+        if activity_data:
+            result["level"] = activity_data.get("level", "unknown")
+            result["score"] = activity_data.get("value", 0)
+            result["motion_count"] = activity_data.get("motion_count", 0)
+            result["camera_motion"] = activity_data.get("camera_motion", False)
+        else:
+            # Fallback to direct HA states
+            result = await _fallback_activity_states(hass)
+            
+        # Get media and lights from coordinator cache or HA states
+        media_states = hass.states.async_all("media_player")
+        result["media_playing"] = sum(1 for m in media_states if m.state == "playing")
+        
+        light_states = hass.states.async_all("light")
+        result["lights_on"] = sum(1 for l in light_states if l.state == "on")
+        
+        # Calculate stillness based on activity
+        now = dt_util.now()
+        is_night = now.hour >= 23 or now.hour < 6
+        
+        if result["motion_count"] == 0 and result["media_playing"] == 0:
+            if is_night:
+                result["stillness"] = "sleeping"
+            else:
+                result["stillness"] = "still"
+        elif result["motion_count"] == 0:
+            result["stillness"] = "quiet"
+        else:
+            result["stillness"] = "active"
+            
+        return result
+        
+    except Exception as err:
+        _LOGGER.warning("Failed to get activity from API: %s", err)
+        return await _fallback_activity_states(hass)
+
+
+async def _fallback_activity_states(hass: HomeAssistant) -> Dict[str, Any]:
+    """Fallback: Calculate activity from direct HA states."""
+    result = {
+        "level": "unknown",
+        "score": 0,
+        "motion_count": 0,
+        "media_playing": 0,
+        "lights_on": 0,
+        "camera_motion": False,
+        "stillness": "unknown",
+    }
+    
+    try:
+        # Motion sensors
+        motion_states = hass.states.async_all("binary_sensor")
+        motion_on = sum(1 for s in motion_states 
+                       if s.attributes.get("device_class") == "motion" and s.state == "on")
+        result["motion_count"] = motion_on
+        result["score"] += motion_on * 3
+        
+        # Media players
+        media_states = hass.states.async_all("media_player")
+        media_playing = sum(1 for m in media_states if m.state == "playing")
+        result["media_playing"] = media_playing
+        result["score"] += media_playing * 2
+        
+        # Lights
+        light_states = hass.states.async_all("light")
+        lights_on = sum(1 for l in light_states if l.state == "on")
+        result["lights_on"] = lights_on
+        result["score"] += lights_on
+        
+        # Determine level
+        if result["score"] == 0:
+            result["level"] = "idle"
+        elif result["score"] < 5:
+            result["level"] = "low"
+        elif result["score"] < 15:
+            result["level"] = "moderate"
+        else:
+            result["level"] = "high"
+            
+    except Exception as err:
+        _LOGGER.error("Fallback activity calculation failed: %s", err)
+    
+    return result
+
+
 class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
     """Sensor for overall activity level in the home.
     
-    Connected to:
-    - Motion sensors (binary_sensor)
-    - Camera motion events
-    - Media players
-    - Lights
-    - Module Connector signals
+    Uses Add-on Neuron API for activity evaluation.
+    The Add-on handles:
+    - Motion sensor aggregation
+    - Camera motion detection
+    - Media player state
+    - Light state
+    
+    This sensor just displays the result.
     """
     
     _attr_name = "AI CoPilot Activity Level"
     _attr_unique_id = "ai_copilot_activity_level"
     _attr_icon = "mdi:run"
-    _attr_should_poll = True
+    _attr_should_poll = False  # Using coordinator
     
     def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
         super().__init__(coordinator)
         self._hass = hass
-        self._last_motion_time: datetime | None = None
-        self._camera_motion_active = False
     
     async def async_update(self) -> None:
-        """Calculate activity level based on various sensors.
+        """Update activity level from Add-on Neuron API."""
+        data = await _get_activity_from_api(self.coordinator, self._hass)
         
-        Uses:
-        1. Motion sensors (binary_sensor)
-        2. Camera motion events (via module connector)
-        3. Media players
-        4. Lights
-        """
-        # Factors: motion sensors, media players, lights, switches
-        score = 0
-        
-        # Motion sensors (weight: 3)
-        motion_states = self._hass.states.async_all("binary_sensor")
-        motion_on = sum(1 for s in motion_states 
-                       if s.attributes.get("device_class") == "motion" and s.state == "on")
-        score += motion_on * 3
-        
-        # Check for camera motion events via module connector
-        try:
-            from ..module_connector import get_module_connector
-            
-            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
-            connector = await get_module_connector(self._hass, entry_id)
-            activity_context = connector.activity_context
-            
-            # Use camera motion if recent (within last 2 minutes)
-            if activity_context.motion_detected and activity_context.timestamp:
-                time_since_motion = (dt_util.utcnow() - activity_context.timestamp).total_seconds()
-                if time_since_motion < 120:  # 2 minutes
-                    self._camera_motion_active = True
-                    score += 5  # Add camera motion score
-            else:
-                self._camera_motion_active = False
-                
-        except Exception:
-            pass
-        
-        # Media players active (weight: 2)
-        media_states = self._hass.states.async_all("media_player")
-        media_playing = sum(1 for m in media_states if m.state == "playing")
-        score += media_playing * 2
-        
-        # Lights on (weight: 1)
-        light_states = self._hass.states.async_all("light")
-        lights_on = sum(1 for l in light_states if l.state == "on")
-        score += lights_on
-        
-        # Determine level
-        if score == 0:
-            level = "idle"
-        elif score < 5:
-            level = "low"
-        elif score < 15:
-            level = "moderate"
-        else:
-            level = "high"
-        
-        self._attr_native_value = level
+        self._attr_native_value = data["level"]
         self._attr_extra_state_attributes = {
-            "score": score,
-            "motion_active": motion_on,
-            "camera_motion_active": self._camera_motion_active,
-            "media_playing": media_playing,
-            "lights_on": lights_on,
-            "sources": ["motion_sensors", "camera", "media", "lights"],
+            "score": data["score"],
+            "motion_active": data["motion_count"],
+            "camera_motion_active": data["camera_motion"],
+            "media_playing": data["media_playing"],
+            "lights_on": data["lights_on"],
+            "sources": ["api", "motion_sensors", "camera", "media", "lights"],
         }
 
 
 class ActivityStillnessSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for stillness/quiet detection."""
+    """Sensor for stillness/quiet detection.
+    
+    Uses Add-on Neuron API for activity evaluation.
+    """
     
     _attr_name = "AI CoPilot Activity Stillness"
     _attr_unique_id = "ai_copilot_activity_stillness"
     _attr_icon = "mdi:meditation"
-    _attr_should_poll = True
+    _attr_should_poll = False  # Using coordinator
     
     def __init__(self, coordinator: CopilotDataUpdateCoordinator, hass: HomeAssistant) -> None:
         super().__init__(coordinator)
         self._hass = hass
     
     async def async_update(self) -> None:
-        """Detect stillness based on lack of activity."""
-        # Inverse of activity level - check for absence of movement
-        motion_states = self._hass.states.async_all("binary_sensor")
-        motion_on = sum(1 for s in motion_states 
-                       if s.attributes.get("device_class") == "motion" and s.state == "on")
+        """Update stillness from Add-on Neuron API."""
+        data = await _get_activity_from_api(self.coordinator, self._hass)
         
-        media_states = self._hass.states.async_all("media_player")
-        media_playing = sum(1 for m in media_states if m.state == "playing")
-        
-        # Check time - nighttime is more likely to be still
         now = dt_util.now()
         is_night = now.hour >= 23 or now.hour < 6
         
-        if motion_on == 0 and media_playing == 0:
-            if is_night:
-                stillness = "sleeping"
-            else:
-                stillness = "still"
-        elif motion_on == 0:
-            stillness = "quiet"
-        else:
-            stillness = "active"
-        
-        self._attr_native_value = stillness
+        self._attr_native_value = data["stillness"]
         self._attr_extra_state_attributes = {
-            "motion_detected": motion_on > 0,
-            "media_active": media_playing > 0,
+            "motion_detected": data["motion_count"] > 0,
+            "media_active": data["media_playing"] > 0,
             "is_night": is_night,
+            "activity_level": data["level"],
+            "activity_score": data["score"],
         }
