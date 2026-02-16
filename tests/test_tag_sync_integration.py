@@ -16,6 +16,7 @@ from custom_components.ai_home_copilot.tag_registry import (
     _label_id_from_obj,
     _label_name_from_obj,
 )
+from custom_components.ai_home_copilot.const import DOMAIN
 
 
 # =============================================================================
@@ -25,18 +26,19 @@ from custom_components.ai_home_copilot.tag_registry import (
 @pytest.fixture
 def mock_hass():
     """Create a mock HomeAssistant instance for tag sync tests."""
-    hass = MagicMock()
-    hass.data = {}
-    hass.config_entries = MagicMock()
-    hass.config_entries.async_entries = MagicMock(return_value=[])
-    hass.loop = MagicMock()
-    hass.bus = MagicMock()
-    hass.bus.async_listen = MagicMock()
-    hass.helpers = MagicMock()
-    hass.helpers.storage = MagicMock()
+    # Use a real dict for data to support setdefault properly
+    hass = Mock()
+    hass.data = {}  # Real dict, not MagicMock
+    hass.config_entries = Mock()
+    hass.config_entries.async_entries = Mock(return_value=[])
+    hass.loop = Mock()
+    hass.bus = Mock()
+    hass.bus.async_listen = Mock()
+    hass.helpers = Mock()
+    hass.helpers.storage = Mock()
     
     # Mock Store for tag registry
-    mock_store = MagicMock()
+    mock_store = Mock()
     mock_store.async_load = AsyncMock(return_value=None)
     mock_store.async_save = AsyncMock()
     
@@ -45,10 +47,6 @@ def mock_hass():
         return mock_store
     
     hass.helpers.storage.Store = mock_store_class
-    
-    # Add data dict for DOMAIN
-    from custom_components.ai_home_copilot.const import DOMAIN
-    hass.data[DOMAIN] = {}
     
     return hass
 
@@ -188,19 +186,22 @@ async def test_sync_labels_now(mock_hass):
         "user_aliases": {},
     }
     
-    mock_store = MagicMock()
+    mock_store = Mock()
     mock_store.async_load = AsyncMock(return_value=initial_data)
     mock_store.async_save = AsyncMock()
     
-    def mock_store_class(*args, **kwargs):
-        return mock_store
-    
-    mock_hass.helpers.storage.Store = mock_store_class
+    # Set up the global store in hass.data so _get_store returns our mock
+    # This must happen before calling async_sync_labels_now
+    mock_hass.data[DOMAIN] = {
+        "_global": {
+            "tag_registry_store": mock_store,
+        }
+    }
 
-    # Mock label registry
-    mock_label_reg = AsyncMock()
-    mock_label_reg.async_list_labels = AsyncMock(return_value=[])
-    mock_label_reg.async_create = AsyncMock(
+    # Mock label registry - async_list_labels is actually a sync function that returns a list
+    mock_label_reg = Mock()
+    mock_label_reg.async_list_labels = Mock(return_value=[])  # Sync, not async
+    mock_label_reg.async_create = Mock(
         side_effect=lambda name, **kwargs: MockLabel(f"label_{name}", name, **kwargs)
     )
 
@@ -209,15 +210,18 @@ async def test_sync_labels_now(mock_hass):
     mock_entity_reg.async_update_entity = AsyncMock()
 
     # Mock config entries
-    mock_config_entries = MagicMock()
-    mock_config_entries.async_entries = MagicMock(return_value=[])
+    mock_config_entries = Mock()
+    mock_config_entries.async_entries = Mock(return_value=[])
     
     mock_hass.config_entries = mock_config_entries
 
     with patch(
         "custom_components.ai_home_copilot.tag_registry.get_label_registry_sync",
         return_value=mock_label_reg,
-    ), patch("custom_components.ai_home_copilot.tag_registry.Store", mock_store_class), patch(
+    ), patch(
+        "custom_components.ai_home_copilot.tag_registry._get_label_registry",
+        return_value=mock_label_reg,
+    ), patch(
         "homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_reg
     ):
         report = await async_sync_labels_now(mock_hass)
@@ -238,25 +242,37 @@ async def test_sync_labels_now(mock_hass):
 @pytest.mark.asyncio
 async def test_pull_tag_system_snapshot_mocked(mock_hass):
     """Test pulling full tag system snapshot from Core."""
-    # Mock the config entry and coordinator
-    from homeassistant.config_entries import ConfigEntry
-    from custom_components.ai_home_copilot.const import DOMAIN
-    from custom_components.ai_home_copilot.tag_registry import get_label_registry_sync
-
     # Create a minimal mock config entry (avoid real ConfigEntry dependency)
-    mock_entry = MagicMock()
+    mock_entry = Mock()
     mock_entry.entry_id = "test_entry"
     mock_entry.data = {"host": "localhost", "port": 8123, "token": "test_token"}
     mock_entry.options = {}
     
     # Mock config entries properly
-    mock_config_entries = MagicMock()
-    mock_config_entries.async_entries = MagicMock(return_value=[mock_entry])
+    mock_config_entries = Mock()
+    mock_config_entries.async_entries = Mock(return_value=[mock_entry])
     mock_hass.config_entries = mock_config_entries
     
+    # Mock storage with stateful behavior (save then load returns saved data)
+    stored_data = [None]  # Use list to allow modification in nested function
+    
+    async def mock_async_load():
+        return stored_data[0]
+    
+    async def mock_async_save(data):
+        stored_data[0] = data
+    
+    mock_store = Mock()
+    mock_store.async_load = mock_async_load
+    mock_store.async_save = mock_async_save
+    
+    # Set up hass.data with both global store and entry coordinator
     mock_hass.data[DOMAIN] = {
+        "_global": {
+            "tag_registry_store": mock_store,
+        },
         "test_entry": {
-            "coordinator": MagicMock(
+            "coordinator": Mock(
                 api=AsyncMock(
                     async_get=AsyncMock(
                         side_effect=lambda url: _mock_core_response(url)
@@ -266,25 +282,20 @@ async def test_pull_tag_system_snapshot_mocked(mock_hass):
         }
     }
 
-    # Mock label registry
-    mock_label_reg = AsyncMock()
-    mock_label_reg.async_list_labels = AsyncMock(return_value=[])
-    mock_label_reg.async_create = AsyncMock(
+    # Mock label registry - async_list_labels is actually a sync function that returns a list
+    mock_label_reg = Mock()
+    mock_label_reg.async_list_labels = Mock(return_value=[])  # Sync, not async
+    mock_label_reg.async_create = Mock(
         side_effect=lambda name, **kwargs: MockLabel(f"label_{name}", name, **kwargs)
     )
-    
-    # Mock storage
-    mock_store = MagicMock()
-    mock_store.async_load = AsyncMock(return_value=None)
-    mock_store.async_save = AsyncMock()
-    
-    def mock_store_class(*args, **kwargs):
-        return mock_store
 
     with patch(
         "custom_components.ai_home_copilot.tag_registry.get_label_registry_sync",
         return_value=mock_label_reg,
-    ), patch("custom_components.ai_home_copilot.tag_registry.Store", mock_store_class):
+    ), patch(
+        "custom_components.ai_home_copilot.tag_registry._get_label_registry",
+        return_value=mock_label_reg,
+    ):
         result = await async_pull_tag_system_snapshot(mock_hass, entry_id="test_entry", lang="de")
 
     assert result["entry_id"] == "test_entry"
