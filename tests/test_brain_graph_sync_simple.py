@@ -84,8 +84,12 @@ def test_brain_graph_sync_class():
         assert hasattr(sync, 'get_graph_snapshot_url')
         
         # Test URL generation - get_graph_snapshot_url is now async
+        # Use asyncio.run() for Python 3.7+ (works in current test context)
         import asyncio
-        url = asyncio.get_event_loop().run_until_complete(sync.get_graph_snapshot_url())
+        async def test_url():
+            return await sync.get_graph_snapshot_url()
+        
+        url = asyncio.run(test_url())
         assert url == "http://localhost:5000/api/v1/graph/snapshot.svg"
         
     except Exception as err:
