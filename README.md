@@ -1,27 +1,105 @@
-# Home Assistant CoPilot (MVP scaffold)
+# AI Home CoPilot — Core Add-on
 
-This repository is structured as a **Home Assistant Add-on repository** (for installing the Core service) and also contains a **custom integration scaffold** (adapter).
+[![Release](https://img.shields.io/github/v/release/GreenhillEfka/Home-Assistant-Copilot)](https://github.com/GreenhillEfka/Home-Assistant-Copilot/releases)
 
-## Start here (docs index)
-- **Start here:** `docs/START_HERE.md`
-- **Ethics & Governance:** `docs/ETHICS_GOVERNANCE.md`
-- **Changelog:** `CHANGELOG.md`
+Ein **privacy-first, lokaler KI-Assistent** für Home Assistant. Lernt die Muster deines Zuhauses, schlägt intelligente Automatisierungen vor — und handelt nur mit deiner Zustimmung. Alle Daten bleiben lokal.
 
-## Install (Add-on repo)
-Home Assistant → Settings → Add-ons → Add-on Store → ⋮ → Repositories → add this repo URL.
+> Erklärendes, begrenztes, dialogisches Entscheidungssystem: bewertet (Neuronen), bündelt Bedeutung (Moods), berechnet Relevanz (Synapsen), erzeugt Vorschläge, erhält Freigaben, lässt Home Assistant ausführen.
 
-Then install: **AI Home CoPilot Core (MVP)**.
+## Architektur
 
-## MVP endpoints
-After install, open the add-on UI:
-- `/health`
-- `/version`
+Dieses Repo ist das **Backend (Core Add-on)** — es läuft als Home Assistant Add-on auf Port **8099**.
 
-> This is a scaffold to validate the GitHub update/install pipeline. The neuron/mood/synapse engines and console UI come next.
+Die dazugehörige **HACS-Integration** (Frontend, Sensoren, Dashboard Cards) ist ein separates Repo:
+[ai-home-copilot-ha](https://github.com/GreenhillEfka/ai-home-copilot-ha)
 
-## Channels
-- Stable: GitHub Releases/Tags (recommended)
-- Dev: opt-in branch builds
+```
+Home Assistant
+├── HACS Integration (ai_home_copilot)      ← Frontend, 80+ Sensoren, 15+ Cards
+│     HTTP REST API (Token-Auth)
+│     ▼
+└── Core Add-on (copilot_core) Port 8099    ← Backend, Brain, Habitus, Mood Engine
+```
 
-## Governance
-No silent updates. Updates are explicit and should be logged as governance events in the CoPilot concept.
+## Installation
+
+### 1. Core Add-on installieren
+
+1. Home Assistant → **Settings** → **Add-ons** → **Add-on Store**
+2. Menü (⋮) → **Repositories** → diese URL hinzufügen:
+   ```
+   https://github.com/GreenhillEfka/Home-Assistant-Copilot
+   ```
+3. **AI Home CoPilot Core** installieren und starten
+4. Das Add-on läuft auf Port **8099**
+
+### 2. HACS Integration installieren
+
+Siehe: [ai-home-copilot-ha](https://github.com/GreenhillEfka/ai-home-copilot-ha#installation)
+
+## Features
+
+### Neuronales System (12 Neuronen)
+Bewertet jeden Aspekt deines Zuhauses: Anwesenheit, Stimmung, Energie, Wetter, Netzwerk, Kameras, Kontext, Zustände u.v.m.
+
+### Habitus — Das Lernende Zuhause
+Pattern-Discovery-Engine: beobachtet Verhaltensmuster und schlägt passende Automatisierungen vor. Confidence-Scoring, Feedback-Loop, zeitbasierte/trigger-basierte/sequenzielle/kontextuelle Muster.
+
+### Brain Graph
+State-Tracking mit Nodes + Edges, exponential Decay, Snapshots, Pattern-Erkennung.
+
+### Mood Engine
+Mood-Bewertung (Comfort, Joy, Frugality), Ranking und Kontext-Integration.
+
+### Multi-User Preference Learning (MUPL)
+Erkennt wer zu Hause ist, attributiert Aktionen, lernt individuelle Präferenzen, löst Multi-User-Konflikte.
+
+### Sicherheit
+Token-Auth, PII-Redaktion, Bounded Storage, Rate Limiting, Idempotency-Key Deduplication, Source Allowlisting.
+
+## API-Übersicht (Port 8099)
+
+| Modul | Endpoints | Beschreibung |
+|-------|-----------|-------------|
+| **Basis** | `/health`, `/version`, `/api/v1/status`, `/api/v1/capabilities` | System Info |
+| **Events** | `/api/v1/events` | Event Ingest + Query |
+| **Brain Graph** | `/api/v1/graph/*` | State, Snapshot, Stats, Prune, Patterns |
+| **Habitus** | `/api/v1/habitus/*` | Status, Rules, Mine, Dashboard Cards |
+| **Candidates** | `/api/v1/candidates/*` | CRUD + Stats + Cleanup |
+| **Mood** | `/api/v1/mood/*` | Mood Query + Update |
+| **Tags** | `/api/v1/tag-system/*` | Tags, Assignments |
+| **Neurons** | `/api/v1/neurons/*` | Neuron State |
+| **Search** | `/api/v1/search/*` | Entity Search + Index |
+| **Knowledge Graph** | `/api/v1/kg/*` | Nodes, Edges, Query |
+| **Vector Store** | `/api/v1/vector/*` | Store, Search, Stats |
+| **Weather** | `/api/v1/weather/*` | Wetterdaten |
+| **Energy** | `/api/v1/energy/*` | Energiemonitoring |
+| **Notifications** | `/api/v1/notifications/*` | Push System |
+| **Performance** | `/api/v1/performance/*` | Cache, Pool, Metrics |
+
+37 API-Blueprints | 23 Module-Packages | 180 Python-Dateien | 521+ Tests
+
+## Die 4 Grundprinzipien
+
+| Prinzip | Bedeutung |
+|---------|-----------|
+| **Local-first** | Alles läuft lokal, keine Cloud, kein externer API-Call |
+| **Privacy-first** | PII-Redaktion, bounded Storage, max 2KB Metadata/Node |
+| **Governance-first** | Vorschläge vor Aktionen, Human-in-the-Loop |
+| **Safe Defaults** | Max 500 Nodes, 1500 Edges, opt-in Persistenz |
+
+## Updates
+
+- **Stable:** GitHub Releases/Tags (empfohlen)
+- **Dev:** opt-in Branch-Builds
+
+Keine stillen Updates. Updates werden als Governance-Events protokolliert.
+
+## Dokumentation
+
+- **[VISION.md](VISION.md)** — Single Source of Truth (Architektur, Roadmap, alle Details)
+- **[CHANGELOG.md](CHANGELOG.md)** — Release-Historie
+
+## Lizenz
+
+Dieses Projekt ist privat. Alle Rechte vorbehalten.

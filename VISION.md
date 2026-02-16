@@ -2,7 +2,7 @@
 
 > **Single Source of Truth** for the entire AI Home CoPilot project.
 > Both repos (Core Add-on + HACS Integration) reference this document.
-> Last Updated: 2026-02-16 | Core v0.8.7 | Integration v0.13.4
+> Last Updated: 2026-02-16 | Core v0.8.8 | Integration v0.13.5
 
 ---
 
@@ -115,8 +115,8 @@ Vorschlag angezeigt → User Feedback → Lernen
 
 | Repo | Rolle | Version | Port |
 |------|-------|---------|------|
-| **Home-Assistant-Copilot** | Core Add-on (Backend) | v0.8.7 | 8099 |
-| **ai-home-copilot-ha** | HACS Integration (Frontend) | v0.13.4 | - (verbindet sich zum Core) |
+| **Home-Assistant-Copilot** | Core Add-on (Backend) | v0.8.8 | 8099 |
+| **ai-home-copilot-ha** | HACS Integration (Frontend) | v0.13.5 | - (verbindet sich zum Core) |
 
 ### Systemarchitektur
 
@@ -390,6 +390,8 @@ Brain Graph verlinkt: Tag ↔ Zone ↔ Entity (bidirektional)
 | Collective Intelligence v0.2 | v0.6.1 | Done |
 | Security P0 Fixes | v0.12.x | Done |
 | Architecture Merge (HACS + Core) | v0.8.7 / v0.13.4 | Done |
+| Config Flow Modularization | v0.13.5 | Done |
+| API Pydantic Validation | v0.8.8 | Done |
 
 ---
 
@@ -402,8 +404,8 @@ Brain Graph verlinkt: Tag ↔ Zone ↔ Entity (bidirektional)
 | P1 | Test Suite Remediation (Core 521, HACS 346 - all green) | **Erledigt** |
 | P1 | Legacy v1 Files aufräumen (media_setup, habitus_zones_entities entfernt) | **Erledigt** |
 | P1 | Dokumentation + Benutzerhandbuch (USER_MANUAL.md, deutsch) | **Erledigt** |
-| P2 | config_flow.py refactoring (1260 → mehrere Dateien) | Offen |
-| P2 | Pydantic-Validation für API Endpoints | Offen |
+| P2 | config_flow.py refactoring (1260 → 6 Module) | **Erledigt** |
+| P2 | Pydantic-Validation für API Endpoints | **Erledigt** |
 | P2 | Port-Konfiguration vereinheitlichen (8099 vs 8909) | **Erledigt** |
 
 ### Zukunft (Q2+ 2026)
