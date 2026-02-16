@@ -49,7 +49,7 @@ def mock_hass():
 
 def mock_config_entry():
     """Create a mock config entry."""
-    entry = MagicMock(spec=ConfigEntry)
+    entry = MagicMock()
     entry.entry_id = "test_entry_123"
     return entry
 
