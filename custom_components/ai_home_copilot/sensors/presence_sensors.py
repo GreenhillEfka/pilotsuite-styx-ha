@@ -49,8 +49,8 @@ async def _get_presence_from_api(
         }
     """
     try:
-        # Get neuron evaluation from Add-on API
-        neurons_data = await coordinator.async_get_neurons()
+        # Get neuron evaluation from Add-on API (cached data, sync call)
+        neurons_data = coordinator.async_get_neurons()
         
         # Extract presence/context data from neurons
         context = neurons_data.get("context", {})
