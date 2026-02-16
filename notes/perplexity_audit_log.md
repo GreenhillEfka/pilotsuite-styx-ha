@@ -195,12 +195,63 @@
 
 ---
 
-*Audit completed: 2026-02-16 06:26*
-*Next scheduled audit: 2026-02-16 07:26*
+*Audit completed: 2026-02-16 06:36*
+*Next scheduled audit: 2026-02-16 07:36*
+
+---
+
+## 🔧 HA Developer Updates (Feb 2026)
+
+### Labs System - Preview Features (Nov 2025, Now Active)
+
+Home Assistant introduced a **Labs** system for preview features:
+- Fully tested features that users can opt into before becoming standard
+- Runtime activation (no restart required)
+- Clear feedback channels per feature
+- **Relevance**: CoPilot could use Labs for experimental neuron modules, new dashboard features
+
+### Pre-commit → Prek Migration (Jan 2026)
+
+- Replaced `pre-commit` with `prek` (Rust-based, parallel execution)
+- Faster CI checks
+- **Action**: Update CoPilot dev environment to use prek
+
+### pyserial-asyncio Deprecation (Critical for 2026.7)
+
+- `pyserial-asyncio` will be **blocked** in HA 2026.7
+- Must migrate to `pyserial-asyncio-fast`
+- **Action**: Audit CoPilot dependencies for pyserial usage
+
+### Storage Helper Serialization Changes
+
+- New `serialize_in_event_loop` parameter (default: True)
+- Breaking change: `data_func` now called from event loop by default
+- **Action**: Review CoPilot storage usage for thread safety
+
+### MQTT Subscription Status Callbacks
+
+- New `mqtt.async_on_subscribe_done` helper
+- Ensures broker confirmation before actions
+- **Relevance**: Could improve CoPilot MQTT reliability if used
 
 ---
 
 ## Changelog
+
+### 2026-02-16 06:36
+- **NEW: HA Developer Blog Analysis**
+  - Labs system for preview features (runtime activation)
+  - pyserial-asyncio → pyserial-asyncio-fast migration required by 2026.7
+  - Pre-commit → Prek migration for faster CI
+  - Storage helper serialization breaking change
+  - MQTT subscription status callbacks
+- **Action Items Added:**
+  - P2: Audit pyserial dependencies before HA 2026.7
+  - P3: Consider Labs integration for experimental features
+- **Repos Verified:**
+  - HA Integration: v0.13.3, clean, synced ✅
+  - Core Add-on: latest (ddbd25a), clean ✅
+- No new critical findings - Zone Registry already marked CRITICAL
 
 ### 2026-02-16 06:26
 - Added HA 2026.2.2 patch release analysis
