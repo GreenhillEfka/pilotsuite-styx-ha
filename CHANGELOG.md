@@ -1,12 +1,17 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
-## [0.13.3] - 2026-02-16
-
-### Fixed
-- **test_brain_graph_sync_simple.py**: Fixed asyncio compatibility for Python 3.14+ (`asyncio.run()` instead of deprecated `get_event_loop().run_until_complete()`)
+## [0.13.4] - 2026-02-16
 
 ### Added
-- **Phase 5 Feature: Brain Graph Panel v0.8**
+- **Phase 5 Feature: Home Alerts Module v0.1.0**
+  - Critical state monitoring (batteries, climate, presence, system)
+  - 4 severity levels: low, medium, high, critical
+  - Health score calculation (0-100, deducts per unacknowledged alert)
+  - Alert acknowledgment via UI/API
+  - Dashboard Card: `home-alerts-card` (Lovelace + React format)
+  - Sensors: `home_alerts_count`, `home_health_score`, per-category counts
+  - Tests: 12 passing tests ✅
+
 - **Phase 5 Feature: Brain Graph Panel v0.8**
   - D3.js interactive visualization with zoom/pan
   - Filter by Node Kind, Zone, or text search
@@ -34,13 +39,24 @@
   - Legacy viz button renamed and marked as diagnostic
 
 ### Fixed
+- **test_home_alerts.py**: 12 tests passing ✅
 - **test_collective_intelligence.py**: 11 tests passing ✅
 - **test_cross_home_sync.py**: 9 tests passing ✅
 - **button_debug.py**: EntityCategory.DIAGNOSTIC for proper HA integration
+- **home_alerts_module.py**: Fixed sorting by severity then creation time
 
 ### Documentation
 - Updated /docs/PILOTSUITE_VISION.md with Phase 5 modules
 - Added API endpoint documentation in /docs/
+
+### Tests
+- Core: 44+ tests passing ✅
+- HA Integration: 358 passed, 2 skipped ✅ (home_alerts added)
+
+## [0.13.3] - 2026-02-16
+
+### Fixed
+- **test_brain_graph_sync_simple.py**: Fixed asyncio compatibility for Python 3.14+ (`asyncio.run()` instead of deprecated `get_event_loop().run_until_complete()`)
 
 ## [0.13.1] - 2026-02-16
 
