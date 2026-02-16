@@ -4,6 +4,7 @@ This package provides a modular runtime architecture:
 - legacy: Wraps the current integration behavior without changes
 - unifi: UniFi network monitoring and candidate generation
 - mood: Mood vector v0.1 for comfort/frugality/joy ranking
+- character: Personality presets for mood weighting and voice formatting
 
 Each module inherits from CopilotModule and implements the lifecycle methods.
 """
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from .mood_context_module import MoodContextModule
     from .user_preference_module import UserPreferenceModule
     from .unifi_module import UniFiModule
+    from .character_module import CharacterModule
 
 __all__ = [
     "LegacyModule",
@@ -28,4 +30,5 @@ __all__ = [
     "MoodContextModule",
     "UserPreferenceModule",
     "UniFiModule",
+    "CharacterModule",
 ]

@@ -25,7 +25,9 @@ from ..module import CopilotModule, ModuleContext
 from ..performance import get_mood_cache, TTLCache
 
 if TYPE_CHECKING:
-    from ..character.service import CharacterService
+    # CharacterService is now CharacterModule in character_module.py
+    # Use forward ref to avoid circular import
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 
