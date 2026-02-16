@@ -113,11 +113,12 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         self.camera_state: Dict[str, CameraState] = {}
         self.camera_privacy: Dict[str, CameraPrivacySettings] = {}
         
+        # Hybrid mode: 120s fallback polling (real-time via webhook push)
         super().__init__(
             hass,
             logger=_LOGGER,
             name=f"{DOMAIN}_coordinator",
-            update_interval=timedelta(seconds=30),
+            update_interval=timedelta(seconds=120),
         )
     
     async def _async_update_data(self) -> Dict[str, Any]:

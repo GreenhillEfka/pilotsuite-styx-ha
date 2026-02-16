@@ -41,6 +41,7 @@ DEFAULT_POLL_INTERVAL = timedelta(minutes=5)
 
 # Rate limiting for API calls
 MAX_REQUESTS_PER_MINUTE = 30
+REQUEST_COST = 1.0  # Token cost per poll request
 
 # Storage key used inside hass.data[DOMAIN][entry_id] for bookkeeping.
 _DATA_KEY = "candidate_poller"
