@@ -1,23 +1,23 @@
 # Changelog - AI Home CoPilot Core Add-on
 
-## [0.8.2] - 2026-02-16
+## [0.8.3] - 2026-02-16
 
 ### Added
-- **Phase 5 Feature: Brain Graph Panel Integration**
+- **Phase 5 Feature: Brain Graph Panel Integration v0.8**
   - Interactive HTML generation with D3.js visualization
   - Zoom/pan support for large graphs (200 nodes, 400 edges)
   - Node filtering by kind, zone, or search
   - Click nodes for detailed metadata display
   - Local-only rendering (no external dependencies)
 
-- **Phase 5 Feature: Cross-Home Sync API**
+- **Phase 5 Feature: Cross-Home Sync API v0.2**
   - `/api/v1/sharing/discover` - mDNS peer discovery
   - `/api/v1/sharing/share` - Entity sharing registration
   - `/api/v1/sharing/unshare` - Stop sharing entity
   - `/api/v1/sharing/sync` - Real-time state synchronization
   - `/api/v1/sharing/resolve` - Conflict resolution strategies
 
-- **Phase 5 Feature: Collective Intelligence API**
+- **Phase 5 Feature: Collective Intelligence API v0.2**
   - `/api/v1/federated/models` - Local model registration
   - `/api/v1/federated/patterns` - Pattern creation and sharing
   - `/api/v1/federated/peers` - Peer discovery
@@ -34,9 +34,13 @@
 - Collective intelligence: 11 tests passing ✅
 
 ### Manifest
-- Version bumped to 0.8.2 for Phase 5 release
+- Version bumped to 0.8.3 for Phase 5 release
 
-## [0.8.1] - 2026-02-16
+### Core API
+- `/api/v1/sharing/*` endpoints fully documented
+- `/api/v1/federated/*` endpoints fully documented
+
+## [0.8.2] - 2026-02-16
 
 ### Fixed
 - SystemHealth API blueprint now registered in main API v1 blueprint
