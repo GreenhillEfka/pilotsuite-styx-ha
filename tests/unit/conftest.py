@@ -26,8 +26,49 @@ mock_ha_helpers.update_coordinator.DataUpdateCoordinator = MagicMock()
 mock_ha_components.repairs = MagicMock()
 mock_ha_components.repairs.RepairsFlow = MagicMock()
 
+# Mock sensor component for debug.py
+mock_ha_components.sensor = MagicMock()
+mock_ha_components.sensor.SensorEntity = MagicMock
+
+# Mock other components used by various modules
+mock_ha_components.binary_sensor = MagicMock()
+mock_ha_components.binary_sensor.BinarySensorEntity = MagicMock
+mock_ha_components.button = MagicMock()
+mock_ha_components.button.ButtonEntity = MagicMock
+mock_ha_components.persistent_notification = MagicMock()
+
 mock_ha_core = MagicMock()
-mock_ha_core.HomeAssistant = MagicMock()
+mock_ha_core.HomeAssistant = MagicMock
+
+# Mock additional helpers
+mock_ha_helpers.area_registry = MagicMock()
+mock_ha_helpers.device_registry = MagicMock()
+mock_ha_helpers.entity_registry = MagicMock()
+mock_ha_helpers.entity_platform = MagicMock()
+mock_ha_helpers.entity_platform.AddEntitiesCallback = MagicMock
+mock_ha_helpers.entity = MagicMock()
+mock_ha_helpers.entity.EntityCategory = MagicMock
+
+# Mock const module
+mock_ha_const = MagicMock()
+mock_ha_const.EVENT_STATE_CHANGED = "state_changed"
+mock_ha_const.EVENT_CALL_SERVICE = "call_service"
+mock_ha_const.STATE_UNAVAILABLE = "unavailable"
+mock_ha_const.STATE_UNKNOWN = "unknown"
+mock_ha_const.STATE_ON = "on"
+mock_ha_const.STATE_OFF = "off"
+
+# Mock config_entries
+mock_ha_config_entries = MagicMock()
+mock_ha_config_entries.ConfigEntry = MagicMock
+
+# Mock exceptions
+mock_ha_exceptions = MagicMock()
+mock_ha_exceptions.HomeAssistantError = Exception
+
+# Mock util
+mock_ha_util = MagicMock()
+mock_ha_util.dt = MagicMock()
 
 # Inject mocks into sys.modules BEFORE importing custom_components
 sys.modules['homeassistant'] = mock_ha
@@ -36,9 +77,22 @@ sys.modules['homeassistant.helpers'] = mock_ha_helpers
 sys.modules['homeassistant.helpers.aiohttp_client'] = mock_ha_helpers.aiohttp_client
 sys.modules['homeassistant.helpers.storage'] = mock_ha_helpers.storage
 sys.modules['homeassistant.helpers.update_coordinator'] = mock_ha_helpers.update_coordinator
+sys.modules['homeassistant.helpers.area_registry'] = mock_ha_helpers.area_registry
+sys.modules['homeassistant.helpers.device_registry'] = mock_ha_helpers.device_registry
+sys.modules['homeassistant.helpers.entity_registry'] = mock_ha_helpers.entity_registry
+sys.modules['homeassistant.helpers.entity_platform'] = mock_ha_helpers.entity_platform
+sys.modules['homeassistant.helpers.entity'] = mock_ha_helpers.entity
 sys.modules['homeassistant.components'] = mock_ha_components
 sys.modules['homeassistant.components.repairs'] = mock_ha_components.repairs
-sys.modules['homeassistant.exceptions'] = MagicMock()
+sys.modules['homeassistant.components.sensor'] = mock_ha_components.sensor
+sys.modules['homeassistant.components.binary_sensor'] = mock_ha_components.binary_sensor
+sys.modules['homeassistant.components.button'] = mock_ha_components.button
+sys.modules['homeassistant.components.persistent_notification'] = mock_ha_components.persistent_notification
+sys.modules['homeassistant.const'] = mock_ha_const
+sys.modules['homeassistant.config_entries'] = mock_ha_config_entries
+sys.modules['homeassistant.exceptions'] = mock_ha_exceptions
+sys.modules['homeassistant.util'] = mock_ha_util
+sys.modules['homeassistant.util.dt'] = mock_ha_util.dt
 
 
 # ============================================================================
