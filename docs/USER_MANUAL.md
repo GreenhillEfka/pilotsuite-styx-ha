@@ -1,164 +1,186 @@
-# USER_MANUAL.md - AI Home CoPilot User Guide
+# AI Home CoPilot - Benutzerhandbuch
 
-> **Version:** 0.12.1 (HA Integration) + 0.7.0 (Core Add-on)  
-> **Last Updated:** 2026-02-16
-
----
-
-## 📖 Table of Contents
-
-1. [Quick Setup](#quick-setup)
-2. [Core Add-on Installation](#core-add-on-installation)
-3. [HA Integration Installation](#ha-integration-installation)
-4. [Configuration](#configuration)
-5. [Zone Configuration Walkthrough](#zone-configuration-walkthrough)
-6. [Parameter Explanations](#parameter-explanations)
-7. [How Features Work Together](#how-features-work-together)
-8. [Dashboard Cards](#dashboard-cards)
-9. [Troubleshooting](#troubleshooting)
+> **Version:** Integration v0.13.4 + Core Add-on v0.8.7
+> **Letzte Aktualisierung:** 2026-02-16
 
 ---
 
-## ⚡ Quick Setup
+## Inhaltsverzeichnis
 
-```bash
-# 1. Install Core Add-on via Home Assistant Add-on Store
-# 2. Install HA Integration via HACS
-# 3. Configure token in both
-# 4. Restart Home Assistant
-# 5. Access dashboard at http://<HA_IP>:8909
+1. [Was ist AI Home CoPilot?](#was-ist-ai-home-copilot)
+2. [Systemvoraussetzungen](#systemvoraussetzungen)
+3. [Installation Core Add-on](#installation-core-add-on)
+4. [Installation HACS Integration](#installation-hacs-integration)
+5. [Erstkonfiguration](#erstkonfiguration)
+6. [Zonen einrichten](#zonen-einrichten)
+7. [Module und Features](#module-und-features)
+8. [Dashboard-Karten](#dashboard-karten)
+9. [API-Referenz](#api-referenz)
+10. [Fehlerbehebung](#fehlerbehebung)
+
+---
+
+## Was ist AI Home CoPilot?
+
+Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. CoPilot lernt die Muster deines Zuhauses und schlaegt intelligente Automatisierungen vor. Alle Daten bleiben lokal - kein Cloud-Dependency. Der Mensch entscheidet immer.
+
+**Architektur:** Zwei Komponenten arbeiten zusammen:
+
+| Komponente | Beschreibung | Port |
+|------------|-------------|------|
+| **Core Add-on** | Flask-basierter Backend-Server mit Brain Graph, Neuronen, Energy-Analyse | 8099 |
+| **HACS Integration** | Home Assistant Custom Component mit 80+ Sensoren, Zonen, Media Context | - |
+
+```
+Home Assistant
+  |
+  +-- HACS Integration (custom_components/ai_home_copilot)
+  |     Sensoren, Entities, Event-Forwarder, Zonen
+  |     |
+  |     +--[ HTTP / Webhook ]--> Core Add-on (:8099)
+  |                                Brain Graph, Neuronen, Energy
+  |                                Habitus Miner, Candidates, Tags
+  +-- Lovelace Dashboard
+        Zone Context, Brain Graph Viz, Mood Tracker
 ```
 
 ---
 
-## 🟢 Core Add-on Installation
+## Systemvoraussetzungen
 
-### Step 1: Add Repository
+- Home Assistant OS oder Supervised (>= 2024.1)
+- HACS installiert (fuer die Integration)
+- Min. 2 GB freier RAM (empfohlen: 4 GB)
+- Netzwerkzugang zwischen HA und Core Add-on (Port 8099)
 
-1. Open **Home Assistant** → **Settings** → **Add-ons**
-2. Click **Add-on Store** (three dots) → **Repositories**
-3. Add: `https://github.com/ai-home-copilot/copilot-core-addon`
+---
 
-### Step 2: Install Copilot Core
+## Installation Core Add-on
 
-1. Find **Copilot Core** in the add-on store
-2. Click **Install**
-3. Wait for installation to complete
+### Schritt 1: Repository hinzufuegen
 
-### Step 3: Configure
+1. **Home Assistant** -> **Einstellungen** -> **Add-ons**
+2. **Add-on Store** (drei Punkte) -> **Repositories**
+3. Repository-URL eingeben: `https://github.com/GreenhillEfka/Home-Assistant-Copilot`
 
-Edit the add-on configuration:
+### Schritt 2: Add-on installieren
+
+1. **Copilot Core** im Add-on Store finden
+2. **Installieren** klicken
+3. Warten bis Installation abgeschlossen
+
+### Schritt 3: Konfigurieren
+
+Add-on Konfiguration bearbeiten:
 
 ```yaml
 log_level: info
-auth_token: your-secret-token-change-me
-port: 8909
+auth_token: dein-geheimes-token-hier-aendern
+port: 8099
 ```
 
-### Step 4: Start
+| Parameter | Standard | Beschreibung |
+|-----------|----------|--------------|
+| `port` | `8099` | HTTP-Port fuer die API |
+| `auth_token` | (Pflicht) | Geheimes Token fuer Authentifizierung |
+| `log_level` | `info` | Log-Level: debug, info, warning, error |
+| `storage_path` | `/data` | Pfad fuer persistente Daten |
+| `max_nodes` | `500` | Max. Knoten im Brain Graph |
+| `max_edges` | `1500` | Max. Kanten im Brain Graph |
 
-1. Click **Start** in the add-on view
-2. Wait for startup (check Logs tab)
+### Schritt 4: Starten und pruefen
 
-### Verify Installation
+1. **Start** im Add-on klicken
+2. Logs pruefen:
 
 ```bash
-# Health check
-curl http://homeassistant.local:8909/health
+# Health Check
+curl http://homeassistant.local:8099/health
+# -> {"ok": true}
 
-# Version check
-curl http://homeassistant.local:8909/version
+# Version
+curl http://homeassistant.local:8099/version
+# -> {"version": "0.8.7"}
 ```
 
 ---
 
-## 🔵 HA Integration Installation
+## Installation HACS Integration
 
-### Step 1: Install via HACS
+### Schritt 1: Via HACS installieren
 
-1. Open **HACS** in Home Assistant
-2. Go to **Integrations**
-3. Search for **AI Home CoPilot**
-4. Click **Download**
+1. **HACS** oeffnen -> **Integrationen**
+2. Nach **AI Home CoPilot** suchen
+3. **Herunterladen** klicken
 
-### Step 2: Configure Integration
+### Schritt 2: Integration konfigurieren
 
-1. **Settings** → **Devices & Services** → **Add Integration**
-2. Search for **AI Home CoPilot**
-3. Configure:
-   - **Core URL:** `http://homeassistant.local:8909`
-   - **Auth Token:** (same as Core add-on config)
+1. **Einstellungen** -> **Geraete & Dienste** -> **Integration hinzufuegen**
+2. Nach **AI Home CoPilot** suchen
+3. Konfigurieren:
+   - **Core URL:** `http://homeassistant.local:8099`
+   - **Auth Token:** (gleiches Token wie im Core Add-on)
 
-### Step 3: Restart HA
+### Schritt 3: Home Assistant neu starten
 
-Restart Home Assistant to load all entities and services.
+Nach dem Neustart erscheinen 80+ Entitaeten unter `ai_home_copilot.*`.
 
 ---
 
-## ⚙️ Configuration
+## Erstkonfiguration
 
-### Core Add-on Config
+### Wichtige Einstellungen
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `port` | 8909 | HTTP port for API |
-| `auth_token` | (required) | Secret token for authentication |
-| `log_level` | info | Logging level (debug, info, warning, error) |
-| `storage_path` | /data | Path for persistent storage |
-| `max_nodes` | 500 | Brain Graph max nodes |
-| `max_edges` | 1500 | Brain Graph max edges |
+Nach der Installation in **Einstellungen** -> **Geraete & Dienste** -> **AI Home CoPilot** -> **Konfigurieren**:
 
-### HA Integration Config
+| Bereich | Einstellung | Empfehlung |
+|---------|------------|------------|
+| **Verbindung** | Host, Port, Token | Muss mit Core uebereinstimmen |
+| **Media Player** | Musik/TV Player-Listen | Alle relevanten Player eintragen |
+| **Events Forwarder** | Aktiviert, Flush-Intervall | `true`, 30s |
+| **Neuronen** | Aktiviert, Evaluierungs-Intervall | `true`, 60s |
+| **Watchdog** | Aktiviert, Intervall | `true`, 300s |
+| **Devlog Push** | Aktiviert | Optional, fuer Debugging |
 
-The integration automatically discovers:
-- All entities
-- All areas/zones
-- All devices
+### Umgebungsvariablen (Erweitert)
 
-You can configure specific options in **Settings** → **Devices & Services** → **AI Home CoPilot** → **Configure**.
-
-### Environment Variables (Advanced)
-
-| Variable | Description |
+| Variable | Beschreibung |
 |----------|-------------|
-| `COPILOT_TAG_ASSIGNMENTS_PATH` | Path for tag assignments store |
-| `COPILOT_AUTH_TOKEN` | Override auth token |
+| `COPILOT_AUTH_TOKEN` | Auth-Token Override |
+| `COPILOT_AUTH_REQUIRED` | Auth an/aus (Standard: true) |
+| `COPILOT_TAG_ASSIGNMENTS_PATH` | Pfad fuer Tag-Zuweisungen |
+| `COPILOT_VECTOR_DB_PATH` | Pfad fuer Vector Store DB |
+| `COPILOT_USE_OLLAMA` | Ollama fuer Embeddings nutzen |
+| `COPILOT_OLLAMA_MODEL` | Ollama Modell (Standard: nomic-embed-text) |
+| `COPILOT_OLLAMA_URL` | Ollama Server URL |
 
 ---
 
-## 🗺️ Zone Configuration Walkthrough
+## Zonen einrichten
 
-### Understanding Zone Hierarchy
+### Zonen-Hierarchie
 
-AI Home CoPilot uses a three-level hierarchy:
+CoPilot nutzt eine hierarchische Zonenstruktur:
 
 ```
-Floor → Area → Room
+Etage (floor)
+  -> Bereich (area)
+    -> Raum (room)
 ```
 
-**Example:**
-- Floor: `EG` (Ground Floor)
-  - Area: `Wohnbereich` (Living Area)
-    - Room: `Wohnzimmer` (Living Room)
-    - Room: `Küche` (Kitchen)
-  - Area: `Schlafbereich` (Sleeping Area)
-    - Room: `Schlafzimmer` (Bedroom)
-    - Room: `Bad` (Bathroom)
+**Beispiel:**
 
-### Creating Zones via UI
+```
+EG (floor)
+  +-- Wohnbereich (area)
+  |     +-- Wohnzimmer (room)
+  |     +-- Kueche (room)
+  +-- Schlafbereich (area)
+        +-- Schlafzimmer (room)
+        +-- Bad (room)
+```
 
-1. **Open Core Dashboard:** `http://<HA_IP>:8909`
-2. Navigate to **Habitus** → **Zones**
-3. Click **Add Zone**
-4. Fill in:
-   - **Name:** Human-readable name
-   - **Type:** floor/area/room/outdoor
-   - **Parent:** Parent zone (for hierarchy)
-   - **Roles:** Assign entity roles
-
-### Creating Zones via YAML
-
-Alternatively, edit `zones.yaml` directly:
+### Zonen via YAML erstellen
 
 ```yaml
 zones:
@@ -177,181 +199,169 @@ zones:
               media: media_player.wohnbereich
 ```
 
-### Zone Entity Roles
+### Entity-Rollen
 
-Assign roles to link entities to zones:
+| Rolle | Entitaeten | Pflicht |
+|-------|-----------|---------|
+| `motion` | Bewegungsmelder | Ja (mind. 1) |
+| `lights` | Lampen | Ja (mind. 1) |
+| `temperature` | Temperatursensoren | Nein |
+| `humidity` | Feuchtigkeitssensoren | Nein |
+| `co2` | CO2-Sensoren | Nein |
+| `heating` | Thermostate | Nein |
+| `door` / `window` | Tuer-/Fenstersensoren | Nein |
+| `media` | Media Player | Nein |
+| `power` / `energy` | Strom-/Energiemonitore | Nein |
 
-| Role | Entities |
-|------|----------|
-| `motion` | Motion sensors |
-| `lights` | Light entities |
-| `temperature` | Temperature sensors |
-| `humidity` | Humidity sensors |
-| `co2` | CO2 sensors |
-| `heating` | Thermostats |
-| `door` / `window` | Door/window sensors |
-| `media` | Media players |
-| `power` / `energy` | Power/energy monitors |
+### Zonen-Zustaende
 
-### Zone States
-
-Zones automatically track occupancy state:
-
-| State | Meaning |
-|-------|---------|
-| `idle` | No activity detected |
-| `active` | Someone is present |
-| `transitioning` | State changing |
-| `disabled` | Zone disabled |
-| `error` | Error detected |
+| Zustand | Bedeutung |
+|---------|-----------|
+| `idle` | Keine Aktivitaet |
+| `active` | Person anwesend |
+| `occupied` | Raum belegt |
+| `sleeping` | Schlafmodus |
+| `transitioning` | Zustandswechsel |
+| `disabled` | Zone deaktiviert |
 
 ---
 
-## 📊 Parameter Explanations
+## Module und Features
 
-### Habitus Parameters
+### Core Add-on Module
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `min_confidence` | 0.5 | Minimum confidence for rule suggestions |
-| `max_delta_seconds` | 3600 | Max time between A and B in rules |
-| `min_support` | 5 | Minimum occurrences for rule |
+#### Brain Graph
+Wissens-Graph der Entity-Beziehungen mit zeitbasiertem Score-Decay.
 
-### Brain Graph Parameters
+- **Funktion:** Verfolgt Beziehungen zwischen Entitaeten, Zonen und Mustern
+- **Konfiguration:** `max_nodes` (500), `max_edges` (1500), `node_half_life_hours` (24)
+- **API:** `GET /api/v1/graph/state`, `POST /api/v1/graph/link`
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `max_nodes` | 500 | Maximum nodes in graph |
-| `max_edges` | 1500 | Maximum edges in graph |
-| `decay_half_life` | 7 days | Node weight decay rate |
-| `prune_threshold` | 0.1 | Weight threshold for pruning |
+#### Neuronen-System
+Kontextneuronen bewerten den Zustand des Hauses.
 
-### Tag System Parameters
+- **Kontext-Neuronen:** Praesenz, Tageszeit, Lichtlevel, Wetter, Netzwerk
+- **Zustands-Neuronen:** Energielevel, Stress-Index, Routine-Stabilitaet, Komfort
+- **Mood-Neuronen:** Relax, Focus, Active, Sleep, Away, Alert, Social
+- **API:** `GET /api/v1/neurons/state`, `GET /api/v1/mood/current`
 
-| Parameter | Description |
-|-----------|-------------|
-| `tag_registry` | YAML file with tag definitions |
-| `assignments_path` | JSON store for tag assignments |
-| `auto_assign` | Auto-suggest tags based on entity type |
+#### Energy-Modul
+Energiemonitoring mit Anomalie-Erkennung und Lastverschiebung.
 
-### API Parameters
+- **Funktion:** Anomalie-Erkennung, PV-Prognose, Shifting-Empfehlungen
+- **Schwellwerte:** low (15%), medium (30%), high (50%)
+- **API:** `GET /api/v1/energy/snapshot`, `GET /api/v1/energy/anomalies`
 
-| Endpoint | Parameters |
-|----------|------------|
-| `/api/v1/habitus/rules` | `limit`, `min_score`, `a_filter`, `b_filter` |
-| `/api/v1/graph/state` | `kind`, `domain`, `center`, `hops`, `limit` |
-| `/api/v1/tag-system/assignments` | `subject`, `tag`, `materialized`, `limit` |
+#### Habitus Miner
+Mustererkennung aus State History fuer Automatisierungs-Vorschlaege.
+
+- **Funktion:** Entdeckt wiederkehrende Muster (z.B. "Morgens um 7: Kueche Licht an")
+- **Parameter:** `min_confidence` (0.5), `min_support` (5), `max_delta_seconds` (3600)
+- **API:** `GET /api/v1/habitus/rules`
+
+#### Candidates
+Lebenszyklus-Management fuer Automatisierungs-Vorschlaege.
+
+- **Zustaende:** pending -> offered -> accepted/dismissed/deferred
+- **API:** `GET /api/v1/candidates`, `POST /api/v1/candidates/{id}/accept`
+
+#### Tag-System v2
+Hierarchisches Tag-System mit HA-Label-Materialisierung.
+
+- **Facetten:** role, state, location, device_type, custom
+- **API:** `GET /api/v1/tags`, `POST /api/v1/assignments`
+
+#### Vector Store
+Embedding-basierte Aehnlichkeitssuche fuer Entitaeten und Muster.
+
+- **Backend:** SQLite mit optionalem Ollama fuer Embeddings
+- **API:** `POST /api/v1/vector/search`, `POST /api/v1/vector/upsert`
+
+#### UniFi-Integration
+Netzwerk-Monitoring fuer WAN-Status und Client-Roaming.
+
+- **Funktion:** WAN-Status, Latenz, Paketverlust, Traffic-Baselines
+- **API:** `GET /api/v1/unifi/snapshot`
+
+#### Log Fixer TX
+Transaktionslog (WAL) fuer Konfigurationsaenderungen mit Rollback.
+
+- **Funktion:** Sichere Konfigurationsaenderungen mit Undo-Moeglichkeit
+- **Zustaende:** INTENT -> APPLIED / FAILED / ROLLED_BACK
+
+#### Dev Surface
+Entwickler-Observability mit strukturiertem Logging.
+
+- **Funktion:** Ring-Buffer Logging, Error-Tracking, System-Health
+- **API:** `GET /api/v1/dev/logs`, `GET /api/v1/dev/health`
+
+#### Collective Intelligence
+Foederiertes Lernen ueber mehrere Haeuser mit Privacy-Erhaltung.
+
+- **Funktion:** Wissenstransfer zwischen Instanzen (opt-in)
+- **Privacy:** Differential Privacy mit epsilon=1.0
+
+### HACS Integration Module
+
+#### Event Forwarder (forwarder_n3)
+Leitet HA-Events an den Core Add-on weiter.
+
+- **Funktion:** Persistent Queue, Batch-Versand, Idempotency
+- **Config:** `flush_interval` (30s), `max_batch` (100), `queue_size` (10000)
+
+#### Media Context v2
+Erweiterte Medien-Kontexterkennung mit Zonen-Mapping.
+
+- **Funktion:** Aktiver Modus (TV/Musik/Mixed), Zonen-Routing, Lautstaerke-Steuerung
+- **Sensoren:** Active Mode, Active Target, Active Zone, Config Validation
+
+#### Habitus Zones v2
+Erweiterte Zonen-Verwaltung mit Hierarchie und Brain-Graph-Integration.
+
+- **Funktion:** Zonen-Hierarchie, Zustandsmaschine, Prioritaeten, Konfliktloesung
+- **Sensoren:** Zone Count, Zone States, Zone Health, Global State Select
+
+#### Neuron Dashboard
+Dashboard-Sensoren fuer das Neuronen-System.
+
+- **Sensoren:** Mood, Confidence, Activity Level, Suggestions, History
+
+#### Energy Insights
+Energie-Einsichten und Empfehlungen.
+
+- **Sensoren:** Current Insights, Recommendations, PV Forecast
+
+#### Multi-User Preferences (MUPL)
+Mehrbenutzer-Praeferenz-Lernen.
+
+- **Funktion:** Privacy-bewusstes Lernen von Nutzervorlieben
+- **Config:** `privacy_mode`, `min_interactions`, `retention_days`
+
+#### Diagnostics
+Diagnosebericht-Erstellung fuer Fehlerbehebung.
+
+- **Funktion:** Exportiert vollstaendigen Systembericht ueber HA Diagnostics
 
 ---
 
-## 🔗 How Features Work Together
+## Dashboard-Karten
 
-### Complete Data Flow
+### Verfuegbare Karten
 
-```
-┌────────────────┐     ┌─────────────┐     ┌──────────────┐
-│   Entities     │────▶│  Forwarder  │────▶│   Ingest     │
-│   (HA State)   │     │  (Module)   │     │   (Core)     │
-└────────────────┘     └─────────────┘     └──────────────┘
-                                                    │
-                                                    ▼
-                                            ┌──────────────┐
-                                            │  EventStore  │
-                                            └──────────────┘
-                                                    │
-                              ┌─────────────────────┼─────────────────────┐
-                              ▼                     ▼                     ▼
-                       ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-                       │   Brain     │       │  Knowledge  │       │   Habitus   │
-                       │   Graph     │       │   Graph     │       │   Miner     │
-                       └─────────────┘       └─────────────┘       └─────────────┘
-                              │                     │                     │
-                              ▼                     ▼                     ▼
-                       ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-                       │  Entities   │       │   Search    │       │   Rules     │
-                       │   Cards     │       │   Context   │       │  Suggestions│
-                       └─────────────┘       └─────────────┘       └─────────────┘
-```
+| Karte | Zweck |
+|-------|-------|
+| Zone Context | Zonen-Uebersicht mit Entity-Zustaenden |
+| Brain Graph | Neuronale Visualisierung |
+| Mood Tracker | Stimmungsverlauf |
+| Energy Distribution | Energieverbrauch |
+| Habitus Rules | Entdeckte Automatisierungsregeln |
+| Tag Browser | Tag-Verwaltung |
 
-### Feature Integration
-
-#### 1. Zone System ↔ Brain Graph
-
-- Zones create graph nodes automatically
-- Entities link to zones via `located_in` edges
-- Query: "What lights are on in the living room?"
-
-#### 2. Tag System ↔ Zone System
-
-- Tags can define zone membership rules
-- Zone entities suggest relevant tags
-- Cross-reference: "Find all safety_critical devices in the kitchen"
-
-#### 3. Habitus ↔ Tag System
-
-- Discovered rules tagged with semantic labels
-- Tags filter which rules to suggest
-- Example: `aicp.role.evening_routine` → suggest at evening
-
-#### 4. Mood ↔ Energy ↔ Weather
-
-- Mood affects suggested actions
-- Energy context provides consumption insights
-- Weather influences automation decisions
-
-### Example Workflows
-
-#### Morning Routine Discovery
-
-1. **Input:** Entity state changes at 7:00 AM daily
-2. **Processing:** Habitus Miner detects pattern
-3. **Output:** Rule suggestion "Motion in hallway → Kitchen lights on"
-4. **Tagging:** Rule gets `aicp.kind.morning`, `aicp.role.routine`
-5. **Suggestion:** User sees automation candidate in dashboard
-
-#### Zone-Based Lighting
-
-1. **Zone:** Living room defined with lights + motion
-2. **Brain Graph:** Creates zone node + entity links
-3. **Context:** "Living room occupied" state
-4. **Action:** Suggest "Turn on living room lights when occupied"
-
----
-
-## 📱 Dashboard Cards
-
-AI Home CoPilot provides Lovelace cards for visualization.
-
-### Available Cards
-
-| Card | Purpose |
-|------|---------|
-| **Zone Context** | Zone overview with entity states |
-| **Brain Graph** | Neural visualization |
-| **Mood Tracker** | Mood over time |
-| **Energy Distribution** | Energy consumption |
-| **Weather Calendar** | Weather integration |
-| **Habitus Rules** | Discovered automation rules |
-| **Tag Browser** | Tag assignment management |
-
-### Adding Cards to Lovelace
-
-1. Edit your Lovelace dashboard
-2. Add **Manual Card**
-3. Paste card YAML:
+### Beispiel: Zone Context Card
 
 ```yaml
 type: custom:ai-home-copilot-zone-context
-title: Living Room
-zone: living_room
-```
-
-### Card Types
-
-#### Zone Context Card
-```yaml
-type: custom:ai-home-copilot-zone-context
-title: Zone Overview
+title: Wohnzimmer
 zone: wohnzimmer
 show_roles:
   - lights
@@ -359,7 +369,8 @@ show_roles:
   - motion
 ```
 
-#### Brain Graph Card
+### Beispiel: Brain Graph Card
+
 ```yaml
 type: custom:ai-home-copilot-brain-graph
 title: Home Neural Network
@@ -369,64 +380,94 @@ theme: dark
 layout: dot
 ```
 
-#### Habitus Rules Card
-```yaml
-type: custom:ai-home-copilot-habitus-rules
-title: Suggested Automations
-min_confidence: 0.7
-limit: 10
+---
+
+## API-Referenz
+
+Der Core Add-on stellt eine REST API auf Port 8099 bereit.
+
+### Authentifizierung
+
+Alle API-Anfragen benoetigen den Header:
 ```
+Authorization: Bearer <auth_token>
+```
+
+### Wichtigste Endpunkte
+
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `GET` | `/health` | Health Check |
+| `GET` | `/version` | Versionsinformation |
+| `GET` | `/api/v1/status` | Systemstatus |
+| `GET` | `/api/v1/capabilities` | Verfuegbare Module |
+| `POST` | `/api/v1/events` | Events einliefern |
+| `GET` | `/api/v1/events` | Events auflisten |
+| `GET` | `/api/v1/graph/state` | Brain Graph Zustand |
+| `GET` | `/api/v1/neurons/state` | Neuronen-Zustand |
+| `GET` | `/api/v1/mood/current` | Aktueller Mood |
+| `GET` | `/api/v1/habitus/rules` | Habitus-Regeln |
+| `GET` | `/api/v1/candidates` | Automatisierungs-Vorschlaege |
+| `GET` | `/api/v1/tags` | Tags auflisten |
+| `GET` | `/api/v1/assignments` | Tag-Zuweisungen |
+| `GET` | `/api/v1/energy/snapshot` | Energie-Snapshot |
+| `GET` | `/api/v1/unifi/snapshot` | UniFi-Snapshot |
+| `GET` | `/api/v1/vector/search` | Vector-Suche |
+| `GET` | `/api/v1/dev/logs` | Dev-Logs |
+| `GET` | `/api/v1/dev/health` | System-Health |
+
+Vollstaendige API-Dokumentation: `http://homeassistant.local:8099/api/v1/docs/`
 
 ---
 
-## 🔧 Troubleshooting
+## Fehlerbehebung
 
-### Core Add-on Won't Start
+### Core Add-on startet nicht
 
 ```bash
-# Check logs
-docker logs copilot_core
-
-# Common issues:
-# - Port 8909 already in use
-# - Invalid auth token format
-# - Missing dependencies
+# Logs pruefen (in HA Add-on Ansicht)
+# Haeufige Probleme:
+# - Port 8099 bereits belegt
+# - Ungültiges Auth-Token
+# - Fehlende Abhaengigkeiten
 ```
 
-### HA Integration Not Finding Core
+### Integration findet Core nicht
 
-1. Verify Core is running: `curl http://<HA_IP>:8909/health`
-2. Check firewall allows port 8909
-3. Verify auth token matches in both
+1. Core laeuft pruefen: `curl http://<HA_IP>:8099/health`
+2. Firewall erlaubt Port 8099
+3. Auth-Token stimmt ueberein
 
-### Entities Not Appearing
+### Entitaeten erscheinen nicht
 
-1. Check **Developer Tools** → **States**
-2. Look for `ai_home_copilot.*` entities
-3. Restart HA Integration
+1. **Entwicklerwerkzeuge** -> **Zustaende**
+2. Nach `ai_home_copilot.*` suchen
+3. Integration neu starten
 
-### Brain Graph Empty
+### Brain Graph leer
 
-- Wait for initial data collection (5-10 minutes)
-- Check events are being forwarded
-- Verify Core receives events: `/api/v1/events/stats`
+- 5-10 Min. auf initiale Daten warten
+- Pruefen ob Events weitergeleitet werden
+- Core Events pruefen: `GET /api/v1/events?limit=5`
 
-### Zone States Wrong
+### Zonen-Zustaende falsch
 
-- Check entity role assignments
-- Verify sensors are working in HA
-- Check zone parent-child hierarchy
+- Entity-Rollen-Zuweisungen pruefen
+- Sensoren funktionieren in HA
+- Zonen-Hierarchie (Parent/Child) korrekt
+
+### Tests ausfuehren
+
+```bash
+# Core Add-on Tests (521 Tests)
+cd addons/copilot_core/rootfs/usr/src/app
+python3 -m pytest tests/ copilot_core/neurons/test_neurons.py --ignore=tests/test_knowledge_graph.py
+
+# HACS Integration Tests (346 Tests)
+cd custom_components/ai_home_copilot
+python3 -m pytest tests/
+```
 
 ---
 
-## 📞 Getting Help
-
-| Resource | Link |
-|----------|------|
-| GitHub Issues | https://github.com/ai-home-copilot/issues |
-| Documentation | https://docs.ai-home-copilot.dev |
-| Discord | https://discord.gg/ai-home-copilot |
-
----
-
-*Last Updated: 2026-02-16*
+*Letzte Aktualisierung: 2026-02-16*
