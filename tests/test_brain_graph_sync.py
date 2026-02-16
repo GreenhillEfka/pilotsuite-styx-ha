@@ -6,58 +6,7 @@ Tests the integration between HA and Core Brain Graph module.
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
-
-# Mock homeassistant modules - save original modules first
-import sys
-from unittest.mock import MagicMock
 import pytest
-
-# Save any pre-existing homeassistant modules
-_original_modules = {}
-modules_to_mock = [
-    'homeassistant', 'homeassistant.core', 'homeassistant.helpers',
-    'homeassistant.helpers.area_registry', 'homeassistant.helpers.device_registry',
-    'homeassistant.helpers.entity_registry', 'homeassistant.helpers.typing',
-    'homeassistant.const', 'homeassistant.config_entries'
-]
-for mod in modules_to_mock:
-    if mod in sys.modules:
-        _original_modules[mod] = sys.modules.pop(mod)
-
-# Create mock modules
-mock_ha = MagicMock()
-mock_ha.core = MagicMock()
-mock_ha.helpers = MagicMock()
-mock_ha.helpers.area_registry = MagicMock()
-mock_ha.helpers.device_registry = MagicMock()
-mock_ha.helpers.entity_registry = MagicMock()
-mock_ha.helpers.typing = MagicMock()
-mock_ha.const = MagicMock()
-
-# Set up constants
-mock_ha.const.EVENT_STATE_CHANGED = "state_changed"
-mock_ha.const.EVENT_CALL_SERVICE = "call_service"
-mock_ha.const.STATE_UNAVAILABLE = "unavailable"
-mock_ha.const.STATE_UNKNOWN = "unknown"
-
-# Mock sys.modules
-sys.modules['homeassistant'] = mock_ha
-sys.modules['homeassistant.core'] = mock_ha.core
-sys.modules['homeassistant.helpers'] = mock_ha.helpers
-sys.modules['homeassistant.helpers.area_registry'] = mock_ha.helpers.area_registry
-sys.modules['homeassistant.helpers.device_registry'] = mock_ha.helpers.device_registry
-sys.modules['homeassistant.helpers.entity_registry'] = mock_ha.helpers.entity_registry
-sys.modules['homeassistant.helpers.typing'] = mock_ha.helpers.typing
-sys.modules['homeassistant.const'] = mock_ha.const
-sys.modules['homeassistant.config_entries'] = MagicMock()
-
-from custom_components.ai_home_copilot.brain_graph_sync import BrainGraphSync
-
-# Restore original modules after import
-for mod in modules_to_mock:
-    sys.modules.pop(mod, None)
-for mod, module in _original_modules.items():
-    sys.modules[mod] = module
 
 
 # =============================================================================
@@ -111,6 +60,8 @@ def mock_registries():
 @pytest.fixture
 def brain_graph_sync(mock_hass, mock_registries):
     """Create BrainGraphSync instance."""
+    from custom_components.ai_home_copilot.brain_graph_sync import BrainGraphSync
+    
     with patch('custom_components.ai_home_copilot.brain_graph_sync.area_registry.async_get') as mock_area:
         with patch('custom_components.ai_home_copilot.brain_graph_sync.device_registry.async_get') as mock_device:
             with patch('custom_components.ai_home_copilot.brain_graph_sync.entity_registry.async_get') as mock_entity:
@@ -146,6 +97,7 @@ class TestBrainGraphSync:
 
     def test_init(self, mock_hass):
         """Test BrainGraphSync initialization."""
+        from custom_components.ai_home_copilot.brain_graph_sync import BrainGraphSync
         sync = BrainGraphSync(mock_hass, "http://localhost:5000", "test-token")
         
         assert sync.hass == mock_hass
@@ -167,6 +119,8 @@ if __name__ == "__main__":
     
     # Test initialization
     mock_hass = MagicMock()
+    
+    from custom_components.ai_home_copilot.brain_graph_sync import BrainGraphSync
     sync = BrainGraphSync(mock_hass, "http://localhost:5000", "test-token")
     assert sync.core_url == "http://localhost:5000"
     assert sync.access_token == "test-token"
@@ -174,7 +128,8 @@ if __name__ == "__main__":
     print("✓ Initialization test passed")
     
     # Test URL generation  
-    url = sync.get_graph_snapshot_url()
+    import asyncio
+    url = asyncio.get_event_loop().run_until_complete(sync.get_graph_snapshot_url())
     assert url == "http://localhost:5000/api/v1/graph/snapshot.svg"
     print("✓ URL generation test passed")
     
