@@ -7,12 +7,14 @@ import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime, timezone
 from collections import deque
+import sys
+
+# Add custom_components to path for imports
+# pytest.ini has pythonpath = ., so we need custom_components in path
+sys.path.insert(0, 'custom_components')
 
 # Mark as integration test
 pytestmark = pytest.mark.integration
-
-import sys
-sys.path.insert(0, '/config/.openclaw/workspace/ai_home_copilot_hacs_repo/custom_components/ai_home_copilot')
 
 # Skip if HA not installed
 try:
@@ -25,8 +27,8 @@ try:
         HabitusRule,
         HabitusConfig,
     )
-except ImportError:
-    pytest.skip("Home Assistant not installed", allow_module_level=True)
+except ImportError as e:
+    pytest.skip(f"Home Assistant not installed or import failed: {e}", allow_module_level=True)
 
 
 class TestHabitusMinerModule:

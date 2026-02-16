@@ -46,12 +46,31 @@ class MockCoordinatorEntity:
 
 # Create a proper RepairsFlow mock that can be used as a real base class
 class MockRepairsFlow:
-    """Mock RepairsFlow that can be subclassed."""
+    """Mock RepairsFlow that can be subclassed.
+    
+    This needs to be a real class (not MagicMock) so that tests can
+    instantiate it and set attributes like 'hass'.
+    """
     def __init__(self, *args, **kwargs):
-        self.hass = None
+        # Allow setting any attribute without spec_set restrictions
+        object.__setattr__(self, 'hass', None)
+        object.__setattr__(self, 'handler', None)
+        object.__setattr__(self, 'entry_id', None)
     
     async def async_step_init(self, user_input=None):
         pass
+    
+    async def async_step_choice(self, user_input=None):
+        pass
+    
+    async def async_step_configure(self, user_input=None):
+        pass
+    
+    async def async_step_confirm(self, user_input=None):
+        pass
+    
+    def __setattr__(self, name, value):
+        object.__setattr__(self, name, value)
 
 
 # Create mock entity classes that can be subclassed
@@ -144,7 +163,37 @@ class MockWeatherEntity(MockEntityBase):
 # Create base mock modules
 mock_ha = MagicMock()
 mock_ha_core = MagicMock()
-mock_ha_core.HomeAssistant = MagicMock
+
+
+# HomeAssistant needs to be a real class that can be instantiated and patched
+class MockHomeAssistant:
+    """Mock HomeAssistant class that can be instantiated.
+    
+    Class attributes are defined to allow patching at the class level
+    (e.g., patch('homeassistant.core.HomeAssistant.services')).
+    """
+    # Class-level attributes for patching
+    services = MagicMock()
+    bus = MagicMock()
+    config_entries = MagicMock()
+    states = MagicMock()
+    state = MagicMock()
+    
+    def __init__(self):
+        self.data = {}
+        # Instance attributes (these override class attrs for instances)
+        self.services = MagicMock()
+        self.bus = MagicMock()
+        self.config_entries = MagicMock()
+        self.config_entries.async_entries = MagicMock(return_value=[])
+        self.loop = MagicMock()
+        self.states = MagicMock()
+        self.state = MagicMock()
+        self.async_add_executor_job = AsyncMock()
+        self.async_create_task = MagicMock()
+
+
+mock_ha_core.HomeAssistant = MockHomeAssistant
 mock_ha_helpers = MagicMock()
 mock_ha_components = MagicMock()
 mock_ha_const = MagicMock()

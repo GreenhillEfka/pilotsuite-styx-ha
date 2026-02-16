@@ -40,10 +40,13 @@ except ImportError:
 from unittest.mock import Mock
 
 def mock_hass():
-    """Create a mock Home Assistant instance."""
+    """Create a mock Home Assistant instance.
+    
+    Returns a MagicMock with .data as MagicMock so .data.get can be configured.
+    """
     hass = MagicMock()
-    # Use a dict-like mock that returns mocks for any key
-    hass.data = Mock()
+    # data.get needs to be mockable for coordinator lookups
+    hass.data = MagicMock()
     return hass
 
 

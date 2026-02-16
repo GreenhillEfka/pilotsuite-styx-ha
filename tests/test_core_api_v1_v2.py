@@ -174,8 +174,10 @@ class TestCoreAPICalls:
             "token": "test_token"
         }
         
-        mock_session = AsyncMock()
-        mock_session.get = AsyncMock(side_effect=Exception("Connection error"))
+        # Use Mock not AsyncMock - session.get() returns context manager, not awaitable
+        # Exception happens synchronously before entering async context
+        mock_session = Mock()
+        mock_session.get = Mock(side_effect=Exception("Connection error"))
         
         mock_hass = Mock()
         mock_hass.data = {}

@@ -223,9 +223,9 @@ async def test_sync_labels_now(mock_hass):
         side_effect=lambda name, **kwargs: MockLabel(f"label_{name}", name, **kwargs)
     )
 
-    # Mock entity registry updates
-    mock_entity_reg = AsyncMock()
-    mock_entity_reg.async_update_entity = AsyncMock()
+    # Mock entity registry updates - async_update_entity is SYNC, not async
+    mock_entity_reg = Mock()
+    mock_entity_reg.async_update_entity = Mock()
 
     # Mock config entries
     mock_config_entries = Mock()
