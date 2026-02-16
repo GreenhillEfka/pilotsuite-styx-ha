@@ -601,6 +601,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             # webhook_url is display-only; ignore if user edits it.
             user_input.pop(CONF_WEBHOOK_URL, None)
 
+            # Token handling: clear, update, or keep existing
+            clear_token = user_input.pop("_clear_token", False)
+            new_token = user_input.get(CONF_TOKEN, "")
+
+            if clear_token:
+                # User explicitly wants to clear the token
+                user_input[CONF_TOKEN] = ""
+            elif not new_token:
+                # Empty token field means "keep existing" (don't update)
+                existing_token = self._entry.data.get(CONF_TOKEN, "")
+                user_input[CONF_TOKEN] = existing_token
+            # else: non-empty token field → update (already in user_input)
+
             # Normalize seed entities (comma-separated list -> list[str])
             seed_csv = user_input.get(CONF_SUGGESTION_SEED_ENTITIES)
             if isinstance(seed_csv, str):
@@ -652,6 +665,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
                 vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): int,
                 vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
+                vol.Optional("_clear_token"): bool,
                 vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): str,
                 vol.Optional(
                     CONF_MEDIA_MUSIC_PLAYERS,
