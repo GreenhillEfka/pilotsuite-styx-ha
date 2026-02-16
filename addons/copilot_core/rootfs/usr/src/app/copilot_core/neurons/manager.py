@@ -475,80 +475,179 @@ class NeuronManager:
         
         return dominant_mood, confidence
     
+    def _get_entities_by_domain(
+        self, context: Dict[str, Any], domain: str
+    ) -> List[str]:
+        """Get entity IDs from HA states matching a domain."""
+        states = context.get("states", {})
+        return [
+            eid for eid in states
+            if eid.startswith(f"{domain}.")
+        ]
+
+    def _get_entities_by_zone(
+        self, context: Dict[str, Any], domain: str, zone: str
+    ) -> List[str]:
+        """Get entity IDs from HA states matching domain and zone/area."""
+        states = context.get("states", {})
+        entities = []
+        for eid, state in states.items():
+            if not eid.startswith(f"{domain}."):
+                continue
+            attrs = state if isinstance(state, dict) else {}
+            area = attrs.get("area_id", "") or attrs.get("friendly_name", "")
+            if zone.lower() in area.lower():
+                entities.append(eid)
+        # Fallback: all domain entities if no zone match
+        return entities if entities else self._get_entities_by_domain(context, domain)
+
+    def _build_action(
+        self,
+        domain: str,
+        action: str,
+        context: Dict[str, Any],
+        granularity: str = "all",
+        zone: str | None = None,
+        **extra: Any,
+    ) -> Dict[str, Any]:
+        """Build a suggestion action with entity targeting.
+
+        Args:
+            domain: HA domain (light, media_player, climate, ...)
+            action: Service action (turn_on, turn_off, ...)
+            context: Evaluation context containing HA states
+            granularity: 'all' | 'zone' | 'entity'
+            zone: Zone/area name for zone-level targeting
+            **extra: Additional service data (brightness_pct, volume_level, ...)
+
+        Returns:
+            Action dict with entity_ids and granularity metadata
+        """
+        if zone and granularity == "zone":
+            entity_ids = self._get_entities_by_zone(context, domain, zone)
+        else:
+            entity_ids = self._get_entities_by_domain(context, domain)
+
+        result: Dict[str, Any] = {
+            "domain": domain,
+            "action": action,
+            "entity_ids": entity_ids,
+            "granularity": granularity,
+        }
+        if zone:
+            result["zone"] = zone
+        result.update(extra)
+        return result
+
     def _generate_suggestions(
         self,
         dominant_mood: str,
         mood_values: Dict[str, float],
         context: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """Generate suggestions based on mood.
-        
+        """Generate zone-aware suggestions with entity targeting.
+
+        Each suggestion includes:
+        - entity_ids: specific entities to target
+        - granularity: 'all' (whole domain), 'zone', or 'entity'
+        - zone: area/room name when applicable
+
         Args:
             dominant_mood: Current dominant mood
             mood_values: All mood values
-            context: Evaluation context
-        
+            context: Evaluation context (includes HA states)
+
         Returns:
-            List of suggestion dicts
+            List of suggestion dicts with entity-specific actions
         """
         suggestions = []
-        
+
         # Get context values
         light_level = context.get("context_values", {}).get("light_level", 0.5)
         presence = context.get("context_values", {}).get("presence", 0.5)
         time_of_day = context.get("context_values", {}).get("time_of_day", 0.5)
-        
+
+        # Detect active presence zones for zone-aware suggestions
+        presence_data = context.get("presence", {})
+        active_zones = [
+            z for z, v in presence_data.items()
+            if isinstance(v, (int, float)) and v > 0.5
+        ] if presence_data else []
+
         # Generate suggestions based on mood
         if dominant_mood == "relax":
             if light_level > 0.6:
+                zone = active_zones[0] if active_zones else None
                 suggestions.append({
                     "type": "action",
                     "mood": "relax",
-                    "suggestion": "Dim lights for relaxation",
-                    "actions": [{"domain": "light", "action": "turn_on", "brightness_pct": 30}],
+                    "suggestion": f"Dim lights for relaxation{f' in {zone}' if zone else ''}",
+                    "actions": [
+                        self._build_action(
+                            "light", "turn_on", context,
+                            granularity="zone" if zone else "all",
+                            zone=zone,
+                            brightness_pct=30,
+                        ),
+                    ],
                     "confidence": mood_values.get("relax", 0.5),
                     "priority": "low",
                 })
-        
+
         elif dominant_mood == "focus":
+            zone = active_zones[0] if active_zones else None
             suggestions.append({
                 "type": "action",
                 "mood": "focus",
-                "suggestion": "Optimize environment for focus",
+                "suggestion": f"Optimize environment for focus{f' in {zone}' if zone else ''}",
                 "actions": [
-                    {"domain": "light", "action": "turn_on", "brightness_pct": 80},
-                    {"domain": "media_player", "action": "volume_set", "volume_level": 0.2},
+                    self._build_action(
+                        "light", "turn_on", context,
+                        granularity="zone" if zone else "all",
+                        zone=zone,
+                        brightness_pct=80,
+                    ),
+                    self._build_action(
+                        "media_player", "volume_set", context,
+                        granularity="zone" if zone else "all",
+                        zone=zone,
+                        volume_level=0.2,
+                    ),
                 ],
                 "confidence": mood_values.get("focus", 0.5),
                 "priority": "medium",
             })
-        
+
         elif dominant_mood == "sleep":
             suggestions.append({
                 "type": "action",
                 "mood": "sleep",
                 "suggestion": "Prepare for sleep",
                 "actions": [
-                    {"domain": "light", "action": "turn_off"},
-                    {"domain": "media_player", "action": "turn_off"},
+                    self._build_action("light", "turn_off", context, granularity="all"),
+                    self._build_action("media_player", "turn_off", context, granularity="all"),
                 ],
                 "confidence": mood_values.get("sleep", 0.5),
                 "priority": "high",
             })
-        
+
         elif dominant_mood == "away":
             suggestions.append({
                 "type": "action",
                 "mood": "away",
                 "suggestion": "Away mode - secure home",
                 "actions": [
-                    {"domain": "light", "action": "turn_off"},
-                    {"domain": "climate", "action": "set_preset_mode", "preset_mode": "away"},
+                    self._build_action("light", "turn_off", context, granularity="all"),
+                    self._build_action(
+                        "climate", "set_preset_mode", context,
+                        granularity="all",
+                        preset_mode="away",
+                    ),
                 ],
                 "confidence": mood_values.get("away", 0.5),
                 "priority": "medium",
             })
-        
+
         elif dominant_mood == "alert":
             suggestions.append({
                 "type": "notification",
@@ -557,7 +656,7 @@ class NeuronManager:
                 "confidence": mood_values.get("alert", 0.5),
                 "priority": "high",
             })
-        
+
         return suggestions
     
     # -------------------------------------------------------------------------
