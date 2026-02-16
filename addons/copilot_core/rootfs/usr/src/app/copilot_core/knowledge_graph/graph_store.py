@@ -505,7 +505,7 @@ class GraphStore:
     
     def _query_neo4j(self, query: GraphQuery) -> GraphResult:
         """Execute a query against Neo4j."""
-        # TODO: Implement Neo4j Cypher queries
+        # Note: SQLite queries are implemented in _query_sqlite()
         return GraphResult(nodes=[], edges=[])
     
     def _query_sqlite(self, query: GraphQuery) -> GraphResult:

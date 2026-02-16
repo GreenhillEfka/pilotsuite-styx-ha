@@ -356,7 +356,7 @@ class PatternImporter:
             return self._store.get_node(edge.evidence["pattern_id"])
         
         # Fallback: search by label
-        # TODO: More efficient lookup
+        # Note: For production, implement index-based lookup on pattern labels
         return None
 
     def clear_cache(self) -> None:

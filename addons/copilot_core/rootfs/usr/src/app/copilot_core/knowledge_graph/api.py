@@ -164,8 +164,7 @@ def kg_list_edges():
             etype = EdgeType(edge_type) if edge_type else None
             edges = _store().get_edges_to(target, etype)
         else:
-            # Get all edges (expensive, limited)
-            # TODO: Implement pagination
+            # Get all edges (expensive, limited) - pagination to be implemented in v1.1
             return jsonify({
                 "ok": False,
                 "error": "Must specify source or target",
