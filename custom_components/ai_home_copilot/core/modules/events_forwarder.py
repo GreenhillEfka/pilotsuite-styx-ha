@@ -698,40 +698,39 @@ class EventsForwarderModule:
             if st.flushing:
                 return
             st.flushing = True
+            try:
 
-            # Cancel pending timer if any
-            if callable(st.unsub_timer):
-                st.unsub_timer()
-            st.unsub_timer = None
+                # Cancel pending timer if any
+                if callable(st.unsub_timer):
+                    st.unsub_timer()
+                st.unsub_timer = None
 
-            # Check rate limit before proceeding
-            if not _rate_limit_consume(st, cost=1.0):
-                # Rate limited - schedule retry with delay
-                delay = 1.0 / st.rate_limit_refill_rate
-                st.unsub_timer = async_call_later(hass, delay, _flush_timer)
-                st.flushing = False
-                data["events_forwarder_last"] = {
-                    "sent": 0,
-                    "time": _now_iso(),
-                    "status": "rate_limited",
-                }
-                return
+                # Check rate limit before proceeding
+                if not _rate_limit_consume(st, cost=1.0):
+                    # Rate limited - schedule retry with delay
+                    delay = 1.0 / st.rate_limit_refill_rate
+                    st.unsub_timer = async_call_later(hass, delay, _flush_timer)
+                    data["events_forwarder_last"] = {
+                        "sent": 0,
+                        "time": _now_iso(),
+                        "status": "rate_limited",
+                    }
+                    return
 
-            # Apply exponential backoff if needed
-            backoff_delay = _get_backoff_delay(st)
-            if backoff_delay > 0:
-                _LOGGER.debug("Events forwarder: backing off %.1fs (level %d)", backoff_delay, st.backoff_level)
-                await asyncio.sleep(backoff_delay)
+                # Apply exponential backoff if needed
+                backoff_delay = _get_backoff_delay(st)
+                if backoff_delay > 0:
+                    _LOGGER.debug("Events forwarder: backing off %.1fs (level %d)", backoff_delay, st.backoff_level)
+                    await asyncio.sleep(backoff_delay)
 
-            if st.queue is None:
-                st.queue = []
+                if st.queue is None:
+                    st.queue = []
 
-            if not st.queue:
-                data["events_forwarder_queue_len"] = 0
-                data["events_forwarder_persistent_queue_len"] = 0
-                _reset_backoff(st)
-                st.flushing = False
-                return
+                if not st.queue:
+                    data["events_forwarder_queue_len"] = 0
+                    data["events_forwarder_persistent_queue_len"] = 0
+                    _reset_backoff(st)
+                    return
 
             # Take up to max_batch items, keep remainder.
             items = list(st.queue[:max_batch])
@@ -786,7 +785,6 @@ class EventsForwarderModule:
                 data["events_forwarder_queue_len"] = len(st.queue)
                 data["events_forwarder_persistent_queue_len"] = len(st.queue)
                 _persist_mark_dirty()
-                st.flushing = False
                 return
             except Exception as err:  # noqa: BLE001
                 st.error_total += 1
@@ -832,7 +830,8 @@ class EventsForwarderModule:
 
                 _persist_mark_dirty()
 
-            st.flushing = False
+            finally:
+                st.flushing = False
 
         def _flush_timer(_now) -> None:
             # callback from async_call_later (sync context)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 
 from homeassistant.config_entries import ConfigEntry
@@ -8,6 +9,8 @@ from homeassistant.core import HomeAssistant
 from ..const import DOMAIN, DATA_CORE, DATA_RUNTIME
 from .module import ModuleContext
 from .registry import ModuleRegistry
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class CopilotRuntime:
@@ -35,14 +38,21 @@ class CopilotRuntime:
     async def async_setup_entry(self, entry: ConfigEntry, modules: Iterable[str]) -> None:
         ctx = ModuleContext(hass=self.hass, entry=entry)
         for name in modules:
-            mod = self.registry.create(name)
-            await mod.async_setup_entry(ctx)
+            try:
+                mod = self.registry.create(name)
+                await mod.async_setup_entry(ctx)
+            except Exception:
+                _LOGGER.exception("Module %s failed to set up — skipping", name)
 
     async def async_unload_entry(self, entry: ConfigEntry, modules: Iterable[str]) -> bool:
         ctx = ModuleContext(hass=self.hass, entry=entry)
         # Unload in reverse order.
         unload_ok = True
         for name in reversed(list(modules)):
-            mod = self.registry.create(name)
-            unload_ok = await mod.async_unload_entry(ctx) and unload_ok
+            try:
+                mod = self.registry.create(name)
+                unload_ok = await mod.async_unload_entry(ctx) and unload_ok
+            except Exception:
+                _LOGGER.exception("Module %s failed to unload", name)
+                unload_ok = False
         return unload_ok

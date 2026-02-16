@@ -1,20 +1,14 @@
 """AI Home CoPilot Buttons (wrapper for backward compatibility)."""
 from __future__ import annotations
 
-from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_DEVLOG_PUSH_PATH,
     CONF_TEST_LIGHT,
-    DEFAULT_DEVLOG_PUSH_PATH,
     DEFAULT_TEST_LIGHT,
     DOMAIN,
 )
-from .entity import CopilotBaseEntity
-# DEPRECATED: v1 - prefer v2
-# from .habitus_zones_entities import HabitusZonesValidateButton
 from .habitus_zones_entities_v2 import (
     HabitusZonesV2ValidateButton,
     HabitusZonesV2SyncGraphButton,
@@ -79,18 +73,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotDisableDebugButton(coordinator, entry.entry_id),
         CopilotClearErrorDigestButton(coordinator, entry.entry_id),
         CopilotClearAllLogsButton(coordinator, entry.entry_id),
-        # New UI buttons
-        HabitusZonesValidateButton(coordinator, entry),
+        # Habitus Zones v2 buttons
         HabitusZonesV2ValidateButton(coordinator, entry),
         HabitusZonesV2SyncGraphButton(coordinator, entry),
         HabitusZonesV2ReloadButton(coordinator, entry),
         CopilotTagRegistrySyncLabelsNowButton(coordinator),
         CopilotUpdateRollbackReportButton(coordinator),
-        # Media Context v2 button entities
-        VolumeUpButton,
-        VolumeDownButton,
-        VolumeMuteButton,
-        ClearOverridesButton,
         # Brain dashboard summary
         CopilotBrainDashboardSummaryButton(coordinator, entry),
         # Camera Dashboard buttons
@@ -111,13 +99,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(entities, True)
 
 
-# Re-export all button classes for backward compatibility
+# Re-export all button classes
+# button_debug.py is the canonical source for debug/dev buttons
 from .button_safety_backup import (
     CopilotSafetyBackupCreateButton,
     CopilotSafetyBackupStatusButton,
-)
-from .button_safety import (
-    CopilotRollbackLastFixButton,
 )
 from .button_system import (
     CopilotGenerateOverviewButton,
@@ -155,23 +141,4 @@ from .button_debug import (
     CopilotDisableDebugButton,
     CopilotClearErrorDigestButton,
     CopilotClearAllLogsButton,
-)
-from .button_graph import (
-    CopilotPublishBrainGraphVizButton,
-    CopilotPublishBrainGraphPanelButton,
-)
-from .button_devlog import (
-    CopilotDevLogTestPushButton,
-    CopilotDevLogPushLatestButton,
-    CopilotDevLogsFetchButton,
-)
-from .button_demo import (
-    CopilotCreateDemoSuggestionButton,
-)
-from .button_test import (
-    CopilotToggleLightButton,
-)
-from .button_other import (
-    CopilotAnalyzeLogsButton,
-    CopilotHaErrorsFetchButton,
 )
