@@ -76,6 +76,24 @@ from .sensors.voice_context import (
     VoiceContextSensor,
     VoicePromptSensor,
 )
+from .sensors.energy_insights import (
+    EnergyInsightSensor,
+    EnergyRecommendationSensor,
+)
+from .sensors.habit_learning_v2 import (
+    HabitLearningSensor,
+    HabitPredictionSensor,
+    SequencePredictionSensor,
+)
+from .sensors.anomaly_alert import (
+    AnomalyAlertSensor,
+    AlertHistorySensor,
+)
+from .sensors.predictive_automation import (
+    PredictiveAutomationSensor,
+    PredictiveAutomationDetailsSensor,
+)
+from .sensors.inspector_sensor import InspectorSensor
 from .sensors.neurons_14 import (
     PresenceRoomSensor,
     PresencePersonSensor,
@@ -173,6 +191,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         EnergyProxySensor(coordinator, hass),
         MediaActivitySensor(coordinator, hass),
         MediaIntensitySensor(coordinator, hass),
+        # Energy Insights (ML-based)
+        EnergyInsightSensor(coordinator),
+        EnergyRecommendationSensor(coordinator),
+        # Habit Learning v2 (ML-based)
+        HabitLearningSensor(coordinator),
+        HabitPredictionSensor(coordinator),
+        SequencePredictionSensor(coordinator),
+        # Anomaly Detection (ML-based)
+        AnomalyAlertSensor(coordinator),
+        AlertHistorySensor(coordinator),
+        # Predictive Automation (ML-based)
+        PredictiveAutomationSensor(coordinator),
+        PredictiveAutomationDetailsSensor(coordinator),
+        # Inspector Sensors (internal state visibility)
+        InspectorSensor(coordinator, "zones", "Habitus Zones", "mdi:floor-plan"),
+        InspectorSensor(coordinator, "tags", "Active Tags", "mdi:tag-multiple"),
+        InspectorSensor(coordinator, "character", "Character Profile", "mdi:account-cog"),
+        InspectorSensor(coordinator, "mood", "Current Mood", "mdi:emoticon"),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)

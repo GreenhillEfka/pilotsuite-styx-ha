@@ -127,7 +127,7 @@ Vorschlag angezeigt → User Feedback → Lernen
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │         HACS Integration (ai_home_copilot)               │  │
 │  │                                                           │  │
-│  │  22 Core-Module    17 Sensoren    15+ Dashboard Cards    │  │
+│  │  22 Core-Module    80+ Sensoren   15+ Dashboard Cards    │  │
 │  │  ┌─────────────┐  ┌───────────┐  ┌──────────────────┐   │  │
 │  │  │ Forwarder   │  │ Mood      │  │ Brain Graph      │   │  │
 │  │  │ Habitus     │  │ Presence  │  │ Mood Card        │   │  │
@@ -221,7 +221,7 @@ Vorschlag angezeigt → User Feedback → Lernen
 
 ### Sensoren (HACS Integration)
 
-17 Sensor-Module machen Neuron-Daten in HA sichtbar:
+80+ Sensoren machen Neuron-Daten in HA sichtbar (17 Sensor-Module + Inspector):
 
 | Sensor | Funktion |
 |--------|----------|
@@ -360,8 +360,8 @@ Brain Graph verlinkt: Tag ↔ Zone ↔ Entity (bidirektional)
 | Python-Dateien | 180 | 234 |
 | Test-Dateien | 53 | 48 |
 | API-Blueprints | 37 | - |
-| Module-Packages | 23 | 22 Core-Module |
-| Sensoren | - | 17 |
+| Module-Packages | 23 | 22 Core-Module (inkl. CharacterModule) |
+| Sensoren | - | 80+ (inkl. Inspector) |
 | Dashboard Cards | - | 15+ |
 | Neuronen | 12 | 14+ (via neurons_14.py) |
 
@@ -403,7 +403,7 @@ Brain Graph verlinkt: Tag ↔ Zone ↔ Entity (bidirektional)
 | P1 | Legacy v1 Files aufräumen (forwarder.py, media_context.py, etc.) | Teilweise |
 | P2 | config_flow.py refactoring (1260 → mehrere Dateien) | Offen |
 | P2 | Pydantic-Validation für API Endpoints | Offen |
-| P2 | Port-Konfiguration vereinheitlichen (8099 vs 8909) | Offen |
+| P2 | Port-Konfiguration vereinheitlichen (8099 vs 8909) | **Erledigt** |
 
 ### Zukunft (Q2+ 2026)
 
