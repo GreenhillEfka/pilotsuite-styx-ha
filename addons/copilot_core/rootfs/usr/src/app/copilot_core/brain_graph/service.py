@@ -647,9 +647,14 @@ class BrainGraphService:
         # Create stronger links to affected entities (intentional correlation)
         for entity_id in target_entities:
             # Boost entity salience when explicitly controlled
+            # Extract entity label from entity_id (e.g., "light.kitchen" -> "Kitchen")
+            entity_label = entity_id.split(".", 1)[-1].replace("_", " ").title() if "." in entity_id else entity_id
             self.touch_node(
                 node_id=f"ha.entity:{entity_id}",
                 delta=1.2,  # Boost controlled entities
+                label=entity_label,
+                kind="entity",
+                domain=entity_id.split(".", 1)[0] if "." in entity_id else "unknown",
                 source={"system": "ha", "name": "service_target"}
             )
             
