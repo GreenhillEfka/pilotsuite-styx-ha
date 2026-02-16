@@ -1,66 +1,119 @@
-# AI Home CoPilot (Home Assistant custom integration)
+# AI Home CoPilot — HACS Integration
 
-Custom integration domain: `ai_home_copilot`.
+[![Release](https://img.shields.io/github/v/release/GreenhillEfka/ai-home-copilot-ha)](https://github.com/GreenhillEfka/ai-home-copilot-ha/releases)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 
-## Start here (docs index)
-- **Start here:** `docs/START_HERE.md`
-- **Ethics & Governance:** `docs/ETHICS_GOVERNANCE.md`
-- **Security & Privacy:** `docs/SECURITY_PRIVACY.md`
-- **Operations:** `docs/OPERATIONS.md`
-- **DevLogs:** `docs/DEVLOGS.md`
-- **Project plan:** `docs/PROJECT_PLAN.md`
-- **Changelog:** `CHANGELOG.md`
+Home Assistant Custom Integration für den **AI Home CoPilot** — privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
 
-Privacy-first:
-- No personal data (IPs, tokens) is shipped as defaults.
-- The integration never creates automations silently (governance-first).
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8099) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **22 Core-Module** in Home Assistant bereit.
 
-## Install (recommended): HACS
-1. Install HACS (if not already installed).
-2. HACS → **Integrations** → menu (⋮) → **Custom repositories**.
-3. Add this repository as type **Integration**.
-4. Install the integration from HACS.
-5. Restart Home Assistant.
+## Installation
 
-> Note: This repository is intended to be **public** for HACS distribution. Privacy is enforced by code hygiene (no personal defaults, no secret leakage).
+### Voraussetzung
+
+Das **Core Add-on** muss installiert und gestartet sein:
+[Home-Assistant-Copilot](https://github.com/GreenhillEfka/Home-Assistant-Copilot#installation)
+
+### HACS Integration installieren
+
+1. [HACS](https://hacs.xyz) installieren (falls noch nicht vorhanden)
+2. HACS → **Integrations** → Menü (⋮) → **Custom repositories**
+3. Repository-URL hinzufügen:
+   ```
+   https://github.com/GreenhillEfka/ai-home-copilot-ha
+   ```
+   Typ: **Integration**
+4. **AI Home CoPilot** über HACS installieren
+5. Home Assistant **neustarten**
+
+### Setup
+
+1. **Settings** → **Devices & services** → **Add integration** → **AI Home CoPilot**
+2. Konfiguration ausfüllen:
+
+| Feld | Standard | Beschreibung |
+|------|----------|-------------|
+| Host | `homeassistant.local` | HA Host LAN-IP/Hostname |
+| Port | `8099` | Core Add-on Port |
+| API Token | _(optional)_ | Token-Authentifizierung |
+| Test Light | _(optional)_ | Entity für Demo-Toggle |
+
+Weitere Optionen (über Options-Flow konfigurierbar):
+- **Events Forwarder** — Batch-Größe, Flush-Intervall, Persistent Queue, Idempotency
+- **Suggestion Seed** — Erlaubte Domains, Max Offers/Stunde, Seed-Entities
+- **Media Player** — Musik- und TV-Player zuordnen
+- **Habitus Zones** — Zonen-Konfiguration für Pattern-Discovery
+- **Watchdog** — Überwachungsintervall
+- **User Preferences** — Multi-User Preference Learning (MUPL)
 
 ### Update / Rollback
-HACS creates an `update.*` entity for the repository.
 
-- Update: use the UI or call `update.install`.
-- Rollback: call `update.install` with `version` set to a Git tag (recommended) or commit SHA.
+HACS erstellt ein `update.*`-Entity für das Repository.
 
-## Setup
-Settings → Devices & services → Add integration → **AI Home CoPilot**
+- **Update:** HACS UI oder `update.install` Service
+- **Rollback:** `update.install` mit `version` auf einen Git-Tag setzen
 
-Config fields:
-- Host (default: `homeassistant.local`) — set to your HA host LAN IP/hostname if needed
-- Port (default: `8909`)
-- API token (optional)
-- Test light (optional) for the demo toggle button
+## Features
 
-Entities created:
-- `binary_sensor.ai_home_copilot_online`
-- `sensor.ai_home_copilot_version`
-- `button.ai_home_copilot_toggle_light`
+### 22 Core-Module
 
-## Project plan
-See: `docs/PROJECT_PLAN.md` (canvas + kanban overview)
+| Modul | Funktion |
+|-------|----------|
+| EventsForwarder | HA Events → Core (batched, rate-limited, PII-redacted) |
+| HabitusModule | Pattern-Discovery und Zone-Management |
+| CandidatePollerModule | Vorschläge vom Core abholen (5min Intervall) |
+| BrainSyncModule | Brain Graph Synchronisation |
+| MoodContextModule | Mood-Integration und Kontext |
+| MediaModule | Media-Player Tracking |
+| EnergyModule | Energiemonitoring |
+| WeatherModule | Wetter-Integration |
+| UniFiModule | Netzwerk-Überwachung |
+| MLContextModule | ML-Kontext und Features |
+| MUPLModule | Multi-User Preference Learning |
+| CharacterModule | CoPilot-Persönlichkeit |
+| ... | und weitere |
 
-## Docs
-Start here: `docs/START_HERE.md`
+### 80+ Sensoren
 
-- Project plan: `docs/PROJECT_PLAN.md`
-- Habitus Dashboard Cards: `docs/HABITUS_DASHBOARD_CARDS.md`
-- Ops (reload vs restart): `docs/OPERATIONS.md`
-- Dashboard template: `docs/DASHBOARD_LOVELACE.md`
-- DevLogs (debug pipeline): `docs/DEVLOGS.md`
-- Security & Privacy: `docs/SECURITY_PRIVACY.md`
-- Ethics & Governance: `docs/ETHICS_GOVERNANCE.md`
-- Release checklist: `docs/RELEASE_CHECKLIST.md`
+| Sensor-Gruppe | Beispiele |
+|---------------|-----------|
+| Mood | `sensor.copilot_mood`, Mood-Dimensionen |
+| Presence | Anwesenheitserkennung |
+| Activity | Aktivitätserkennung |
+| Energy / Energy Insights | PV, Grid, Kosten |
+| Neurons (14+) | Time, Calendar, Cognitive, Context |
+| Anomaly Alert | Anomalie-Erkennung |
+| Predictive Automation | Prädiktive Vorschläge |
+| Environment | Temperatur, Feuchtigkeit |
+| Calendar | Kalender-Integration |
+| Media | Media-Player Status |
+| Habit Learning v2 | Gewohnheitslernen |
+| Voice Context | Sprachsteuerung |
 
-## Included blueprint
-A safe A→B automation blueprint is shipped with the integration and will be installed (if missing) to:
+### 15+ Dashboard Cards
+
+Brain Graph, Mood Card, Neurons Card, Habitus Card, und mehr — als Lovelace Custom Cards.
+
+### Blueprint
+
+Eine sichere A→B Automation-Blueprint wird mitgeliefert:
 `/config/blueprints/automation/ai_home_copilot/a_to_b_safe.yaml`
 
-It does **not** create an automation automatically.
+Erstellt **keine** Automatisierung automatisch — nur auf Freigabe.
+
+## Grundprinzipien
+
+- **Local-first** — Alles lokal, keine Cloud
+- **Privacy-first** — PII-Redaktion, bounded Storage, opt-in
+- **Governance-first** — Vorschläge vor Aktionen, Human-in-the-Loop
+- **Safe Defaults** — Sicherheitsrelevante Aktionen immer Manual Mode
+
+## Dokumentation
+
+- **[VISION.md](https://github.com/GreenhillEfka/Home-Assistant-Copilot/blob/main/VISION.md)** — Single Source of Truth
+- **[USER_MANUAL.md](docs/USER_MANUAL.md)** — Benutzerhandbuch (deutsch)
+- **[CHANGELOG.md](CHANGELOG.md)** — Release-Historie
+
+## Lizenz
+
+Dieses Projekt ist privat. Alle Rechte vorbehalten.
