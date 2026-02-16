@@ -1,6 +1,6 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
-## [0.13.1] - 2026-02-16
+## [0.13.2] - 2026-02-16
 
 ### Added
 - **Phase 5 Feature: Brain Graph Panel v0.8**
@@ -24,13 +24,21 @@
   - Local model registration and updates
   - Anonymized weights only shared (no raw behavior data)
 
+- **Brain Graph Panel Button v0.8**: New button with improved UX
+  - `button.ai_home_copilot_brain_graph_panel` (v0.8, enabled)
+  - `button.ai_home_copilot_publish_brain_graph_panel` (Phase 5, enabled)
+  - Legacy viz button renamed and marked as diagnostic
+
 ### Fixed
 - **test_collective_intelligence.py**: 11 tests passing ✅
 - **test_cross_home_sync.py**: 9 tests passing ✅
+- **button_debug.py**: EntityCategory.DIAGNOSTIC for proper HA integration
 
 ### Documentation
 - Updated /docs/PILOTSUITE_VISION.md with Phase 5 modules
 - Added API endpoint documentation in /docs/
+
+## [0.13.1] - 2026-02-16
 
 ## [0.12.1] - 2026-02-15
 
