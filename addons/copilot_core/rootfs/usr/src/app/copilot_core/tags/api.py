@@ -13,7 +13,7 @@ FIX: Added auth token validation via @require_token decorator
 
 from flask import Blueprint, jsonify, request
 
-from copilot_core.api.security import require_token
+from copilot_core.api.security import validate_token
 from copilot_core.tags import (
     TagRegistry,
     TagFacet,
@@ -79,7 +79,7 @@ def _serialize_subject(subject):
 @bp.route("/tags", methods=["POST"])
 def create_tag():
     """POST /api/v1/tags — Tag erstellen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -112,7 +112,7 @@ def create_tag():
 @bp.route("/tags/suggest", methods=["POST"])
 def suggest_tag():
     """POST /api/v1/tags/suggest — Learned Tag vorschlagen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -145,7 +145,7 @@ def suggest_tag():
 @bp.route("/tags/<tag_id>/confirm", methods=["POST"])
 def confirm_tag(tag_id):
     """POST /api/v1/tags/{tag_id}/confirm — Learned Tag bestätigen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -164,7 +164,7 @@ def confirm_tag(tag_id):
 @bp.route("/tags", methods=["GET"])
 def list_tags():
     """GET /api/v1/tags — Tags auflisten."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -184,7 +184,7 @@ def list_tags():
 @bp.route("/tags/<tag_id>", methods=["GET"])
 def get_tag(tag_id):
     """GET /api/v1/tags/{tag_id} — Tag details."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -200,7 +200,7 @@ def get_tag(tag_id):
 @bp.route("/tags/<tag_id>", methods=["DELETE"])
 def delete_tag(tag_id):
     """DELETE /api/v1/tags/{tag_id} — Tag löschen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -217,7 +217,7 @@ def delete_tag(tag_id):
 @bp.route("/subjects", methods=["POST"])
 def register_subject():
     """POST /api/v1/subjects — Subject registrieren."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -253,7 +253,7 @@ def register_subject():
 @bp.route("/subjects", methods=["GET"])
 def list_subjects():
     """GET /api/v1/subjects — Subjects auflisten."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -281,7 +281,7 @@ def list_subjects():
 @bp.route("/subjects/<subject_id>", methods=["GET"])
 def get_subject(subject_id):
     """GET /api/v1/subjects/{subject_id} — Subject details."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -309,7 +309,7 @@ def get_subject(subject_id):
 @bp.route("/subjects/<subject_id>/tags", methods=["GET"])
 def get_subject_tags(subject_id):
     """GET /api/v1/subjects/{subject_id}/tags — Tags für Subject."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -333,7 +333,7 @@ def get_subject_tags(subject_id):
 @bp.route("/assignments", methods=["POST"])
 def assign_tag():
     """POST /api/v1/assignments — Tag zu Subject zuweisen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -366,7 +366,7 @@ def assign_tag():
 @bp.route("/assignments", methods=["GET"])
 def list_assignments():
     """GET /api/v1/assignments — Alle Zuweisungen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -397,7 +397,7 @@ def list_assignments():
 @bp.route("/assignments", methods=["DELETE"])
 def delete_assignment():
     """DELETE /api/v1/assignments — Zuweisung entfernen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -428,7 +428,7 @@ def delete_assignment():
 @bp.route("/tags/<tag_id>/subjects", methods=["GET"])
 def get_tag_subjects(tag_id):
     """GET /api/v1/tags/{tag_id}/subjects — Subjects für Tag."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -452,7 +452,7 @@ def get_tag_subjects(tag_id):
 @bp.route("/zones", methods=["POST"])
 def create_zone():
     """POST /api/v1/zones — Habitus-Zone erstellen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -481,7 +481,7 @@ def create_zone():
 @bp.route("/zones", methods=["GET"])
 def list_zones():
     """GET /api/v1/zones — Zonen auflisten."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -504,7 +504,7 @@ def list_zones():
 @bp.route("/zones/<zone_id>/members", methods=["POST"])
 def add_to_zone(zone_id):
     """POST /api/v1/zones/{zone_id}/members — Subject zu Zone hinzufügen."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:
@@ -533,7 +533,7 @@ def add_to_zone(zone_id):
 @bp.route("/labels/export", methods=["GET"])
 def export_labels():
     """GET /api/v1/labels/export — Export für HA Labels Sync."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if _registry is None:

@@ -6,7 +6,7 @@ import os
 from functools import wraps
 from typing import Any, Callable
 
-from flask import Request, jsonify
+from flask import request as flask_request, jsonify
 
 OPTIONS_PATH = "/data/options.json"
 
@@ -45,7 +45,7 @@ def is_auth_required(options_path: str = OPTIONS_PATH) -> bool:
     return True
 
 
-def validate_token(request: Request) -> bool:
+def validate_token(request) -> bool:
     """Validate the shared token against the incoming request.
     
     Returns True if token is valid or authentication is disabled.
@@ -81,7 +81,7 @@ def require_token(f: Callable) -> Callable:
     """Decorator to require valid token for an endpoint."""
     @wraps(f)
     def decorated_function(*args: Any, **kwargs: Any) -> Any:
-        if not validate_token(Request):
+        if not validate_token(flask_request):
             return jsonify({
                 "ok": False,
                 "error": "Authentication required",

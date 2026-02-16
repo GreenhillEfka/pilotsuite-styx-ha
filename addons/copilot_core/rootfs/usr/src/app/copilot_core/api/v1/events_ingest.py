@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from flask import Blueprint, request, jsonify
 
-from copilot_core.api.security import require_token
+from copilot_core.api.security import validate_token
 from copilot_core.api.validation import validate_json
 from copilot_core.api.v1.schemas import BatchEventPayload
 from copilot_core.ingest.event_store import EventStore
@@ -63,7 +63,7 @@ def ingest_events(body: BatchEventPayload):
     Expected body:
         { "items": [ { ... event envelope ... }, ... ] }
     """
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     if len(body.items) == 0:
@@ -98,7 +98,7 @@ def query_events():
         since     – ISO timestamp lower bound
         limit     – max results (default 100, max 1000)
     """
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     store = get_store()
@@ -119,7 +119,7 @@ def query_events():
 @bp.route("/api/v1/events/stats", methods=["GET"])
 def events_stats():
     """Return event store statistics for operator diagnostics."""
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "Unauthorized"}), 401
 
     store = get_store()

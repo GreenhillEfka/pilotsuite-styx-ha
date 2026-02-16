@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify
 from flask_compress import Compress
 from waitress import serve
 
-from copilot_core.api.security import require_token
+from copilot_core.api.security import validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
 APP_VERSION = os.environ.get("COPILOT_VERSION", "0.8.7")
@@ -101,7 +101,7 @@ def version():
 
 @app.post("/api/v1/echo")
 def echo():
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
     return jsonify({"time": _now_iso(), "received": payload})
@@ -109,7 +109,7 @@ def echo():
 
 @app.post("/api/v1/dev/logs")
 def ingest_dev_logs():
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     payload = request.get_json(silent=True) or {}
@@ -128,7 +128,7 @@ def ingest_dev_logs():
 
 @app.get("/api/v1/dev/logs")
 def get_dev_logs():
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     try:

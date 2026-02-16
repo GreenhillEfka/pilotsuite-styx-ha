@@ -6,7 +6,7 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
-from copilot_core.api.security import require_token
+from copilot_core.api.security import validate_token
 from copilot_core.api.validation import validate_json
 from copilot_core.api.v1.schemas import TagAssignmentRequest
 from copilot_core.tagging.assignments import (
@@ -131,7 +131,7 @@ def _coerce_bool(value: object, *, default: bool = False) -> bool:
 
 @bp.route("/tags", methods=["GET"])
 def list_tags():
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     registry = _load_registry()
@@ -157,7 +157,7 @@ def list_tags():
 
 @bp.route("/tags/<path:tag_id>", methods=["GET"])
 def get_tag(tag_id: str):
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     registry = _load_registry()
@@ -183,7 +183,7 @@ def get_tag(tag_id: str):
 
 @bp.route("/assignments", methods=["GET"])
 def list_assignments():
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     store = _load_assignments_store()
@@ -233,7 +233,7 @@ def list_assignments():
 @bp.route("/assignments", methods=["POST"])
 @validate_json(TagAssignmentRequest)
 def create_assignment(body: TagAssignmentRequest):
-    if not require_token(request):
+    if not validate_token(request):
         return jsonify({"error": "unauthorized"}), 401
 
     store = _load_assignments_store()
