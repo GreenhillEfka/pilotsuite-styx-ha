@@ -1,13 +1,22 @@
-"""Habitus Zones Store v2 - mit Brain Graph Integration."""
+"""Habitus Zones Store v2 - mit Brain Graph Integration.
+
+Features:
+- Zone-based entity management with role mapping
+- Priority-based zone conflict resolution for overlapping zones
+- State persistence using HA Storage API
+- Brain Graph integration for context awareness
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Literal
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, Event, callback
 from homeassistant.helpers.storage import Store
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.dispatcher import async_dispatcher_send, async_dispatcher_connect
+from homeassistant.const import EVENT_HOMEASSISTANT_START
 
 from .const import DOMAIN
 
@@ -15,6 +24,16 @@ STORAGE_VERSION = 2
 STORAGE_KEY = f"{DOMAIN}.habitus_zones_v2"
 
 SIGNAL_HABITUS_ZONES_V2_UPDATED = f"{DOMAIN}_habitus_zones_v2_updated"
+SIGNAL_HABITUS_ZONE_CONFLICT = f"{DOMAIN}_habitus_zone_conflict"
+
+
+class ConflictResolutionStrategy(Enum):
+    """Strategies for resolving zone conflicts."""
+    PRIORITY = "priority"           # Higher priority zone wins
+    HIERARCHY = "hierarchy"         # More specific (child) zone wins
+    USER_PROMPT = "user_prompt"     # Ask user to resolve
+    MERGE = "merge"                 # Merge overlapping entities
+    FIRST_WINS = "first_wins"       # First active zone wins
 
 # Zone Types
 ZONE_TYPE = Literal["room", "area", "floor", "outdoor"]
@@ -107,6 +126,251 @@ class HabitusZoneV2:
             for entities in self.entities.values():
                 result.update(entities)
         return result
+
+
+@dataclass(frozen=True, slots=True)
+class ZoneConflict:
+    """Represents a detected zone conflict.
+    
+    Attributes:
+        zone_ids: IDs of conflicting zones
+        overlapping_entities: Entity IDs that overlap between zones
+        detected_at_ms: Timestamp when conflict was detected
+        resolution: Strategy used to resolve (None if not yet resolved)
+        winning_zone_id: Zone that won after resolution (None if unresolved)
+    """
+    zone_ids: tuple[str, ...]
+    overlapping_entities: tuple[str, ...]
+    detected_at_ms: int
+    resolution: ConflictResolutionStrategy | None = None
+    winning_zone_id: str | None = None
+
+
+class ZoneConflictResolver:
+    """Resolves conflicts between overlapping zones.
+    
+    A zone conflict occurs when:
+    1. Two or more zones share overlapping entities
+    2. Multiple zones become "active" simultaneously
+    
+    Resolution strategies (in order of precedence):
+    1. HIERARCHY: Child zones override parent zones
+    2. PRIORITY: Higher priority zones override lower ones
+    3. USER_PROMPT: Emit event for user to resolve
+    
+    Usage:
+        resolver = ZoneConflictResolver(hass, zones)
+        active_zones = await resolver.resolve_conflicts(activated_zones)
+    """
+    
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        zones: list[HabitusZoneV2],
+        default_strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.HIERARCHY
+    ):
+        """Initialize the conflict resolver.
+        
+        Args:
+            hass: Home Assistant instance
+            zones: List of all zones
+            default_strategy: Default resolution strategy
+        """
+        self._hass = hass
+        self._zones = {z.zone_id: z for z in zones}
+        self._default_strategy = default_strategy
+        self._entity_to_zones: dict[str, list[str]] = self._build_entity_index()
+        self._conflict_history: list[ZoneConflict] = []
+    
+    def _build_entity_index(self) -> dict[str, list[str]]:
+        """Build mapping from entity_id to zones containing it."""
+        index: dict[str, list[str]] = {}
+        for zone in self._zones.values():
+            for entity_id in zone.get_all_entities():
+                if entity_id not in index:
+                    index[entity_id] = []
+                index[entity_id].append(zone.zone_id)
+        return index
+    
+    def find_overlapping_zones(self) -> list[tuple[str, str, set[str]]]:
+        """Find all zone pairs that share entities.
+        
+        Returns:
+            List of tuples: (zone_id_1, zone_id_2, overlapping_entities)
+        """
+        overlaps: list[tuple[str, str, set[str]]] = []
+        processed: set[tuple[str, str]] = set()
+        
+        for entity_id, zone_ids in self._entity_to_zones.items():
+            if len(zone_ids) > 1:
+                # Entity belongs to multiple zones
+                for i, zid1 in enumerate(zone_ids):
+                    for zid2 in zone_ids[i + 1:]:
+                        pair = (min(zid1, zid2), max(zid1, zid2))
+                        if pair in processed:
+                            continue
+                        processed.add(pair)
+                        
+                        # Calculate all overlapping entities
+                        z1 = self._zones.get(zid1)
+                        z2 = self._zones.get(zid2)
+                        if z1 and z2:
+                            overlap = z1.get_all_entities() & z2.get_all_entities()
+                            if overlap:
+                                overlaps.append((zid1, zid2, overlap))
+        
+        return overlaps
+    
+    async def resolve_conflicts(
+        self,
+        active_zone_ids: list[str],
+        strategy: ConflictResolutionStrategy | None = None
+    ) -> tuple[list[str], list[ZoneConflict]]:
+        """Resolve conflicts between active zones.
+        
+        Args:
+            active_zone_ids: List of zone IDs that are currently active
+            strategy: Override resolution strategy (uses default if None)
+        
+        Returns:
+            Tuple of (resolved_active_zone_ids, conflicts_detected)
+        """
+        if not active_zone_ids or len(active_zone_ids) <= 1:
+            return (active_zone_ids, [])
+        
+        strategy = strategy or self._default_strategy
+        conflicts: list[ZoneConflict] = []
+        resolved_zones: set[str] = set(active_zone_ids)
+        
+        # Check for entity overlaps between active zones
+        for entity_id, zone_ids in self._entity_to_zones.items():
+            active_owners = [zid for zid in zone_ids if zid in resolved_zones]
+            
+            if len(active_owners) > 1:
+                # Conflict detected - entity belongs to multiple active zones
+                import time
+                conflict = ZoneConflict(
+                    zone_ids=tuple(active_owners),
+                    overlapping_entities=(entity_id,),
+                    detected_at_ms=int(time.time() * 1000),
+                )
+                
+                # Resolve based on strategy
+                winning_zone = self._apply_resolution_strategy(
+                    conflict, strategy
+                )
+                
+                if winning_zone:
+                    # Remove losing zones from active set
+                    resolved_zones -= set(active_owners) - {winning_zone}
+                    
+                    # Update conflict record
+                    conflict = ZoneConflict(
+                        zone_ids=conflict.zone_ids,
+                        overlapping_entities=conflict.overlapping_entities,
+                        detected_at_ms=conflict.detected_at_ms,
+                        resolution=strategy,
+                        winning_zone_id=winning_zone,
+                    )
+                
+                conflicts.append(conflict)
+                self._conflict_history.append(conflict)
+        
+        # Fire HA event for any detected conflicts
+        if conflicts:
+            self._fire_conflict_event(conflicts, strategy)
+        
+        return (list(resolved_zones), conflicts)
+    
+    def _apply_resolution_strategy(
+        self,
+        conflict: ZoneConflict,
+        strategy: ConflictResolutionStrategy
+    ) -> str | None:
+        """Apply resolution strategy to determine winning zone.
+        
+        Args:
+            conflict: The detected conflict
+            strategy: Resolution strategy to apply
+        
+        Returns:
+            Zone ID that wins the conflict, or None if unresolved
+        """
+        if strategy == ConflictResolutionStrategy.HIERARCHY:
+            return self._resolve_by_hierarchy(conflict.zone_ids)
+        elif strategy == ConflictResolutionStrategy.PRIORITY:
+            return self._resolve_by_priority(conflict.zone_ids)
+        elif strategy == ConflictResolutionStrategy.FIRST_WINS:
+            return conflict.zone_ids[0] if conflict.zone_ids else None
+        elif strategy == ConflictResolutionStrategy.USER_PROMPT:
+            # Emit event but don't auto-resolve
+            return None
+        elif strategy == ConflictResolutionStrategy.MERGE:
+            # Not applicable for single-entity conflicts
+            return conflict.zone_ids[0] if conflict.zone_ids else None
+        
+        return None
+    
+    def _resolve_by_hierarchy(self, zone_ids: tuple[str, ...]) -> str | None:
+        """Resolve by hierarchy level (more specific child wins).
+        
+        Zones with higher hierarchy_level (more specific) win.
+        """
+        max_level = -1
+        winning_zone = None
+        
+        for zid in zone_ids:
+            zone = self._zones.get(zid)
+            if zone and zone.hierarchy_level > max_level:
+                max_level = zone.hierarchy_level
+                winning_zone = zid
+        
+        return winning_zone
+    
+    def _resolve_by_priority(self, zone_ids: tuple[str, ...]) -> str | None:
+        """Resolve by priority (higher priority wins)."""
+        max_priority = -1
+        winning_zone = None
+        
+        for zid in zone_ids:
+            zone = self._zones.get(zid)
+            if zone and zone.priority > max_priority:
+                max_priority = zone.priority
+                winning_zone = zid
+        
+        return winning_zone
+    
+    def _fire_conflict_event(
+        self,
+        conflicts: list[ZoneConflict],
+        strategy: ConflictResolutionStrategy
+    ) -> None:
+        """Fire HA event for zone conflicts."""
+        async_dispatcher_send(
+            self._hass,
+            SIGNAL_HABITUS_ZONE_CONFLICT,
+            {
+                "conflicts": [
+                    {
+                        "zone_ids": list(c.zone_ids),
+                        "overlapping_entities": list(c.overlapping_entities),
+                        "detected_at_ms": c.detected_at_ms,
+                        "resolution": c.resolution.value if c.resolution else None,
+                        "winning_zone_id": c.winning_zone_id,
+                    }
+                    for c in conflicts
+                ],
+                "strategy": strategy.value,
+            }
+        )
+    
+    def get_conflict_history(self) -> list[ZoneConflict]:
+        """Get history of detected conflicts."""
+        return list(self._conflict_history)
+    
+    def clear_conflict_history(self) -> None:
+        """Clear conflict history."""
+        self._conflict_history.clear()
 
 
 # Role Aliases (wie v1)
@@ -475,6 +739,289 @@ async def async_set_zones_v2_from_raw(
 
     await async_set_zones_v2(hass, entry_id, uniq, validate=False)
     return uniq
+
+
+# =============================================================================
+# State Persistence - Zone states saved across HA restarts
+# =============================================================================
+
+STATE_STORAGE_VERSION = 1
+STATE_STORAGE_KEY = f"{DOMAIN}.habitus_zones_state"
+
+SIGNAL_HABITUS_ZONE_STATE_CHANGED = f"{DOMAIN}_habitus_zone_state_changed"
+
+
+def _state_store(hass: HomeAssistant) -> Store:
+    """Get or create the zone state store."""
+    global_data = hass.data.setdefault(DOMAIN, {}).setdefault("_global", {})
+    st = global_data.get("habitus_zones_state_store")
+    if st is None:
+        st = Store(hass, STATE_STORAGE_VERSION, STATE_STORAGE_KEY)
+        global_data["habitus_zones_state_store"] = st
+    return st
+
+
+async def async_get_zone_states(
+    hass: HomeAssistant,
+    entry_id: str
+) -> dict[str, dict[str, Any]]:
+    """Load persisted zone states for a config entry.
+    
+    Returns dict mapping zone_id to state data:
+    {
+        "zone:wohnzimmer": {
+            "current_state": "active",
+            "state_since_ms": 1234567890,
+            "last_transition_ms": 1234567890,
+        },
+        ...
+    }
+    """
+    store = _state_store(hass)
+    data = await store.async_load() or {}
+    entries = data.get("entries") if isinstance(data.get("entries"), dict) else {}
+    return entries.get(entry_id, {})
+
+
+async def async_set_zone_state(
+    hass: HomeAssistant,
+    entry_id: str,
+    zone_id: str,
+    new_state: ZONE_STATE,
+    fire_event: bool = True
+) -> bool:
+    """Persist a zone state change.
+    
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        zone_id: Zone ID to update
+        new_state: New zone state
+        fire_event: Whether to fire HA event on state change
+    
+    Returns:
+        True if state was changed, False if already in target state
+    """
+    import time
+    
+    store = _state_store(hass)
+    data = await store.async_load() or {}
+    entries = data.setdefault("entries", {})
+    if not isinstance(entries, dict):
+        entries = {}
+        data["entries"] = entries
+    
+    entry_states = entries.setdefault(entry_id, {})
+    if not isinstance(entry_states, dict):
+        entry_states = {}
+        entries[entry_id] = entry_states
+    
+    now_ms = int(time.time() * 1000)
+    
+    # Get previous state
+    prev_state_data = entry_states.get(zone_id, {})
+    prev_state = prev_state_data.get("current_state", "idle")
+    
+    # Check if state is actually changing
+    if prev_state == new_state:
+        return False
+    
+    # Update state
+    entry_states[zone_id] = {
+        "current_state": new_state,
+        "state_since_ms": now_ms,
+        "last_transition_ms": now_ms,
+        "previous_state": prev_state,
+    }
+    
+    # Persist
+    await store.async_save(data)
+    
+    # Fire event if requested
+    if fire_event:
+        async_dispatcher_send(
+            hass,
+            SIGNAL_HABITUS_ZONE_STATE_CHANGED,
+            {
+                "entry_id": entry_id,
+                "zone_id": zone_id,
+                "previous_state": prev_state,
+                "new_state": new_state,
+                "timestamp_ms": now_ms,
+            }
+        )
+    
+    return True
+
+
+async def async_persist_all_zone_states(
+    hass: HomeAssistant,
+    entry_id: str,
+    zones: list[HabitusZoneV2]
+) -> None:
+    """Persist all zone states at once (e.g., on HA shutdown).
+    
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        zones: List of zones with their current states
+    """
+    import time
+    
+    store = _state_store(hass)
+    data = await store.async_load() or {}
+    entries = data.setdefault("entries", {})
+    
+    now_ms = int(time.time() * 1000)
+    entry_states = entries.setdefault(entry_id, {})
+    
+    for zone in zones:
+        prev_data = entry_states.get(zone.zone_id, {})
+        prev_state = prev_data.get("current_state", "idle")
+        
+        entry_states[zone.zone_id] = {
+            "current_state": zone.current_state,
+            "state_since_ms": zone.state_since_ms or now_ms,
+            "last_transition_ms": now_ms if prev_state != zone.current_state else prev_data.get("last_transition_ms", now_ms),
+            "previous_state": prev_state if prev_state != zone.current_state else prev_data.get("previous_state"),
+        }
+    
+    await store.async_save(data)
+
+
+async def async_restore_zone_states(
+    hass: HomeAssistant,
+    entry_id: str,
+    zones: list[HabitusZoneV2]
+) -> list[HabitusZoneV2]:
+    """Restore zone states from persisted storage.
+    
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        zones: List of zones to restore states for
+    
+    Returns:
+        List of zones with restored states
+    """
+    persisted_states = await async_get_zone_states(hass, entry_id)
+    
+    restored_zones: list[HabitusZoneV2] = []
+    for zone in zones:
+        state_data = persisted_states.get(zone.zone_id, {})
+        persisted_state = state_data.get("current_state", "idle")
+        state_since = state_data.get("state_since_ms")
+        
+        # Create zone with restored state
+        restored_zone = HabitusZoneV2(
+            zone_id=zone.zone_id,
+            name=zone.name,
+            zone_type=zone.zone_type,
+            entity_ids=zone.entity_ids,
+            entities=zone.entities,
+            parent_zone_id=zone.parent_zone_id,
+            child_zone_ids=zone.child_zone_ids,
+            floor=zone.floor,
+            graph_node_id=zone.graph_node_id,
+            current_state=persisted_state if persisted_state in ("idle", "active", "transitioning", "disabled", "error") else "idle",
+            state_since_ms=state_since,
+            priority=zone.priority,
+            tags=zone.tags,
+            metadata=zone.metadata,
+        )
+        restored_zones.append(restored_zone)
+    
+    return restored_zones
+
+
+# =============================================================================
+# Conflict Resolver Factory
+# =============================================================================
+
+def get_conflict_resolver(
+    hass: HomeAssistant,
+    entry_id: str,
+    zones: list[HabitusZoneV2] | None = None,
+    strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.HIERARCHY
+) -> ZoneConflictResolver | None:
+    """Get or create a conflict resolver for a config entry.
+    
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        zones: List of zones (loaded from storage if not provided)
+        strategy: Default conflict resolution strategy
+    
+    Returns:
+        ZoneConflictResolver instance or None if no zones available
+    """
+    global_data = hass.data.setdefault(DOMAIN, {}).setdefault("_global", {})
+    resolvers = global_data.setdefault("conflict_resolvers", {})
+    
+    # Return cached resolver if exists and zones unchanged
+    if entry_id in resolvers and zones is None:
+        return resolvers[entry_id]
+    
+    # Create new resolver
+    if zones is None:
+        # Try to get zones from storage synchronously (for sync contexts)
+        # Note: In async context, use async_get_conflict_resolver instead
+        return None
+    
+    resolver = ZoneConflictResolver(hass, zones, strategy)
+    resolvers[entry_id] = resolver
+    return resolver
+
+
+async def async_get_conflict_resolver(
+    hass: HomeAssistant,
+    entry_id: str,
+    strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.HIERARCHY
+) -> ZoneConflictResolver:
+    """Async get or create a conflict resolver for a config entry.
+    
+    Loads zones from storage if resolver doesn't exist.
+    
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        strategy: Default conflict resolution strategy
+    
+    Returns:
+        ZoneConflictResolver instance
+    """
+    global_data = hass.data.setdefault(DOMAIN, {}).setdefault("_global", {})
+    resolvers = global_data.setdefault("conflict_resolvers", {})
+    
+    if entry_id in resolvers:
+        return resolvers[entry_id]
+    
+    # Load zones and create resolver
+    zones = await async_get_zones_v2(hass, entry_id)
+    resolver = ZoneConflictResolver(hass, zones, strategy)
+    resolvers[entry_id] = resolver
+    return resolver
+
+
+async def async_resolve_zone_conflicts(
+    hass: HomeAssistant,
+    entry_id: str,
+    active_zone_ids: list[str],
+    strategy: ConflictResolutionStrategy | None = None
+) -> tuple[list[str], list[ZoneConflict]]:
+    """Convenience function to resolve zone conflicts.
+    
+    Args:
+        hass: Home Assistant instance
+        entry_id: Config entry ID
+        active_zone_ids: List of zone IDs that are currently active
+        strategy: Override resolution strategy
+    
+    Returns:
+        Tuple of (resolved_active_zone_ids, conflicts_detected)
+    """
+    resolver = await async_get_conflict_resolver(hass, entry_id)
+    return await resolver.resolve_conflicts(active_zone_ids, strategy)
 
 
 # Migration Support (v1 → v2)
