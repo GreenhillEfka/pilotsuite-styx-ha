@@ -1,5 +1,45 @@
 # Changelog - AI Home CoPilot Core Add-on
 
+## [0.8.5] - 2026-02-16
+
+### Added
+- **Phase 5 Feature: Cross-Home Sync API v0.2**
+  - `/api/v1/sharing/discover` - mDNS peer discovery
+  - `/api/v1/sharing/share` - Entity sharing registration
+  - `/api/v1/sharing/unshare` - Stop sharing entity
+  - `/api/v1/sharing/sync` - Real-time state synchronization
+  - `/api/v1/sharing/resolve` - Conflict resolution strategies
+
+- **Phase 5 Feature: Collective Intelligence API v0.2**
+  - `/api/v1/federated/models` - Local model registration
+  - `/api/v1/federated/patterns` - Pattern creation and sharing
+  - `/api/v1/federated/peers` - Peer discovery
+  - `/api/v1/federated/aggregates` - Aggregate stats from collective
+
+- **Phase 5 Feature: Brain Graph Panel v0.8**
+  - Interactive HTML generation with D3.js visualization
+  - Zoom/pan support for large graphs (200 nodes, 400 edges)
+  - Node filtering by kind, zone, or search
+  - Click nodes for detailed metadata display
+  - Local-only rendering (no external dependencies)
+
+### Fixed
+- Brain Graph cache limit (500 → 100 nodes, 1000 → 2000 edges)
+- Cross-Home sync timeout handling (15s default, configurable)
+- Differential privacy noise scaling (epsilon-based)
+
+### Tests
+- test_system_health.py: All 23 tests passing ✅
+- Cross-Home sync: 9 tests passing ✅
+- Collective intelligence: 11 tests passing ✅
+
+### Core API
+- `/api/v1/sharing/*` endpoints fully documented
+- `/api/v1/federated/*` endpoints fully documented
+
+### Manifest
+- Add-on version bumped to 0.8.5
+
 ## [0.8.4] - 2026-02-16
 
 ### Fixed

@@ -1,8 +1,8 @@
 {
   "name": "AI Home CoPilot Core (MVP)",
   "slug": "copilot_core",
-  "description": "MVP Core Service for AI Home CoPilot with Multi-User Preference Learning, Knowledge Graph, and Brain Graph visualization.",
-  "version": "0.8.4",
+  "description": "MVP Core Service for AI Home CoPilot with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
+  "version": "0.8.5",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": ["amd64", "aarch64"],
   "startup": "services",
@@ -57,6 +57,17 @@
       "enabled": true,
       "persist": true,
       "smoothing_alpha": 0.1
+    },
+    "cross_home_sharing": {
+      "enabled": true,
+      "discovery_port": 5353,
+      "sync_port": 8765,
+      "encryption_enabled": true
+    },
+    "collective_intelligence": {
+      "enabled": true,
+      "federated_learning": true,
+      "differential_privacy_epsilon": 0.1
     }
   },
   "schema": {
@@ -97,6 +108,17 @@
       "enabled": "bool",
       "persist": "bool",
       "smoothing_alpha": "float(0.01..0.5)"
+    },
+    "cross_home_sharing": {
+      "enabled": "bool",
+      "discovery_port": "int(1024..65535)",
+      "sync_port": "int(1024..65535)",
+      "encryption_enabled": "bool"
+    },
+    "collective_intelligence": {
+      "enabled": "bool",
+      "federated_learning": "bool",
+      "differential_privacy_epsilon": "float(0.01..1.0)"
     }
   }
 }

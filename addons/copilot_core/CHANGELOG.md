@@ -3,6 +3,27 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 0.8.5
+- **Phase 5 Feature: Cross-Home Sync API v0.2**
+  - `/api/v1/sharing/discover` - mDNS peer discovery
+  - `/api/v1/sharing/share` - Entity sharing registration
+  - `/api/v1/sharing/unshare` - Stop sharing entity
+  - `/api/v1/sharing/sync` - Real-time state synchronization
+  - `/api/v1/sharing/resolve` - Conflict resolution strategies
+- **Phase 5 Feature: Collective Intelligence API v0.2**
+  - `/api/v1/federated/models` - Local model registration
+  - `/api/v1/federated/patterns` - Pattern creation and sharing
+  - `/api/v1/federated/peers` - Peer discovery
+  - `/api/v1/federated/aggregates` - Aggregate stats from collective
+- **Phase 5 Feature: Brain Graph Panel v0.8**
+  - Interactive HTML generation with D3.js visualization
+  - Zoom/pan support for large graphs (200 nodes, 400 edges)
+  - Node filtering by kind, zone, or search
+  - Click nodes for detailed metadata display
+  - Local-only rendering (no external dependencies)
+- **Core API**: `/api/v1/sharing/*` and `/api/v1/federated/*` endpoints fully documented
+- **Tests**: 44+ tests passing ✅ (federated_learning + privacy_preserver fixed)
+
 ## 0.5.0
 - **Knowledge Graph Module**: Neo4j-backed graph storage with SQLite fallback
   - Captures relationships between entities, patterns, moods, and contexts

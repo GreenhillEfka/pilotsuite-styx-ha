@@ -5,8 +5,12 @@ from dataclasses import dataclass
 import hashlib
 import json
 import time
+import logging
 
 from .models import KnowledgeItem
+
+
+logger = logging.getLogger(__name__)
 
 
 class KnowledgeTransfer:
@@ -174,7 +178,8 @@ class KnowledgeTransfer:
             if len(json_str) > max_len:
                 return json_str[:max_len-3] + "..."
             return json_str
-        except:
+        except (TypeError, ValueError):
+            # Fallback: simple string conversion
             return str(payload)[:max_len]
 
     def get_statistics(self) -> Dict[str, Any]:
