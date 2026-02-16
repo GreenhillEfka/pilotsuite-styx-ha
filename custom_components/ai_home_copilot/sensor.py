@@ -274,6 +274,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         entities.append(ActivityCamera(coordinator, entry, cam_id, cam_name))
         entities.append(ZoneCamera(coordinator, entry, cam_id, cam_name))
 
+    # Home Alerts Sensors (Battery, Climate, Presence, System alerts)
+    from .core.modules.home_alerts_module import get_home_alerts_module
+    home_alerts_module = get_home_alerts_module(hass, entry.entry_id)
+    if home_alerts_module is not None:
+        from .home_alerts_sensor import (
+            HomeAlertsCountSensor,
+            HomeHealthScoreSensor,
+            HomeAlertsByCategorySensor,
+        )
+        entities.append(HomeAlertsCountSensor(hass, entry, home_alerts_module))
+        entities.append(HomeHealthScoreSensor(hass, entry, home_alerts_module))
+        for category in ["battery", "climate", "presence", "system"]:
+            entities.append(HomeAlertsByCategorySensor(hass, entry, home_alerts_module, category))
+
     async_add_entities(entities, True)
 
 

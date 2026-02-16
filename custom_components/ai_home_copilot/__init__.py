@@ -138,6 +138,7 @@ _MODULES = [
     "camera_context",
     "quick_search",
     "voice_context",
+    "home_alerts",
 ]
 
 
@@ -176,6 +177,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     from .core.modules.camera_context_module import CameraContextModule
     from .core.modules.quick_search import QuickSearchModule
     from .core.modules.voice_context import VoiceContextModule
+    from .core.modules.home_alerts_module import HomeAlertsModule
     
     _module_classes = {
         "legacy": LegacyModule,
@@ -198,6 +200,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "camera_context": CameraContextModule,
         "quick_search": QuickSearchModule,
         "voice_context": VoiceContextModule,
+        "home_alerts": HomeAlertsModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():

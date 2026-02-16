@@ -22,7 +22,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .core.module import BaseModule
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -122,7 +121,7 @@ class CalendarContext:
         }
 
 
-class CalendarContextModule(BaseModule):
+class CalendarContextModule:
     """Module for extracting context from calendar events."""
     
     MODULE_NAME = "calendar_context"

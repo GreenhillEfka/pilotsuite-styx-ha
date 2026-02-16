@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any, Final
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.core import HomeAssistant, State
+from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
