@@ -7,6 +7,15 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+# Patch Store before importing forwarder_n3
+mock_store = Mock()
+mock_store.async_load = AsyncMock(return_value={})
+mock_store.async_save = AsyncMock()
+
+# Use patch context to avoid spec issues
+_store_patch = patch('custom_components.ai_home_copilot.forwarder_n3.Store', return_value=mock_store)
+_store_patch.start()
+
 from custom_components.ai_home_copilot.forwarder_n3 import (
     N3EventForwarder,
     DOMAIN_PROJECTIONS,
@@ -43,6 +52,7 @@ class MockEvent:
 
 def mock_hass():
     """Mock HomeAssistant instance."""
+    # Use Mock (not MagicMock) to avoid InvalidSpecError
     hass = Mock()
     hass.helpers.entity_registry.async_get.return_value = Mock()
     hass.helpers.area_registry.async_get.return_value = Mock()
