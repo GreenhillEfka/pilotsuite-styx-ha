@@ -1,8 +1,12 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
-## [0.13.2] - 2026-02-16
+## [0.13.3] - 2026-02-16
+
+### Fixed
+- **test_brain_graph_sync_simple.py**: Fixed asyncio compatibility for Python 3.14+ (`asyncio.run()` instead of deprecated `get_event_loop().run_until_complete()`)
 
 ### Added
+- **Phase 5 Feature: Brain Graph Panel v0.8**
 - **Phase 5 Feature: Brain Graph Panel v0.8**
   - D3.js interactive visualization with zoom/pan
   - Filter by Node Kind, Zone, or text search
