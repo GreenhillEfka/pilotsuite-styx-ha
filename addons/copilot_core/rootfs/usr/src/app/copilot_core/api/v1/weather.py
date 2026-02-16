@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 _LOGGER = logging.getLogger(__name__)
 
-bp = Blueprint("weather", __name__, url_prefix="/api/v1/weather")
+bp = Blueprint("weather", __name__, url_prefix="/weather")
 
 
 # Weather condition mapping

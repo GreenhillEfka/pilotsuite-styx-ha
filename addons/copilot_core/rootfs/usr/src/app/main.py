@@ -30,8 +30,8 @@ app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses > 500 bytes
 # Initialize all services (returns dict for potential testing/DI)
 _services = init_services()
 
-# Register all API blueprints
-register_blueprints(app)
+# Register all API blueprints (pass services for tag system & global accessors)
+register_blueprints(app, _services)
 
 # In-memory ring buffer of recent dev logs.
 _DEV_LOG_CACHE: list[dict] = []

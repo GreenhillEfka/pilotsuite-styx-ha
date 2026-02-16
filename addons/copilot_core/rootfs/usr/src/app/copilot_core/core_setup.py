@@ -145,10 +145,10 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     app.register_blueprint(performance_bp)  # Performance monitoring
     
     # Register Tag System v0.2 blueprint (Decision Matrix 2026-02-14)
-    from flask import Blueprint
-    tags_bp = Blueprint("tags_v2", __name__, url_prefix="/api/v1/tags2")
+    # init_tags_api sets the global registry; the bp is already defined in tags/api.py
     if services and services.get("tag_registry"):
-        setup_tag_api(tags_bp, services["tag_registry"])
+        setup_tag_api(services["tag_registry"])
+    from copilot_core.tags.api import bp as tags_bp
     app.register_blueprint(tags_bp)
     
     # Set global service instances for API access

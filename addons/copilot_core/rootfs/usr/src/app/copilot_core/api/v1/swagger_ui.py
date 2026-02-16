@@ -8,7 +8,7 @@ Serves the OpenAPI spec from docs/openapi.yaml.
 import os
 from flask import Blueprint, jsonify, Response
 
-bp = Blueprint("swagger_ui", __name__, url_prefix="/api/v1/docs")
+bp = Blueprint("swagger_ui", __name__, url_prefix="/docs")
 
 OPENAPI_PATH = "/usr/src/app/docs/openapi.yaml"
 

@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 
 from copilot_core.debug import get_debug, set_debug
 
-bp = Blueprint("debug", __name__, url_prefix="/api/v1")
+bp = Blueprint("debug", __name__, url_prefix="")
 
 
 @bp.route("/debug", methods=["GET"])

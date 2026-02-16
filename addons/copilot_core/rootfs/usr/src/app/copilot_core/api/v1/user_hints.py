@@ -6,7 +6,7 @@ from typing import Dict, Any
 from .service import UserHintsService
 from .models import HintStatus, HintType
 
-bp = Blueprint('user_hints', __name__, url_prefix='/api/v1/hints')
+bp = Blueprint('user_hints', __name__, url_prefix='/hints')
 
 # Global service instance
 _hints_service: UserHintsService = None
