@@ -1,5 +1,37 @@
 # CHANGELOG - AI Home CoPilot HA Integration
 
+## [0.13.1] - 2026-02-16
+
+### Added
+- **Phase 5 Feature: Brain Graph Panel v0.8**
+  - D3.js interactive visualization with zoom/pan
+  - Filter by Node Kind, Zone, or text search
+  - Click nodes for detailed info panel
+  - Color-coded node types (light, sensor, zone, media_player, etc.)
+  - Legend with all node kinds
+  - Stats display (node/edge counts)
+  - Privacy-first: all data stays local, no external dependencies
+
+- **Phase 5 Feature: Cross-Home Sync v0.2**
+  - Entity sharing across multiple CoPilot homes
+  - mDNS peer discovery
+  - Conflict resolution strategies (local_wins, remote_wins, merge)
+  - Privacy-first: only metadata shared, no raw entity data
+
+- **Phase 5 Feature: Collective Intelligence v0.2**
+  - Federated learning with differential privacy
+  - Pattern sharing across homes
+  - Local model registration and updates
+  - Anonymized weights only shared (no raw behavior data)
+
+### Fixed
+- **test_collective_intelligence.py**: 11 tests passing ✅
+- **test_cross_home_sync.py**: 9 tests passing ✅
+
+### Documentation
+- Updated /docs/PILOTSUITE_VISION.md with Phase 5 modules
+- Added API endpoint documentation in /docs/
+
 ## [0.12.1] - 2026-02-15
 
 ### Fixed
