@@ -1,7 +1,15 @@
-"""Interactive Brain Graph Panel with filtering, zoom, and node details.
+"""Interactive Brain Graph Panel v0.8 with D3.js visualization.
 
 Generates an interactive HTML/JS visualization from Core graph state.
 Privacy-first: all data stays local; no external dependencies.
+
+Version 0.8 (2026-02-16):
+- Interactive D3.js visualization with zoom/pan
+- Filter by Node Kind, Zone, or text search
+- Click nodes for detailed info panel
+- Color-coded node types (light, sensor, zone, media_player, etc.)
+- Legend with all node kinds
+- Stats display (node/edge counts)
 """
 
 from __future__ import annotations

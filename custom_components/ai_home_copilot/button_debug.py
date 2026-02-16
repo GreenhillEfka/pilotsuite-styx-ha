@@ -387,7 +387,7 @@ class CopilotPublishBrainGraphPanelButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot publish brain graph panel"
+    _attr_name = "AI Home CoPilot publish brain graph panel (Phase 5)"
     _attr_unique_id = "ai_home_copilot_publish_brain_graph_panel"
     _attr_icon = "mdi:graph"
 
@@ -399,9 +399,25 @@ class CopilotPublishBrainGraphPanelButton(CopilotBaseEntity, ButtonEntity):
         await async_publish_brain_graph_panel(self.hass, self.coordinator)
 
 
+class CopilotBrainGraphPanelVizButton(CopilotBaseEntity, ButtonEntity):
+    _attr_entity_registry_enabled_default = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_name = "AI Home CoPilot brain graph panel (v0.8)"
+    _attr_unique_id = "ai_home_copilot_brain_graph_panel"
+    _attr_icon = "mdi:graph-outline"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator)
+        self._entry = entry
+
+    async def async_press(self) -> None:
+        await async_publish_brain_graph_panel(self.hass, self.coordinator)
+
+
 class CopilotCoreGraphCandidatesPreviewButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
-    _attr_entity_category = None
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
     _attr_name = "AI Home CoPilot preview graph candidates"
     _attr_unique_id = "ai_home_copilot_preview_graph_candidates"
