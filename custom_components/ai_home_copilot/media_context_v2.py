@@ -22,6 +22,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 from .media_context import MediaContextCoordinator, MediaContextData
+from .habitus_zones_store_v2 import async_get_zones_v2
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -139,6 +140,7 @@ class MediaContextV2Coordinator(DataUpdateCoordinator[MediaContextV2Data]):
         zone_map: dict[str, dict[str, Any]] | None = None,
         volume_policy: dict[str, Any] | None = None,
         routing_policy: dict[str, Any] | None = None,
+        entry_id: str | None = None,
     ):
         super().__init__(
             hass,
@@ -148,6 +150,8 @@ class MediaContextV2Coordinator(DataUpdateCoordinator[MediaContextV2Data]):
         )
         self._base_coordinator = base_coordinator
         self._use_habitus_zones = use_habitus_zones
+        self._entry_id = entry_id
+        self._habitus_zones: list = []  # Cached HabitusZoneV2 list
         
         # Parse zone map
         self._zone_map = {}
@@ -178,10 +182,12 @@ class MediaContextV2Coordinator(DataUpdateCoordinator[MediaContextV2Data]):
         zone_map: dict[str, dict[str, Any]] | None = None,
         volume_policy: dict[str, Any] | None = None,
         routing_policy: dict[str, Any] | None = None,
+        entry_id: str | None = None,
     ) -> None:
         """Update configuration."""
         self._use_habitus_zones = use_habitus_zones
-        
+        self._entry_id = entry_id
+
         # Parse zone map
         self._zone_map = {}
         if zone_map:
@@ -191,15 +197,27 @@ class MediaContextV2Coordinator(DataUpdateCoordinator[MediaContextV2Data]):
                     tv=config.get("tv", []),
                     tv_volume_proxy=config.get("tv_volume_proxy", []),
                 )
-        
+
         # Parse policies
         self._volume_policy = VolumePolicyConfig(**volume_policy or {})
         self._routing_policy = RoutingPolicyConfig(**routing_policy or {})
+
+        # Clear cached zones - will reload on next refresh
+        self._habitus_zones = []
 
     async def async_start(self) -> None:
         """Start the coordinator."""
         if self._unsub is not None:
             return
+
+        # Load Habitus zones if enabled
+        if self._use_habitus_zones and self._entry_id:
+            try:
+                self._habitus_zones = await async_get_zones_v2(self.hass, self._entry_id)
+                _LOGGER.debug("Loaded %d Habitus zones for media context", len(self._habitus_zones))
+            except Exception as err:
+                _LOGGER.warning("Failed to load Habitus zones: %s", err)
+                self._habitus_zones = []
             
         # Track base coordinator updates
         @callback
@@ -304,7 +322,20 @@ class MediaContextV2Coordinator(DataUpdateCoordinator[MediaContextV2Data]):
         """Get display name for zone."""
         if not zone_id:
             return None
-        # TODO: Integration with habitus_zones_v2 if use_habitus_zones=True
+
+        # Use HabitusZoneV2 display name if available
+        if self._use_habitus_zones and self._habitus_zones:
+            for zone in self._habitus_zones:
+                if zone.zone_id == zone_id:
+                    return zone.name  # Use zone.name (display name)
+                # Also try matching without "zone:" prefix
+                if zone.zone_id == f"zone:{zone_id}":
+                    return zone.name
+                # Fuzzy match by zone_id or name
+                if zone.zone_id.lower().replace("zone:", "") == zone_id.lower():
+                    return zone.name
+
+        # Fallback: capitalize zone_id
         return zone_id.capitalize()
 
     def _determine_active_mode(self, base_data: MediaContextData) -> str:

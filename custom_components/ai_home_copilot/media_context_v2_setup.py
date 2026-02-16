@@ -77,6 +77,7 @@ async def async_setup_media_context_v2(hass: HomeAssistant, entry: ConfigEntry) 
         zone_map=config.get("zone_map", {}),
         volume_policy=config.get("volume_policy", {}),
         routing_policy=config.get("routing_policy", {}),
+        entry_id=entry.entry_id,
     )
     
     # Start coordinator
@@ -134,6 +135,7 @@ async def async_update_media_context_v2_config(
         zone_map=current_config.get("zone_map", {}),
         volume_policy=current_config.get("volume_policy", {}),
         routing_policy=current_config.get("routing_policy", {}),
+        entry_id=entry.entry_id,
     )
     
     # Refresh coordinator data
