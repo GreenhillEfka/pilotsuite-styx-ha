@@ -21,8 +21,11 @@ from .entity import CopilotBaseEntity
 from .habitus_zones_store_v2 import (
     HabitusZoneV2,
     SIGNAL_HABITUS_ZONES_V2_UPDATED,
+    SIGNAL_HABITUS_ZONE_STATE_CHANGED,
     async_get_zones_v2,
     async_set_zones_v2_from_raw,
+    async_set_zone_state,
+    async_persist_all_zone_states,
 )
 
 
@@ -383,36 +386,22 @@ class HabitusZonesV2GlobalStateSelect(CopilotBaseEntity, SelectEntity):
         # Get all zones and update their state
         zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
         
-        updated_zones: list[HabitusZoneV2] = []
-        for zone in zones:
-            if option == "disabled":
-                new_state = "disabled"
-            elif option == "manual":
-                new_state = "idle"  # Keep idle, manual control
-            else:  # auto
-                new_state = "idle"
-            
-            # Create updated zone with new state
-            updated_zone = HabitusZoneV2(
-                zone_id=zone.zone_id,
-                name=zone.name,
-                zone_type=zone.zone_type,
-                entity_ids=zone.entity_ids,
-                entities=zone.entities,
-                parent_zone_id=zone.parent_zone_id,
-                child_zone_ids=zone.child_zone_ids,
-                floor=zone.floor,
-                graph_node_id=zone.graph_node_id,
-                current_state=new_state,
-                priority=zone.priority,
-                tags=zone.tags,
-                metadata=zone.metadata,
-            )
-            updated_zones.append(updated_zone)
+        if option == "disabled":
+            target_state = "disabled"
+        elif option == "manual":
+            target_state = "idle"  # Keep idle, manual control
+        else:  # auto
+            target_state = "idle"
         
-        # Save all updated zones
-        from .habitus_zones_store_v2 import async_set_zones_v2
-        await async_set_zones_v2(self.hass, self._entry.entry_id, updated_zones, validate=False)
+        # Update each zone's state using the persistence API
+        for zone in zones:
+            await async_set_zone_state(
+                self.hass,
+                self._entry.entry_id,
+                zone.zone_id,
+                target_state,
+                fire_event=True
+            )
         
         self.async_write_ha_state()
 
