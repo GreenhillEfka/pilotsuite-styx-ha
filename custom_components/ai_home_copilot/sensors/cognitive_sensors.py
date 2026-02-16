@@ -75,9 +75,9 @@ class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
             calendar_focus_weight = calendar_context.focus_weight
             calendar_meetings_today = calendar_context.event_count
             
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
-        
+
         # Calculate load
         # Device-based score
         load_score = media_active * 2 + speakers_playing

@@ -55,7 +55,7 @@ def sanitize_entity_id(entity_id: str) -> str:
     try:
         # Try to encode to ASCII, replacing non-ASCII chars
         ascii_id = entity_id.encode('ascii', errors='replace').decode('ascii')
-    except Exception:
+    except (UnicodeError, ValueError):
         ascii_id = entity_id
     
     sanitized = re.sub(r'[^a-zA-Z0-9_.\-]', '_', ascii_id)

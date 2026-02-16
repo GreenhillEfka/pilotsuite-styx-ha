@@ -314,7 +314,7 @@ class LazyHistoryLoader:
             entity_id, hours_back = item
             try:
                 await self.get_history(entity_id, hours_back)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass  # Silent fail for prefetch
             
             # Small delay to avoid overwhelming
@@ -346,9 +346,9 @@ class LazyHistoryLoader:
             
             return []
             
-        except Exception:
+        except Exception:  # noqa: BLE001
             return []
-    
+
     def _fetch_history_sync(
         self,
         entity_id: str,
@@ -376,9 +376,9 @@ class LazyHistoryLoader:
             # For now, return empty to avoid blocking
             return []
             
-        except Exception:
+        except Exception:  # noqa: BLE001
             return []
-    
+
     async def _fetch_batch_history(
         self,
         entity_ids: list,

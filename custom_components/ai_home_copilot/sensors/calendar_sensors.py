@@ -60,7 +60,7 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
             entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
             connector = await get_module_connector(self._hass, entry_id)
             calendar_context_data = connector.calendar_context.to_dict()
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
         
         # Try to get calendar events via service
@@ -84,7 +84,7 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
                     if result and cal.entity_id in result:
                         events = result[cal.entity_id].get("events", [])
                         meetings_today += len(events)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass
         except Exception as err:
             _LOGGER.debug("Error fetching calendar events: %s", err)
