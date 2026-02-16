@@ -22,7 +22,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.components.weather import ATTR_CONDITION_CLASSES
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_DEVICE_CLASS,
