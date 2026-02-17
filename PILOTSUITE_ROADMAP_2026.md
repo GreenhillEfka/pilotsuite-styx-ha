@@ -207,7 +207,7 @@
 
 ## 🎯 Aktueller Sprint (Woche 1)
 
-**Fokus:** P0 Critical Fixes + P1.1 Mood Engine + P1.2 Start
+**Fokus:** P0 Critical Fixes + P1.1 Mood Engine + P1.2 Start + Port-Konflikt + HabitusZone
 
 | Tag | Task | Status |
 |-----|------|--------|
@@ -215,11 +215,13 @@
 | Di | Port 8909 | ✅ Done |
 | Di | Error-Isolation | ✅ Done (Core + HACS runtime.py) |
 | Di | Mood Engine API Endpoints | ✅ Done (zone orchestration) |
-| Di | Commit & Push | ✅ Done (bd99fe5, d235766, aad1d2e, c2c9388, 7c02931) |
+| Di | Commit & Push | ✅ Done (bd99fe5, d235766, aad1d2e, c2c9388, 7c02931, 59648dd, ee54067) |
 | Mi | Race Conditions Audit | ✅ Done (P1.2 Start) |
 | Do | P0 Abschluss Review | ✅ Done |
 | Fr | P1.2 Start (Race Conditions) | ✅ Done |
+| Fr | Port-Konflikt Fix | ✅ Done (v0.9.1-alpha.2 / v0.14.1-alpha.2) |
+| Fr | HabitusZone Integration | ✅ Done (v0.14.1-alpha.3) |
 
 ---
 
-*Letzte Aktualisierung: 2026-02-17 16:45*
+*Letzte Aktualisierung: 2026-02-17 17:15*
