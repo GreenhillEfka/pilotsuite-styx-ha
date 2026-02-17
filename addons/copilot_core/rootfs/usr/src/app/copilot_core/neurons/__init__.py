@@ -41,6 +41,10 @@ from .unifi import (
     UniFiContextNeuron, NetworkQuality,
     create_unifi_context_neuron, UNIFI_NEURON_CLASSES,
 )
+from .mupl import (
+    UserRole, UserProfile, RoleInferenceConfig,
+    MultiUserPreferenceLearning, create_mupl_module,
+)
 
 __all__ = [
     # Manager
@@ -115,4 +119,10 @@ __all__ = [
     "NetworkQuality",
     "create_unifi_context_neuron",
     "UNIFI_NEURON_CLASSES",
+    # MUPL neurons
+    "UserRole",
+    "UserProfile",
+    "RoleInferenceConfig",
+    "MultiUserPreferenceLearning",
+    "create_mupl_module",
 ]
