@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [0.14.1-alpha.3] - 2026-02-17
+
+### Added
+- **HabitusZone Integration:** Zone-aware media context automatisch aktiviert
+  - `use_habitus_zones` default `True`
+  - `_get_zone_name()` mit HabitusZoneV2 display name lookup
+  - Zone mapping via `_build_zone_mapping()` in forwarder_n3.py
+
+### Tests
+- Syntax-Check: ✅ media_context_v2_setup.py kompiliert
+- Zone Mapping: ✅ forwarder_n3.py zone-aware events
+
+---
+
 ## [0.14.1-alpha.2] - 2026-02-17
 
 ### Fixed
