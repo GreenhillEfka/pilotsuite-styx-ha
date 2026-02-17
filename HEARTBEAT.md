@@ -58,10 +58,9 @@
 5. **API Documentation**: OpenAPI Spec v0.9.1-alpha.8 + docs/API_DOCUMENTATION.md
 
 ### OpenAI Integration (NEW!):
-- **OpenAI Chat Completions API**: `/api/v1/openai/chat/completions`
-- **OpenAI Models Endpoint**: `/api/v1/openai/models`
-- **Extended OpenAI Conversation (HACS)**: Fully compatible
-- **OpenClaw Assistant**: Als OpenAI-kompatibler Chat Endpoint
+- **OpenAI Chat Completions API**: `/api/v1/openai/chat/completions` ❌ REMOVED
+- **HA Integration**: Vollständig aktiv über OpenClaw Longlife Token ✅
+- **Skill aktiviert**: homeassistant in `/config/.openclaw/skills/`
 
 ### Active Branches (2026-02-17):
 - **ha-copilot-repo**: main (v0.9.1-alpha.8)

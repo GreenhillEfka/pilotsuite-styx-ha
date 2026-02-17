@@ -1,0 +1,13 @@
+automation:
+  - alias: "Deckenlicht ausschalten"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.deckenlicht_steuerung
+        to: "on"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.deckenlicht
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.deckenlicht_steuerung
