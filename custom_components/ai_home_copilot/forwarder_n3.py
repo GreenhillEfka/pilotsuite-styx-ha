@@ -85,6 +85,7 @@ class N3EventForwarder:
         self._flush_task: Optional[asyncio.Task] = None
         self._debounce_cache: Dict[str, float] = {}  # entity_id -> last_sent_time
         self._seen_events: Dict[str, float] = {}  # context_id -> expires_at
+        self._queue_lock = asyncio.Lock()  # Lock for thread-safe queue operations
         
         # Zone mapping
         self._entity_to_zone: Dict[str, str] = {}
@@ -597,17 +598,18 @@ class N3EventForwarder:
 
     async def _enqueue_event(self, envelope: Dict[str, Any]):
         """Add event to pending queue."""
-        self._pending_events.append(envelope)
-        
-        # Enforce max queue size (drop oldest)
-        if len(self._pending_events) > self._max_queue_size:
-            dropped = len(self._pending_events) - self._max_queue_size
-            self._pending_events = self._pending_events[-self._max_queue_size:]
-            _LOGGER.warning("Dropped %d old events due to queue size limit", dropped)
-        
-        # Trigger immediate flush if batch is full
-        if len(self._pending_events) >= self._batch_size:
-            await self._flush_events()
+        async with self._queue_lock:
+            self._pending_events.append(envelope)
+            
+            # Enforce max queue size (drop oldest)
+            if len(self._pending_events) > self._max_queue_size:
+                dropped = len(self._pending_events) - self._max_queue_size
+                self._pending_events = self._pending_events[-self._max_queue_size:]
+                _LOGGER.warning("Dropped %d old events due to queue size limit", dropped)
+            
+            # Trigger immediate flush if batch is full
+            if len(self._pending_events) >= self._batch_size:
+                await self._flush_events()
 
     async def _flush_loop(self):
         """Background task to flush events periodically."""
@@ -680,12 +682,13 @@ class N3EventForwarder:
 
     async def _flush_events(self):
         """Send pending events to CoPilot Core."""
-        if not self._pending_events or not self._session:
-            return
-        
-        # Take events to send and clear queue
-        events_to_send = self._pending_events.copy()
-        self._pending_events.clear()
+        async with self._queue_lock:
+            if not self._pending_events or not self._session:
+                return
+            
+            # Take events to send and clear queue
+            events_to_send = self._pending_events.copy()
+            self._pending_events.clear()
         
         try:
             url = f"{self._core_url}/api/v1/events"
