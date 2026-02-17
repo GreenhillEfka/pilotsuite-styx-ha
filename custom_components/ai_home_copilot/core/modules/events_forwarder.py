@@ -732,6 +732,24 @@ class EventsForwarderModule:
                     _reset_backoff(st)
                     return
 
+            except Exception as err:
+                _LOGGER.error("Events forwarder flush failed: %s", err)
+                data["events_forwarder_last"] = {
+                    "sent": 0,
+                    "time": _now_iso(),
+                    "status": "error",
+                    "error": str(err),
+                }
+                st.error_total += 1
+                st.error_streak += 1
+                st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
+                now_ts = time.time()
+                st.last_error_ts = now_ts
+                if st.first_error_ts is None:
+                    st.first_error_ts = now_ts
+                _persist_mark_dirty()
+                return
+
             # Take up to max_batch items, keep remainder.
             items = list(st.queue[:max_batch])
             remain = list(st.queue[max_batch:])
