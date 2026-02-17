@@ -195,15 +195,57 @@ State (objektiv) → Neuron (bewertet Aspekt) → Mood (aggregiert Bedeutung) �
 - Bei Gruppen (z.B. Lichter): **immer Mitglieder/Segmente identifizieren und einzeln setzen**; Gruppen-State kann verzögert sein.
 - Zielbild (langfristig): Smart Home soll kontextsensitiv werden (äußere Einflüsse → Verhalten), dabei **stufenweise Autonomie** mit Sicherheits-/Freigabe-Levels.
 
+## Vision & Image Models (Stand 2026-02)
+
+**Dokumentation:** `/config/.openclaw/workspace/VISION_MODELS.md`
+
+### Vor jeder Vision/Bild-Aufgabe:
+1. **DOKU LESEN** → `VISION_MODELS.md` konsultieren
+2. **Use Case identifizieren** → Passendes Modell wählen
+3. **Bei unbekannten Modellen** → Web-Suche nach aktuellen Benchmarks
+
+### Top Vision Models 2026:
+| Use Case | Best Model |
+|----------|------------|
+| Complex Scenes | Gemini 3 Pro |
+| Document/OCR | Qwen2.5-VL, Gemma 3 |
+| Edge/IoT | Pixtral |
+| Video | Qwen2.5-VL |
+| Fallback | GPT-5.2, Claude Opus 4.5 |
+
+### Top Image Generation:
+| Use Case | Best Model |
+|----------|------------|
+| Quality | DALL-E 3 |
+| Creative | Midjourney v6 |
+| Open/Local | Flux, Stable Diffusion 3 |
+
+---
+
+## Fallbacks
+
+### Web-Suche
+- **Perplexity API** (primär): ✅ Funktioniert via `pplx` Scripts
+  - `/config/.openclaw/workspace/scripts/pplx "query"` - schnell
+  - `/config/.openclaw/workspace/scripts/pplx-deep "query"` - balanced
+  - `/config/.openclaw/workspace/scripts/pplx-reasoning "query"` - tief
+- **Ollama Cloud**: ⚠️ Funktioniert, aber veraltete Daten (Training Cutoff ~2024)
+  - `/config/.openclaw/workspace/scripts/ollama-websearch "query"`
+  - Nutzt Tool-Calling + Perplexity als Such-Backend
+- **Brave API** (web_search Tool): ❌ Token-Header Problem
+- **DuckDuckGo HTML**: ❌ Keine zuverlässigen Ergebnisse
+
+---
+
 ## Integrationen (Stand 2026-02)
 - Telegram Bot: `@HomeClaw1_Bot` (DM-Pairing).
-- **Perplexity** direkt via CLI (`PERPLEXITY_API_KEY` gesetzt):
-  - `pplx "query"` → `sonar` (schnell)
-  - `pplx-deep "query"` → `sonar-pro` (balanced)
-  - `pplx-reasoning "query"` → `sonar-reasoning-pro` (deep)
-  - Scripts: `/config/.openclaw/workspace/scripts/pplx*.sh`
-  - Skill: `perplexity` in `/config/.openclaw/skills/perplexity/`
-  - Fallback: `web_search` Tool (Brave Search API)
+- **Perplexity** direkt via API (`PERPLEXITY_API_KEY` gesetzt):
+  - `/config/.openclaw/workspace/scripts/pplx "query"` → `sonar` (schnell)
+  - `/config/.openclaw/workspace/scripts/pplx-deep "query"` → `sonar-pro` (balanced)
+  - `/config/.openclaw/workspace/scripts/pplx-reasoning "query"` → `sonar-reasoning-pro` (deep)
+  - **⚠️ IMMER Perplexity API direkt, NIEMALS via OpenRouter!**
+  - Backend-Config (intern in Perplexity): `openrouter/arcee-ai/trinity-large-preview:free + fallbacks`
+  - Fallback: `web_search` Tool (Brave Search API) - ⚠️ aktuell Token-Header Problem
 
 ## Coding Agents (Stand 2026-02-13)
 - **Codex CLI** (`codex`): ✅ Funktioniert
