@@ -1,18 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
-## [0.14.1-alpha.4] - 2026-02-17
+## [0.14.1-alpha.5] - 2026-02-17
 
 ### Fixed
-- **Port-Konflikt:** HA Add-on Standard Port 8099 (nicht 8909!)
-  - const.py: DEFAULT_PORT=8099
-  - forwarder_n3.py: core_url Fallback localhost:8099
-  - services_setup.py: core_url Fallback localhost:8099
-  - README.md: Alle Port-Referenzen auf 8099
+- **Race Conditions Fix:** asyncio.Lock für Event Forwarder Queue
+  - _queue_lock initialisiert
+  - _enqueue_event() mit async with self._queue_lock
+  - _flush_events() mit async with self._queue_lock
+  - Thread-safe Queue Operationen verhindern Race Conditions
 
 ### Tests
-- Syntax-Check: ✅ const.py, forwarder_n3.py, services_setup.py kompilieren
-- Port-Konfiguration: ✅ HACS Integration mit Port 8099 konfigurierbar
+- Syntax-Check: ✅ forwarder_n3.py kompiliert
+- Thread-Safety: ✅ asyncio.Lock implemented
 
 ---
 
-## [0.14.1-alpha.3] - 2026-02-17
+## [0.14.1-alpha.4] - 2026-02-17
