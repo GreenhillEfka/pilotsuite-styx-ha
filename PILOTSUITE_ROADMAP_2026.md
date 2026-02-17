@@ -207,7 +207,7 @@
 
 ## 🎯 Aktueller Sprint (Woche 1)
 
-**Fokus:** P0 Critical Fixes + P1.1 Mood Engine
+**Fokus:** P0 Critical Fixes + P1.1 Mood Engine + P1.2 Start
 
 | Tag | Task | Status |
 |-----|------|--------|
@@ -215,7 +215,7 @@
 | Di | Port 8909 | ✅ Done |
 | Di | Error-Isolation | ✅ Done (Core + HACS runtime.py) |
 | Di | Mood Engine API Endpoints | ✅ Done (zone orchestration) |
-| Di | Commit & Push | ✅ Done (bd99fe5, d235766, aad1d2e) |
+| Di | Commit & Push | ✅ Done (bd99fe5, d235766, aad1d2e, c2c9388, 7c02931) |
 | Mi | Race Conditions Audit | ✅ Done (P1.2 Start) |
 | Do | P0 Abschluss Review | ✅ Done |
 | Fr | P1.2 Start (Race Conditions) | ✅ Done |
