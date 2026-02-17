@@ -2,7 +2,7 @@
   "name": "PilotSuite Core",
   "slug": "copilot_core",
   "description": "MVP Core Service for PilotSuite with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
-  "version": "0.9.0",
+  "version": "0.9.1-alpha.7",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": ["amd64", "aarch64"],
   "startup": "services",
@@ -73,6 +73,11 @@
     "webhook_token": "",
     "household": {
       "members": []
+    },
+    "openai_api": {
+      "enabled": true,
+      "endpoint_type": "chat_completions",
+      "model": "gpt-5.3-codex"
     }
   },
   "schema": {
@@ -129,6 +134,11 @@
     "webhook_token": "password?",
     "household": {
       "members": "list?"
+    },
+    "openai_api": {
+      "enabled": "bool",
+      "endpoint_type": "list(chat_completions|completions)",
+      "model": "str"
     }
   }
 }
