@@ -102,7 +102,7 @@ class N3EventForwarder:
         self._unsub_call_service_listener = None
         
         # Configuration
-        self._core_url = config.get("core_url", "http://localhost:8909")
+        self._core_url = config.get("core_url", "http://localhost:8099")
         self._api_token = config.get("api_token", "")
         self._batch_size = config.get("batch_size", 50)
         self._flush_interval = config.get("flush_interval", 0.5)

@@ -5,7 +5,7 @@
 
 Home Assistant Custom Integration für **PilotSuite** (ehemals AI Home CoPilot) — privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **22 Core-Module** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8099) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **22 Core-Module** in Home Assistant bereit.
 
 ## Installation
 
@@ -34,7 +34,7 @@ Das **Core Add-on** muss installiert und gestartet sein:
 | Feld | Standard | Beschreibung |
 |------|----------|-------------|
 | Host | `homeassistant.local` | HA Host LAN-IP/Hostname |
-| Port | `8909` | Core Add-on Port |
+| Port | `8099` | Core Add-on Port |
 | API Token | _(optional)_ | Token-Authentifizierung |
 | Test Light | _(optional)_ | Entity für Demo-Toggle |
 
