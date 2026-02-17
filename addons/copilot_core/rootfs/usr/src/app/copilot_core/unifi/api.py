@@ -9,24 +9,12 @@ import logging
 from flask import Blueprint, jsonify, request
 from functools import wraps
 
+from copilot_core.api.security import require_token
+
 logger = logging.getLogger(__name__)
 
 # Global service instance (set during init)
 _unifi_service = None
-
-
-def require_api_key(f):
-    """Decorator to require API key for endpoints."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        api_key = request.headers.get('X-API-Key')
-        expected_key = request.headers.get('X-Expected-Key') or 'demo-key'
-        
-        # Simple key check (can be enhanced with real auth)
-        if api_key != expected_key and expected_key != 'demo-key':
-            return jsonify({'error': 'Unauthorized'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 def set_unifi_service(service):
@@ -44,7 +32,7 @@ unifi_bp = Blueprint('unifi', __name__, url_prefix='/api/v1/unifi')
 
 
 @unifi_bp.route('', methods=['GET'])
-@require_api_key
+@require_token
 async def get_unifi():
     """
     Get complete UniFi network snapshot.
@@ -108,7 +96,7 @@ async def get_unifi():
 
 
 @unifi_bp.route('/wan', methods=['GET'])
-@require_api_key
+@require_token
 async def get_wan_status():
     """
     Get WAN uplink status only.
@@ -134,7 +122,7 @@ async def get_wan_status():
 
 
 @unifi_bp.route('/clients', methods=['GET'])
-@require_api_key
+@require_token
 async def get_clients():
     """
     Get list of connected clients.
@@ -177,7 +165,7 @@ async def get_clients():
 
 
 @unifi_bp.route('/roaming', methods=['GET'])
-@require_api_key
+@require_token
 async def get_roaming():
     """
     Get recent roaming events.
@@ -204,7 +192,7 @@ async def get_roaming():
 
 
 @unifi_bp.route('/baselines', methods=['GET'])
-@require_api_key
+@require_token
 async def get_baselines():
     """
     Get traffic baselines.
@@ -230,7 +218,7 @@ async def get_baselines():
 
 
 @unifi_bp.route('/suppress', methods=['GET'])
-@require_api_key
+@require_token
 async def get_suppress():
     """
     Check if network context suggests suppressing suggestions.
@@ -250,7 +238,7 @@ async def get_suppress():
 
 
 @unifi_bp.route('/health', methods=['GET'])
-@require_api_key
+@require_token
 async def health():
     """
     Health check endpoint.

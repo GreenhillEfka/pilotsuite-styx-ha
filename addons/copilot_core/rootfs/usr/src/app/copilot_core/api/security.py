@@ -28,19 +28,28 @@ def get_auth_token(options_path: str = OPTIONS_PATH) -> str:
 
 def is_auth_required(options_path: str = OPTIONS_PATH) -> bool:
     """Check if authentication is required.
-    
+
     Returns True by default (secure default).
     Can be disabled via:
     - Environment: COPILOT_AUTH_REQUIRED=false
     - Options: auth_required: false
     """
-    # Check environment variable
+    # Check environment variable first (highest priority)
     env_value = os.environ.get("COPILOT_AUTH_REQUIRED", "").lower().strip()
     if env_value == "false":
         return False
     if env_value == "true":
         return True
-    
+
+    # Check options.json
+    try:
+        with open(options_path, "r", encoding="utf-8") as fh:
+            opts: Any = json.load(fh) or {}
+        if opts.get("auth_required") is False:
+            return False
+    except Exception:
+        pass
+
     # Default: require authentication (secure by default)
     return True
 

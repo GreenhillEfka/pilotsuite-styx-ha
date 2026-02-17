@@ -8,6 +8,7 @@ from typing import Any
 from flask import Flask, jsonify, request
 
 from copilot_core.api.v1.blueprint import api_v1
+from copilot_core.api.security import validate_token, is_auth_required
 
 
 def _now_iso() -> str:
@@ -269,24 +270,19 @@ def create_app() -> Flask:
 
     @app.before_request
     def _auth_middleware():
-        # Optional shared-token auth.
-        # Accept either:
-        # - X-Auth-Token: <token>
-        # - Authorization: Bearer <token>
-        token = cfg.auth_token.strip()
-        if not token:
+        # Use centralized auth logic from security.py
+        # Allowlisted paths (no auth required)
+        allowlist = {"/", "/health", "/version", "/api/v1/status", "/api/v1/docs", "/api/v1/docs/openapi.yaml"}
+
+        if request.path in allowlist:
             return None
 
-        if request.path in ("/", "/health", "/version"):
-            return None
+        if not validate_token(request):
+            return jsonify({
+                "error": "unauthorized",
+                "message": "Valid X-Auth-Token header or Bearer token required"
+            }), 401
 
-        if request.headers.get("X-Auth-Token", "") == token:
-            return None
-
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer ") and auth.split(" ", 1)[1].strip() == token:
-            return None
-
-        return jsonify({"error": "unauthorized"}), 401
+        return None
 
     return app
