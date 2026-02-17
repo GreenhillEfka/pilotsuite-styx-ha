@@ -16,5 +16,5 @@ RUN apk add --no-cache python3 py3-pip graphviz && \
 WORKDIR /usr/src/app
 COPY rootfs/usr/src/app /usr/src/app
 
-EXPOSE 8099
+EXPOSE 8909
 CMD ["python3", "-u", "main.py"]

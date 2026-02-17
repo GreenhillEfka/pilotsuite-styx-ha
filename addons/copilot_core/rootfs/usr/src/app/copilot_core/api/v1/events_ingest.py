@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from flask import Blueprint, request, jsonify
 
-from copilot_core.api.security import validate_token
+from copilot_core.api.security import require_token
 from copilot_core.api.validation import validate_json
 from copilot_core.api.v1.schemas import BatchEventPayload
 from copilot_core.ingest.event_store import EventStore
@@ -56,6 +56,7 @@ def set_store(store: EventStore) -> None:
 # ── POST /api/v1/events ─────────────────────────────────────────────
 
 @bp.route("/api/v1/events", methods=["POST"])
+@require_token
 @validate_json(BatchEventPayload)
 def ingest_events(body: BatchEventPayload):
     """Accept a batch of forwarded HA events.
@@ -63,9 +64,6 @@ def ingest_events(body: BatchEventPayload):
     Expected body:
         { "items": [ { ... event envelope ... }, ... ] }
     """
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if len(body.items) == 0:
         return jsonify({"accepted": 0, "rejected": 0, "deduped": 0}), 200
 
@@ -87,6 +85,7 @@ def ingest_events(body: BatchEventPayload):
 # ── GET /api/v1/events ──────────────────────────────────────────────
 
 @bp.route("/api/v1/events", methods=["GET"])
+@require_token
 def query_events():
     """Query stored events with optional filters.
 
@@ -98,9 +97,6 @@ def query_events():
         since     – ISO timestamp lower bound
         limit     – max results (default 100, max 1000)
     """
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     store = get_store()
     events = store.query(
         domain=request.args.get("domain"),
@@ -117,10 +113,8 @@ def query_events():
 # ── GET /api/v1/events/stats ────────────────────────────────────────
 
 @bp.route("/api/v1/events/stats", methods=["GET"])
+@require_token
 def events_stats():
     """Return event store statistics for operator diagnostics."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     store = get_store()
     return jsonify(store.stats()), 200

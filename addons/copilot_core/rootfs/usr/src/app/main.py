@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify
 from flask_compress import Compress
 from waitress import serve
 
-from copilot_core.api.security import validate_token
+from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
 APP_VERSION = os.environ.get("COPILOT_VERSION", "0.9.0")
@@ -113,18 +113,15 @@ def version():
 
 
 @app.post("/api/v1/echo")
+@require_token
 def echo():
-    if not validate_token(request):
-        return jsonify({"error": "unauthorized"}), 401
     payload = request.get_json(silent=True) or {}
     return jsonify({"time": _now_iso(), "received": payload})
 
 
 @app.post("/api/v1/dev/logs")
+@require_token
 def ingest_dev_logs():
-    if not validate_token(request):
-        return jsonify({"error": "unauthorized"}), 401
-
     payload = request.get_json(silent=True) or {}
     entry = {
         "received": _now_iso(),
@@ -140,10 +137,8 @@ def ingest_dev_logs():
 
 
 @app.get("/api/v1/dev/logs")
+@require_token
 def get_dev_logs():
-    if not validate_token(request):
-        return jsonify({"error": "unauthorized"}), 401
-
     try:
         limit = int(request.args.get("limit", "50"))
     except Exception:
@@ -159,5 +154,5 @@ def get_dev_logs():
 
 if __name__ == "__main__":
     host = "0.0.0.0"
-    port = int(os.environ.get("PORT", "8099"))
+    port = int(os.environ.get("PORT", "8909"))
     serve(app, host=host, port=port)
