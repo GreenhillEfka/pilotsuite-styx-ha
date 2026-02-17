@@ -20,7 +20,7 @@ MEDIA_CONTEXT_V2_STORE_KEY = "media_context_v2_config"
 
 # Default configuration
 DEFAULT_MEDIA_CONTEXT_V2_CONFIG = {
-    "use_habitus_zones": False,
+    "use_habitus_zones": True,
     "zone_map": {},
     "volume_policy": {
         "step": 0.03,
