@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 from homeassistant.core import HomeAssistant, callback
@@ -79,7 +80,17 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
 
     def _get_base_url(self) -> str:
         """Build base URL for Core Add-on API."""
-        host = self._host.lstrip("http://").lstrip("https://").rstrip("/")
+        host = self._host.strip().rstrip("/")
+        # If host already has scheme, use it; otherwise default to http
+        if host.startswith(("http://", "https://")):
+            parsed = urlsplit(host)
+            # Use provided scheme but construct proper URL with port
+            scheme = parsed.scheme
+            netloc = parsed.netloc
+            if ":" not in netloc:  # No port in URL
+                netloc = f"{netloc}:{self._port}"
+            return f"{scheme}://{netloc}"
+        # No scheme provided, default to http
         return f"http://{host}:{self._port}"
 
     def _get_headers(self) -> dict[str, str]:

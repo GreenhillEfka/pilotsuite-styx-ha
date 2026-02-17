@@ -46,7 +46,7 @@ async def async_generate_config_snapshot(hass: HomeAssistant, entry: ConfigEntry
 
     os.makedirs(EXPORT_DIR, exist_ok=True)
 
-    zones = await async_get_zones(hass, entry.entry_id)
+    zones = await async_get_zones_v2(hass, entry.entry_id)
     zones_raw = [{"id": z.zone_id, "name": z.name, "entity_ids": list(z.entity_ids)} for z in zones]
 
     # Options contain host/port/media lists/forwarder settings; entry.data contains original setup.

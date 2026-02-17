@@ -117,6 +117,9 @@ class BrainGraphSync:
         # Track processed events to avoid cycles
         self._processed_events: Set[str] = set()
         self._max_processed_events = 1000
+
+        # Track event listeners for proper cleanup
+        self._listeners: List[callable] = []
         
     async def async_start(self) -> bool:
         """Start the Brain Graph sync service."""
@@ -143,10 +146,11 @@ class BrainGraphSync:
             # Initial sync of entities and relationships
             await self._sync_initial_graph()
             
-            # Start listening to HA events
-            self.hass.bus.async_listen(EVENT_STATE_CHANGED, self._handle_state_changed)
-            self.hass.bus.async_listen(EVENT_CALL_SERVICE, self._handle_service_call)
-            
+            # Start listening to HA events (store unsubscribe callbacks for cleanup)
+            listener1 = self.hass.bus.async_listen(EVENT_STATE_CHANGED, self._handle_state_changed)
+            listener2 = self.hass.bus.async_listen(EVENT_CALL_SERVICE, self._handle_service_call)
+            self._listeners = [listener1, listener2]
+
             self._running = True
             _LOGGER.info("Brain Graph sync service started")
             return True
@@ -164,12 +168,19 @@ class BrainGraphSync:
         """Stop the Brain Graph sync service."""
         if not self._running:
             return
-            
+
         self._running = False
+
+        # Unsubscribe event listeners to prevent memory leaks on reload
+        for listener in self._listeners:
+            if callable(listener):
+                listener()
+        self._listeners = []
+
         if self._session:
             await self._session.close()
             self._session = None
-            
+
         _LOGGER.info("Brain Graph sync service stopped")
     
     async def _test_brain_graph_connection(self) -> bool:
