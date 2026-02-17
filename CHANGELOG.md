@@ -1,23 +1,26 @@
 # Changelog - PilotSuite Core Add-on
 
-## [0.9.1-alpha.5] - 2026-02-17
-
-### Fixed
-- **Race Conditions Fix:** asyncio.Lock für Event Forwarder Queue (forwarder_n3.py)
-  - _queue_lock initialisiert
-  - _enqueue_event() mit async with self._queue_lock
-  - _flush_events() mit async with self._queue_lock
+## [0.9.1-alpha.6] - 2026-02-17
 
 ### Added
-- **SQLite WAL Mode:** Brain Graph Store mit WAL Mode aktiviert
-  - PRAGMA journal_mode=WAL für bessere Concurrency
-  - PRAGMA synchronous=NORMAL für Safety/Performance Balance
+- **MUPL Module:** Multi-User Preference Learning
+  - UserRole: DEVICE_MANAGER, EVERYDAY_USER, RESTRICTED_USER, UNKNOWN
+  - UserProfile: User profile with inferred role and preferences
+  - RoleInferenceConfig: Konfiguration für role inference
+  - MultiUserPreferenceLearning: Main engine für role inference und RBAC
+  - create_mupl_module() factory function
+
+### Features
+- Device Manager Role: High device count + automation creation
+- Everyday User Role: Regular device usage
+- Restricted User Role: Limited device access
+- Role-Based Access Control (RBAC): device access based on role
+- Role inference from behavior patterns (device usage, automations)
 
 ### Tests
-- Syntax-Check: ✅ forwarder_n3.py, store.py kompilieren
-- Thread-Safety: ✅ asyncio.Lock implementiert
-- WAL Mode: ✅ SQLite Concurrency optimiert
+- Syntax-Check: ✅ mupl.py, __init__.py kompilieren
+- MUPL Module: ✅ Created and exported
 
 ---
 
-## [0.9.1-alpha.4] - 2026-02-17
+## [0.9.1-alpha.5] - 2026-02-17
