@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [0.14.1-alpha.2] - 2026-02-17
+
+### Fixed
+- **Port-Konflikt:** DEFAULT_PORT 8099 → 8909 korrigiert
+  - `const.py`: DEFAULT_PORT auf 8909
+  - `forwarder_n3.py`: core_url Fallback auf localhost:8909
+  - `services_setup.py`: core_url Fallback auf localhost:8909
+  - `README.md`: Alle Port-Referenzen auf 8909
+
+### Tests
+- Syntax-Check: ✅ const.py, forwarder_n3.py, services_setup.py kompilieren
+- Port-Konfiguration: ✅ HACS Integration mit Port 8909 konfigurierbar
+
+---
+
 ## [0.14.1-alpha.1] - 2026-02-17
 
 ### Added
