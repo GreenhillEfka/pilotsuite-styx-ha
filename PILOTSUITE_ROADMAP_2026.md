@@ -215,11 +215,11 @@
 | Di | Port 8909 | ✅ Done |
 | Di | Error-Isolation | ✅ Done (Core + HACS runtime.py) |
 | Di | Mood Engine API Endpoints | ✅ Done (zone orchestration) |
-| Di | Commit & Push | ✅ Done (bd99fe5) |
-| Mi | Race Conditions Audit | 🔄 Next |
-| Do | P0 Abschluss Review | ⏳ Pending |
-| Fr | P1.2 Start (Race Conditions) | ⏳ Pending |
+| Di | Commit & Push | ✅ Done (bd99fe5, d235766, aad1d2e) |
+| Mi | Race Conditions Audit | ✅ Done (P1.2 Start) |
+| Do | P0 Abschluss Review | ✅ Done |
+| Fr | P1.2 Start (Race Conditions) | ✅ Done |
 
 ---
 
-*Letzte Aktualisierung: 2026-02-17 16:15*
+*Letzte Aktualisierung: 2026-02-17 16:45*
