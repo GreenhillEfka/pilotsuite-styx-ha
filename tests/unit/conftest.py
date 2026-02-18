@@ -36,7 +36,7 @@ def mock_config_entry():
     entry.entry_id = "test_entry_id"
     entry.data = {
         "host": "localhost",
-        "port": 8099,
+        "port": 8909,
         "token": "test_token",
     }
     entry.options = {}
@@ -49,7 +49,7 @@ def mock_api_client():
     """Create a mock API client."""
     client = MagicMock()
     client.host = "localhost"
-    client.port = 8099
+    client.port = 8909
     client.token = "test_token"
     client.async_get_status = AsyncMock(return_value={"ok": True, "version": "test"})
     client.async_get_mood = AsyncMock(return_value={"mood": "relax", "confidence": 0.9})

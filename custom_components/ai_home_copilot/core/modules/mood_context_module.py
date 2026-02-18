@@ -31,7 +31,7 @@ class MoodContextModule:
         
         Args:
             hass: Home Assistant instance
-            core_api_base_url: Base URL of Core API (e.g., http://localhost:8099)
+            core_api_base_url: Base URL of Core API (e.g., http://localhost:8909)
             api_token: Auth token for Core API
         """
         self.hass = hass

@@ -48,7 +48,7 @@ def mock_entry():
     entry.entry_id = "test_entry_id"
     entry.domain = "ai_home_copilot"
     entry.data = {
-        "core_api_url": "http://localhost:8099",
+        "core_api_url": "http://localhost:8909",
         "api_token": "test_token",
     }
     return entry
@@ -69,7 +69,7 @@ async def module(mock_hass, mock_entry, mock_context):
     
     # UserPreferenceModule requires hass and config
     config = {
-        "core_api_url": "http://localhost:8099",
+        "core_api_url": "http://localhost:8909",
         "api_token": "test_token",
     }
     mod = UserPreferenceModule(hass=mock_hass, config=config)

@@ -42,7 +42,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class SyncConfig:
     """Configuration for brain graph sync."""
-    core_url: str = "http://localhost:8099"
+    core_url: str = "http://localhost:8909"
     access_token: str = ""
     batch_size: int = 50
     sync_interval: int = 300  # 5 minutes for full sync
@@ -92,7 +92,7 @@ class BrainGraphSyncModule(CopilotModule):
             
             # Get configuration from config entry
             entry_data = ctx.entry.data
-            core_url = entry_data.get("core_url", "http://localhost:8099")
+            core_url = entry_data.get("core_url", "http://localhost:8909")
             access_token = entry_data.get("access_token", "")
             
             if not core_url or not access_token:

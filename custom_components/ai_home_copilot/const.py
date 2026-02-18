@@ -76,7 +76,7 @@ CONF_SEED_MAX_OFFERS_PER_UPDATE = "seed_max_offers_per_update"
 # Privacy-first defaults: no personal IPs/entities shipped.
 # Tip: set this to your HA host IP (LAN) or a resolvable hostname.
 DEFAULT_HOST = "homeassistant.local"
-DEFAULT_PORT = 8099
+DEFAULT_PORT = 8909
 DEFAULT_TEST_LIGHT = ""
 DEFAULT_WATCHDOG_ENABLED = False
 DEFAULT_WATCHDOG_INTERVAL_SECONDS = 1800

@@ -14,19 +14,19 @@ class TestCopilotApiClientLogic:
     def test_url_construction(self):
         """Test URL construction for API calls."""
         host = "localhost"
-        port = 8099
+        port = 8909
         expected_base = f"http://{host}:{port}"
         
         # Verify URL construction
-        assert expected_base == "http://localhost:8099"
+        assert expected_base == "http://localhost:8909"
         
         # Mood endpoint
         mood_url = f"{expected_base}/api/v1/neurons/mood"
-        assert mood_url == "http://localhost:8099/api/v1/neurons/mood"
+        assert mood_url == "http://localhost:8909/api/v1/neurons/mood"
         
         # Neurons endpoint
         neurons_url = f"{expected_base}/api/v1/neurons"
-        assert neurons_url == "http://localhost:8099/api/v1/neurons"
+        assert neurons_url == "http://localhost:8909/api/v1/neurons"
     
     def test_token_header_construction(self):
         """Test authorization header construction."""
