@@ -102,9 +102,10 @@ _load_dev_log_cache()
 @app.get("/")
 def index():
     return (
-        "AI Home CoPilot Core (MVP)\n"
+        "PilotSuite Core v0.9.9\n"
         "Endpoints: /health, /version, /api/v1/echo\n"
-        "API Docs: /api/v1/docs (Swagger UI), /api/v1/docs/openapi.yaml\n"
+        "OpenAI API: /v1/chat/completions, /v1/models (for extended_openai_conversation)\n"
+        "Chat: /chat/completions, /chat/status, /chat/characters, /chat/models/recommended\n"
         "Tag System: /api/v1/tag-system/tags, /assignments (store)\n"
         "Event Ingest: /api/v1/events (POST/GET), /api/v1/events/stats\n"
         "Brain Graph: /api/v1/graph/state, /snapshot.svg, /stats, /prune, /patterns\n"
@@ -112,7 +113,8 @@ def index():
         "Habitus: /api/v1/habitus/mine, /patterns, /stats, /health\n"
         "Mood: /api/v1/mood, /summary, /{zone_id}, /suppress-energy-saving, /relevance\n"
         "Dev: /api/v1/dev/logs (POST/GET)\n"
-        "Pipeline: Events → EventProcessor → BrainGraph → Habitus → Candidates (real-time)\n"
+        "Pipeline: Events -> EventProcessor -> BrainGraph -> Habitus -> Candidates (real-time)\n"
+        "LLM: Ollama (bundled) with lfm2.5-thinking default model\n"
     )
 
 

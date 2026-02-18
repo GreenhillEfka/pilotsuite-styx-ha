@@ -30,7 +30,7 @@ if [ "$NEED_OLLAMA" = "true" ]; then
         done
         
         # Pull model if not exists
-        MODEL=${OLLAMA_MODEL:-deepseek-r1}
+        MODEL=${OLLAMA_MODEL:-lfm2.5-thinking}
         echo "🤖 Ensuring model $MODEL exists..."
         ollama pull $MODEL || true
     else

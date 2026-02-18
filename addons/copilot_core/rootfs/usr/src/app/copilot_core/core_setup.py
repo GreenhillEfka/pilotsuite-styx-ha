@@ -201,6 +201,24 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init NeuronManager")
 
+    # Set conversation env vars from config (used by conversation.py)
+    try:
+        conv_config = config.get("conversation", {}) if config else {}
+        if conv_config.get("ollama_url"):
+            import os
+            os.environ.setdefault("OLLAMA_URL", conv_config["ollama_url"])
+        if conv_config.get("ollama_model"):
+            import os
+            os.environ.setdefault("OLLAMA_MODEL", conv_config["ollama_model"])
+        if conv_config.get("character"):
+            import os
+            os.environ.setdefault("CONVERSATION_CHARACTER", conv_config["character"])
+        if conv_config.get("enabled"):
+            import os
+            os.environ.setdefault("CONVERSATION_ENABLED", "true")
+    except Exception:
+        _LOGGER.exception("Failed to set conversation env vars")
+
     return services
 
 
@@ -227,11 +245,12 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     app.register_blueprint(energy_bp)
     app.register_blueprint(performance_bp)  # Performance monitoring
 
-    # Register Conversation/LLM API (Ollama / DeepSeek-R1)
+    # Register Conversation/LLM API (Ollama / lfm2.5-thinking)
     try:
-        from copilot_core.api.v1.conversation import conversation_bp
+        from copilot_core.api.v1.conversation import conversation_bp, openai_compat_bp
         app.register_blueprint(conversation_bp)
-        _LOGGER.info("Registered conversation API (/chat/*)")
+        app.register_blueprint(openai_compat_bp)
+        _LOGGER.info("Registered conversation API (/chat/* and /v1/*)")
     except Exception:
         _LOGGER.exception("Failed to register conversation blueprint")
 
@@ -242,6 +261,10 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     from copilot_core.tags.api import bp as tags_bp
     app.register_blueprint(tags_bp)
     
+    # Store services in app config for conversation context injection
+    if services:
+        app.config["COPILOT_SERVICES"] = services
+
     # Set global service instances for API access
     if services:
         from copilot_core import set_system_health_service

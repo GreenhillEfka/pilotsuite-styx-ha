@@ -83,7 +83,7 @@
     },
     "conversation": {
       "ollama_url": "http://localhost:11434",
-      "ollama_model": "deepseek-r1",
+      "ollama_model": "lfm2.5-thinking",
       "character": "copilot",
       "enabled": true
     }
@@ -150,7 +150,9 @@
     },
     "conversation": {
       "ollama_url": "str?",
-      "ollama_model": "str?"
+      "ollama_model": "str?",
+      "character": "list(copilot|butler|energy_manager|security_guard|friendly|minimal)?",
+      "enabled": "bool?"
     }
   }
 }

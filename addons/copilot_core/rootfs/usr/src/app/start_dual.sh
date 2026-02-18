@@ -6,7 +6,7 @@ set -e
 echo "🚀 Starting PilotSuite Core with Ollama..."
 
 # Check if model needs to be pulled
-MODEL=${OLLAMA_MODEL:-llm2.5-thinking:latest}
+MODEL=${OLLAMA_MODEL:-lfm2.5-thinking:latest}
 
 # Try to start Ollama
 echo "🤖 Starting Ollama service..."
