@@ -226,7 +226,15 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     app.register_blueprint(unifi_bp)
     app.register_blueprint(energy_bp)
     app.register_blueprint(performance_bp)  # Performance monitoring
-    
+
+    # Register Conversation/LLM API (Ollama / DeepSeek-R1)
+    try:
+        from copilot_core.api.v1.conversation import conversation_bp
+        app.register_blueprint(conversation_bp)
+        _LOGGER.info("Registered conversation API (/chat/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register conversation blueprint")
+
     # Register Tag System v0.2 blueprint (Decision Matrix 2026-02-14)
     # init_tags_api sets the global registry; the bp is already defined in tags/api.py
     if services and services.get("tag_registry"):

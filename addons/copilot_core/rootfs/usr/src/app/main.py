@@ -15,7 +15,7 @@ from waitress import serve
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "0.9.0")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "0.9.9")
 
 
 def _load_options_json(path: str = "/data/options.json") -> dict:
@@ -57,8 +57,10 @@ try:
 except Exception:
     _main_logger.exception("CRITICAL: register_blueprints failed")
 
-# In-memory ring buffer of recent dev logs.
+# In-memory ring buffer of recent dev logs (thread-safe).
+import threading as _threading
 _DEV_LOG_CACHE: list[dict] = []
+_DEV_LOG_LOCK = _threading.Lock()
 
 
 def _now_iso():
@@ -72,9 +74,10 @@ def _append_dev_log(entry: dict) -> None:
     with open(DEV_LOG_PATH, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    _DEV_LOG_CACHE.append(entry)
-    if len(_DEV_LOG_CACHE) > DEV_LOG_MAX_CACHE:
-        del _DEV_LOG_CACHE[: len(_DEV_LOG_CACHE) - DEV_LOG_MAX_CACHE]
+    with _DEV_LOG_LOCK:
+        _DEV_LOG_CACHE.append(entry)
+        if len(_DEV_LOG_CACHE) > DEV_LOG_MAX_CACHE:
+            del _DEV_LOG_CACHE[: len(_DEV_LOG_CACHE) - DEV_LOG_MAX_CACHE]
 
 
 def _load_dev_log_cache() -> None:

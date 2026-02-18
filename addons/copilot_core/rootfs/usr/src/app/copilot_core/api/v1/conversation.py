@@ -1,342 +1,397 @@
 """
-OpenAI-Compatible Conversation API for Extended OpenAI Conversation
+OpenAI-Compatible Conversation API for PilotSuite Core
 
-Provides /v1/chat/completions endpoint compatible with:
+Provides /chat/completions endpoint compatible with:
 - Extended OpenAI Conversation (HA custom component)
 - OpenAI SDK
 - Any OpenAI-compatible client
 
 Features:
-- Function calling for HA services
+- Character presets (copilot, butler, energy_manager, security_guard, friendly, minimal)
+- Ollama integration for offline AI (DeepSeek-R1 / configurable)
 - Streaming support
-- Conversation context
-- Ollama integration for offline AI
+- Token-based authentication
+- Rate limiting
 """
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 import logging
 import json
 import os
-import requests
+import threading
 import time
-import requests
+
+import requests as http_requests
+
+from copilot_core.api.security import require_token
 
 logger = logging.getLogger(__name__)
 
 conversation_bp = Blueprint('conversation', __name__, url_prefix='/chat')
 
-# HA Functions (loaded from MCP tools)
-HA_FUNCTIONS = get_openai_functions()
 
+# ---------------------------------------------------------------------------
+# MCP Tools (lazy-loaded to avoid import errors at module level)
+# ---------------------------------------------------------------------------
+
+_mcp_tools = None
+_mcp_tools_lock = threading.Lock()
+
+
+def _get_mcp_tools():
+    """Lazy-load MCP tools — avoids crash if mcp_tools module is unavailable."""
+    global _mcp_tools
+    if _mcp_tools is not None:
+        return _mcp_tools
+    with _mcp_tools_lock:
+        if _mcp_tools is not None:
+            return _mcp_tools
+        try:
+            from copilot_core.mcp_tools import HA_TOOLS, get_openai_functions
+            _mcp_tools = {
+                "tools": [t.to_dict() for t in HA_TOOLS],
+                "functions": get_openai_functions(),
+            }
+        except Exception:
+            logger.warning("MCP tools not available — conversation will work without function calling")
+            _mcp_tools = {"tools": [], "functions": []}
+        return _mcp_tools
+
+
+# ---------------------------------------------------------------------------
+# Rate Limiting (simple token-bucket per process)
+# ---------------------------------------------------------------------------
+
+_rate_limit_lock = threading.Lock()
+_rate_limit_calls: list[float] = []
+MAX_CALLS_PER_HOUR = int(os.environ.get("LLM_MAX_CALLS_PER_HOUR", "60"))
+
+
+def _check_rate_limit() -> bool:
+    """Return True if the call is allowed, False if rate-limited."""
+    now = time.monotonic()
+    with _rate_limit_lock:
+        # Remove calls older than 1 hour
+        _rate_limit_calls[:] = [t for t in _rate_limit_calls if now - t < 3600]
+        if len(_rate_limit_calls) >= MAX_CALLS_PER_HOUR:
+            return False
+        _rate_limit_calls.append(now)
+        return True
+
+
+# ---------------------------------------------------------------------------
 # System prompt for Home Assistant conversation
-HA_SYSTEM_PROMPT = """You are a helpful Home Assistant assistant. You can control devices in the home through Home Assistant services.
+# ---------------------------------------------------------------------------
 
-You have access to these functions:
-- execute_services: Call Home Assistant services to control devices
-- get_states: Get current state of entities
-- get_history: Get historical data
+HA_SYSTEM_PROMPT = """Du bist PilotSuite CoPilot — ein lokaler, privacy-first Assistent fuer
+Home Assistant Automatisierung.
 
-When a user asks to control a device (like "turn on the light"), use the execute_services function.
-When you need to know the current state of something, use get_states.
-When you need historical information, use get_history.
+Du bist Teil der PilotSuite Neural Pipeline:
+- Brain Graph erkennt Entity-Beziehungen
+- Habitus Miner findet A->B Muster (Support/Confidence/Lift)
+- Mood Engine bewertet Comfort/Joy/Frugality
+- 12+ Neurons liefern Kontext (Energy, Weather, Presence, UniFi...)
 
-Be concise and helpful. Confirm actions after executing them."""
+Regeln:
+- Du SCHLAEGST VOR, du FUEHRST NICHT AUS ohne Bestaetigung.
+- Du erklaerst WARUM, nicht nur WAS.
+- Bei Unsicherheit sage "Ich bin mir nicht sicher".
+- Antworte auf Deutsch, ausser der User schreibt auf Englisch.
+- Keine medizinischen oder gesundheitlichen Aussagen.
+- Respektiere Quiet Hours und Guest Mode."""
 
 
+# ---------------------------------------------------------------------------
 # Character Presets for Conversation
+# ---------------------------------------------------------------------------
+
 CONVERSATION_CHARACTERS = {
     "copilot": {
         "name": "CoPilot",
-        "description": "The main AI assistant - helpful, smart, suggests automations",
-        "system_prompt": """You are AI Home CoPilot, a helpful smart home assistant for Home Assistant.
-
-Your role:
-- Help users control their smart home devices
-- Suggest automations when you notice patterns
-- Learn user preferences and adapt
-- Always be helpful and proactive but never take action without confirmation
-
-You have access to Home Assistant functions to control devices.
-When users ask to control something, use the execute_services function.
-After executing, confirm what you did.
-If you notice patterns (e.g., user always turns on heating at 6pm), suggest an automation."""
+        "description": "Der Haupt-Assistent — hilfsbereit, smart, schlaegt Automatisierungen vor",
+        "system_prompt": HA_SYSTEM_PROMPT,
     },
     "butler": {
         "name": "Butler",
-        "description": "Formal, attentive, service-oriented",
-        "system_prompt": """You are a formal butler for a smart home. 
+        "description": "Formal, aufmerksam, serviceorientiert",
+        "system_prompt": """Du bist ein formeller Butler fuer ein Smart Home.
 
-Your style:
-- Polite and formal language
-- Anticipate needs before being asked
-- Be discreet and respectful
-- Use phrases like "Would you like me to..." and "Very well, sir/madam"
+Dein Stil:
+- Hoefliche und formelle Sprache
+- Beduerfnisse antizipieren bevor gefragt wird
+- Diskret und respektvoll
+- Verwende Formulierungen wie "Darf ich..." und "Sehr wohl"
 
-You control Home Assistant devices. Execute requests promptly and confirm completion formally."""
+Du steuerst Home Assistant Geraete. Fuehre Anfragen prompt aus und bestaetige formal.""",
     },
     "energy_manager": {
-        "name": "Energy Manager",
-        "description": "Focus on energy efficiency and savings",
-        "system_prompt": """You are an Energy Manager for a smart home, focused on efficiency and savings.
+        "name": "Energiemanager",
+        "description": "Fokus auf Energieeffizienz und Einsparungen",
+        "system_prompt": """Du bist ein Energiemanager fuer ein Smart Home, fokussiert auf Effizienz.
 
-Your priorities:
-- Monitor energy consumption
-- Suggest ways to save energy
-- Highlight inefficient patterns
-- Recommend optimal schedules
+Deine Prioritaeten:
+- Energieverbrauch ueberwachen
+- Sparmoeglichkeiten vorschlagen
+- Ineffiziente Muster aufzeigen
+- Optimale Zeitplaene empfehlen
 
-You control Home Assistant devices. Always consider energy impact when executing commands.
-Suggest energy-saving automations when you notice waste (lights left on, heating when windows open)."""
+Beruecksichtige immer die Energieauswirkung bei Befehlen.
+Schlage Energiespar-Automatisierungen vor bei Verschwendung.""",
     },
     "security_guard": {
-        "name": "Security Guard",
-        "description": "Security-focused, alerts on anomalies",
-        "system_prompt": """You are a security-focused smart home assistant.
+        "name": "Sicherheitswache",
+        "description": "Sicherheitsfokussiert, warnt bei Anomalien",
+        "system_prompt": """Du bist ein sicherheitsfokussierter Smart Home Assistent.
 
-Your priorities:
-- Monitor security sensors and cameras
-- Alert on unusual activity
-- Check door/window states
-- Verify all sensors are armed at night
+Deine Prioritaeten:
+- Sicherheitssensoren und Kameras ueberwachen
+- Bei ungewoehnlicher Aktivitaet warnen
+- Tuer-/Fensterzustaende pruefen
+- Alle Sensoren nachts verifizieren
 
-You control Home Assistant devices. Always be vigilant.
-Report any anomalies or suspicious activity.
-Confirm security-relevant actions with the user."""
+Sei wachsam. Melde Anomalien. Bestaetige sicherheitsrelevante Aktionen.""",
     },
     "friendly": {
-        "name": "Friendly Assistant",
-        "description": "Casual, warm, conversational",
-        "system_prompt": """You're a friendly, casual smart home buddy.
+        "name": "Freundlicher Assistent",
+        "description": "Laessig, warm, gespraechig",
+        "system_prompt": """Du bist ein freundlicher, laessiger Smart Home Kumpel.
 
-Your style:
-- Relaxed and conversational
-- Use casual language
-- Be friendly and approachable
-- Have short conversations
+Dein Stil:
+- Entspannt und gespraechig
+- Lockere Sprache
+- Freundlich und nahbar
+- Kurze Unterhaltungen
 
-You control Home Assistant devices. Just help out and have a friendly chat!
-Keep responses short and natural."""
+Hilf einfach und fuehre nette Gespraeche! Halte Antworten kurz und natuerlich.""",
     },
     "minimal": {
         "name": "Minimal",
-        "description": "Short, direct, efficient",
-        "system_prompt": """You are a minimal, efficient smart home assistant.
+        "description": "Kurz, direkt, effizient",
+        "system_prompt": """Du bist ein minimaler, effizienter Smart Home Assistent.
 
-Your style:
-- Keep responses very short
-- Only say what's necessary
-- Get straight to the point
-- No small talk
+Dein Stil:
+- Antworten sehr kurz halten
+- Nur das Noetige sagen
+- Direkt zum Punkt
+- Kein Smalltalk
 
-You control Home Assistant devices. Execute commands efficiently.
-Confirm with minimal words like "Done", "On", "Off"."""
-    }
+Fuehre Befehle effizient aus. Bestaetige mit minimalen Worten wie "Erledigt", "An", "Aus".""",
+    },
 }
 
-# Default character
 DEFAULT_CHARACTER = "copilot"
 
 
+# ---------------------------------------------------------------------------
+# API Endpoints
+# ---------------------------------------------------------------------------
+
+
 @conversation_bp.route('/tools', methods=['GET'])
+@require_token
 def list_tools():
-    """List available MCP tools for function calling"""
+    """List available MCP tools for function calling."""
+    tools = _get_mcp_tools()
     return jsonify({
-        "tools": get_tools(),
-        "count": len(HA_TOOLS)
+        "tools": tools["tools"],
+        "count": len(tools["tools"]),
     })
 
 
 @conversation_bp.route('/characters', methods=['GET'])
 def list_characters():
-    """List available conversation characters"""
+    """List available conversation characters."""
     return jsonify({
         "characters": [
-            {
-                "id": key,
-                "name": val["name"],
-                "description": val["description"]
-            }
+            {"id": key, "name": val["name"], "description": val["description"]}
             for key, val in CONVERSATION_CHARACTERS.items()
         ],
-        "default": DEFAULT_CHARACTER
+        "default": DEFAULT_CHARACTER,
     })
 
 
 @conversation_bp.route('/completions', methods=['POST'])
+@require_token
 def chat_completions():
     """
-    OpenAI-compatible chat completions endpoint
-    
+    OpenAI-compatible chat completions endpoint.
+
     Expected payload (OpenAI format):
     {
-        "model": "gpt-4" (or any string, we use our own),
+        "model": "deepseek-r1" (or any string — we use our configured model),
         "messages": [
             {"role": "system", "content": "..."},
             {"role": "user", "content": "..."}
         ],
-        "functions": [...],  # optional
-        "stream": false     # or true for streaming
+        "stream": false
     }
     """
+    if not _check_rate_limit():
+        return jsonify({
+            "error": "Rate limit exceeded",
+            "max_calls_per_hour": MAX_CALLS_PER_HOUR,
+        }), 429
+
     try:
         data = request.get_json()
-        
         if not data:
             return jsonify({"error": "No JSON body provided"}), 400
-        
+
         messages = data.get('messages', [])
         stream = data.get('stream', False)
-        functions = data.get('functions', HA_FUNCTIONS)
-        
+
         # Extract last user message
         user_message = None
         for msg in reversed(messages):
             if msg.get('role') == 'user':
                 user_message = msg.get('content', '')
                 break
-        
+
         if not user_message:
             return jsonify({"error": "No user message found"}), 400
-        
-        logger.info(f"Conversation request: {user_message[:100]}...")
-        
-        # Build conversation context
-        conversation_context = _build_context(messages)
-        
-        # Process through our AI (mock for now - will connect to real AI)
-        response = _process_conversation(user_message, conversation_context, functions)
-        
+
+        logger.info("Conversation request: %s...", user_message[:80])
+
+        response = _process_conversation(user_message, messages)
+
         if stream:
             return _stream_response(response)
-        
+
         return jsonify(response)
-        
-    except Exception as e:
+
+    except Exception as exc:
         logger.exception("Error in chat completions")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(exc)}), 500
 
 
-def _build_context(messages):
-    """Build context from message history"""
-    context = {
-        "system": HA_SYSTEM_PROMPT,
-        "history": []
-    }
-    
-    for msg in messages:
-        role = msg.get('role', 'user')
-        content = msg.get('content', '')
-        if role != 'system':
-            context["history"].append(f"{role}: {content}")
-    
-    return context
-
-
-def _process_conversation(user_message, context, functions):
-    """
-    Process conversation through Ollama for offline AI
-    Uses llm2.5-thinking:latest by default
-    Supports character selection via config or model name
-    """
-    # Get Ollama settings from environment or config
+@conversation_bp.route('/status', methods=['GET'])
+def llm_status():
+    """Return LLM availability and configuration."""
     ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-    ollama_model = os.environ.get("OLLAMA_MODEL", "llm2.5-thinking:latest")
-    
-    # Get character from model name or environment (e.g., "copilot" or "butler")
+    ollama_model = os.environ.get("OLLAMA_MODEL", "deepseek-r1")
+    available = False
+
+    try:
+        resp = http_requests.get(f"{ollama_url}/api/tags", timeout=5)
+        if resp.status_code == 200:
+            models = resp.json().get("models", [])
+            available = any(m.get("name", "").startswith(ollama_model) for m in models)
+    except Exception:
+        pass
+
+    now = time.monotonic()
+    with _rate_limit_lock:
+        calls_this_hour = len([t for t in _rate_limit_calls if now - t < 3600])
+
+    return jsonify({
+        "available": available,
+        "model": ollama_model,
+        "provider": "ollama",
+        "ollama_url": ollama_url,
+        "calls_this_hour": calls_this_hour,
+        "max_calls_per_hour": MAX_CALLS_PER_HOUR,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _process_conversation(user_message: str, messages: list) -> dict:
+    """
+    Process conversation through Ollama (DeepSeek-R1 by default).
+    Supports character selection via env or model name.
+    """
+    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    ollama_model = os.environ.get("OLLAMA_MODEL", "deepseek-r1")
+    timeout = int(os.environ.get("LLM_TIMEOUT", "60"))
+
+    # Resolve character
     character_name = os.environ.get("CONVERSATION_CHARACTER", DEFAULT_CHARACTER)
-    
-    # Also check if model name contains character (e.g., "copilot-qwen")
     for char_key in CONVERSATION_CHARACTERS:
         if char_key in ollama_model.lower():
             character_name = char_key
             break
-    
-    # Get character config
+
     character = CONVERSATION_CHARACTERS.get(character_name, CONVERSATION_CHARACTERS[DEFAULT_CHARACTER])
     system_prompt = character["system_prompt"]
-    
-    logger.info(f"Using character: {character_name} ({character['name']})")
-    
-    # Prepare messages for Ollama
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_message}
-    ]
-    
+
+    logger.info("Using character: %s (%s), model: %s", character_name, character['name'], ollama_model)
+
+    # Build Ollama messages — keep conversation history
+    ollama_messages = [{"role": "system", "content": system_prompt}]
+    for msg in messages:
+        role = msg.get("role", "user")
+        if role != "system":
+            ollama_messages.append({"role": role, "content": msg.get("content", "")})
+
+    response_content = ""
     try:
-        # Call Ollama
-        ollama_response = requests.post(
+        resp = http_requests.post(
             f"{ollama_url}/api/chat",
-            json={
-                "model": ollama_model,
-                "messages": messages,
-                "stream": False
-            },
-            timeout=60
+            json={"model": ollama_model, "messages": ollama_messages, "stream": False},
+            timeout=timeout,
         )
-        
-        if ollama_response.status_code == 200:
-            result = ollama_response.json()
+        if resp.status_code == 200:
+            result = resp.json()
             response_content = result.get("message", {}).get("content", "")
         else:
-            logger.warning(f"Ollama returned {ollama_response.status_code}")
+            logger.warning("Ollama returned %s", resp.status_code)
             response_content = _fallback_response(user_message)
-            
-    except requests.exceptions.ConnectionError:
-        logger.error(f"Could not connect to Ollama at {ollama_url}")
-        response_content = _offline_fallback(user_message)
-    except Exception as e:
+    except http_requests.exceptions.ConnectionError:
+        logger.error("Could not connect to Ollama at %s", ollama_url)
+        response_content = _offline_fallback(user_message, ollama_url, ollama_model)
+    except http_requests.exceptions.Timeout:
+        logger.error("Ollama timeout after %ds", timeout)
+        response_content = f"Timeout nach {timeout}s. Das Modell braucht zu lange — pruefe Ollama und Modellgroesse."
+    except Exception:
         logger.exception("Error calling Ollama")
         response_content = _fallback_response(user_message)
-    
-    response = {
+
+    return {
         "id": f"chatcmpl-{os.urandom(12).hex()}",
         "object": "chat.completion",
-        "created": int(__import__('time').time()),
+        "created": int(time.time()),
         "model": ollama_model,
-        "choices": [
-            {
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": response_content,
-                    "function_call": None
-                },
-                "finish_reason": "stop"
-            }
-        ],
+        "choices": [{
+            "index": 0,
+            "message": {"role": "assistant", "content": response_content},
+            "finish_reason": "stop",
+        }],
         "usage": {
             "prompt_tokens": len(user_message),
             "completion_tokens": len(response_content),
-            "total_tokens": len(user_message) + len(response_content)
-        }
+            "total_tokens": len(user_message) + len(response_content),
+        },
     }
-    
-    return response
 
 
-def _fallback_response(user_message):
-    return f"I understand: '{user_message}'. Ollama not connected."
+def _fallback_response(user_message: str) -> str:
+    return f"Ich verstehe: '{user_message[:100]}'. Ollama ist nicht verbunden — bitte Ollama-Status pruefen."
 
 
-def _offline_fallback(user_message):
-    return f"I'm offline. Message: '{user_message}'. Check Ollama at localhost:11434 with llm2.5-thinking:latest."
+def _offline_fallback(user_message: str, url: str, model: str) -> str:
+    return (
+        f"Ich bin offline. Nachricht: '{user_message[:100]}'. "
+        f"Bitte Ollama pruefen: {url} mit Modell {model}."
+    )
 
 
-def _stream_response(response):
-    """Stream response implementation"""
-    # Placeholder for streaming
-    import flask
+def _stream_response(response: dict):
+    """Basic SSE streaming implementation."""
+    from flask import Response
+
     def generate():
         content = response["choices"][0]["message"]["content"]
         for chunk in content.split():
             yield f"data: {json.dumps({'choices': [{'delta': {'content': chunk + ' '}}]})}\n\n"
         yield "data: [DONE]\n\n"
-    
-    return flask.Response(generate(), mimetype='text/event-stream')
+
+    return Response(generate(), mimetype='text/event-stream')
 
 
 def register_routes(app):
-    """Register conversation routes with Flask app"""
+    """Register conversation routes with Flask app."""
     app.register_blueprint(conversation_bp)
-    logger.info("Registered conversation API at /v1/chat/completions")
+    logger.info("Registered conversation API at /chat/*")

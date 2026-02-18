@@ -2,7 +2,7 @@
   "name": "PilotSuite Core",
   "slug": "copilot_core",
   "description": "MVP Core Service for PilotSuite with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
-  "version": "0.9.8-alpha.1",
+  "version": "0.9.9",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": [
     "amd64",
@@ -83,7 +83,7 @@
     },
     "conversation": {
       "ollama_url": "http://localhost:11434",
-      "ollama_model": "llm2.5-thinking:latest",
+      "ollama_model": "deepseek-r1",
       "character": "copilot",
       "enabled": true
     }
