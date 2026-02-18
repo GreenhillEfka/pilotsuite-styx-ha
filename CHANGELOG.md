@@ -1,4 +1,12 @@
 # CHANGELOG - PilotSuite HA Integration
+## [0.14.2] - 2026-02-18
+
+### Performance
+- **TTLCache Memory Leak Fix:** Cleanup expired entries on every set()
+- **Pydantic Models:** api/models.py for API validation (395 lines)
+
+---
+
 ## [0.14.1] - 2026-02-18
 
 ### Refactored
