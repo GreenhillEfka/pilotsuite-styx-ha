@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN
+from .multi_user_preferences import MultiUserPreferenceModule
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -554,6 +555,9 @@ class VectorStoreClient:
             List of recommendation dicts
         """
         try:
+            # Get MUPL module for actual preference data
+            mupl = get_mupl_module(self.hass)
+            
             # Find similar users
             similar_users = await self.find_similar_users(
                 user_id=user_id,
@@ -563,21 +567,38 @@ class VectorStoreClient:
             
             if not similar_users:
                 return []
-                
-            # Get preferences from similar users
+            
+            # Get real preferences from similar users via MUPL
             recommendations = []
             
-            # TODO: Integrate with MUPL module to get actual preferences
-            # For now, return similarity-based hints
-            for result in similar_users:
-                similar_user_id = result.metadata.get("user_id", result.id)
-                if similar_user_id != user_id:
-                    recommendations.append({
-                        "similar_user": similar_user_id,
-                        "similarity": result.similarity,
-                        "entity": entity_id,
-                        "hint": f"User {similar_user_id} has similar preferences (similarity: {result.similarity:.2f})",
-                    })
+            if mupl:
+                all_users = mupl.get_all_users()
+                
+                for result in similar_users:
+                    similar_user_id = result.metadata.get("user_id", result.id)
+                    if similar_user_id != user_id and similar_user_id in all_users:
+                        user_prefs = all_users[similar_user_id].preferences
+                        # Extract entity-specific preference if exists
+                        entity_pref = user_prefs.get(entity_id) if user_prefs else None
+                        
+                        recommendations.append({
+                            "similar_user": similar_user_id,
+                            "similarity": result.similarity,
+                            "entity": entity_id,
+                            "preference": entity_pref,
+                            "hint": f"User {similar_user_id} prefers {entity_pref} (similarity: {result.similarity:.2f})",
+                        })
+            else:
+                # Fallback: return similarity-based hints
+                for result in similar_users:
+                    similar_user_id = result.metadata.get("user_id", result.id)
+                    if similar_user_id != user_id:
+                        recommendations.append({
+                            "similar_user": similar_user_id,
+                            "similarity": result.similarity,
+                            "entity": entity_id,
+                            "hint": f"User {similar_user_id} has similar preferences (similarity: {result.similarity:.2f})",
+                        })
                     
             return recommendations
             
@@ -610,3 +631,10 @@ def set_vector_client(
     if entry_id not in hass.data[DOMAIN]:
         hass.data[DOMAIN][entry_id] = {}
     hass.data[DOMAIN][entry_id][_VECTOR_CLIENT_KEY] = client
+
+# ==================== MUPL Integration ====================
+
+def get_mupl_module(hass: HomeAssistant) -> MultiUserPreferenceModule | None:
+    """Get the MUPL module from hass.data."""
+    from .multi_user_preferences import get_mupl_module as _get_mupl
+    return _get_mupl(hass)
