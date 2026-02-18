@@ -22,7 +22,8 @@ class TTLCache:
                 return None
             
             value, expires_at = self._cache[key]
-            if time.time() > expires_at:
+            current_time = time.time()
+            if current_time > expires_at:
                 del self._cache[key]
                 return None
             
@@ -30,9 +31,22 @@ class TTLCache:
             self._cache.move_to_end(key)
             return value
     
+    def _cleanup_expired(self) -> None:
+        """Remove all expired entries from cache."""
+        current_time = time.time()
+        keys_to_remove = [
+            key for key, (_, expires_at) in self._cache.items()
+            if current_time > expires_at
+        ]
+        for key in keys_to_remove:
+            del self._cache[key]
+    
     async def set(self, key: str, value: Any) -> None:
         """Set value in cache with TTL."""
         async with self._lock:
+            # Clean up expired entries to prevent memory leak
+            self._cleanup_expired()
+            
             # Remove oldest if at capacity
             if len(self._cache) >= self._max_size:
                 self._cache.popitem(last=False)
@@ -57,6 +71,13 @@ class TTLCache:
             keys_to_remove = [k for k in self._cache if k.startswith(prefix)]
             for key in keys_to_remove:
                 del self._cache[key]
+
+    def _cleanup_expired(self) -> None:
+        """Remove all expired entries from cache."""
+        now = time.time()
+        expired_keys = [k for k, (_, expires_at) in self._cache.items() if now > expires_at]
+        for key in expired_keys:
+            del self._cache[key]
 
 
 class EntityStateCache:
