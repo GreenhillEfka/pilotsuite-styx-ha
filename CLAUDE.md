@@ -6,14 +6,14 @@
 
 ## Projektueberblick
 
-**PilotSuite Core Add-on** (ehemals AI Home CoPilot Core) ist das Backend fuer die PilotSuite-Plattform. Es laeuft als Home Assistant Add-on auf Port **8099** und stellt eine Flask/Waitress REST-API bereit.
+**PilotSuite Core Add-on** (ehemals AI Home CoPilot Core) ist das Backend fuer die PilotSuite-Plattform. Es laeuft als Home Assistant Add-on auf Port **8909** und stellt eine Flask/Waitress REST-API bereit.
 
 Das Core Add-on implementiert die gesamte Intelligenz: Neural Pipeline, Brain Graph, Habitus Mining, Mood Engine, Candidate Management und mehr.
 
 - **Framework:** Flask (Web), Waitress (WSGI Server)
 - **Sprache:** Python 3.11+
 - **Deployment:** Home Assistant Add-on (Docker Container)
-- **Port:** 8099
+- **Port:** 8909
 - **Lizenz:** Privat, alle Rechte vorbehalten
 
 ---
@@ -172,7 +172,7 @@ addons/copilot_core/
 ### Neue Features (v0.9.0-alpha.1)
 
 - **PilotSuite Umbenennung**: Display-Namen aktualisiert
-- **Dockerfile Port-Fix**: 8909 korrigiert zu 8099
+- **Dockerfile Port-Fix**: 8909 korrigiert zu 8909
 - **Config durchreichen**: `_options` wird an `init_services(config=)` uebergeben
 - **NeuronManager Wiring**: Household + Webhook Callbacks verdrahtet
 - **Knowledge Graph/Vector/Neurons Blueprints**: Bereits in `blueprint.py` registriert
@@ -214,7 +214,7 @@ addons/copilot_core/
 - Standalone Blueprints mit `/api/v1/...` Prefix werden in `core_setup.register_blueprints()` registriert
 - Neue Services muessen in `init_services()` initialisiert und im services-Dict zurueckgegeben werden
 - Token-Validierung: `validate_token(request)` aus `api/security.py` verwenden
-- Port ist immer 8099 (Umgebungsvariable PORT)
+- Port ist immer 8909 (Umgebungsvariable PORT)
 - Persistenz unter `/data/` (HA Add-on Mount)
 - Tests mit pytest, Dateien in Repository-Root oder `/tests/`
 - Dokumentation in Deutsch bevorzugt

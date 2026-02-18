@@ -159,7 +159,7 @@ def create_app() -> Flask:
     @app.get("/health")
     def health():
         # Include the port env for easier ops/debugging.
-        return jsonify({"ok": True, "time": _now_iso(), "port": int(os.environ.get("PORT", "8099"))})
+        return jsonify({"ok": True, "time": _now_iso(), "port": int(os.environ.get("PORT", "8909"))})
 
     @app.get("/version")
     def version():
@@ -172,7 +172,7 @@ def create_app() -> Flask:
                 "ok": True,
                 "time": _now_iso(),
                 "version": cfg.version,
-                "port": int(os.environ.get("PORT", "8099")),
+                "port": int(os.environ.get("PORT", "8909")),
             }
         )
 

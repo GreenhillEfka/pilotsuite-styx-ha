@@ -7,7 +7,7 @@ Provides /v1/chat/completions and /v1/models endpoints compatible with:
 - Any OpenAI-compatible client
 
 Integration with HA:
-  Base URL: http://<addon-host>:8099/v1
+  Base URL: http://<addon-host>:8909/v1
   API Key:  (your auth_token or any non-empty string)
   Model:    lfm2.5-thinking (or any installed Ollama model)
 
@@ -539,8 +539,8 @@ def llm_status():
         "calls_this_hour": calls_this_hour,
         "max_calls_per_hour": MAX_CALLS_PER_HOUR,
         "characters": list(CONVERSATION_CHARACTERS.keys()),
-        "integration_url": f"http://[HOST]:8099/v1",
-        "integration_hint": "Use base_url=http://<addon-host>:8099/v1 in extended_openai_conversation",
+        "integration_url": f"http://[HOST]:8909/v1",
+        "integration_hint": "Use base_url=http://<addon-host>:8909/v1 in extended_openai_conversation",
     })
 
 

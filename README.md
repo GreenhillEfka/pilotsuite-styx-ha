@@ -8,7 +8,7 @@
 
 ## Architektur
 
-Dieses Repo ist das **PilotSuite Backend (Core Add-on)** -- es laeuft als Home Assistant Add-on auf Port **8099**.
+Dieses Repo ist das **PilotSuite Backend (Core Add-on)** -- es laeuft als Home Assistant Add-on auf Port **8909**.
 
 Die dazugehoerige **HACS-Integration** (Frontend, Sensoren, Dashboard Cards) ist ein separates Repo:
 [PilotSuite HACS Integration](https://github.com/GreenhillEfka/ai-home-copilot-ha)
@@ -18,7 +18,7 @@ Home Assistant
 +-- HACS Integration (ai_home_copilot)      <-- Frontend, 80+ Sensoren, 15+ Cards
 |     HTTP REST API (Token-Auth)
 |     v
-+-- Core Add-on (copilot_core) Port 8099    <-- Backend, Brain, Habitus, Mood Engine
++-- Core Add-on (copilot_core) Port 8909    <-- Backend, Brain, Habitus, Mood Engine
 ```
 
 ## Installation
@@ -31,7 +31,7 @@ Home Assistant
    https://github.com/GreenhillEfka/Home-Assistant-Copilot
    ```
 3. **AI Home CoPilot Core** installieren und starten
-4. Das Add-on läuft auf Port **8099**
+4. Das Add-on läuft auf Port **8909**
 
 ### 2. HACS Integration installieren
 
@@ -57,7 +57,7 @@ Erkennt wer zu Hause ist, attributiert Aktionen, lernt individuelle Präferenzen
 ### Sicherheit
 Token-Auth, PII-Redaktion, Bounded Storage, Rate Limiting, Idempotency-Key Deduplication, Source Allowlisting.
 
-## API-Übersicht (Port 8099)
+## API-Übersicht (Port 8909)
 
 | Modul | Endpoints | Beschreibung |
 |-------|-----------|-------------|
