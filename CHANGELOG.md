@@ -1,4 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
+
+## [0.15.1] - 2026-02-18
+
+### Features
+- **MUPL Integration in Vector Client**
+  - Vector Store Client nutzt jetzt echte Preferenzdaten von MUPL
+  - `get_user_similarity_recommendations()` liefert reale User-Präferenzen
+  - Fallback zu similarity-basierten Hints wenn MUPL nicht verfügbar
+
+### Fixed
+- **Logging**: print() → logger in transaction_log.py (Core Add-on)
+
+---
+
 ## [0.14.2] - 2026-02-18
 
 ### Performance
