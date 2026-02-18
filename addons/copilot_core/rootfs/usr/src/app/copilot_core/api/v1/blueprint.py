@@ -22,6 +22,7 @@ from copilot_core.knowledge_graph.api import bp as knowledge_graph_bp
 from copilot_core.api.v1.search import bp as search_bp
 from copilot_core.api.v1.notifications import bp as notifications_bp
 from copilot_core.api.v1.user_hints import bp as user_hints_bp
+from copilot_core.api.v1.conversation import conversation_bp
 
 # Phase 5: Cross-Home Sync and Collective Intelligence
 from copilot_core.sharing.api import sharing_bp
@@ -52,6 +53,9 @@ api_v1.register_blueprint(knowledge_graph_bp)
 api_v1.register_blueprint(search_bp)
 api_v1.register_blueprint(notifications_bp)
 api_v1.register_blueprint(user_hints_bp)
+
+# Extended OpenAI Conversation support
+api_v1.register_blueprint(conversation_bp)
 
 # Register Phase 5 APIs
 api_v1.register_blueprint(sharing_bp)
