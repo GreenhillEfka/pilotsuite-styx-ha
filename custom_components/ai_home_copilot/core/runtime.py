@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from ..const import DOMAIN, DATA_CORE, DATA_RUNTIME
-from .module import ModuleContext
+from .module import CopilotModule, ModuleContext
 from .registry import ModuleRegistry
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ class CopilotRuntime:
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
         self.registry = ModuleRegistry()
+        self._live_modules: dict[str, dict[str, CopilotModule]] = {}
 
     @classmethod
     def get(cls, hass: HomeAssistant) -> "CopilotRuntime":
@@ -37,20 +38,26 @@ class CopilotRuntime:
 
     async def async_setup_entry(self, entry: ConfigEntry, modules: Iterable[str]) -> None:
         ctx = ModuleContext(hass=self.hass, entry=entry)
+        entry_modules: dict[str, CopilotModule] = {}
         for name in modules:
             try:
                 mod = self.registry.create(name)
                 await mod.async_setup_entry(ctx)
+                entry_modules[name] = mod
             except Exception:
                 _LOGGER.exception("Module %s failed to set up — skipping", name)
+        self._live_modules[entry.entry_id] = entry_modules
 
     async def async_unload_entry(self, entry: ConfigEntry, modules: Iterable[str]) -> bool:
         ctx = ModuleContext(hass=self.hass, entry=entry)
-        # Unload in reverse order.
+        entry_modules = self._live_modules.pop(entry.entry_id, {})
         unload_ok = True
         for name in reversed(list(modules)):
+            mod = entry_modules.get(name)
+            if mod is None:
+                _LOGGER.debug("Module %s was not loaded — skip unload", name)
+                continue
             try:
-                mod = self.registry.create(name)
                 unload_ok = await mod.async_unload_entry(ctx) and unload_ok
             except Exception:
                 _LOGGER.exception("Module %s failed to unload", name)

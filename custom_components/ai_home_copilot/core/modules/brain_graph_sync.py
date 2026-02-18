@@ -77,6 +77,7 @@ class BrainGraphSyncModule(CopilotModule):
         self._batch_task: Optional[asyncio.Task] = None
         self._running = False
         self._entry_id: str = ""
+        self._listener_unsubs: list = []
         
     @property
     def sync_service(self) -> Optional[BrainGraphSyncService]:
@@ -135,7 +136,7 @@ class BrainGraphSyncModule(CopilotModule):
             await self._setup_neuron_listeners()
             
             # Start batch processing task
-            self._batch_task = asyncio.create_task(self._process_batch_queue())
+            self._batch_task = self._hass.async_create_task(self._process_batch_queue())
             
             self._running = True
             _LOGGER.info(
@@ -152,7 +153,12 @@ class BrainGraphSyncModule(CopilotModule):
         """Unload the Brain Graph sync module."""
         try:
             self._running = False
-            
+
+            # Cancel event listener subscriptions
+            for unsub in self._listener_unsubs:
+                unsub()
+            self._listener_unsubs.clear()
+
             # Cancel batch task
             if self._batch_task:
                 self._batch_task.cancel()
@@ -161,12 +167,12 @@ class BrainGraphSyncModule(CopilotModule):
                 except asyncio.CancelledError:
                     pass
                 self._batch_task = None
-            
+
             # Unload sync service
             if self._sync_service:
                 await unload_service(self._sync_service)
                 self._sync_service = None
-            
+
             # Remove from hass.data
             if (DOMAIN in self._hass.data and 
                 self._entry_id in self._hass.data[DOMAIN] and
@@ -182,17 +188,15 @@ class BrainGraphSyncModule(CopilotModule):
     
     async def _setup_neuron_listeners(self) -> None:
         """Set up listeners for neuron events."""
-        
-        @Event.filter
+
         async def on_activity_updated(event: Event) -> None:
             """Handle activity neuron updates."""
             if not self._sync_service:
                 return
-            
+
             data = event.data
             activity_level = data.get("activity_level", "idle")
-            
-            # Create activity node in brain graph
+
             node_data = {
                 "node_id": f"neuron:activity:{activity_level}",
                 "node_type": "context",
@@ -203,24 +207,22 @@ class BrainGraphSyncModule(CopilotModule):
                     "timestamp": data.get("timestamp", datetime.now(timezone.utc).isoformat()),
                 }
             }
-            
+
             await self._queue_node_update(node_data)
-            
+
             _LOGGER.debug(
-                "Activity neuron → Brain Graph: level=%s", 
+                "Activity neuron -> Brain Graph: level=%s",
                 activity_level
             )
-        
-        @Event.filter
+
         async def on_calendar_load_updated(event: Event) -> None:
             """Handle calendar load neuron updates."""
             if not self._sync_service:
                 return
-            
+
             data = event.data
             load_level = data.get("load_level", "free")
-            
-            # Create calendar load node
+
             node_data = {
                 "node_id": f"neuron:calendar_load:{load_level}",
                 "node_type": "context",
@@ -231,18 +233,22 @@ class BrainGraphSyncModule(CopilotModule):
                     "timestamp": data.get("timestamp", datetime.now(timezone.utc).isoformat()),
                 }
             }
-            
+
             await self._queue_node_update(node_data)
-            
+
             _LOGGER.debug(
-                "Calendar load neuron → Brain Graph: level=%s", 
+                "Calendar load neuron -> Brain Graph: level=%s",
                 load_level
             )
-        
-        # Register listeners
-        self._hass.bus.async_listen(SIGNAL_ACTIVITY_UPDATED, on_activity_updated)
-        self._hass.bus.async_listen(SIGNAL_CALENDAR_LOAD_UPDATED, on_calendar_load_updated)
-        
+
+        # Register listeners and store unsub handles for cleanup
+        self._listener_unsubs.append(
+            self._hass.bus.async_listen(SIGNAL_ACTIVITY_UPDATED, on_activity_updated)
+        )
+        self._listener_unsubs.append(
+            self._hass.bus.async_listen(SIGNAL_CALENDAR_LOAD_UPDATED, on_calendar_load_updated)
+        )
+
         _LOGGER.debug("Neuron listeners registered for brain graph sync")
     
     async def _queue_node_update(self, node_data: Dict[str, Any]) -> None:

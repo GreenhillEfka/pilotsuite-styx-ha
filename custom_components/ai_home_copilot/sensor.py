@@ -137,13 +137,16 @@ from .mobile_dashboard_cards import (
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if not isinstance(data, dict):
+        return
+    coordinator = data.get("coordinator")
+    if coordinator is None:
+        return
 
     entities = [
         CopilotVersionSensor(coordinator),
         CoreApiV1StatusSensor(coordinator, entry),
-        HabitusZonesCountSensor(coordinator, entry),
         # v2 Sensors
         HabitusZonesV2CountSensor(coordinator, entry),
         HabitusZonesV2StatesSensor(coordinator, entry),
@@ -265,11 +268,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         pass
 
     # User Preference sensors
-    user_pref_data = data.get("user_preference_module", {}) if isinstance(data, dict) else {}
+    user_pref_module = data.get("user_preference_module")
+    user_pref_data = {}
+    if user_pref_module is not None:
+        if isinstance(user_pref_module, dict):
+            user_pref_data = user_pref_module
+        elif hasattr(user_pref_module, "get_state"):
+            user_pref_data = user_pref_module.get_state() or {}
     if user_pref_data:
         entities.append(ZoneOccupancySensor(hass, entry, user_pref_data))
         entities.append(UserPresenceSensor(hass, entry, user_pref_data))
-        # Add per-user sensors
         for user_id in user_pref_data.get("users", {}).keys():
             entities.append(UserPreferenceSensor(hass, entry, user_pref_data, user_id))
 
