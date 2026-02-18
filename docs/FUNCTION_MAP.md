@@ -297,7 +297,7 @@ Predictive (2), Inspector (1), Core Neurons (16)
 2. In HA: Settings > Devices & Services > Add Integration > Extended OpenAI Conversation
 3. Configure:
    - **API Key:** Your `auth_token` from addon config (or any non-empty string if unconfigured)
-   - **Base URL:** `http://<addon-host>:8099/v1`
+   - **Base URL:** `http://<addon-host>:8909/v1`
 4. Options:
    - **Chat Model:** `lfm2.5-thinking` (or any installed model)
    - **Max Tokens:** 1024+
