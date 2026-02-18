@@ -21,7 +21,7 @@ from ..api.security import require_api_key
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-mood_bp = Blueprint('mood', __name__, url_prefix='/api/v1/mood')
+mood_bp = Blueprint('mood_svc', __name__, url_prefix='/api/v1/mood')
 
 # Global service instance (will be initialized in main.py)
 _mood_service: MoodService = None

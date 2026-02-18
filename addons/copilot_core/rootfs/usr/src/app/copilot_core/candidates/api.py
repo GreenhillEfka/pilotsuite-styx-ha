@@ -18,7 +18,7 @@ from .store import CandidateStore, CandidateState
 from ..api.security import require_api_key
 
 # Create blueprint
-candidates_bp = Blueprint('candidates', __name__, url_prefix='/api/v1/candidates')
+candidates_bp = Blueprint('candidates_svc', __name__, url_prefix='/api/v1/candidates')
 
 # Global store instance (will be initialized in main.py)
 _candidate_store: CandidateStore = None

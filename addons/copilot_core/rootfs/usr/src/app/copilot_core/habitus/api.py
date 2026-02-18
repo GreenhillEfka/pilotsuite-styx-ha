@@ -18,7 +18,7 @@ from ..brain_graph import BrainGraphService
 logger = logging.getLogger(__name__)
 
 # Create blueprint
-habitus_bp = Blueprint('habitus', __name__, url_prefix='/api/v1/habitus')
+habitus_bp = Blueprint('habitus_svc', __name__, url_prefix='/api/v1/habitus')
 
 # Global service instances (will be initialized in main.py)
 _habitus_service: HabitusService = None

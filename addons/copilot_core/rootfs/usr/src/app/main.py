@@ -36,15 +36,26 @@ Compress(app)
 app.config['COMPRESS_MIMETYPES'] = ['application/json', 'text/html']
 app.config['COMPRESS_LEVEL'] = 6  # Balance between compression ratio and CPU
 app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses > 500 bytes
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
 # Konfiguration aus /data/options.json laden und an Services durchreichen
 _options = _load_options_json()
 
 # Initialize all services (returns dict for potential testing/DI)
-_services = init_services(config=_options)
+import logging as _logging
+_main_logger = _logging.getLogger(__name__)
+
+try:
+    _services = init_services(config=_options)
+except Exception:
+    _main_logger.exception("CRITICAL: init_services failed — starting with empty services")
+    _services = {}
 
 # Register all API blueprints (pass services for tag system & global accessors)
-register_blueprints(app, _services)
+try:
+    register_blueprints(app, _services)
+except Exception:
+    _main_logger.exception("CRITICAL: register_blueprints failed")
 
 # In-memory ring buffer of recent dev logs.
 _DEV_LOG_CACHE: list[dict] = []

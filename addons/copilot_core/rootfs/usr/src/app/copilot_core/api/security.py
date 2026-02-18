@@ -1,29 +1,45 @@
 """Shared authentication helpers for API blueprints."""
 from __future__ import annotations
 
+import hmac
 import json
 import os
+import time
 from functools import wraps
 from typing import Any, Callable
 
-from flask import request as flask_request, jsonify
+from flask import g, request as flask_request, jsonify
 
 OPTIONS_PATH = "/data/options.json"
 
+# Token cache: (token_value, timestamp)
+_token_cache: tuple[str, float] = ("", 0.0)
+_TOKEN_CACHE_TTL = 60.0  # seconds
+
 
 def get_auth_token(options_path: str = OPTIONS_PATH) -> str:
-    """Return the configured shared token, if any."""
+    """Return the configured shared token, if any.
+
+    Uses a 60-second TTL cache to avoid disk reads on every request.
+    """
+    global _token_cache
+
+    now = time.monotonic()
+    cached_token, cached_at = _token_cache
+    if cached_token and (now - cached_at) < _TOKEN_CACHE_TTL:
+        return cached_token
 
     token = os.environ.get("COPILOT_AUTH_TOKEN", "").strip()
-    if token:
-        return token
+    if not token:
+        try:
+            with open(options_path, "r", encoding="utf-8") as fh:
+                opts: Any = json.load(fh) or {}
+            token = str(opts.get("auth_token", "")).strip()
+        except Exception:
+            token = ""
 
-    try:
-        with open(options_path, "r", encoding="utf-8") as fh:
-            opts: Any = json.load(fh) or {}
-        return str(opts.get("auth_token", "")).strip()
-    except Exception:
-        return ""
+    _token_cache = (token, now)
+    return token
 
 
 def is_auth_required(options_path: str = OPTIONS_PATH) -> bool:
@@ -74,13 +90,13 @@ def validate_token(request) -> bool:
         return False
 
     header_token = (request.headers.get("X-Auth-Token") or "").strip()
-    if header_token and header_token == token:
+    if header_token and hmac.compare_digest(header_token, token):
         return True
 
     auth_header = (request.headers.get("Authorization") or "").strip()
     if auth_header.startswith("Bearer "):
         candidate = auth_header.split(" ", 1)[1].strip()
-        if candidate == token:
+        if candidate and hmac.compare_digest(candidate, token):
             return True
 
     return False
@@ -101,11 +117,13 @@ def require_token(f: Callable) -> Callable:
 
 
 def optional_token(f: Callable) -> Callable:
-    """Decorator for endpoints that work with or without token."""
+    """Decorator for endpoints that work with or without token.
+
+    Sets ``flask.g.token_valid`` so the handler can branch on auth status.
+    """
     @wraps(f)
     def decorated_function(*args: Any, **kwargs: Any) -> Any:
-        # Always allow, but provide token status in request
-        request = kwargs.get('request') or (args[0] if args else None)
+        g.token_valid = validate_token(flask_request)
         return f(*args, **kwargs)
     return decorated_function
 

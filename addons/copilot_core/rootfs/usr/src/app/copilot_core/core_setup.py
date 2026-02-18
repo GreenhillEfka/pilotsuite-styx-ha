@@ -4,6 +4,7 @@ Core Setup - Service initialization and blueprint registration.
 Extracted from main.py to follow modular architecture pattern.
 """
 
+import logging
 from flask import Flask
 
 from copilot_core.api.v1 import log_fixer_tx
@@ -37,114 +38,170 @@ from copilot_core.webhook_pusher import WebhookPusher
 from copilot_core.household import HouseholdProfile
 from copilot_core.neurons.manager import NeuronManager
 
+_LOGGER = logging.getLogger(__name__)
+
+
+def _safe_int(value, default: int, minimum: int = 1) -> int:
+    """Parse an int config value with bounds checking."""
+    try:
+        return max(minimum, int(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_float(value, default: float, minimum: float = 0.0) -> float:
+    """Parse a float config value with bounds checking."""
+    try:
+        return max(minimum, float(value))
+    except (TypeError, ValueError):
+        return default
+
 
 def init_services(hass=None, config: dict = None):
     """
     Initialize all core services and return them as a dict for testing/dependency injection.
-    
-    Args:
-        hass: Home Assistant hass instance (required for SystemHealth, UniFi, Energy)
-        config: Optional configuration dict from add-on options
-    
-    Returns:
-        dict: Dictionary containing initialized services:
-            - system_health_service: SystemHealthService instance (optional, requires hass)
-            - unifi_service: UniFiService instance (optional, requires hass)
-            - energy_service: EnergyService instance (optional, requires hass)
-            - brain_graph_service: BrainGraphService instance
-            - graph_renderer: GraphRenderer instance
-            - candidate_store: CandidateStore instance
-            - habitus_service: HabitusService instance
-            - mood_service: MoodService instance
-            - event_processor: EventProcessor instance
+
+    Each service block is wrapped in try/except so a single failure does not
+    prevent the remaining services from starting.
     """
+    services: dict = {
+        "system_health_service": None,
+        "unifi_service": None,
+        "energy_service": None,
+        "brain_graph_service": None,
+        "graph_renderer": None,
+        "candidate_store": None,
+        "habitus_service": None,
+        "mood_service": None,
+        "event_processor": None,
+        "tag_registry": None,
+        "webhook_pusher": None,
+        "household_profile": None,
+        "neuron_manager": None,
+    }
+
     # Initialize system health service (requires hass)
-    system_health_service = None
-    if hass:
-        system_health_service = SystemHealthService(hass)
+    try:
+        if hass:
+            services["system_health_service"] = SystemHealthService(hass)
+    except Exception:
+        _LOGGER.exception("Failed to init SystemHealthService")
 
     # Initialize UniFi service (requires hass)
-    unifi_service = None
-    if hass:
-        unifi_service = UniFiService(hass)
+    try:
+        if hass:
+            services["unifi_service"] = UniFiService(hass)
+    except Exception:
+        _LOGGER.exception("Failed to init UniFiService")
 
     # Initialize energy service (requires hass)
-    energy_service = None
-    if hass:
-        energy_service = EnergyService(hass)
+    try:
+        if hass:
+            services["energy_service"] = EnergyService(hass)
+    except Exception:
+        _LOGGER.exception("Failed to init EnergyService")
 
-    # Parse Brain Graph configuration
-    bg_config = config.get("brain_graph", {}) if config else {}
-    brain_graph_service = BrainGraphService(
-        store=GraphStore(
-            max_nodes=bg_config.get("max_nodes", 500),
-            max_edges=bg_config.get("max_edges", 1500),
-            node_min_score=bg_config.get("node_min_score", 0.1),
-            edge_min_weight=bg_config.get("edge_min_weight", 0.1)
-        ),
-        node_half_life_hours=bg_config.get("node_half_life_hours", 24.0),
-        edge_half_life_hours=bg_config.get("edge_half_life_hours", 12.0)
-    )
-    graph_renderer = GraphRenderer()
-    init_brain_graph_api(brain_graph_service, graph_renderer)
+    # Parse Brain Graph configuration with validation
+    try:
+        bg_config = config.get("brain_graph", {}) if config else {}
+        brain_graph_service = BrainGraphService(
+            store=GraphStore(
+                max_nodes=_safe_int(bg_config.get("max_nodes", 500), 500, 1),
+                max_edges=_safe_int(bg_config.get("max_edges", 1500), 1500, 1),
+                node_min_score=_safe_float(bg_config.get("node_min_score", 0.1), 0.1),
+                edge_min_weight=_safe_float(bg_config.get("edge_min_weight", 0.1), 0.1)
+            ),
+            node_half_life_hours=_safe_float(bg_config.get("node_half_life_hours", 24.0), 24.0, 0.1),
+            edge_half_life_hours=_safe_float(bg_config.get("edge_half_life_hours", 12.0), 12.0, 0.1)
+        )
+        services["brain_graph_service"] = brain_graph_service
+        services["graph_renderer"] = GraphRenderer()
+        init_brain_graph_api(brain_graph_service, services["graph_renderer"])
+    except Exception:
+        _LOGGER.exception("Failed to init BrainGraphService")
 
     # Initialize dev surface
-    init_dev_surface_api(brain_graph_service)
+    try:
+        if services["brain_graph_service"]:
+            init_dev_surface_api(services["brain_graph_service"])
+    except Exception:
+        _LOGGER.exception("Failed to init DevSurface")
 
     # Initialize candidates API and store
-    candidate_store = CandidateStore()
-    init_candidates_api(candidate_store)
+    try:
+        candidate_store = CandidateStore()
+        services["candidate_store"] = candidate_store
+        init_candidates_api(candidate_store)
+    except Exception:
+        _LOGGER.exception("Failed to init CandidateStore")
 
     # Initialize habitus service and API
-    habitus_service = HabitusService(brain_graph_service, candidate_store)
-    init_habitus_api(habitus_service)
+    try:
+        if services["brain_graph_service"] and services["candidate_store"]:
+            habitus_service = HabitusService(services["brain_graph_service"], services["candidate_store"])
+            services["habitus_service"] = habitus_service
+            init_habitus_api(habitus_service)
+    except Exception:
+        _LOGGER.exception("Failed to init HabitusService")
 
     # Initialize mood service and API
-    mood_service = MoodService()
-    init_mood_api(mood_service)
+    try:
+        mood_service = MoodService()
+        services["mood_service"] = mood_service
+        init_mood_api(mood_service)
+    except Exception:
+        _LOGGER.exception("Failed to init MoodService")
 
     # Initialize event processor: EventStore → BrainGraph pipeline
-    event_processor = EventProcessor(brain_graph_service=brain_graph_service)
-    set_post_ingest_callback(event_processor.process_events)
+    try:
+        if services["brain_graph_service"]:
+            event_processor = EventProcessor(brain_graph_service=services["brain_graph_service"])
+            services["event_processor"] = event_processor
+            set_post_ingest_callback(event_processor.process_events)
+    except Exception:
+        _LOGGER.exception("Failed to init EventProcessor")
 
     # Initialize Tag System v0.2 (Decision Matrix 2026-02-14)
-    tag_registry = TagRegistry()
+    try:
+        services["tag_registry"] = TagRegistry()
+    except Exception:
+        _LOGGER.exception("Failed to init TagRegistry")
 
     # Initialize Webhook Pusher
-    webhook_url = config.get("webhook_url", "") if config else ""
-    webhook_token = config.get("webhook_token", "") if config else ""
-    webhook_pusher = WebhookPusher(webhook_url, webhook_token)
+    try:
+        webhook_url = config.get("webhook_url", "") if config else ""
+        webhook_token = config.get("webhook_token", "") if config else ""
+        services["webhook_pusher"] = WebhookPusher(webhook_url, webhook_token)
+    except Exception:
+        _LOGGER.exception("Failed to init WebhookPusher")
 
     # Initialize Household Profile
-    household_config = config.get("household", {}) if config else {}
-    household_profile = HouseholdProfile.from_config(household_config)
+    try:
+        household_config = config.get("household", {}) if config else {}
+        services["household_profile"] = HouseholdProfile.from_config(household_config)
+    except Exception:
+        _LOGGER.exception("Failed to init HouseholdProfile")
 
-    # NeuronManager: Household-Profil setzen und Webhook-Callbacks registrieren
-    neuron_manager = NeuronManager()
-    neuron_manager.set_household(household_profile)
-    if webhook_pusher.enabled:
-        neuron_manager.on_mood_change(
-            lambda mood, conf: webhook_pusher.push_mood_changed(mood, conf)
-        )
-        neuron_manager.on_suggestion(
-            lambda suggestion: webhook_pusher.push_suggestion(suggestion)
-        )
+    # NeuronManager: Household-Profil setzen, configure_from_ha, und Webhook-Callbacks registrieren
+    try:
+        neuron_config = config.get("neurons", {}) if config else {}
+        neuron_manager = NeuronManager()
+        if services["household_profile"]:
+            neuron_manager.set_household(services["household_profile"])
+        neuron_manager.configure_from_ha({}, neuron_config)
+        webhook_pusher = services.get("webhook_pusher")
+        if webhook_pusher and webhook_pusher.enabled:
+            neuron_manager.on_mood_change(
+                lambda mood, conf: webhook_pusher.push_mood_changed(mood, conf)
+            )
+            neuron_manager.on_suggestion(
+                lambda suggestion: webhook_pusher.push_suggestion(suggestion)
+            )
+        services["neuron_manager"] = neuron_manager
+    except Exception:
+        _LOGGER.exception("Failed to init NeuronManager")
 
-    return {
-        "system_health_service": system_health_service,
-        "unifi_service": unifi_service,
-        "energy_service": energy_service,
-        "brain_graph_service": brain_graph_service,
-        "graph_renderer": graph_renderer,
-        "candidate_store": candidate_store,
-        "habitus_service": habitus_service,
-        "mood_service": mood_service,
-        "event_processor": event_processor,
-        "tag_registry": tag_registry,
-        "webhook_pusher": webhook_pusher,
-        "household_profile": household_profile,
-        "neuron_manager": neuron_manager,
-    }
+    return services
 
 
 def register_blueprints(app: Flask, services: dict = None) -> None:
