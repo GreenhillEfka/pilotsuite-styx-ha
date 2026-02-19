@@ -1,5 +1,14 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.8.1] - 2026-02-19
+
+### Startup Reliability Patch
+
+- **Coordinator safety** — `binary_sensor.py`, `button.py`, `number.py`, `knowledge_graph_entities.py`
+  all used unsafe `data["coordinator"]` direct dict access. Changed to `.get("coordinator")` with
+  a guarded early-return and error log. Prevents `KeyError` if coordinator is not yet available
+  during platform setup ordering.
+
 ## [3.8.0] - 2026-02-19
 
 ### Persistent State — Alerts & Mining Buffer

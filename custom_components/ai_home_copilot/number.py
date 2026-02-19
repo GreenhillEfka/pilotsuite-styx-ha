@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     CONF_SEED_MAX_OFFERS_PER_HOUR,
@@ -62,7 +66,10 @@ class _BaseConfigNumber(CopilotBaseEntity, NumberEntity):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
+    coordinator = data.get("coordinator")
+    if coordinator is None:
+        _LOGGER.error("Coordinator not available for %s, skipping number setup", entry.entry_id)
+        return
 
     entities = [
         _BaseConfigNumber(

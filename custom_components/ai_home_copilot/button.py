@@ -1,8 +1,12 @@
 """AI Home CoPilot Buttons (wrapper for backward compatibility)."""
 from __future__ import annotations
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     CONF_TEST_LIGHT,
@@ -30,7 +34,10 @@ from .button_media import (
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
+    coordinator = data.get("coordinator")
+    if coordinator is None:
+        _LOGGER.error("Coordinator not available for %s, skipping button setup", entry.entry_id)
+        return
     cfg = entry.data | entry.options
     
     entities = [
