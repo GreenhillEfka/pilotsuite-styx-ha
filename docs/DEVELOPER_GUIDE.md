@@ -1,571 +1,437 @@
-# AI Home CoPilot Developer Guide
+# PilotSuite HACS Integration -- Entwickler- und Contributing-Guide
 
-## Table of Contents
-
-- [Getting Started](#getting-started)
-- [Architecture Overview](#architecture-overview)
-- [Setting Up Development Environment](#setting-up-development-environment)
-- [Coding Standards](#coding-standards)
-- [Adding New Features](#adding-new-features)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [Release Process](#release-process)
+> Dieses Dokument richtet sich an Entwickler, die an der PilotSuite HACS Integration mitarbeiten moechten. Es beschreibt Umgebung, CI, Tests, Architektur-Patterns und haeufige Stolperfallen.
 
 ---
 
-## Getting Started
+## 1. Entwicklungsumgebung
 
-### Repository Structure
+### Voraussetzungen
 
-```
-ai-home-copilot-ha/              # Home Assistant Integration
-├── custom_components/
-│   └── ai_home_copilot/
-│       ├── __init__.py           # Integration entry point
-│       ├── manifest.json         # Integration metadata
-│       ├── const.py              # Constants and configuration keys
-│       ├── config_flow.py        # Configuration UI
-│       ├── core/                 # Core logic
-│       │   ├── runtime.py        # Module orchestrator
-│       │   └── modules/          # Individual modules
-│       ├── services_setup.py     # Service registration
-│       ├── blueprints.py         # Blueprint management
-│       ├── repairs.py            # Repair system integration
-│       └── tests/
+- **Python 3.11+** (die CI testet gegen 3.11)
+- **Home Assistant Development Environment** -- entweder ein laufendes HA-Dev-Setup oder `homeassistant` als pip-Abhaengigkeit fuer Type Checking
+- **pytest**, **pytest-asyncio**, **pytest-cov** fuer Tests
+- **bandit** fuer Security-Scans (optional lokal)
 
-Home-Assistant-Copilot/          # Core Add-on
-├── addons/
-│   └── copilot_core/
-│       ├── manifest.json         # Add-on metadata
-│       └── rootfs/
-│           └── usr/
-│               └── src/
-│                   └── app/
-│                       ├── main.py               # Flask app entry
-│                       ├── app.py                # Core application
-│                       ├── routes/               # API routes
-│                       └── copilot_core/         # Core modules
-├── sdk/                          # Language SDKs
-│   ├── python/                   # Python SDK
-│   └── typescript/               # TypeScript SDK
-├── docs/                         # Documentation
-│   ├── API.md                    # API reference
-│   ├── ARCHITECTURE.md           # Architecture overview
-│   └── openapi.yaml              # OpenAPI specification
-└── tests/
-```
-
-### Key Concepts
-
-1. **Modular Architecture**: Each feature is a separate module that can be enabled/disabled
-2. **Event-Driven**: System responds to Home Assistant events
-3. **Privacy-First**: No external data sharing, all processing local
-4. **Governance-First**: User must explicitly confirm automation suggestions
-
----
-
-## Architecture Overview
-
-### Module System
-
-Modules are the building blocks of the integration. Each module handles a specific concern:
-
-```python
-# Module lifecycle
-1. Registration: Module registers itself with the runtime
-2. Setup: Module sets up its components (sensors, services, etc.)
-3. Operation: Module processes events and provides functionality
-4. Cleanup: Module cleans up resources on shutdown
-
-# Example module structure
-custom_components/ai_home_copilot/core/modules/
-├── __init__.py
-├── base.py                       # Base module class
-├── habitus_miner.py             # Pattern mining module
-├── brain_graph_sync.py          # Graph synchronization
-└── mood_context.py              # Mood context module
-```
-
-### Core Runtime
-
-The runtime orchestrates all modules:
-
-```python
-# custom_components/ai_home_copilot/core/runtime.py
-
-class CopilotRuntime:
-    """Orchestrates all modules and coordinates their operation."""
-    
-    def __init__(self, hass: HomeAssistant):
-        self.hass = hass
-        self.registry = ModuleRegistry()
-        self.coordinator = DataUpdateCoordinator(...)
-    
-    async def async_setup_entry(self, entry: ConfigEntry, modules: list[str]):
-        """Set up all registered modules."""
-        for module_name in modules:
-            module = self.registry.get(module_name)
-            await module.async_setup()
-```
-
-### Data Flow
-
-```
-HA Event Bus
-    │
-    ▼
-EventsForwarderModule
-    │
-    ▼
-POST /api/v1/events (Core)
-    │
-    ├─▶ Event Store (JSONL)
-    ├─▶ Brain Graph
-    ├─▶ Pattern Mining
-    └─▶ Candidate Generator
-```
-
----
-
-## Setting Up Development Environment
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- Home Assistant Dev container or local dev environment
-- Git
-
-### Integration Development (HA)
+### Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/GreenhillEfka/ai-home-copilot-ha.git
+# Repo klonen
+git clone https://github.com/<org>/ai-home-copilot-ha.git
 cd ai-home-copilot-ha
 
-# Create virtual environment
-python -m venv venv
+# Virtuelle Umgebung erstellen
+python3.11 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
-pip install -e ".[dev]"
+# Test-Abhaengigkeiten installieren
+pip install pytest pytest-asyncio pytest-cov
 
-# Install Home Assistant dev requirements
-pip install homeassistant
+# Optional: Security-Scanner
+pip install bandit
 ```
 
-### Core Add-on Development
+### Verzeichnisstruktur
 
-```bash
-# Clone repository
-git clone https://github.com/GreenhillEfka/Home-Assistant-Copilot.git
-cd Home-Assistant-Copilot/addons/copilot_core/rootfs/usr/src/app
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install Node dependencies (if needed)
-npm install
 ```
-
-### Docker Development
-
-```bash
-# Build dev image
-docker build -t copilot-core:dev .
-
-# Run container with volume mounts
-docker run -it --rm \
-  --name copilot-core-dev \
-  -p 8909:8909 \
-  -v $(pwd):/usr/src/app \
-  -v /path/to/data:/data \
-  copilot-core:dev
-```
-
-### Home Assistant Dev Container
-
-```bash
-# Clone HA dev container
-git clone https://github.com/home-assistant/home-assistant.git
-cd home-assistant
-
-# Add integration to custom components
-ln -s /path/to/ai-home-copilot-ha/custom_components/ai_home_copilot \
-      custom_components/
+ai-home-copilot-ha/
++-- custom_components/ai_home_copilot/
+|   +-- __init__.py              # Integration Setup
+|   +-- coordinator.py           # DataUpdateCoordinator + API Client
+|   +-- entity.py                # CopilotBaseEntity Basisklasse
+|   +-- const.py                 # Konstanten, DOMAIN, Config Keys
+|   +-- config_flow.py           # Config + Options Flow
+|   +-- core/
+|   |   +-- runtime.py           # CopilotRuntime -- Modul-Lifecycle
+|   |   +-- module.py            # CopilotModule Protocol
+|   |   +-- registry.py          # ModuleRegistry
+|   +-- sensors/                 # Sensor-Entities
+|   +-- translations/            # en.json, de.json
+|   +-- strings.json             # Config-Flow-Strings (Quelle der Wahrheit)
+|   +-- manifest.json            # HA Manifest
++-- tests/                       # pytest Test-Suite
++-- pytest.ini                   # pytest-Konfiguration
++-- .github/workflows/ci.yml     # CI Pipeline
++-- hacs.json                    # HACS Metadaten
 ```
 
 ---
 
-## Coding Standards
+## 2. CI Pipeline
 
-### Python Style Guide
+Die CI (``.github/workflows/ci.yml``) laeuft bei jedem Push und Pull Request. Sie besteht aus **5 Jobs**, die alle bestanden werden muessen, bevor ein Release gueltig ist:
 
-```python
-# Follow PEP 8
-- 4 spaces per indentation
-- Maximum line length: 100 characters
-- Use type hints
-- Docstrings for all public functions
+| Job | Tool | Beschreibung |
+|-----|------|--------------|
+| **lint** | `py_compile` | Syntax-Check aller Python-Dateien + JSON-Validierung von `strings.json` und `translations/en.json` |
+| **pytest** | `pytest` | Vollstaendige Test-Suite mit Coverage-Report (haengt von lint ab) |
+| **security** | `bandit` | Security-Scan, Schweregrad Low+Low, ueberspringt B101/B404/B603 |
+| **hacs** | `hacs/action@main` | HACS-Validierung (Struktur, manifest.json, hacs.json) |
+| **hassfest** | `home-assistant/actions/hassfest@master` | Home-Assistant-Validierung (manifest, strings, services, config_flow Konsistenz) |
 
-# Naming conventions
-- Classes: PascalCase
-- Functions/variables: snake_case
-- Constants: UPPERCASE
-- Private: _leading_underscore
+### Abhaengigkeiten zwischen Jobs
 
-# Error handling
-try:
-    result = expensive_operation()
-except (ValueError, RuntimeError) as err:
-    _LOGGER.error("Operation failed: %s", err)
-    raise HomeAssistantError("Failed to complete operation") from err
+```
+lint --> pytest
+lint --> security
+lint --> hacs --> hassfest
 ```
 
-### Module Template
+**Wichtig:** hassfest validiert, dass `strings.json` exakt zur Struktur des ConfigFlow passt. Wenn der ConfigFlow Menues verwendet (`async_show_menu`), muessen in `strings.json` die `menu_options` definiert sein -- nicht `data`. Umgekehrt brauchen Formulare (`async_show_form`) einen `data`-Block. Jede Abweichung laesst hassfest fehlschlagen.
+
+---
+
+## 3. Tests
+
+### Konfiguration
+
+Die Datei `pytest.ini` definiert:
+
+```ini
+[pytest]
+asyncio_mode = auto
+testpaths = tests
+pythonpath = .
+markers =
+    unit: Unit tests ohne HA-Abhaengigkeit
+    integration: Integration tests mit HA-Framework
+    asyncio: mark test as async
+```
+
+### Tests ausfuehren
+
+```bash
+# Vollstaendige Suite mit Verbose-Output
+python -m pytest tests/ -v
+
+# Mit Coverage
+python -m pytest tests/ -v --tb=short \
+  --cov=custom_components/ai_home_copilot \
+  --cov-report=term-missing
+
+# Einzelne Testdatei
+python -m pytest tests/test_forwarder_n3.py -v
+
+# Nur Unit-Tests
+python -m pytest tests/unit/ -v
+```
+
+### Test-Patterns
+
+- **Unit-Tests** (`tests/unit/`): Keine HA-Abhaengigkeit, testen isolierte Logik
+- **Integration-Tests** (`tests/integration/` und `tests/test_*.py`): Verwenden HA-Mocks, testen Zusammenspiel mit dem Framework
+- Async-Tests funktionieren dank `asyncio_mode = auto` automatisch -- kein `@pytest.mark.asyncio` noetig
+- Gemeinsame Fixtures liegen in `tests/conftest.py`
+
+---
+
+## 4. Neues Modul erstellen
+
+Module implementieren das `CopilotModule`-Protocol aus `core/module.py`:
 
 ```python
-# custom_components/ai_home_copilot/core/modules/my_feature.py
+@runtime_checkable
+class CopilotModule(Protocol):
+    @property
+    def name(self) -> str: ...
 
-"""My Feature Module."""
+    async def async_setup_entry(self, ctx: ModuleContext) -> None: ...
 
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool: ...
+```
+
+### Schritt-fuer-Schritt
+
+1. **Modul-Klasse erstellen** -- z.B. `custom_components/ai_home_copilot/mein_modul.py`:
+
+```python
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-
-from .base import CopilotModule
-from .const import DOMAIN
-
-class MyFeatureModule(CopilotModule):
-    """Module for my feature."""
-    
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize the module."""
-        super().__init__(hass, entry)
-        self._name = "my_feature"
-        self._platforms = [Platform.SENSOR]
-    
-    async def async_setup(self) -> bool:
-        """Set up the module."""
-        if not await super().async_setup():
-            return False
-        
-        # Register services
-        self.hass.services.async_register(
-            DOMAIN, "my_service", self._handle_my_service
-        )
-        
-        # Setup sensors
-        self.async_add_entities([MyFeatureSensor(self.hass)])
-        
-        return True
-    
-    async def async_unload(self) -> bool:
-        """Unload the module."""
-        # Remove services
-        self.hass.services.async_remove(DOMAIN, "my_service")
-        
-        return await super().async_unload()
-    
-    async def _handle_my_service(self, call) -> None:
-        """Handle service call."""
-        # Service implementation
-        pass
-```
-
-### Type Hints
-
-```python
-from typing import Optional, List, Dict, Any
-
-async def process_events(
-    events: list[dict[str, Any]],
-    config: dict[str, Any],
-    timeout: int = 30
-) -> dict[str, Any]:
-    """Process events and return results."""
-    # Implementation
-    pass
-```
-
-### Logging
-
-```python
 import logging
+
+from .core.module import CopilotModule, ModuleContext
 
 _LOGGER = logging.getLogger(__name__)
 
-# Use appropriate log levels
-_LOGGER.debug("Detailed debug info")
-_LOGGER.info("Informational message")
-_LOGGER.warning("Warning condition")
-_LOGGER.error("Error condition")
-_LOGGER.critical("Critical error")
-```
 
----
+class MeinModul:
+    """Beispiel-Modul."""
 
-## Adding New Features
+    @property
+    def name(self) -> str:
+        return "mein_modul"
 
-### Step 1: Plan Your Feature
+    async def async_setup_entry(self, ctx: ModuleContext) -> None:
+        _LOGGER.info("MeinModul gestartet")
+        # Initialisierung hier
 
-1. Define the feature scope
-2. Identify required modules
-3. Design data structures
-4. Plan API endpoints (if Core changes needed)
-
-### Step 2: Create Module
-
-1. Create module file in `core/modules/`
-2. Implement `CopilotModule` base class
-3. Add configuration options
-4. Implement setup/teardown methods
-
-### Step 3: Add Core API (if needed)
-
-1. Create route handler in `routes/`
-2. Implement data models
-3. Add tests
-4. Update OpenAPI spec
-
-### Step 4: Update Documentation
-
-1. Add API documentation
-2. Update architecture diagrams
-3. Add usage examples
-
-### Example: Adding a New Feature
-
-```python
-# custom_components/ai_home_copilot/core/modules/my_feature.py
-
-from __future__ import annotations
-
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-
-from .base import CopilotModule
-from .const import DOMAIN
-
-class MyFeatureModule(CopilotModule):
-    """My Feature Module."""
-    
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        super().__init__(hass, entry)
-        self._name = "my_feature"
-    
-    async def async_setup(self) -> bool:
-        """Set up the module."""
-        # Your setup code
-        return True
-    
-    async def async_unload(self) -> bool:
-        """Unload the module."""
-        # Your cleanup code
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+        _LOGGER.info("MeinModul entladen")
+        # Cleanup hier (Listener entfernen, Tasks abbrechen)
         return True
 ```
 
+2. **Im Registry registrieren** -- In der Stelle, wo Module registriert werden (ueber `CopilotRuntime.registry.register()`):
+
+```python
+runtime = CopilotRuntime.get(hass)
+runtime.registry.register("mein_modul", MeinModul)
+```
+
+3. **Sensoren hinzufuegen** -- Neue Datei in `sensors/` erstellen. Alle Sensor-Entities muessen von `CopilotBaseEntity` erben:
+
+```python
+from ..entity import CopilotBaseEntity
+
+class MeinSensor(CopilotBaseEntity):
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = "ai_home_copilot_mein_sensor"
+        self._attr_name = "Mein Sensor"
+
+    @property
+    def native_value(self):
+        return self.coordinator.data.get("mein_wert")
+```
+
+4. **unique_id-Konvention:** Immer mit `ai_home_copilot_` prefixen. IDs muessen global eindeutig sein.
+
+5. **Tests schreiben** -- Mindestens ein Test in `tests/` fuer das neue Modul.
+
 ---
 
-## Testing
+## 5. Config Flow aendern
 
-### Integration Tests
+Der Config Flow ist aufgeteilt in mehrere Dateien:
 
-```python
-# tests/test_my_feature.py
+- `config_flow.py` -- Haupt-ConfigFlow-Klasse (duenn, delegiert)
+- `config_helpers.py` -- Hilfsfunktionen, Konstanten
+- `config_schema_builders.py` -- Schema-Builder
+- `config_wizard_steps.py` -- Wizard-Schritte
+- `config_options_flow.py` -- OptionsFlowHandler
+- `config_zones_flow.py` -- Zonen-Management
 
-"""Tests for My Feature module."""
+### strings.json-Struktur muss zum ConfigFlow passen
 
-from unittest.mock import AsyncMock, MagicMock, patch
+Das ist die haeufigste Fehlerquelle. hassfest prueft, dass jeder Step in `config_flow.py` korrekt in `strings.json` abgebildet ist:
 
-import pytest
+- **Menue-Steps** (`async_show_menu`) brauchen `menu_options`:
+  ```json
+  "user": {
+    "title": "...",
+    "description": "...",
+    "menu_options": {
+      "zero_config": "Zero Config",
+      "quick_start": "Quick Start",
+      "manual_setup": "Manual Setup"
+    }
+  }
+  ```
 
-from custom_components.ai_home_copilot.core.modules.my_feature import MyFeatureModule
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
+- **Formular-Steps** (`async_show_form`) brauchen `data`:
+  ```json
+  "manual_setup": {
+    "title": "...",
+    "description": "...",
+    "data": {
+      "host": "Host",
+      "port": "Port"
+    }
+  }
+  ```
 
-@pytest.fixture
-def mock_hass():
-    """Create a mock Home Assistant instance."""
-    hass = MagicMock(spec=HomeAssistant)
-    hass.data = {}
-    return hass
+### Checkliste bei Aenderungen
 
-@pytest.fixture
-def mock_entry():
-    """Create a mock config entry."""
-    entry = MagicMock(spec=ConfigEntry)
-    entry.entry_id = "test_entry"
-    entry.options = {}
-    entry.data = {}
-    return entry
+1. Step in `config_flow.py` (oder Unter-Dateien) aendern
+2. `strings.json` aktualisieren -- Struktur muss exakt zum Step-Typ passen
+3. `translations/en.json` synchronisieren -- muss dieselbe Struktur haben
+4. Lokal testen: `python -m py_compile custom_components/ai_home_copilot/config_flow.py`
+5. JSON validieren: `python -c "import json; json.load(open('custom_components/ai_home_copilot/strings.json'))"`
+6. hassfest laeuft in der CI und wird Abweichungen sofort melden
 
-@pytest.mark.asyncio
-async def test_module_setup(mock_hass, mock_entry):
-    """Test module setup."""
-    module = MyFeatureModule(mock_hass, mock_entry)
-    result = await module.async_setup()
-    assert result is True
-```
+---
 
-### Core API Tests
+## 6. Release-Prozess
 
-```python
-# tests/test_my_feature_api.py
+### Ablauf
 
-import pytest
-from app import app
+1. **Feature-Branch erstellen** vom aktuellen `main`
+2. **Entwickeln und testen** (lokal + CI)
+3. **Pull Request** gegen `main` oeffnen
+4. **CI muss komplett gruen sein** -- besonders hassfest, da fehlende strings.json-Eintraege den Release blockieren
+5. **PR mergen** nach Review
+6. **CHANGELOG.md aktualisieren** mit den Aenderungen des neuen Release
+7. **GitHub Release erstellen** mit Tag `vX.Y.Z`
 
-@pytest.fixture
-def client():
-    """Create test client."""
-    app.config["TESTING"] = True
-    with app.test_client() as client:
-        yield client
+### Warum der GitHub Release wichtig ist
 
-def test_get_status(client):
-    """Test status endpoint."""
-    response = client.get("/api/v1/habitus/status")
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data["status"] == "ok"
-```
-
-### Running Tests
+HACS erkennt neue Versionen ausschliesslich ueber GitHub Release Tags. Ohne einen Release mit Tag `vX.Y.Z` wird das Update nicht an Nutzer ausgeliefert, auch wenn der Code auf `main` liegt.
 
 ```bash
-# Integration tests
-cd ai-home-copilot-ha
-python -m pytest tests/
-
-# Core API tests
-cd Home-Assistant-Copilot/addons/copilot_core/rootfs/usr/src/app
-python -m pytest tests/
+# Release erstellen (nach PR-Merge und git pull)
+gh release create v3.9.0 --title "v3.9.0" --notes "Release notes hier"
 ```
+
+### Versionierung
+
+- Semantic Versioning: `vMAJOR.MINOR.PATCH`
+- Breaking Changes erhoehen MAJOR
+- Neue Features erhoehen MINOR
+- Bugfixes erhoehen PATCH
 
 ---
 
-## Contributing
+## 7. Code-Konventionen
 
-### Pull Request Checklist
+### Domain
 
-- [ ] Code follows style guide
-- [ ] Type hints included
-- [ ] Docstrings added
-- [ ] Tests passing
-- [ ] Documentation updated
-- [ ] Changelog updated
+Die technische Domain ist und bleibt **`ai_home_copilot`**. Auch nach der Umbenennung zu PilotSuite aendert sich die Domain nicht, da bestehende Installationen sonst brechen wuerden.
 
-### Commit Message Format
+### Entity-Basisklasse
 
-```
-type(scope): description
+Alle Entities muessen von `CopilotBaseEntity` (in `entity.py`) erben. Diese stellt sicher:
 
-type: feat|fix|docs|style|refactor|test|chore
-scope: integration|core|sdk|docs|config
-
-Examples:
-feat(habitus): add new mining algorithm
-fix(graph): correct node filtering logic
-docs(api): add endpoint documentation
-```
-
-### Code Review Process
-
-1. Create pull request
-2. Automated checks run (lint, tests)
-3. Reviewer checks code quality
-4. Merge to development branch
-5. Version bump and release
-
----
-
-## Release Process
-
-### Versioning
-
-- **Major**: Breaking changes
-- **Minor**: New features (backward-compatible)
-- **Patch**: Bug fixes (backward-compatible)
-
-### Steps
-
-1. Update version in `manifest.json` and `package.json`
-2. Update `CHANGELOG.md`
-3. Create git tag: `git tag v1.2.3`
-4. Push changes and tags: `git push && git push --tags`
-5. Create GitHub release
-
-### HACS Release
-
-1. Push changes to main branch
-2. Create GitHub release
-3. HACS automatically detects new version
-
-### Add-on Release
-
-1. Push changes to main branch
-2. Create GitHub release
-3. Add-on automatically updates in Home Assistant
-
----
-
-## Common Tasks
-
-### Adding a New API Endpoint
+- Einheitliche `device_info` fuer das HA-Device-Registry
+- Konsistente Coordinator-Anbindung via `CoordinatorEntity`
 
 ```python
-# routes/my_feature.py
+from .entity import CopilotBaseEntity
 
-from flask import Blueprint, request, jsonify
-from ..app import app
-
-blueprint = Blueprint("my_feature", __name__)
-
-@blueprint.route("/api/v1/my_feature/status", methods=["GET"])
-def get_status():
-    """Get my feature status."""
-    return jsonify({"status": "ok"})
-
-# Register blueprint
-app.register_blueprint(blueprint)
+class MeineEntity(CopilotBaseEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = "ai_home_copilot_mein_feature"
 ```
 
-### Adding a New Sensor Type
+### Sprache
+
+- **Code-Bezeichner** (Variablen, Funktionen, Klassen): Englisch
+- **Kommentare und Docstrings**: Deutsch erlaubt
+- **Logging-Nachrichten**: Englisch bevorzugt (fuer universelle Lesbarkeit in Logs)
+
+### Keine Cloud-Abhaengigkeiten
+
+PilotSuite ist Privacy-first und Local-first. Kein Modul darf externe Cloud-Services voraussetzen. Alle Daten bleiben lokal.
+
+### Sichere hass.data-Zugriffe
+
+Immer `.get()`-Ketten verwenden statt direkter Key-Zugriffe:
 
 ```python
-# entities/my_feature_sensor.py
+# Richtig:
+runtime = hass.data.get(DOMAIN, {}).get(DATA_CORE, {}).get(DATA_RUNTIME)
 
-from homeassistant.helpers.entity import Entity
+# Oder mit setdefault (wie in CopilotRuntime.get):
+hass.data.setdefault(DOMAIN, {})
+core = hass.data[DOMAIN].setdefault(DATA_CORE, {})
 
-from .const import DOMAIN
-
-class MyFeatureSensor(Entity):
-    """My Feature Sensor."""
-    
-    def __init__(self, hass):
-        self.hass = hass
-        self._attr_name = "My Feature Sensor"
-        self._attr_unique_id = "my_feature_sensor"
-    
-    @property
-    def state(self):
-        """Return the state."""
-        return self.hass.data[DOMAIN].get("my_feature_value")
+# Falsch -- KeyError wenn nicht initialisiert:
+runtime = hass.data[DOMAIN][DATA_CORE][DATA_RUNTIME]
 ```
 
 ---
 
-## Resources
+## 8. Sicherheit
 
-- [Home Assistant Developer Documentation](https://developers.home-assistant.io/)
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [OpenAPI Specification](https://spec.openapis.org/oas/v3.1.0)
+### Keine Secrets im Code
 
-## Support
+Tokens, Passwoerter und API-Keys gehoeren in die HA-Konfiguration (Config Flow), nie in den Quellcode.
 
-- GitHub Issues
-- GitHub Discussions
-- Home Assistant Community Forum
+### PII-Redaktion in Events
+
+Beim Weiterleiten von Events (z.B. Events Forwarder) muessen personenbezogene Daten (PII) vor dem Versand reduziert werden. Entity-IDs koennen Klarnamen enthalten.
+
+### Begrenzte Speicherung
+
+Alle internen Puffer, Queues und Caches muessen Groessenlimits haben. Unbegrenztes Wachstum fuehrt zu Speicherproblemen auf eingebetteten Systemen.
+
+### Numerische Konfiguration mit Grenzen
+
+Alle numerischen Config-Parameter muessen `vol.Range` verwenden:
+
+```python
+vol.Optional("max_batch", default=50): vol.All(
+    int, vol.Range(min=1, max=1000)
+),
+```
+
+### _safe_int / _safe_float
+
+Hilfsfunktionen fuer das sichere Parsen von Nutzereingaben mit oberer Grenze:
+
+```python
+def _safe_int(value, default=0, upper=10000):
+    try:
+        v = int(value)
+        return min(v, upper)
+    except (ValueError, TypeError):
+        return default
+```
+
+---
+
+## 9. Haeufige Fehler
+
+### hassfest schlaegt fehl: strings.json passt nicht zum ConfigFlow
+
+**Symptom:** hassfest meldet fehlende Keys oder falsche Struktur.
+
+**Ursache:** Ein Step verwendet `async_show_menu`, aber `strings.json` hat `data` statt `menu_options` (oder umgekehrt).
+
+**Loesung:** Sicherstellen, dass der Step-Typ (`menu_options` vs. `data`) in `strings.json` exakt zum Code passt. Danach `translations/en.json` synchronisieren.
+
+### set.pop() entfernt beliebige Elemente
+
+**Symptom:** Unvorhersehbares Verhalten bei Sets, die als Queue oder FIFO verwendet werden.
+
+**Ursache:** `set.pop()` in Python entfernt ein **beliebiges** Element, nicht das aelteste. Sets sind ungeordnet.
+
+**Loesung:** Fuer geordnete Entfernung `collections.deque` oder `list` verwenden. Fuer atomaren Reset die gesamte Menge ersetzen statt einzeln zu entleeren.
+
+### async_track_time_interval: Listener-Unsub speichern
+
+**Symptom:** Timer-Callbacks laufen nach dem Entladen des Moduls weiter, was zu Fehlern und Speicherlecks fuehrt.
+
+**Ursache:** Der Rueckgabewert von `async_track_time_interval` (die Unsub-Funktion) wurde nicht gespeichert.
+
+**Loesung:** Unsub-Funktion in einer Instanzvariable oder Liste speichern und in `async_unload_entry` aufrufen:
+
+```python
+async def async_setup_entry(self, ctx: ModuleContext) -> None:
+    self._unsub = async_track_time_interval(
+        ctx.hass, self._async_update, timedelta(seconds=30)
+    )
+
+async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+    if self._unsub:
+        self._unsub()
+    return True
+```
+
+### Unsicherer hass.data[DOMAIN]-Zugriff
+
+**Symptom:** `KeyError` beim Zugriff auf `hass.data[DOMAIN]` waehrend des Setups oder nach einem fehlgeschlagenen Laden.
+
+**Ursache:** Direkter Dict-Zugriff ohne vorherige Pruefung, ob der Key existiert.
+
+**Loesung:** Immer `.get()` oder `.setdefault()` verwenden (siehe Abschnitt Code-Konventionen oben). Besonders in Modulen, die unabhaengig vom Hauptsetup geladen werden koennen.
+
+---
+
+## Kurzreferenz
+
+| Aufgabe | Befehl / Ort |
+|---------|-------------|
+| Tests ausfuehren | `python -m pytest tests/ -v` |
+| Coverage | `python -m pytest tests/ -v --cov=custom_components/ai_home_copilot` |
+| Syntax-Check | `python -m py_compile <datei.py>` |
+| JSON validieren | `python -c "import json; json.load(open('...'))"` |
+| Security-Scan | `bandit -r custom_components/ai_home_copilot -ll` |
+| Release erstellen | `gh release create vX.Y.Z` |
+| Entity Basisklasse | `CopilotBaseEntity` in `entity.py` |
+| Modul-Interface | `CopilotModule` in `core/module.py` |
+| Modul registrieren | `CopilotRuntime.registry.register(name, Factory)` |
+| Domain | `ai_home_copilot` (aendert sich nicht) |
+| unique_id Prefix | `ai_home_copilot_` |

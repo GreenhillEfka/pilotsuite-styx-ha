@@ -1,120 +1,104 @@
-# PilotSuite — Styx (HACS Integration v3.8.0)
+# PilotSuite — Styx (HACS Integration)
 
 [![Release](https://img.shields.io/github/v/release/GreenhillEfka/ai-home-copilot-ha)](https://github.com/GreenhillEfka/ai-home-copilot-ha/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
+[![CI](https://github.com/GreenhillEfka/ai-home-copilot-ha/actions/workflows/ci.yml/badge.svg)](https://github.com/GreenhillEfka/ai-home-copilot-ha/actions)
 
-Home Assistant Custom Integration fuer **PilotSuite — Styx**, die Verbindung beider Welten. Privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
+Home Assistant Custom Integration fuer **PilotSuite — Styx**, einen privacy-first, lokalen KI-Assistenten der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlaegt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **33 Core-Module** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **94+ Sensoren**, **28 Module** und **Dashboard Cards** in Home Assistant bereit.
 
-## Installation
+## Schnellstart
 
 ### Voraussetzung
 
 Das **Core Add-on** muss installiert und gestartet sein:
 [Home-Assistant-Copilot](https://github.com/GreenhillEfka/Home-Assistant-Copilot#installation)
 
-### HACS Integration installieren
+### HACS Installation
 
-1. [HACS](https://hacs.xyz) installieren (falls noch nicht vorhanden)
-2. HACS → **Integrations** → Menü (⋮) → **Custom repositories**
-3. Repository-URL hinzufügen:
-   ```
-   https://github.com/GreenhillEfka/ai-home-copilot-ha
-   ```
-   Typ: **Integration**
-4. **PilotSuite — Styx** ueber HACS installieren
-5. Home Assistant **neustarten**
+1. [HACS](https://hacs.xyz) oeffnen
+2. **Integrations** → Menue (⋮) → **Custom repositories**
+3. URL eingeben: `https://github.com/GreenhillEfka/ai-home-copilot-ha` — Typ: **Integration**
+4. **PilotSuite** installieren und Home Assistant **neustarten**
 
 ### Setup
 
 1. **Settings** → **Devices & services** → **Add integration** → **PilotSuite**
 2. **Zero Config** waehlen — Styx startet sofort mit Standardwerten
-3. Oder **Manuelle Konfiguration**:
 
-| Feld | Standard | Beschreibung |
-|------|----------|-------------|
-| Assistentenname | `Styx` | Name deines KI-Assistenten |
-| Host | `homeassistant.local` | HA Host LAN-IP/Hostname |
-| Port | `8909` | Core Add-on Port |
-| API Token | _(optional)_ | Token-Authentifizierung |
-| Test Light | _(optional)_ | Entity fuer Demo-Toggle |
+Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port/Token manuell).
 
-Weitere Optionen (über Options-Flow konfigurierbar):
-- **Events Forwarder** — Batch-Größe, Flush-Intervall, Persistent Queue, Idempotency
-- **Suggestion Seed** — Erlaubte Domains, Max Offers/Stunde, Seed-Entities
-- **Media Player** — Musik- und TV-Player zuordnen
-- **Habitus Zones** — Zonen-Konfiguration für Pattern-Discovery
-- **Watchdog** — Überwachungsintervall
-- **User Preferences** — Multi-User Preference Learning (MUPL)
-
-### Update / Rollback
-
-HACS erstellt ein `update.*`-Entity für das Repository.
-
-- **Update:** HACS UI oder `update.install` Service
-- **Rollback:** `update.install` mit `version` auf einen Git-Tag setzen
-
-## Features
-
-### 23 Core-Module
+## 28 Module
 
 | Modul | Funktion |
 |-------|----------|
-| EventsForwarder | HA Events → Core (batched, rate-limited, PII-redacted) |
-| HabitusModule | Pattern-Discovery und Zone-Management |
-| CandidatePollerModule | Vorschläge vom Core abholen (5min Intervall) |
-| BrainSyncModule | Brain Graph Synchronisation |
-| MoodContextModule | Mood-Integration und Kontext |
-| MediaModule | Media-Player Tracking |
-| EnergyModule | Energiemonitoring |
-| WeatherModule | Wetter-Integration |
-| UniFiModule | Netzwerk-Überwachung |
-| MLContextModule | ML-Kontext und Features |
-| MUPLModule | Multi-User Preference Learning |
-| CharacterModule | Styx-Persoenlichkeit |
-| ... | und weitere |
+| EventsForwarder | HA Events an Core senden (batched, PII-redacted, persistent queue) |
+| HabitusMiner | Pattern-Discovery, Zone-Management, Association Rules |
+| CandidatePoller | Vorschlaege vom Core abholen (5min Intervall) |
+| BrainGraphSync | Brain Graph Synchronisation mit Core |
+| MoodContextModule | Mood-Integration (Comfort/Joy/Frugality) |
+| MediaContextModule | Media-Player Tracking (Musik, TV, Zonen) |
+| MediaContextV2 | Erweiterte Media-Zonen mit automatischer Area-Erkennung |
+| EnergyContextModule | Energiemonitoring (PV, Grid, Kosten) |
+| WeatherContextModule | Wetter-Integration und Vorhersage |
+| UniFiModule | Netzwerk-Ueberwachung (Geraete, Clients) |
+| MLContextModule | ML-Kontext und Feature-Extraktion |
+| UserPreferenceModule | Multi-User Preference Learning (MUPL) |
+| CharacterModule | Styx-Persoenlichkeit und Kontext |
+| HomeAlertsModule | Kritische Zustandsueberwachung |
+| VoiceContext | Sprachsteuerungs-Kontext |
+| KnowledgeGraphSync | Knowledge Graph Synchronisation |
+| HouseholdModule | Familienkonfiguration und Altersgruppen |
+| NeuronsModule | 14 Bewertungs-Neuronen |
+| HabitusZonesV2 | Habituszonen-Verwaltung und Dashboard |
+| SeedAdapterModule | Suggestion-Seed Pipeline |
+| CalendarModule | Kalender-Integration |
+| WasteModule | Abfuhr-Erinnerungen (TTS) |
+| BirthdayModule | Geburtstags-Erinnerungen (TTS) |
+| HAErrorsDigest | HA-Fehler Benachrichtigungen |
+| DevlogPush | Log-Snippets an Core |
+| EventsForwarderPersistent | Crash-sichere Event-Queue |
+| Watchdog | Fallback-Polling |
+| SafetyBackup | Konfigurations-Snapshots |
 
-### 80+ Sensoren
+## 94+ Sensoren
 
-| Sensor-Gruppe | Beispiele |
-|---------------|-----------|
-| Mood | `sensor.copilot_mood`, Mood-Dimensionen |
-| Presence | Anwesenheitserkennung |
-| Activity | Aktivitätserkennung |
-| Energy / Energy Insights | PV, Grid, Kosten |
-| Neurons (14+) | Time, Calendar, Cognitive, Context |
-| Anomaly Alert | Anomalie-Erkennung |
-| Predictive Automation | Prädiktive Vorschläge |
-| Environment | Temperatur, Feuchtigkeit |
-| Calendar | Kalender-Integration |
-| Media | Media-Player Status |
-| Habit Learning v2 | Gewohnheitslernen |
-| Voice Context | Sprachsteuerung |
+| Gruppe | Beispiele |
+|--------|-----------|
+| Mood | Comfort, Joy, Frugality, Zone-Moods |
+| Neurons (14) | Time, Calendar, Cognitive, Presence, Energy, Weather, Context |
+| Habitus | Zone-Status, Patterns, Mining-Stats |
+| Energy | PV-Produktion, Grid, Kosten, Insights |
+| Media | Player-Status, Now Playing, Zonen |
+| Brain Graph | Nodes, Edges, Patterns |
+| Anomaly | Alert-Status, Predictions |
+| Calendar | Events, Focus/Social Weight |
+| Waste/Birthday | Naechste Abholung, Geburtstage |
+| System | Health Score, API Status, Version |
 
-### 15+ Dashboard Cards
+## Habituszonen
 
-Brain Graph, Mood Card, Neurons Card, Habitus Card, und mehr — als Lovelace Custom Cards.
+Habituszonen sind unabhaengig von HA Areas — sie definieren kuratierte Raeume mit Motion/Praesenz + Licht + optionalen Sensoren. CoPilot lernt zonenspezifische Muster und schlaegt passende Automatisierungen vor.
 
-### Blueprint
-
-Eine sichere A→B Automation-Blueprint wird mitgeliefert:
-`/config/blueprints/automation/ai_home_copilot/a_to_b_safe.yaml`
-
-Erstellt **keine** Automatisierung automatisch — nur auf Freigabe.
+Verwaltung ueber **Settings → Integrations → PilotSuite → Configure → Habitus zones**.
 
 ## Grundprinzipien
 
 - **Local-first** — Alles lokal, keine Cloud
 - **Privacy-first** — PII-Redaktion, bounded Storage, opt-in
-- **Governance-first** — Vorschläge vor Aktionen, Human-in-the-Loop
+- **Governance-first** — Vorschlaege vor Aktionen, Human-in-the-Loop
 - **Safe Defaults** — Sicherheitsrelevante Aktionen immer Manual Mode
 
 ## Dokumentation
 
-- **[VISION.md](https://github.com/GreenhillEfka/Home-Assistant-Copilot/blob/main/VISION.md)** — Single Source of Truth
-- **[USER_MANUAL.md](docs/USER_MANUAL.md)** — Benutzerhandbuch (deutsch)
-- **[CHANGELOG.md](CHANGELOG.md)** — Release-Historie
+| Dokument | Inhalt |
+|----------|--------|
+| [HANDBOOK](docs/HANDBOOK.md) | Setup, Module, Sensoren, Zonen, Troubleshooting |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Systemdesign, Datenfluss, Entity-Struktur |
+| [DEVELOPER_GUIDE](docs/DEVELOPER_GUIDE.md) | CI, Tests, Release-Prozess, Beitragen |
+| [CHANGELOG](CHANGELOG.md) | Release-Historie |
+| [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) | Backend, API, Brain Graph, Mood Engine |
 
 ## Lizenz
 
