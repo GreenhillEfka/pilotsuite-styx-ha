@@ -301,9 +301,19 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 <div class="page" id="page-modules">
 <div class="card" style="margin-bottom:14px">
   <h2><span class="ic">&#x2699;&#xfe0f;</span> Neurale Pipeline</h2>
-  <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Module steuern wie Styx dein Zuhause wahrnimmt. Aktive Module lernen automatisch, lernende Module fragen nach.</p>
+  <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Module steuern wie Styx dein Zuhause wahrnimmt. Toggles steuern den echten Backend-Zustand.</p>
+  <div style="display:flex;gap:8px;margin-top:6px">
+    <span class="b b-g">Aktiv = beobachtet + handelt</span>
+    <span class="b b-y">Lernen = beobachtet, keine Vorschlaege</span>
+    <span class="b b-r">Aus = deaktiviert</span>
+  </div>
 </div>
 <div class="grid g2" id="module-list"></div>
+<div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x1f916;</span> Erstellte Automationen</h2>
+  <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Aus akzeptierten Vorschlaegen erstellte HA-Automationen</p>
+  <div id="automation-list"><div class="loading"><div class="spinner"></div>Lade Automationen...</div></div>
+</div>
 </div>
 
 <!-- ========== SETTINGS PAGE ========== -->
@@ -334,6 +344,10 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
       <tr><td>Mood</td><td><code>/api/v1/mood/state</code></td></tr>
       <tr><td>Neuronen</td><td><code>/api/v1/neurons</code></td></tr>
       <tr><td>Telegram</td><td><code>/telegram/status</code></td></tr>
+      <tr><td>Module Control</td><td><code>/api/v1/modules</code></td></tr>
+      <tr><td>Automationen</td><td><code>/api/v1/automations</code></td></tr>
+      <tr><td>Erklaerungen</td><td><code>/api/v1/explain</code></td></tr>
+      <tr><td>Vorhersagen</td><td><code>/api/v1/predict</code></td></tr>
       <tr><td>API Docs</td><td><a href="/api/v1/docs/" target="_blank">/api/v1/docs/</a></td></tr>
     </table>
   </div>
@@ -350,8 +364,8 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 
 <script>
 // ==================================================
-// PilotSuite Dashboard — Styx v1.2.0
-// XSS-safe | Resilient | Real Module Health
+// PilotSuite Dashboard — Styx v1.3.0
+// XSS-safe | Resilient | Real Module Health | Module Control API
 // ==================================================
 const API='';
 let currentModel='';
@@ -782,7 +796,18 @@ async function acceptSuggestion(idx){
     // 2. Accept the hint
     await fetch(API+'/api/v1/hints/'+hintId+'/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
   }catch(e){console.warn('Hint accept error:',e)}
-  // 3. Touch edge in Brain Graph (visual connection)
+  // 3. Create HA Automation via Automation Creator API (v1.3.0)
+  try{
+    const autoRes=await fetch(API+'/api/v1/automations/create',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({antecedent:s.antecedent,consequent:s.consequent,confidence:s.confidence,zone:s.zone,source:s.source,type:s.type})
+    });
+    const autoData=await autoRes.json();
+    if(autoData?.ok){
+      addHistory('\u2705 HA-Automation erstellt: '+escapeHtml(autoData.alias||s.antecedent));
+    }
+  }catch(e){console.warn('Automation create error:',e)}
+  // 4. Touch edge in Brain Graph (visual connection)
   if(s.consequent&&s.antecedent){
     const fromNode=s.raw?.data?.from||'ha.entity:'+s.antecedent;
     const toNode=s.raw?.data?.to||'ha.entity:'+s.consequent;
@@ -986,23 +1011,36 @@ async function loadModules(){
   }
 }
 
-// -- Module Toggle (persists to localStorage, syncs pipeline) --
-function toggleModule(btn,modId){
+// -- Module Toggle (calls Module Control API + persists + syncs pipeline) --
+async function toggleModule(btn,modId){
   const states=['on','learn','off'];
   const labels=['active','learning','off'];
   const current=[...btn.classList].find(c=>states.includes(c))||'off';
   let idx=states.indexOf(current);
   idx=(idx+1)%3;
+  const newState=labels[idx];
   btn.className='mod-toggle '+states[idx];
-  btn.title=labels[idx];
+  btn.title=newState;
   const stLabel=btn.parentElement.querySelector('.mod-st-label');
-  if(stLabel)stLabel.textContent=labels[idx];
-  // Show override indicator
-  const oi=btn.parentElement.querySelector('.override-indicator');
-  if(oi)oi.style.display='';
-  moduleStates[modId]=labels[idx];
-  // Persist to localStorage
+  if(stLabel)stLabel.textContent=newState;
+  moduleStates[modId]=newState;
   localStorage.setItem('styx_module_states',JSON.stringify(moduleStates));
+  // Call Module Control API (v1.3.0)
+  try{
+    const res=await fetch(API+'/api/v1/modules/'+encodeURIComponent(modId)+'/configure',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({state:newState})
+    });
+    const data=await res.json();
+    if(data?.ok){
+      addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+newState+' (Backend sync)');
+    }else{
+      addHistory('\u26a0\ufe0f Modul-API Fehler: '+(data?.error||'unbekannt'));
+    }
+  }catch(e){
+    // API might not be available yet - still works via localStorage
+    addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+newState+' (lokal)');
+  }
   // Invalidate health cache so next load re-evaluates
   _moduleHealth=null;_healthTs=0;
   // Update pipeline indicator on Styx page
@@ -1010,9 +1048,23 @@ function toggleModule(btn,modId){
   pipes.forEach(p=>{
     const span=p.querySelector('span:last-child');
     const def=MODULE_DEFS.find(m=>m.name===span?.textContent);
-    if(def&&def.id===modId)p.className='pipe pipe-'+labels[idx];
+    if(def&&def.id===modId)p.className='pipe pipe-'+newState;
   });
-  addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+labels[idx]);
+}
+
+// -- Automation List Loader (v1.3.0) --
+async function loadAutomations(){
+  const c=$('automation-list');if(!c)return;
+  try{
+    const data=await api('/api/v1/automations');
+    const items=data?.automations||[];
+    if(!items.length){c.innerHTML='<div class="empty">Noch keine Automationen erstellt. Akzeptiere Vorschlaege um HA-Automationen zu erzeugen.</div>';return}
+    c.innerHTML='';
+    items.forEach(a=>{
+      c.appendChild(el('div','pat',
+        `<span>${escapeHtml(a.alias||a.id||'?')}</span><span class="meta">${escapeHtml(a.created_at||'')}</span>`));
+    });
+  }catch(e){c.innerHTML='<div class="empty">Automationen-API nicht erreichbar</div>'}
 }
 
 // ==================================================
@@ -1133,7 +1185,7 @@ function drawTrend(canvasId,dataPoints,realData){
 // ==================================================
 // PAGE LOADER — Resilient wrapper
 // ==================================================
-const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:loadModules,settings:loadSettings};
+const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:async()=>{await loadModules();loadAutomations()},settings:loadSettings};
 function loadPage(p){
   const fn=_loaders[p];
   if(!fn)return;

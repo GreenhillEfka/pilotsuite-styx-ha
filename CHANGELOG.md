@@ -1,5 +1,78 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.0.0] - 2026-02-19
+
+### Kollektive Intelligenz — Cross-Home Learning
+
+- **Federated Learning**: Pattern-Austausch zwischen Homes mit Differential Privacy
+  (Laplace-Mechanismus, konfigurierbares Epsilon)
+- **A/B Testing fuer Automationen**: Zwei Varianten testen, Outcome messen (Override-Rate),
+  Chi-Squared Signifikanztest, Auto-Promote Winner bei p<0.05
+- **Pattern Library**: Kollektiv gelernte Muster mit gewichteter Confidence-Aggregation
+  ueber mehrere Homes, opt-in Sharing
+
+Dateien: `ab_testing.py`, `collective_intelligence/pattern_library.py`
+
+## [2.2.0] - 2026-02-19
+
+### Praediktive Intelligenz — Vorhersage + Energieoptimierung
+
+- **Ankunftsprognose**: `ArrivalForecaster` nutzt zeitgewichteten Durchschnitt der
+  letzten 90 Tage (Wochentag + Uhrzeit), SQLite-Persistenz, kein ML-Framework
+- **Energiepreis-Optimierung**: `EnergyOptimizer` findet guenstigstes Zeitfenster,
+  unterstuetzt Tibber/aWATTar API oder manuelle Preistabelle
+- **Geraete-Verschiebung**: "Styx verschiebt Waschmaschine auf 02:30 (34ct gespart)"
+- **REST API**: `/api/v1/predict/arrival/{person}`, `/api/v1/predict/energy/*`
+
+Dateien: `prediction/__init__.py`, `prediction/forecaster.py`, `prediction/energy_optimizer.py`,
+`prediction/api.py`
+
+## [2.1.0] - 2026-02-19
+
+### Erklaerbarkeit + Multi-User — Warum schlaegt Styx das vor?
+
+- **Explainability Engine**: Brain Graph Traversal (BFS, max Tiefe 5) findet kausale
+  Ketten fuer Vorschlaege, Template-basierte natuerlichsprachige Erklaerung,
+  Confidence-Berechnung aus Edge-Gewichten
+- **Multi-User Profiles**: Pro HA-Person-Entity eigenes Profil mit Praeferenzvektor,
+  Suggestion-History, Feedback-Tracking (accept/reject), SQLite-Persistenz
+- **REST API**: `/api/v1/explain/suggestion/{id}`, `/api/v1/explain/pattern/{id}`
+
+Dateien: `explainability.py`, `api/v1/explain.py`, `user_profiles.py`
+
+## [2.0.0] - 2026-02-19
+
+### Native HA Integration — Lovelace Cards + Conversation Agent
+
+- **3 Native Lovelace Cards** (HACS Integration):
+  - `styx-brain-card`: Brain Graph Visualisierung mit Force-Directed Layout
+  - `styx-mood-card`: Mood-Gauges (Comfort/Joy/Frugality) mit Kreis-Grafik
+  - `styx-habitus-card`: Top-5 Pattern-Liste mit Confidence-Badges
+- **HA Conversation Agent**: `StyxConversationAgent` nativ in HA Assist Pipeline,
+  Proxy zu Core `/v1/chat/completions`, DE + EN
+
+Dateien: `www/styx-brain-card.js`, `www/styx-mood-card.js`, `www/styx-habitus-card.js`,
+`conversation.py` (HACS)
+
+## [1.3.0] - 2026-02-19
+
+### Module Control + Automationen — Toggles mit echter Wirkung
+
+- **Module Control API**: `POST /api/v1/modules/{id}/configure` setzt Modul-Zustand
+  (active/learning/off) im Backend, SQLite-Persistenz in `/data/module_states.db`
+  - active: Modul laeuft normal, beobachtet und erzeugt Vorschlaege
+  - learning: Modul beobachtet, erstellt aber keine Suggestions
+  - off: Modul deaktiviert, keine Datensammlung
+- **Dashboard-Toggle ruft API**: `toggleModule()` sendet jetzt POST an Backend,
+  Fallback auf localStorage wenn API nicht erreichbar
+- **Automation Creator**: Akzeptierte Vorschlaege erzeugen echte HA-Automationen
+  via Supervisor REST API (`POST /config/automation/config`), Template-Mapping
+  (Zeit-Trigger, State-Trigger, Entity-Aktionen)
+- **Automationen-Liste**: Neue Sektion im Modules-Tab zeigt erstellte Automationen
+
+Dateien: `module_registry.py`, `api/v1/module_control.py`, `automation_creator.py`,
+`api/v1/automation_api.py`, `dashboard.html` (updated)
+
 ## [1.2.0] - 2026-02-19
 
 ### Qualitaetsoffensive — Volle Transparenz, Maximale Resilienz
