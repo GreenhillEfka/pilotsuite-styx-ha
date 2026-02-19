@@ -124,7 +124,7 @@ class MediaContextModule:
     a current snapshot accessible via hass.data or the provided API.
     """
 
-    name = "media_context"
+    name = "media_zones"
 
     def __init__(self) -> None:
         self._hass: HomeAssistant | None = None
@@ -180,7 +180,7 @@ class MediaContextModule:
         # Store reference for other modules
         domain_data = ctx.hass.data.setdefault(DOMAIN, {})
         entry_data = domain_data.setdefault(ctx.entry.entry_id, {})
-        entry_data["media_context_module"] = self
+        entry_data["media_zones_module"] = self
 
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload media context tracking."""
@@ -190,7 +190,7 @@ class MediaContextModule:
 
         domain_data = ctx.hass.data.get(DOMAIN, {})
         entry_data = domain_data.get(ctx.entry.entry_id, {})
-        entry_data.pop("media_context_module", None)
+        entry_data.pop("media_zones_module", None)
 
         _LOGGER.debug("MediaContext: unloaded")
         return True

@@ -43,7 +43,7 @@ class UnifiContextModule:
     Provides methods for Presence module to detect client locations.
     """
 
-    name = "unifi_context"
+    name = "network"
 
     def __init__(self) -> None:
         self._hass: HomeAssistant | None = None
@@ -111,7 +111,7 @@ class UnifiContextModule:
         # Store reference for other modules
         domain_data = ctx.hass.data.setdefault(DOMAIN, {})
         entry_data = domain_data.setdefault(self._entry_id, {})
-        entry_data["unifi_context_module"] = self
+        entry_data["network_module"] = self
 
         _LOGGER.info("UnifiContext v0.2: initialized (host=%s:%s)", host, port)
 
@@ -152,8 +152,8 @@ class UnifiContextModule:
         domain_data = ctx.hass.data.get(DOMAIN, {})
         entry_data = domain_data.get(self._entry_id, {})
 
-        if "unifi_context_module" in entry_data:
-            del entry_data["unifi_context_module"]
+        if "network_module" in entry_data:
+            del entry_data["network_module"]
 
         self._coordinator = None
         self._hass = None
