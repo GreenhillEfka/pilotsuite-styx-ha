@@ -303,12 +303,22 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
   <h2><span class="ic">&#x2699;&#xfe0f;</span> Neurale Pipeline</h2>
   <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Module steuern wie Styx dein Zuhause wahrnimmt. Toggles steuern den echten Backend-Zustand.</p>
   <div style="display:flex;gap:8px;margin-top:6px">
-    <span class="b b-g">Aktiv = beobachtet + handelt</span>
-    <span class="b b-y">Lernen = beobachtet, keine Vorschlaege</span>
+    <span class="b b-g">Aktiv = Auto-Apply (beide Module aktiv = doppelte Sicherheit)</span>
+    <span class="b b-y">Lernen = Vorschlaege zur manuellen Uebernahme</span>
     <span class="b b-r">Aus = deaktiviert</span>
   </div>
 </div>
 <div class="grid g2" id="module-list"></div>
+<div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x1f3b5;</span> Media Zonen &amp; Musikwolke</h2>
+  <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Zone-Player-Zuordnung und Musikwolke Smart Audio Follow</p>
+  <div id="media-zones-panel"><div class="loading"><div class="spinner"></div>Lade Media Zonen...</div></div>
+</div>
+<div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x1f30d;</span> Web &amp; News</h2>
+  <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Aktuelle Nachrichten und Warnungen im LLM-Kontext</p>
+  <div id="news-warnings-panel"><div class="loading"><div class="spinner"></div>Lade Nachrichten...</div></div>
+</div>
 <div class="card" style="margin-top:14px">
   <h2><span class="ic">&#x1f916;</span> Erstellte Automationen</h2>
   <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Aus akzeptierten Vorschlaegen erstellte HA-Automationen</p>
@@ -341,14 +351,16 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
       <tr><td>Habitus</td><td><code>/api/v1/habitus/rules</code></td></tr>
       <tr><td>Vorschlaege</td><td><code>/api/v1/hints</code></td></tr>
       <tr><td>Kandidaten</td><td><code>/api/v1/candidates</code></td></tr>
-      <tr><td>Mood</td><td><code>/api/v1/mood/state</code></td></tr>
+      <tr><td>Mood</td><td><code>/api/v1/mood</code></td></tr>
       <tr><td>Neuronen</td><td><code>/api/v1/neurons</code></td></tr>
       <tr><td>Telegram</td><td><code>/telegram/status</code></td></tr>
       <tr><td>Module Control</td><td><code>/api/v1/modules</code></td></tr>
       <tr><td>Automationen</td><td><code>/api/v1/automations</code></td></tr>
+      <tr><td>Media Zonen</td><td><code>/api/v1/media/zones</code></td></tr>
+      <tr><td>Musikwolke</td><td><code>/api/v1/media/musikwolke</code></td></tr>
+      <tr><td>Proaktiv</td><td><code>/api/v1/media/proactive/zone-entry</code></td></tr>
       <tr><td>Erklaerungen</td><td><code>/api/v1/explain</code></td></tr>
       <tr><td>Vorhersagen</td><td><code>/api/v1/predict</code></td></tr>
-      <tr><td>API Docs</td><td><a href="/api/v1/docs/" target="_blank">/api/v1/docs/</a></td></tr>
     </table>
   </div>
   <div class="card">
@@ -416,7 +428,7 @@ async function fetchModuleHealth(){
   const settled=await Promise.allSettled([
     api('/api/v1/graph/stats'),         // [0] brain_graph
     api('/api/v1/habitus/health'),       // [1] habitus_miner
-    api('/api/v1/mood/state'),           // [2] mood_engine
+    api('/api/v1/mood'),                 // [2] mood_engine (all zone moods)
     api('/chat/status'),                 // [3] general + event_forwarder
     api('/api/v1/neurons'),              // [4] neurons
     api('/chat/memory'),                 // [5] conversation_memory
@@ -433,11 +445,12 @@ async function fetchModuleHealth(){
   const caps=capr?.capabilities||[];
   const feats=capr?.features||{};
   const neurons=(nr?.neurons||nr?.data||[]);
-  const zoneCount=mzr?Object.keys(mzr).length:0;
+  const zoneCount=mzr?.zones?Object.keys(mzr.zones).length:0;
+  const mkSessions=mkr?.sessions||[];
   _moduleHealth={
-    brain_graph:  gr?.ok&&(gr?.stats?.nodes||gr?.nodes_total||0)>0?'active':gr?.ok?'learning':'off',
+    brain_graph:  gr?.ok&&(gr?.nodes||0)>0?'active':gr?.ok?'learning':'off',
     habitus_miner:hr?.status==='ok'?'active':hr?'learning':'off',
-    mood_engine:  mr?.zones&&Object.keys(mr.zones||{}).length>0?'active':mr?'learning':'off',
+    mood_engine:  mr?.moods&&Object.keys(mr.moods||{}).length>0?'active':mr?'learning':'off',
     event_forwarder:sr?.available?'active':'off',
     neurons:      neurons.length>0?'active':'learning',
     knowledge_graph:caps.includes('knowledge_graph')||feats.knowledge_graph?'active':'learning',
@@ -453,12 +466,12 @@ async function fetchModuleHealth(){
     telegram_bot:  tgr?.running?'active':'off',
     mcp_server:    capr?.ok?'active':'off',
     _details:{
-      brain_graph: gr?.ok?`${gr?.stats?.nodes||gr?.nodes_total||0} Nodes, ${gr?.stats?.edges||gr?.edges_total||0} Edges`:'API offline',
+      brain_graph: gr?.ok?`${gr?.nodes||0} Nodes, ${gr?.edges||0} Edges`:'API offline',
       habitus_miner:hr?.status==='ok'?`${hr?.rules_count||0} Regeln`:(hr?'Kein Output':'API offline'),
-      mood_engine:  mr?.zones?`${Object.keys(mr.zones).length} Zonen`:(mr?'Keine Zonen':'API offline'),
+      mood_engine:  mr?.moods?`${Object.keys(mr.moods).length} Zonen`:(mr?'Keine Zonen':'API offline'),
       neurons:      neurons.length>0?`${neurons.length} Signale aktiv`:'Warte auf Events',
       conversation_memory:memr?.stats?`${memr.stats.total_messages||0} Nachrichten`:'Leer',
-      media_zones:  zoneCount>0?`${zoneCount} Zonen konfiguriert`:(mzr?'Bereit':'Nicht gestartet'),
+      media_zones:  zoneCount>0?`${zoneCount} Zonen, ${mkSessions.length} Musikwolke`:(mzr?'Bereit':'Nicht gestartet'),
       energy_context:er?.status==='ok'?'Online':(er?'Degradiert':'Nicht konfiguriert'),
       weather_context:wr?.status==='ok'?'Online':(wr?'Degradiert':'Nicht konfiguriert'),
       network:      ur?.status||'Nicht konfiguriert',
@@ -1080,6 +1093,62 @@ async function loadAutomations(){
   }catch(e){c.innerHTML='<div class="empty">Automationen-API nicht erreichbar</div>'}
 }
 
+// -- Media Zones & Musikwolke Panel (v3.1.0) --
+async function loadMediaZones(){
+  const c=$('media-zones-panel');if(!c)return;
+  try{
+    const [zonesRes,mkRes]=await Promise.allSettled([api('/api/v1/media/zones'),api('/api/v1/media/musikwolke')]);
+    const zones=(zonesRes.status==='fulfilled'?zonesRes.value:null);
+    const mk=(mkRes.status==='fulfilled'?mkRes.value:null);
+    const zoneData=zones?.zones||{};
+    const zoneIds=Object.keys(zoneData);
+    const sessions=mk?.sessions||[];
+    let html='';
+    if(zoneIds.length){
+      html+='<table class="tbl"><tr><th>Zone</th><th>Player</th></tr>';
+      zoneIds.forEach(z=>{
+        const players=zoneData[z];
+        const pList=Array.isArray(players)?players.map(p=>escapeHtml(typeof p==='string'?p:p.entity_id||'?')).join(', '):'--';
+        html+=`<tr><td>${escapeHtml(z)}</td><td>${pList}</td></tr>`;
+      });
+      html+='</table>';
+    }else{
+      html+='<div style="font-size:11px;color:var(--dim);margin-bottom:8px">Keine Zonen konfiguriert. Weise Media Player ueber die API Zonen zu.</div>';
+    }
+    if(sessions.length){
+      html+='<div style="margin-top:10px;font-size:11px"><strong>Musikwolke Sessions:</strong></div>';
+      sessions.forEach(s=>{
+        const sid=escapeHtml(s.session_id||'?');
+        const pid=escapeHtml(s.person_id||'?');
+        const zone=escapeHtml(s.current_zone||s.source_zone||'?');
+        html+=`<div class="pat"><span>${pid}</span><span class="arr">&rarr;</span><span>${zone}</span><span class="meta">${sid}</span></div>`;
+      });
+    }else{
+      html+='<div style="margin-top:8px;font-size:11px;color:var(--dim)">Keine aktiven Musikwolke-Sessions. Starte via Chat: &quot;Musikwolke starten&quot;</div>';
+    }
+    c.innerHTML=html;
+  }catch(e){c.innerHTML='<div class="empty">Media Zones nicht erreichbar</div>'}
+}
+
+// -- News & Warnings Panel (v3.1.0) --
+async function loadNewsWarnings(){
+  const c=$('news-warnings-panel');if(!c)return;
+  try{
+    const [newsRes,warnRes]=await Promise.allSettled([api('/api/v1/capabilities'),fetch(API+'/api/v1/media/proactive/zone-entry',{method:'GET'}).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    const caps=(newsRes.status==='fulfilled'?newsRes.value:null);
+    let html='<div style="font-size:11px;color:var(--dim)">';
+    html+='<p><strong>DuckDuckGo-Suche:</strong> Styx kann das Web durchsuchen (kein API-Key noetig)</p>';
+    html+='<p style="margin-top:4px"><strong>Nachrichten:</strong> Tagesschau + Spiegel via RSS (15-Min-Cache)</p>';
+    html+='<p style="margin-top:4px"><strong>Regionale Warnungen:</strong> NINA/BBK + DWD mit AGS-Regionalfilter</p>';
+    if(caps?.features?.web_search){
+      html+='<p style="margin-top:6px">'+badge('Web-Suche aktiv','g')+'</p>';
+    }
+    html+='<p style="margin-top:6px">Frage Styx z.B.: &quot;Aktuelle Nachrichten&quot; oder &quot;Gibt es Warnungen?&quot;</p>';
+    html+='</div>';
+    c.innerHTML=html;
+  }catch(e){c.innerHTML='<div class="empty">Info nicht verfuegbar</div>'}
+}
+
 // ==================================================
 // SETTINGS
 // ==================================================
@@ -1198,7 +1267,7 @@ function drawTrend(canvasId,dataPoints,realData){
 // ==================================================
 // PAGE LOADER — Resilient wrapper
 // ==================================================
-const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:async()=>{await loadModules();loadAutomations()},settings:loadSettings};
+const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:async()=>{await loadModules();loadAutomations();loadMediaZones();loadNewsWarnings()},settings:loadSettings};
 function loadPage(p){
   const fn=_loaders[p];
   if(!fn)return;

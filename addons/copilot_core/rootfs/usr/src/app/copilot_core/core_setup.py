@@ -174,6 +174,38 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init EventProcessor")
 
+    # Wire mood service into event processor (v3.1.0)
+    # When media_player events arrive, derive mood context from them
+    try:
+        event_processor = services.get("event_processor")
+        mood_service = services.get("mood_service")
+        if event_processor and mood_service:
+            def _mood_event_processor(event: dict) -> None:
+                """Derive mood updates from HA events (media_player, person)."""
+                attrs = event.get("attributes", {})
+                domain = attrs.get("domain", "")
+                entity_id = event.get("entity_id", "")
+                new_state = attrs.get("new_state", "")
+                zone_ids = attrs.get("zone_ids", [])
+
+                if domain == "media_player" and zone_ids:
+                    is_playing = new_state in ("playing", "on")
+                    for zone_id in zone_ids:
+                        mood_service.update_from_media_context({
+                            "music_active": is_playing,
+                            "tv_active": False,
+                            "primary_player": {
+                                "entity_id": entity_id,
+                                "state": new_state,
+                                "media_title": "",
+                                "area": zone_id,
+                            },
+                        })
+            event_processor.add_processor(_mood_event_processor)
+            _LOGGER.info("Mood event processor wired into EventProcessor pipeline")
+    except Exception:
+        _LOGGER.exception("Failed to wire mood event processor")
+
     # Initialize Tag System v0.2 (Decision Matrix 2026-02-14)
     try:
         services["tag_registry"] = TagRegistry()
