@@ -1,5 +1,14 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.6.0] - 2026-02-19
+
+### Production Hardening
+
+- **CI Pipeline erweitert** — Full pytest Suite + pytest-cov + bandit Security Scan
+  - Vorher: Nur 3 isolierte Tests; jetzt: gesamtes `tests/` Verzeichnis
+  - Neuer `security` Job: bandit scannt auf SQL-Injection, Command-Injection, etc.
+- Version: 3.5.0 -> 3.6.0
+
 ## [3.5.0] - 2026-02-19
 
 ### RAG Pipeline + Kalender-Integration
