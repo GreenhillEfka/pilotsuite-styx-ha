@@ -5,16 +5,9 @@
         "title": "PilotSuite — Styx Setup",
         "description": "Choose how to set up PilotSuite with Styx, your local AI assistant.",
         "menu_options": {
-          "zero_config": "Zero Config — Styx sofort starten (recommended)",
+          "zero_config": "Zero Config — start Styx immediately (recommended)",
           "quick_start": "Quick Start (guided wizard)",
           "manual_setup": "Manual Setup (expert)"
-        },
-        "data": {
-          "host": "Host",
-          "port": "Port",
-          "token": "API token",
-          "test_light_entity_id": "Test light (for the toggle button)",
-          "webhook_url": "Webhook URL (copy into Copilot-Core)"
         }
       },
       "manual_setup": {
@@ -74,7 +67,7 @@
           "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
           "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
           "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
-          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph-to-candidates buttons",
           "enable_user_preferences": "Enable user preferences module",
           "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
           "events_forwarder_include_media_players": "Core: include media players in forwarding",
@@ -198,11 +191,11 @@
   "issues": {
     "candidate_suggestion": {
       "title": "CoPilot suggestion: {title}",
-      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings → Automations & Scenes → Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\n🔗 **Blueprint link:** [CoPilot A→B Blueprint]({blueprint_url})"
+      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings > Automations & Scenes > Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\nBlueprint link: [CoPilot A>B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
       "title": "CoPilot seed: {title}",
-      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A→B blueprint to create an automation if it makes sense, then click Fix and confirm."
+      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A>B blueprint to create an automation if it makes sense, then click Fix and confirm."
     },
     "log_manifest_parse_error": {
       "title": "Custom integration has invalid manifest.json: {integration}",
@@ -227,17 +220,6 @@
   },
   "options": {
     "step": {
-      "user": {
-        "title": "AI Home CoPilot",
-        "description": "Connect to the AI Home CoPilot Core add-on.",
-        "data": {
-          "host": "Host",
-          "port": "Port",
-          "token": "API token",
-          "test_light_entity_id": "Test light (for the toggle button)",
-          "webhook_url": "Webhook URL (copy into Copilot-Core)"
-        }
-      },
       "init": {
         "title": "AI Home CoPilot options",
         "description": "Configure AI Home CoPilot.",
@@ -245,7 +227,6 @@
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
           "entity_tags": "Entity tags",
-          "scenes": "Zone scenes",
           "neurons": "Neurons",
           "backup_restore": "Backup / restore"
         }
@@ -285,13 +266,6 @@
           "tag_id": "Tag to delete"
         }
       },
-      "scenes": {
-        "title": "Zone scenes",
-        "description": "Manage saved scenes for habitus zones — capture, apply, and delete zone snapshots.",
-        "menu_options": {
-          "back": "Back"
-        }
-      },
       "settings": {
         "title": "AI Home CoPilot settings",
         "description": "Configure AI Home CoPilot.",
@@ -329,7 +303,7 @@
           "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
           "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
           "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
-          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph-to-candidates buttons",
           "enable_user_preferences": "Enable user preferences module",
           "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
           "events_forwarder_include_media_players": "Core: include media players in forwarding",
@@ -363,8 +337,10 @@
           "create_zone": "Create zone",
           "edit_zone": "Edit zone",
           "delete_zone": "Delete zone",
-          "back": "Back",
-          "bulk_edit": "Bulk edit (YAML/JSON)"
+          "generate_dashboard": "Generate dashboard YAML",
+          "publish_dashboard": "Publish dashboard (www)",
+          "bulk_edit": "Bulk edit (YAML/JSON)",
+          "back": "Back"
         }
       },
       "backup_restore": {
@@ -440,13 +416,47 @@
         "data": {
           "zones": "Zones (YAML or JSON)"
         }
+      },
+      "neurons": {
+        "title": "Neural System Configuration",
+        "description": "Configure context, state, and mood neurons for the AI Home CoPilot neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
+        "data": {
+          "neuron_enabled": "Enable Neural System",
+          "neuron_evaluation_interval": "Evaluation Interval (seconds)",
+          "neuron_context_entities": "Context Neuron Entities (comma-separated)",
+          "neuron_state_entities": "State Neuron Entities (comma-separated)",
+          "neuron_mood_entities": "Mood Neuron Entities (comma-separated)"
+        },
+        "data_description": {
+          "neuron_context_entities": "Entities for context neurons (presence, time, weather, etc.)",
+          "neuron_state_entities": "Entities for state neurons (energy, comfort, stress, etc.)",
+          "neuron_mood_entities": "Entities that influence mood (lights, media, climate, etc.)"
+        }
+      },
+      "generate_dashboard": {
+        "title": "Generate dashboard YAML",
+        "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in the ai_home_copilot/ configuration folder.",
+        "data": {
+          "confirm": "Generate dashboard"
+        }
+      },
+      "publish_dashboard": {
+        "title": "Publish dashboard to www",
+        "description": "Copies the latest generated dashboard to the www/ai_home_copilot/ folder for easy download. This creates a stable URL for the dashboard YAML.",
+        "data": {
+          "confirm": "Publish dashboard"
+        }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect",
       "cannot_read": "Could not read snapshot file",
       "invalid_json": "Invalid JSON",
-      "confirm_required": "Please confirm"
+      "confirm_required": "Please confirm",
+      "invalid": "Invalid input",
+      "generation_failed": "Failed to generate dashboard: {error}",
+      "publish_failed": "Failed to publish dashboard: {error}",
+      "no_dashboard_generated": "No dashboard has been generated yet. {hint}"
     }
   }
 }

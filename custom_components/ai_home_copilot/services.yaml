@@ -584,7 +584,7 @@ energy_insights_get:
         text:
     hours:
       name: Hours
-      description: Zeitraum in Stunden (Standard: 24).
+      description: "Zeitraum in Stunden (Standard: 24)."
       default: 24
       selector:
         number:

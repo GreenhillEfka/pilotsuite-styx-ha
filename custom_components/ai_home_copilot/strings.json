@@ -2,14 +2,23 @@
   "config": {
     "step": {
       "user": {
-        "title": "AI Home CoPilot",
-        "description": "Connect to the AI Home CoPilot Core add-on.",
+        "title": "PilotSuite — Styx Setup",
+        "description": "Choose how to set up PilotSuite with Styx, your local AI assistant.",
+        "menu_options": {
+          "zero_config": "Zero Config — start Styx immediately (recommended)",
+          "quick_start": "Quick Start (guided wizard)",
+          "manual_setup": "Manual Setup (expert)"
+        }
+      },
+      "manual_setup": {
+        "title": "Manual Setup",
+        "description": "Configure your PilotSuite connection. Give your assistant a name (default: Styx).",
         "data": {
+          "assistant_name": "Assistant Name",
           "host": "Host",
           "port": "Port",
-          "token": "API token",
-          "test_light_entity_id": "Test light (for the toggle button)",
-          "webhook_url": "Webhook URL (copy into Copilot-Core)"
+          "token": "API Token",
+          "test_light_entity_id": "Test Light (optional)"
         }
       },
       "init": {
@@ -18,7 +27,6 @@
         "menu_options": {
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
-          "neurons": "Neural System",
           "backup_restore": "Backup / restore"
         }
       },
@@ -46,16 +54,24 @@
           "events_forwarder_max_batch": "Core v1: forwarder max batch size",
           "events_forwarder_forward_call_service": "Core v1: also forward call_service events (opt-in)",
           "events_forwarder_idempotency_ttl_seconds": "Core v1: event idempotency TTL (seconds)",
-          "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
-          "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
-          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
+          "events_forwarder_persistent_queue_enabled": "Core v1: persistent forwarder queue (store unsent events across HA restarts)",
+          "events_forwarder_persistent_queue_max_size": "Core v1: persistent queue max size (drop-oldest)",
+          "events_forwarder_persistent_queue_flush_interval_seconds": "Core v1: persistent queue flush interval (seconds)",
           "devlog_push_enabled": "Dev: push sanitized log snippets to Core",
           "devlog_push_interval_seconds": "Dev: push interval (seconds)",
           "devlog_push_path": "Dev: Core endpoint path",
           "devlog_push_max_lines": "Dev: read last N log lines",
           "devlog_push_max_chars": "Dev: max chars per snippet",
-          "test_light_entity_id": "Test light (for the toggle button)",
+          "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
+          "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
+          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph-to-candidates buttons",
           "enable_user_preferences": "Enable user preferences module",
+          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
+          "events_forwarder_include_media_players": "Core: include media players in forwarding",
+          "events_forwarder_additional_entities": "Core: additional entities to forward (csv)",
           "user_preference_enabled": "Enable per-user preference tracking",
           "tracked_users": "Tracked users (comma-separated person.entity_ids)",
           "primary_user": "Primary user (person.entity_id)",
@@ -64,15 +80,6 @@
           "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
           "mupl_min_interactions": "MUPL min interactions before learning",
           "mupl_retention_days": "MUPL data retention (days)",
-          "events_forwarder_persistent_queue_enabled": "Core: persistent queue for events (crash-safe)",
-          "events_forwarder_persistent_queue_max_size": "Core: persistent queue max size",
-          "events_forwarder_persistent_queue_flush_interval_seconds": "Core: persistent queue flush interval (s)",
-          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
-          "events_forwarder_include_media_players": "Core: include media players in forwarding",
-          "events_forwarder_additional_entities": "Core: additional entities to forward (comma-separated)",
-          "pilotsuite_show_safety_backup_buttons": "UI: show Safety Backup buttons",
-          "pilotsuite_show_dev_surface_buttons": "UI: show Dev Surface buttons",
-          "pilotsuite_show_graph_bridge_buttons": "UI: show Graph Bridge buttons",
           "waste_enabled": "Waste: enable waste collection reminders",
           "waste_entities": "Waste: sensor entities (csv, auto-detect if empty)",
           "waste_tts_enabled": "Waste: enable TTS announcements",
@@ -94,33 +101,8 @@
           "create_zone": "Create zone",
           "edit_zone": "Edit zone",
           "delete_zone": "Delete zone",
-          "generate_dashboard": "Generate dashboard YAML",
-          "publish_dashboard": "Publish dashboard (www)",
-          "bulk_edit": "Bulk edit (YAML/JSON)",
-          "back": "Back"
-        }
-      },
-      "neurons": {
-        "title": "Neural System Configuration",
-        "description": "Configure context, state, and mood neurons for the AI Home CoPilot neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
-        "data": {
-          "neuron_enabled": "Enable Neural System",
-          "neuron_evaluation_interval": "Evaluation Interval (seconds)",
-          "neuron_context_entities": "Context Neuron Entities (comma-separated)",
-          "neuron_state_entities": "State Neuron Entities (comma-separated)",
-          "neuron_mood_entities": "Mood Neuron Entities (comma-separated)"
-        },
-        "data_description": {
-          "neuron_context_entities": "Entities for context neurons (presence, time, weather, etc.)",
-          "neuron_state_entities": "Entities for state neurons (energy, comfort, stress, etc.)",
-          "neuron_mood_entities": "Entities that influence mood (lights, media, climate, etc.)"
-        }
-      },
-      "bulk_edit": {
-        "title": "Bulk edit Habitus zones",
-        "description": "{hint}",
-        "data": {
-          "zones": "Zones (YAML or JSON)"
+          "back": "Back",
+          "bulk_edit": "Bulk edit (YAML/JSON)"
         }
       },
       "backup_restore": {
@@ -190,18 +172,11 @@
           "zone_id": "Zone"
         }
       },
-      "generate_dashboard": {
-        "title": "Generate dashboard YAML",
-        "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in `ai_home_copilot/` config folder.",
+      "bulk_edit": {
+        "title": "Bulk edit Habitus zones",
+        "description": "{hint}",
         "data": {
-          "confirm": "Generate dashboard"
-        }
-      },
-      "publish_dashboard": {
-        "title": "Publish dashboard to www",
-        "description": "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder for easy download. This creates a stable URL for the dashboard YAML.",
-        "data": {
-          "confirm": "Publish dashboard"
+          "zones": "Zones (YAML or JSON)"
         }
       }
     },
@@ -210,36 +185,17 @@
       "cannot_read": "Could not read snapshot file",
       "invalid_json": "Invalid JSON",
       "confirm_required": "Please confirm",
-      "invalid": "Invalid input",
-      "generation_failed": "Failed to generate dashboard: {error}",
-      "publish_failed": "Failed to publish dashboard: {error}",
-      "no_dashboard_generated": "No dashboard has been generated yet. {hint}"
+      "invalid": "Invalid input"
     }
   },
   "issues": {
     "candidate_suggestion": {
       "title": "CoPilot suggestion: {title}",
-      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Zone:** {zone}\n**Confidence:** {confidence}% | **Lift:** {lift}x\n**Mood Context:** {mood_context}\n\n**Next steps:**\n1. Go to [Settings → Automations & Scenes → Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\n🔗 **Blueprint link:** [CoPilot A→B Blueprint]({blueprint_url})"
+      "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings > Automations & Scenes > Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\nBlueprint link: [CoPilot A>B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
       "title": "CoPilot seed: {title}",
-      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\n**Zone:** {zone}\n**Mood Context:** {mood_context}\n\nExcerpt: {excerpt}\n\nUse the safe A→B blueprint to create an automation if it makes sense, then click Fix and confirm."
-    },
-    "zone_pattern": {
-      "title": "Zone pattern: {title}",
-      "description": "CoPilot discovered a pattern in zone **{zone}**.\n\n**Pattern:** {pattern}\n**Confidence:** {confidence}% | **Lift:** {lift}x\n**Safety:** {safety_status}\n\n{mood_context}\n\nClick **Fix** to review and create an automation."
-    },
-    "mood_update": {
-      "title": "CoPilot Mood: {mood_name}",
-      "description": "Current mood: **{mood_name}** ({mood_value}%)\n\nConfidence: {confidence}%\nTrend: {trend}\n\nTop factors:\n{factors}\n\nClick **Learn more** to see detailed mood analysis."
-    },
-    "suggestion_pending": {
-      "title": "CoPilot Suggestion: {pattern}",
-      "description": "**Confidence:** {confidence}% | **Lift:** {lift}x\n**Zone:** {zone}\n**Mood Match:** {mood_context}\n**Risk:** {risk}\n\n{evidence}\n\nActions: [Accept] [Reject] [Snooze 4h]"
-    },
-    "calendar_context": {
-      "title": "Calendar Context: {status}",
-      "description": "**Upcoming:** {next_meeting}\n**Focus Weight:** {focus_weight}%\n**Social Weight:** {social_weight}%\n\n{events_count} events today, {conflicts} conflicts detected."
+      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A>B blueprint to create an automation if it makes sense, then click Fix and confirm."
     },
     "log_manifest_parse_error": {
       "title": "Custom integration has invalid manifest.json: {integration}",
@@ -256,6 +212,251 @@
     "log_blocking_import_module": {
       "title": "Blocking call detected: import_module",
       "description": "Home Assistant detected a blocking import_module call on the event loop. This can cause delays and timeouts. Update/replace the integration responsible for the blocking call."
+    },
+    "events_forwarder_unhealthy": {
+      "title": "Events forwarder is not delivering events",
+      "description": "CoPilot is queueing events but cannot deliver them to Core. This usually indicates that Core is offline, the token/host is wrong, or networking is blocked.\n\nCurrent queue depth: {queue_len}\nError streak: {error_streak}\nDropped total: {dropped_total}\n\nSuggested checks: verify Core is online, confirm host/port/token in the integration config, and check logs for connectivity errors."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AI Home CoPilot options",
+        "description": "Configure AI Home CoPilot.",
+        "menu_options": {
+          "settings": "Settings",
+          "habitus_zones": "Habitus zones",
+          "entity_tags": "Entity tags",
+          "neurons": "Neurons",
+          "backup_restore": "Backup / restore"
+        }
+      },
+      "entity_tags": {
+        "title": "Entity tags",
+        "description": "Manage entity tags — assign HA entities to custom tags for targeted monitoring and LLM context.",
+        "menu_options": {
+          "add_tag": "Add tag",
+          "edit_tag": "Edit tag / assign entities",
+          "delete_tag": "Delete tag",
+          "back": "Back"
+        }
+      },
+      "add_tag": {
+        "title": "Add entity tag",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag ID (lowercase slug, e.g. licht)",
+          "tag_name": "Tag name",
+          "tag_entities": "Entities to assign",
+          "tag_color": "Color (hex, e.g. #fbbf24)"
+        }
+      },
+      "edit_tag": {
+        "title": "Edit entity tag",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag to edit",
+          "tag_entities": "Entities to assign"
+        }
+      },
+      "delete_tag": {
+        "title": "Delete entity tag",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag to delete"
+        }
+      },
+      "settings": {
+        "title": "AI Home CoPilot settings",
+        "description": "Configure AI Home CoPilot.",
+        "data": {
+          "webhook_url": "Webhook URL (copy into Copilot-Core)",
+          "host": "Host",
+          "port": "Port",
+          "token": "API token",
+          "test_light_entity_id": "Test light (for the toggle button)",
+          "media_music_players": "MediaContext: music players (csv)",
+          "media_tv_players": "MediaContext: TV/other players (csv)",
+          "suggestion_seed_entities": "Suggestion seed sensors (optional)",
+          "seed_allowed_domains": "Seed allowlist domains (comma-separated, optional)",
+          "seed_blocked_domains": "Seed blocklist domains (comma-separated, optional)",
+          "seed_max_offers_per_hour": "Seed limiter: max offers per hour",
+          "seed_min_seconds_between_offers": "Seed limiter: min seconds between offers",
+          "seed_max_offers_per_update": "Seed limiter: max offers per sensor update",
+          "watchdog_enabled": "Enable watchdog polling (fallback)",
+          "watchdog_interval_seconds": "Watchdog interval (seconds)",
+          "events_forwarder_enabled": "Core v1: forward Habitus zone events to Core (opt-in)",
+          "events_forwarder_flush_interval_seconds": "Core v1: forwarder flush interval (seconds)",
+          "events_forwarder_max_batch": "Core v1: forwarder max batch size",
+          "events_forwarder_forward_call_service": "Core v1: also forward call_service events (opt-in)",
+          "events_forwarder_idempotency_ttl_seconds": "Core v1: event idempotency TTL (seconds)",
+          "events_forwarder_persistent_queue_enabled": "Core v1: persistent forwarder queue (store unsent events across HA restarts)",
+          "events_forwarder_persistent_queue_max_size": "Core v1: persistent queue max size (drop-oldest)",
+          "events_forwarder_persistent_queue_flush_interval_seconds": "Core v1: persistent queue flush interval (seconds)",
+          "devlog_push_enabled": "Dev: push sanitized log snippets to Core",
+          "devlog_push_interval_seconds": "Dev: push interval (seconds)",
+          "devlog_push_path": "Dev: Core endpoint path",
+          "devlog_push_max_lines": "Dev: read last N log lines",
+          "devlog_push_max_chars": "Dev: max chars per snippet",
+          "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
+          "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
+          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph-to-candidates buttons",
+          "enable_user_preferences": "Enable user preferences module",
+          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
+          "events_forwarder_include_media_players": "Core: include media players in forwarding",
+          "events_forwarder_additional_entities": "Core: additional entities to forward (csv)",
+          "user_preference_enabled": "Enable per-user preference tracking",
+          "tracked_users": "Tracked users (comma-separated person.entity_ids)",
+          "primary_user": "Primary user (person.entity_id)",
+          "user_learning_mode": "User learning mode (passive/active/hybrid)",
+          "mupl_enabled": "Enable Multi-User Preference Learning",
+          "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL min interactions before learning",
+          "mupl_retention_days": "MUPL data retention (days)",
+          "waste_enabled": "Waste: enable waste collection reminders",
+          "waste_entities": "Waste: sensor entities (csv, auto-detect if empty)",
+          "waste_tts_enabled": "Waste: enable TTS announcements",
+          "waste_tts_entity": "Waste: TTS media player entity",
+          "waste_reminder_evening_hour": "Waste: evening reminder hour (0-23)",
+          "waste_reminder_morning_hour": "Waste: morning reminder hour (0-23)",
+          "birthday_enabled": "Birthday: enable birthday reminders",
+          "birthday_calendar_entities": "Birthday: calendar entities (csv, auto-detect if empty)",
+          "birthday_lookahead_days": "Birthday: lookahead days",
+          "birthday_tts_enabled": "Birthday: enable TTS announcements",
+          "birthday_tts_entity": "Birthday: TTS media player entity",
+          "birthday_reminder_hour": "Birthday: morning reminder hour (0-23)"
+        }
+      },
+      "habitus_zones": {
+        "title": "Habitus zones",
+        "description": "Create and manage curated zones (independent from Home Assistant Areas). Each zone requires motion/presence + at least one light.",
+        "menu_options": {
+          "create_zone": "Create zone",
+          "edit_zone": "Edit zone",
+          "delete_zone": "Delete zone",
+          "generate_dashboard": "Generate dashboard YAML",
+          "publish_dashboard": "Publish dashboard (www)",
+          "bulk_edit": "Bulk edit (YAML/JSON)",
+          "back": "Back"
+        }
+      },
+      "backup_restore": {
+        "title": "Backup / restore",
+        "description": "Import a previously generated local config snapshot. This overwrites Habitus zones and selected options. Secrets remain unchanged if redacted.",
+        "menu_options": {
+          "import_snapshot": "Import snapshot",
+          "back": "Back"
+        }
+      },
+      "import_snapshot": {
+        "title": "Import config snapshot",
+        "data": {
+          "source": "Source"
+        }
+      },
+      "import_snapshot_path": {
+        "title": "Import from file path",
+        "description": "{hint}",
+        "data": {
+          "path": "Snapshot path"
+        }
+      },
+      "import_snapshot_paste": {
+        "title": "Paste snapshot JSON",
+        "data": {
+          "json": "Snapshot JSON"
+        }
+      },
+      "import_snapshot_confirm": {
+        "title": "Confirm import",
+        "description": "This will import {zones} Habitus zones and update options from the snapshot.\n\nTokens are not imported unless explicitly included (redacted values keep your current token).",
+        "data": {
+          "confirm": "Yes, import now"
+        }
+      },
+      "create_zone": {
+        "title": "Create Habitus zone",
+        "description": "Pick a motion/presence entity and at least one light. Add any optional entities you want CoPilot to consider for this zone.",
+        "data": {
+          "zone_id": "Zone id (snake_case)",
+          "name": "Display name",
+          "motion_entity_id": "Motion / presence entity",
+          "light_entity_ids": "Lights (one or more)",
+          "optional_entity_ids": "Optional entities"
+        }
+      },
+      "edit_zone": {
+        "title": "Edit Habitus zone",
+        "data": {
+          "zone_id": "Zone"
+        }
+      },
+      "edit_zone_form": {
+        "title": "Edit Habitus zone",
+        "data": {
+          "zone_id": "Zone id (snake_case)",
+          "name": "Display name",
+          "motion_entity_id": "Motion / presence entity",
+          "light_entity_ids": "Lights (one or more)",
+          "optional_entity_ids": "Optional entities"
+        }
+      },
+      "delete_zone": {
+        "title": "Delete Habitus zone",
+        "data": {
+          "zone_id": "Zone"
+        }
+      },
+      "bulk_edit": {
+        "title": "Bulk edit Habitus zones",
+        "description": "{hint}",
+        "data": {
+          "zones": "Zones (YAML or JSON)"
+        }
+      },
+      "neurons": {
+        "title": "Neural System Configuration",
+        "description": "Configure context, state, and mood neurons for the AI Home CoPilot neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
+        "data": {
+          "neuron_enabled": "Enable Neural System",
+          "neuron_evaluation_interval": "Evaluation Interval (seconds)",
+          "neuron_context_entities": "Context Neuron Entities (comma-separated)",
+          "neuron_state_entities": "State Neuron Entities (comma-separated)",
+          "neuron_mood_entities": "Mood Neuron Entities (comma-separated)"
+        },
+        "data_description": {
+          "neuron_context_entities": "Entities for context neurons (presence, time, weather, etc.)",
+          "neuron_state_entities": "Entities for state neurons (energy, comfort, stress, etc.)",
+          "neuron_mood_entities": "Entities that influence mood (lights, media, climate, etc.)"
+        }
+      },
+      "generate_dashboard": {
+        "title": "Generate dashboard YAML",
+        "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in the ai_home_copilot/ configuration folder.",
+        "data": {
+          "confirm": "Generate dashboard"
+        }
+      },
+      "publish_dashboard": {
+        "title": "Publish dashboard to www",
+        "description": "Copies the latest generated dashboard to the www/ai_home_copilot/ folder for easy download. This creates a stable URL for the dashboard YAML.",
+        "data": {
+          "confirm": "Publish dashboard"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "cannot_read": "Could not read snapshot file",
+      "invalid_json": "Invalid JSON",
+      "confirm_required": "Please confirm",
+      "invalid": "Invalid input",
+      "generation_failed": "Failed to generate dashboard: {error}",
+      "publish_failed": "Failed to publish dashboard: {error}",
+      "no_dashboard_generated": "No dashboard has been generated yet. {hint}"
     }
   }
 }

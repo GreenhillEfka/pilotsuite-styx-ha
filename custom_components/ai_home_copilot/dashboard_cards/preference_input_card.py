@@ -7,13 +7,12 @@ Provides UI for:
 """
 from __future__ import annotations
 
-from homeassistant.components.card import CardEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity import Entity, EntityCategory
 
 from ..const import DOMAIN
 
-class PreferenceInputCard(CardEntity):
+class PreferenceInputCard(Entity):
     """Card entity for preference input workflows.
     
     Provides UI for user preference input, conflict resolution,
