@@ -1,5 +1,25 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.2.2] - 2026-02-19
+
+### Hauswirtschafts-Dashboard + Entity Suggestions API
+
+- **Hauswirtschafts-Dashboard** — Neuer Dashboard-Tab "🏠 Haushalt"
+  - Aggregiert Müllabfuhr + Geburtstage in einer Übersicht
+  - Müllkarte: Heute/Morgen Typen mit farbigen Icons + Urgency-Highlighting
+  - Geburtstagskarte: Heutige Geburtstage (grün) + 14-Tage Vorschau
+  - TTS-Reminder-Buttons direkt im Dashboard
+  - API: `GET /api/v1/haushalt/overview`, `POST /api/v1/haushalt/remind/waste`,
+    `POST /api/v1/haushalt/remind/birthday`
+- **Entity Assignment Suggestions API** — Heuristische Raumgruppen-Vorschläge
+  - `GET /api/v1/entity-assignment/suggestions`
+  - Parst alle HA-Entitäten via Supervisor API, gruppiert nach Raum-Hint
+  - Konfidenz: Entitäten-Anzahl + Domain-Mix (light+binary_sensor, light+climate)
+  - Angezeigt auf der Habitus-Seite (inline) und Haushalt-Seite (Karte)
+- **Entity Suggestions Panel** — Zusatzpanel auf Habitus-Page
+  - Aufklappbare Gruppen mit Konfidenz-Balken
+  - Raumname-Erkennung aus Entity-ID (Noise-Word-Filterung)
+
 ## [3.2.1] - 2026-02-19
 
 ### Fix: numeric_state + Conditions in create_automation

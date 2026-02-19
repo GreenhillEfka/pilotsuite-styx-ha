@@ -474,6 +474,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Reminders API")
 
+    # Register Haushalt Dashboard API (v3.2.2)
+    try:
+        from copilot_core.api.v1.haushalt import haushalt_bp
+        app.register_blueprint(haushalt_bp)
+        _LOGGER.info("Registered Haushalt API (/api/v1/haushalt/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Haushalt API")
+
+    # Register Entity Assignment Suggestions API (v3.2.2)
+    try:
+        from copilot_core.api.v1.entity_assignment import entity_assignment_bp
+        app.register_blueprint(entity_assignment_bp)
+        _LOGGER.info("Registered Entity Assignment API (/api/v1/entity-assignment/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Entity Assignment API")
+
     # Register Sharing API (fix: was never wired)
     try:
         from copilot_core.sharing.api import sharing_bp
