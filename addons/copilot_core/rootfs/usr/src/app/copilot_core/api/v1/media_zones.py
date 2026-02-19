@@ -572,6 +572,7 @@ def proactive_zone_entry():
 
     context = data.get("context")
 
+    suggestions = []
     try:
         kwargs: dict[str, Any] = {
             "person_id": person_id,
@@ -582,13 +583,28 @@ def proactive_zone_entry():
         suggestions = engine.on_zone_entry(**kwargs)
     except Exception as exc:
         _LOGGER.exception("Failed to process zone entry for %s in %s", person_id, zone_id)
-        return jsonify({"ok": False, "error": str(exc)}), 500
+
+    # Also update active Musikwolke sessions for this person
+    musikwolke_updated = False
+    if _media_mgr is not None:
+        try:
+            sessions = _media_mgr.get_musikwolke_sessions()
+            for sess in (sessions if isinstance(sessions, list) else []):
+                sess_person = sess.get("person_id", "") if isinstance(sess, dict) else ""
+                sess_id = sess.get("session_id", "") if isinstance(sess, dict) else ""
+                if sess_person == person_id and sess_id:
+                    _media_mgr.update_musikwolke(session_id=sess_id, entered_zone=zone_id)
+                    musikwolke_updated = True
+                    _LOGGER.info("Musikwolke session %s: %s -> %s", sess_id, person_id, zone_id)
+        except Exception:
+            _LOGGER.debug("Failed to update Musikwolke on zone entry", exc_info=True)
 
     return jsonify({
         "ok": True,
         "person_id": person_id,
         "zone_id": zone_id,
         "suggestions": suggestions,
+        "musikwolke_updated": musikwolke_updated,
     })
 
 

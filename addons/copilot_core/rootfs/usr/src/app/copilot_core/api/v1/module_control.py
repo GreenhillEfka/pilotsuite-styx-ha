@@ -21,9 +21,9 @@ from copilot_core.module_registry import ModuleRegistry, VALID_STATES
 
 _LOGGER = logging.getLogger(__name__)
 
-# Blueprint with relative prefix -- registered under /api/v1 in blueprint.py
+# Blueprint prefix must match dashboard's fetch to /api/v1/modules/...
 module_control_bp = Blueprint(
-    "module_control", __name__, url_prefix="/modules"
+    "module_control", __name__, url_prefix="/api/v1/modules"
 )
 
 # Global registry reference, set by init_module_control_api()

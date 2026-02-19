@@ -2,7 +2,7 @@
   "name": "PilotSuite Core",
   "slug": "copilot_core",
   "description": "MVP Core Service for PilotSuite with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": [
     "amd64",
@@ -97,6 +97,10 @@
       "enabled": false,
       "token": "",
       "allowed_chat_ids": []
+    },
+    "web_search": {
+      "ags_code": "",
+      "news_sources": ["tagesschau", "spiegel"]
     }
   },
   "schema": {
@@ -174,6 +178,10 @@
       "enabled": "bool?",
       "token": "password?",
       "allowed_chat_ids": "list?"
+    },
+    "web_search": {
+      "ags_code": "str?",
+      "news_sources": "list?"
     }
   }
 }

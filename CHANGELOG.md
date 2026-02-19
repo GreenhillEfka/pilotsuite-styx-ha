@@ -1,5 +1,43 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.1.1] - 2026-02-19
+
+### Frontend-Backend Integration Fix
+
+#### CRITICAL Fixes
+- **Dashboard Graph Stats**: Korrektes Parsing der `/api/v1/graph/stats`
+  Response (`gr.nodes` statt `gr.stats.nodes`)
+- **Dashboard Mood Endpoint**: `/api/v1/mood` statt `/api/v1/mood/state`,
+  `mr.moods` statt `mr.zones`
+- **Dashboard Media Zones**: `mzr.zones` statt `Object.keys(mzr)`
+- **Module Control Routing**: Blueprint url_prefix auf `/api/v1/modules`
+  korrigiert (war `/modules`)
+
+#### Zone-Entry Event Forwarding
+- **ZoneDetector Integration**: HACS ZoneDetector erkennt jetzt Zonen-Wechsel
+  und forwarded `POST /api/v1/media/proactive/zone-entry` an Core Addon
+- **Musikwolke Auto-Update**: Proactive zone-entry Endpoint aktualisiert
+  automatisch aktive Musikwolke-Sessions (Audio folgt Person)
+- ZoneDetector in `__init__.py` verdrahtet (Setup + Unload)
+
+#### Dashboard Erweiterungen
+- **Media Zonen Panel**: Zeigt Zone-Player-Zuordnung + aktive Musikwolke Sessions
+- **Web & News Panel**: Info ueber DuckDuckGo-Suche, RSS News, NINA/DWD
+- **API Endpoints Tabelle**: Aktualisiert mit Media Zones, Musikwolke, Proaktiv
+- Autonomie-Tooltips aktualisiert (Auto-Apply bei beiden Modulen aktiv)
+- Musikwolke-Session-Count in Module Health Details
+
+#### Mood Event Processor
+- Mood Service wird jetzt automatisch aus Event-Pipeline gespeist
+  (media_player State Changes → MoodService.update_from_media_context)
+
+#### Config
+- `web_search` Section in addon config.json (ags_code, news_sources)
+- config.json Version → 3.1.0
+
+Dateien: `module_control.py`, `media_zones.py`, `core_setup.py`,
+`config.json`, `dashboard.html`, `zone_detector.py` (HACS), `__init__.py` (HACS)
+
 ## [3.1.0] - 2026-02-19
 
 ### Autonomie + Web-Intelligenz + Musikwolke
