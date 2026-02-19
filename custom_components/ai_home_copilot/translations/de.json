@@ -2,14 +2,30 @@
   "config": {
     "step": {
       "user": {
-        "title": "AI Home CoPilot",
-        "description": "Verbinde dich mit dem AI Home CoPilot Core Add-on.",
+        "title": "PilotSuite — Styx Setup",
+        "description": "Richte PilotSuite mit Styx ein, deinem lokalen KI-Assistenten.",
+        "menu_options": {
+          "zero_config": "Zero Config — Styx sofort starten (empfohlen)",
+          "quick_start": "Quick Start (gefuehrter Assistent)",
+          "manual_setup": "Manuelle Einrichtung (Experte)"
+        },
         "data": {
           "host": "Host",
           "port": "Port",
           "token": "API-Token",
-          "test_light_entity_id": "Test-Licht (für den Toggle-Button)",
+          "test_light_entity_id": "Test-Licht (fuer den Toggle-Button)",
           "webhook_url": "Webhook-URL (in Copilot-Core eintragen)"
+        }
+      },
+      "manual_setup": {
+        "title": "Manuelle Einrichtung",
+        "description": "Konfiguriere deine PilotSuite-Verbindung. Gib deinem Assistenten einen Namen (Standard: Styx).",
+        "data": {
+          "assistant_name": "Assistenten-Name",
+          "host": "Host",
+          "port": "Port",
+          "token": "API-Token",
+          "test_light_entity_id": "Test-Licht (optional)"
         }
       },
       "init": {

@@ -51,7 +51,7 @@ class TestHabitusMinerModule:
         entry = MagicMock()
         entry.entry_id = "test_entry_123"
         entry.data = {
-            "core_url": "http://localhost:8099",
+            "core_url": "http://localhost:8909",
             "access_token": "test_token"
         }
         return entry

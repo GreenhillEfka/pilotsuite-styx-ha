@@ -6,7 +6,7 @@
 
 ## Projektueberblick
 
-**PilotSuite** (ehemals AI Home CoPilot) ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8099) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
+**PilotSuite** (ehemals AI Home CoPilot) ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
 
 Das Projekt verfolgt einen **Privacy-first, Local-first** Ansatz: alle Daten bleiben lokal, keine Cloud-Abhaengigkeit, Human-in-the-Loop Governance.
 
@@ -27,7 +27,7 @@ Home Assistant
 |     Sensoren, Buttons, Dashboard Cards
 |     HTTP REST API (Token-Auth)
 |     v
-+-- Core Add-on (copilot_core) Port 8099    <-- separates Repo
++-- Core Add-on (copilot_core) Port 8909    <-- separates Repo
       Backend, Brain Graph, Habitus, Mood Engine
 ```
 
@@ -67,7 +67,7 @@ Module werden ueber `core/runtime.py` registriert und gestartet.
 - HTTP REST API ueber `CopilotApiClient` (in `coordinator.py`)
 - Token-basierte Authentifizierung (X-Auth-Token / Bearer)
 - Webhook Push fuer Echtzeit-Updates vom Core
-- Standard-Port: 8099
+- Standard-Port: 8909
 
 ---
 

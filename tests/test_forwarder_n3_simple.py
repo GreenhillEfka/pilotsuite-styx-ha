@@ -60,7 +60,7 @@ def create_mock_hass():
 def create_forwarder_config():
     """Create default forwarder configuration."""
     return {
-        "core_url": "http://localhost:8099",
+        "core_url": "http://localhost:8909",
         "api_token": "test-token",
         "enabled_domains": ["light", "sensor"],
         "batch_size": 10,
@@ -77,7 +77,7 @@ def test_init():
     forwarder = N3EventForwarder(mock_hass, config)
     
     assert forwarder.hass == mock_hass
-    assert forwarder._core_url == "http://localhost:8099"
+    assert forwarder._core_url == "http://localhost:8909"
     assert forwarder._api_token == "test-token"
     assert forwarder._batch_size == 10
     assert forwarder._flush_interval == 0.1

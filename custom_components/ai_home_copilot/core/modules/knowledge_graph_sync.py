@@ -170,7 +170,7 @@ class KnowledgeGraphSyncModule(CopilotModule):
         runtime = self._hass.data.get("ai_home_copilot", {}).get("runtime")
         if runtime and hasattr(runtime, "api_client"):
             session = self._hass.helpers.aiohttp_client.async_get_clientsession()
-            base_url = runtime.config.get("core_addon_url", "http://localhost:8099")
+            base_url = runtime.config.get("core_addon_url", "http://localhost:8909")
             token = runtime.config.get("token")
             self._client = KnowledgeGraphClient(session, base_url, token)
         else:

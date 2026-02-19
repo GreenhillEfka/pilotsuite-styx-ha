@@ -81,7 +81,7 @@ def mock_hass_obj():
 def forwarder_config():
     """Default N3 forwarder configuration."""
     return {
-        "core_url": "http://localhost:8099",
+        "core_url": "http://localhost:8909",
         "api_token": "test-token",
         "enabled_domains": ["light", "sensor"],
         "batch_size": 10,
@@ -104,7 +104,7 @@ class TestN3EventForwarder:
         forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         assert forwarder.hass == mock_hass_obj
-        assert forwarder._core_url == "http://localhost:8099"
+        assert forwarder._core_url == "http://localhost:8909"
         assert forwarder._api_token == "test-token"
         assert forwarder._batch_size == 10
         assert forwarder._flush_interval == 0.1
@@ -364,7 +364,7 @@ if __name__ == "__main__":
     mock_hass.helpers.entity_registry.async_get.return_value = entity_registry
     
     forwarder_config = {
-        "core_url": "http://localhost:8099",
+        "core_url": "http://localhost:8909",
         "api_token": "test-token",
         "enabled_domains": ["light", "sensor"],
         "batch_size": 10,

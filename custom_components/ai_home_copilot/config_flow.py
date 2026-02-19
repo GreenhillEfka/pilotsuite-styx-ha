@@ -70,22 +70,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return OptionsFlowHandler(config_entry)
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
-        """Initial step - show main menu with Quick Start vs Manual Setup."""
+        """Initial step - show main menu with Zero Config, Quick Start, or Manual."""
         return self.async_show_menu(
             step_id="user",
-            menu_options=["quick_start", "manual_setup"],
+            menu_options=["zero_config", "quick_start", "manual_setup"],
             description_placeholders={
-                "description": "🏠 **AI Home CoPilot Setup**\n\n"
+                "description": "PilotSuite Setup\n\n"
                 "Choose your setup method:\n\n"
-                "⚡ **Quick Start**: Auto-configure with smart defaults\n"
-                "   - Auto-discovers your devices\n"
-                "   - Configures media players automatically\n"
-                "   - Ready in under 2 minutes\n\n"
-                "⚙️ **Manual Setup**: Expert configuration\n"
-                "   - Full control over all options\n"
-                "   - Advanced networking settings\n"
+                "Zero Config: Install and start immediately with smart defaults. "
+                "PilotSuite discovers your devices automatically and asks for "
+                "improvements later through conversation.\n\n"
+                "Quick Start: Guided wizard to configure zones and devices (~2 min).\n\n"
+                "Manual Setup: Expert configuration with full control.\n"
             },
         )
+
+    async def async_step_zero_config(self, user_input: dict | None = None) -> FlowResult:
+        """Zero Config - instant start with Styx defaults. No questions asked."""
+        config = {
+            CONF_HOST: DEFAULT_HOST,
+            CONF_PORT: DEFAULT_PORT,
+            CONF_TOKEN: "",
+            "assistant_name": "Styx",
+        }
+        title = "Styx — PilotSuite"
+        return self.async_create_entry(title=title, data=config)
 
     async def async_step_quick_start(self, user_input: dict | None = None) -> FlowResult:
         """Quick Start - guided wizard with smart defaults."""
@@ -108,11 +117,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("Config validation error details", exc_info=True)
                 errors["base"] = "cannot_connect"
             else:
-                title = f"AI Home CoPilot ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
+                name = user_input.get("assistant_name", "Styx")
+                title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
                 return self.async_create_entry(title=title, data=user_input)
 
         schema = vol.Schema(
             {
+                vol.Optional("assistant_name", default="Styx"): str,
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_TOKEN): str,

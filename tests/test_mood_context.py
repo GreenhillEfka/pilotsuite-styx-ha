@@ -24,11 +24,11 @@ async def test_mood_context_initialization():
     
     module = MoodContextModule(
         hass=hass,
-        core_api_base_url="http://localhost:8099",
+        core_api_base_url="http://localhost:8909",
         api_token="test_token"
     )
     
-    assert module.core_api_base_url == "http://localhost:8099"
+    assert module.core_api_base_url == "http://localhost:8909"
     assert module.api_token == "test_token"
     assert module._zone_moods == {}
     assert module._last_update is None
@@ -41,7 +41,7 @@ async def test_mood_should_suppress_energy_saving():
     from custom_components.ai_home_copilot.core.modules.mood_context_module import MoodContextModule
     
     hass = MagicMock()
-    module = MoodContextModule(hass, "http://localhost:8099", "token")
+    module = MoodContextModule(hass, "http://localhost:8909", "token")
     
     # Case 1: Joy > 0.6 should suppress energy-saving
     module._zone_moods["living_room"] = {
@@ -92,7 +92,7 @@ def test_mood_suggestion_context():
     from custom_components.ai_home_copilot.core.modules.mood_context_module import MoodContextModule
     
     hass = MagicMock()
-    module = MoodContextModule(hass, "http://localhost:8099", "token")
+    module = MoodContextModule(hass, "http://localhost:8909", "token")
     
     # Setup zone with specific mood
     module._zone_moods["living_room"] = {
@@ -139,7 +139,7 @@ def test_mood_summary():
     from custom_components.ai_home_copilot.core.modules.mood_context_module import MoodContextModule
     
     hass = MagicMock()
-    module = MoodContextModule(hass, "http://localhost:8099", "token")
+    module = MoodContextModule(hass, "http://localhost:8909", "token")
     
     # Setup multiple zones
     module._zone_moods = {
@@ -177,7 +177,7 @@ def test_mood_get_zone_mood():
     from custom_components.ai_home_copilot.core.modules.mood_context_module import MoodContextModule
     
     hass = MagicMock()
-    module = MoodContextModule(hass, "http://localhost:8099", "token")
+    module = MoodContextModule(hass, "http://localhost:8909", "token")
     
     # Add mood data
     mood_data = {
@@ -202,7 +202,7 @@ def test_mood_empty_state():
     from custom_components.ai_home_copilot.core.modules.mood_context_module import MoodContextModule
     
     hass = MagicMock()
-    module = MoodContextModule(hass, "http://localhost:8099", "token")
+    module = MoodContextModule(hass, "http://localhost:8909", "token")
     
     # Empty state
     assert module.get_all_moods() == {}

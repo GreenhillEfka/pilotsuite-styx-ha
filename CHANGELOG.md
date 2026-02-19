@@ -1,5 +1,41 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [1.1.0] - 2026-02-19
+
+### Styx — Die Verbindung beider Welten
+
+- **Styx Naming in Config Flow**: Zero Config creates "Styx — PilotSuite" entry,
+  manual setup includes `assistant_name` field (default: "Styx")
+- **Translations**: EN + DE updated with Styx setup titles and descriptions
+- **hacs.json**: Name updated to "PilotSuite — Styx"
+
+---
+
+## [1.0.0] - 2026-02-19
+
+### PilotSuite v1.0.0 -- First Full Release
+
+The PilotSuite HACS Integration is now fully installable with zero-config setup.
+
+### Features
+- **Zero Config Setup**: One-click installation -- PilotSuite discovers devices
+  automatically and improves through conversation. No questions asked.
+- **Quick Start Wizard**: Guided 7-step wizard for zone/device configuration
+- **50+ Dashboard Cards**: Overview, Brain Graph, Habitus, Mood, Energy, Presence,
+  Mobile-responsive, Mesh monitoring, Interactive filters
+- **extended_openai_conversation_pilot**: OpenAI-compatible conversation agent
+  for HA's Assist pipeline, connecting to PilotSuite Core at localhost:8909
+- **23 Core Modules**: Events forwarder, Brain Graph sync, Habitus miner, Mood,
+  Energy/Weather/Presence/UniFi/Camera/ML/Voice context, Home Alerts, and more
+- **80+ Sensors**: Entity state tracking across all PilotSuite modules
+- **Tag System v0.2**: Entity tagging with registry, assignment, and sync
+
+### Breaking Changes
+- Version jump from 0.15.2 to 1.0.0
+- Default port changed to 8909
+
+---
+
 ## [0.15.1] - 2026-02-18
 
 ### Features

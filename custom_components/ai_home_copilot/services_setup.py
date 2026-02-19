@@ -206,7 +206,7 @@ def _register_forwarder_n3_services(hass: HomeAssistant) -> None:
             for entry in hass.config_entries.async_entries(DOMAIN):
                 if entry.entry_id == entry_id:
                     config = {
-                        "core_url": entry.data.get("core_url", "http://localhost:8099"),
+                        "core_url": entry.data.get("core_url", "http://localhost:8909"),
                         "api_token": entry.data.get("api_token", ""),
                         "enabled_domains": [
                             "light", "climate", "media_player", "binary_sensor",
