@@ -418,6 +418,35 @@ HA_TOOLS = [
             "required": ["action"]
         }
     ),
+
+    MCPTool(
+        name="pilotsuite.waste_status",
+        description=(
+            "Get waste collection schedule and status. Shows which waste types "
+            "are being collected today, tomorrow, and in the coming days. "
+            "Use when user asks about Müllabfuhr, waste collection, recycling, "
+            "or when the next pickup is."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.birthday_status",
+        description=(
+            "Get upcoming birthdays from the calendar. Shows today's birthdays "
+            "and upcoming ones within 14 days. Use when user asks about birthdays, "
+            "Geburtstage, or who has a birthday soon."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    ),
 ]
 
 

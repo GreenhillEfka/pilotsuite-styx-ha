@@ -43,6 +43,7 @@ from copilot_core.automation_creator import AutomationCreator
 from copilot_core.media_zone_manager import MediaZoneManager
 from copilot_core.proactive_engine import ProactiveContextEngine
 from copilot_core.web_search import WebSearchService
+from copilot_core.waste_service import WasteCollectionService, BirthdayService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,6 +92,8 @@ def init_services(hass=None, config: dict = None):
         "media_zone_manager": None,
         "proactive_engine": None,
         "web_search_service": None,
+        "waste_service": None,
+        "birthday_service": None,
     }
 
     # Initialize system health service (requires hass)
@@ -328,6 +331,22 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init WebSearchService")
 
+    # Initialize Waste Collection Service (v3.2.0)
+    try:
+        waste_service = WasteCollectionService()
+        services["waste_service"] = waste_service
+        _LOGGER.info("WasteCollectionService initialized")
+    except Exception:
+        _LOGGER.exception("Failed to init WasteCollectionService")
+
+    # Initialize Birthday Service (v3.2.0)
+    try:
+        birthday_service = BirthdayService()
+        services["birthday_service"] = birthday_service
+        _LOGGER.info("BirthdayService initialized")
+    except Exception:
+        _LOGGER.exception("Failed to init BirthdayService")
+
     # Initialize Telegram Bot (requires conversation to be configured)
     try:
         tg_config = config.get("telegram", {}) if config else {}
@@ -441,6 +460,19 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Media Zones API (/api/v1/media/*)")
     except Exception:
         _LOGGER.exception("Failed to register Media Zones API")
+
+    # Register Reminders API (waste + birthdays, v3.2.0)
+    try:
+        from copilot_core.api.v1.reminders import reminders_bp, init_reminders_api
+        if services:
+            init_reminders_api(
+                services.get("waste_service"),
+                services.get("birthday_service"),
+            )
+        app.register_blueprint(reminders_bp)
+        _LOGGER.info("Registered Reminders API (/api/v1/waste/* + /api/v1/birthday/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Reminders API")
 
     # Register Sharing API (fix: was never wired)
     try:

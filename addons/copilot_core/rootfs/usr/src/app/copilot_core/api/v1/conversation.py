@@ -421,6 +421,26 @@ def _get_user_context() -> str:
             except Exception:
                 pass
 
+        # Waste collection context (v3.2.0)
+        waste_svc = services.get("waste_service")
+        if waste_svc:
+            try:
+                waste_ctx = waste_svc.get_context_for_llm()
+                if waste_ctx:
+                    context_parts.append(waste_ctx)
+            except Exception:
+                pass
+
+        # Birthday context (v3.2.0)
+        birthday_svc = services.get("birthday_service")
+        if birthday_svc:
+            try:
+                bday_ctx = birthday_svc.get_context_for_llm()
+                if bday_ctx:
+                    context_parts.append(bday_ctx)
+            except Exception:
+                pass
+
     except Exception as exc:
         logger.debug("Could not load user context: %s", exc)
 
@@ -951,6 +971,12 @@ def _execute_ha_tool(name: str, arguments: dict) -> dict:
         elif name == "pilotsuite.musikwolke":
             return _execute_musikwolke(arguments)
 
+        elif name == "pilotsuite.waste_status":
+            return _execute_waste_status()
+
+        elif name == "pilotsuite.birthday_status":
+            return _execute_birthday_status()
+
         else:
             return {"error": f"Unknown tool: {name}"}
 
@@ -1182,6 +1208,32 @@ def _execute_musikwolke(args: dict) -> dict:
     except Exception as exc:
         logger.warning("Musikwolke control failed: %s", exc)
         return {"error": str(exc)}
+
+
+def _execute_waste_status() -> dict:
+    """Get waste collection status."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        ws = services.get("waste_service")
+        if ws:
+            return ws.get_status()
+    except Exception as exc:
+        logger.warning("Waste status failed: %s", exc)
+    return {"error": "WasteCollectionService not available", "collections": []}
+
+
+def _execute_birthday_status() -> dict:
+    """Get birthday status."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        bs = services.get("birthday_service")
+        if bs:
+            return bs.get_status()
+    except Exception as exc:
+        logger.warning("Birthday status failed: %s", exc)
+    return {"error": "BirthdayService not available", "today": [], "upcoming": []}
 
 
 def process_with_tool_execution(user_message: str) -> str:

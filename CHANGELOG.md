@@ -1,5 +1,24 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.2.0] - 2026-02-19
+
+### Müllabfuhr + Geburtstags-Erinnerungen (Server-Side)
+
+- **WasteCollectionService**: Server-seitiger Waste-Kontext für LLM + Dashboard
+  - REST API: `POST /api/v1/waste/event`, `POST /api/v1/waste/collections`,
+    `GET /api/v1/waste/status`, `POST /api/v1/waste/remind`
+  - TTS-Delivery via Supervisor API
+  - LLM-Kontext-Injection (Müllabfuhr-Status im System-Prompt)
+- **BirthdayService**: Server-seitiger Geburtstags-Kontext
+  - REST API: `POST /api/v1/birthday/update`, `GET /api/v1/birthday/status`,
+    `POST /api/v1/birthday/remind`
+  - TTS + Persistent Notification Delivery
+  - LLM-Kontext (Styx weiß wer Geburtstag hat)
+- **LLM Tools**: `pilotsuite.waste_status` + `pilotsuite.birthday_status` (19 Tools total)
+- **Dashboard**: Müllabfuhr-Panel + Geburtstags-Panel auf Modules-Page
+- **Module Health**: Waste + Birthday Status in Module-Grid
+- Version auf 3.2.0
+
 ## [3.1.1] - 2026-02-19
 
 ### Frontend-Backend Integration Fix

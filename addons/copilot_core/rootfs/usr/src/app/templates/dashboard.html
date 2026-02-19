@@ -320,6 +320,16 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
   <div id="news-warnings-panel"><div class="loading"><div class="spinner"></div>Lade Nachrichten...</div></div>
 </div>
 <div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x267b;</span> Müllabfuhr</h2>
+  <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Waste Collection Schedule + Erinnerungen mit TTS</p>
+  <div id="waste-panel"><div class="loading"><div class="spinner"></div>Lade Müllabfuhr...</div></div>
+</div>
+<div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x1f382;</span> Geburtstage</h2>
+  <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Kalender-basierte Geburtstags-Erinnerungen</p>
+  <div id="birthday-panel"><div class="loading"><div class="spinner"></div>Lade Geburtstage...</div></div>
+</div>
+<div class="card" style="margin-top:14px">
   <h2><span class="ic">&#x1f916;</span> Erstellte Automationen</h2>
   <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Aus akzeptierten Vorschlaegen erstellte HA-Automationen</p>
   <div id="automation-list"><div class="loading"><div class="spinner"></div>Lade Automationen...</div></div>
@@ -405,6 +415,8 @@ const MODULE_DEFS=[
   {id:'web_search',name:'Web & News',desc:'Recherche, Nachrichten, NINA-Warnungen',icon:'&#x1f310;',color:'var(--blue)'},
   {id:'telegram_bot',name:'Telegram Bot',desc:'Chat-Bridge + Notifications',icon:'&#x2709;',color:'var(--blue)'},
   {id:'mcp_server',name:'MCP Server',desc:'Skills fuer externe KI-Clients',icon:'&#x1f50c;',color:'var(--accent)'},
+  {id:'waste_reminder',name:'Müllabfuhr',desc:'Abfuhr-Erinnerungen + TTS',icon:'&#x267b;',color:'var(--green)'},
+  {id:'birthday_reminder',name:'Geburtstage',desc:'Kalender-Erinnerungen + TTS',icon:'&#x1f382;',color:'var(--pink)'},
 ];
 
 // State
@@ -439,9 +451,11 @@ async function fetchModuleHealth(){
     api('/api/v1/capabilities'),         // [10] mcp_server, kg, user_prefs
     api('/api/v1/media/zones'),          // [11] media_zones
     api('/api/v1/media/musikwolke'),     // [12] media_zones musikwolke
+    api('/api/v1/waste/status'),         // [13] waste_reminder
+    api('/api/v1/birthday/status'),      // [14] birthday_reminder
   ]);
   const v=r=>r.status==='fulfilled'?r.value:null;
-  const [gr,hr,mr,sr,nr,memr,er,wr,ur,tgr,capr,mzr,mkr]=settled.map(v);
+  const [gr,hr,mr,sr,nr,memr,er,wr,ur,tgr,capr,mzr,mkr,wastr,bdayr]=settled.map(v);
   const caps=capr?.capabilities||[];
   const feats=capr?.features||{};
   const neurons=(nr?.neurons||nr?.data||[]);
@@ -465,6 +479,8 @@ async function fetchModuleHealth(){
     web_search:   'active',    // Web search is always active when available
     telegram_bot:  tgr?.running?'active':'off',
     mcp_server:    capr?.ok?'active':'off',
+    waste_reminder:wastr?.ok&&wastr?.total>0?'active':wastr?.ok?'learning':'off',
+    birthday_reminder:bdayr?.ok&&(bdayr?.today?.length>0||bdayr?.upcoming?.length>0)?'active':bdayr?.ok?'learning':'off',
     _details:{
       brain_graph: gr?.ok?`${gr?.nodes||0} Nodes, ${gr?.edges||0} Edges`:'API offline',
       habitus_miner:hr?.status==='ok'?`${hr?.rules_count||0} Regeln`:(hr?'Kein Output':'API offline'),
@@ -481,6 +497,8 @@ async function fetchModuleHealth(){
       web_search:   'DDG + Tagesschau + NINA/DWD',
       telegram_bot:tgr?.running?'Polling aktiv':'Nicht konfiguriert',
       mcp_server:capr?.ok?'Aktiv':'Nicht erreichbar',
+      waste_reminder:wastr?.ok?`${wastr?.total||0} Typen, ${(wastr?.today||[]).length} heute, ${(wastr?.tomorrow||[]).length} morgen`:'Nicht konfiguriert',
+      birthday_reminder:bdayr?.ok?`${(bdayr?.today||[]).length} heute, ${(bdayr?.upcoming||[]).length} bevorstehend`:'Nicht konfiguriert',
     }
   };
   _healthTs=Date.now();
@@ -1130,6 +1148,62 @@ async function loadMediaZones(){
   }catch(e){c.innerHTML='<div class="empty">Media Zones nicht erreichbar</div>'}
 }
 
+// -- Waste Collection Panel (v3.2.0) --
+async function loadWastePanel(){
+  const c=$('waste-panel');if(!c)return;
+  try{
+    const r=await api('/api/v1/waste/status');
+    if(!r?.ok){c.innerHTML='<div class="empty">Müllabfuhr-Modul nicht aktiv. Konfiguriere waste_collection_schedule + Waste-Entities in den Einstellungen.</div>';return}
+    const cols=r.collections||[];
+    const today=r.today||[];
+    const tomorrow=r.tomorrow||[];
+    let html='';
+    if(today.length){html+=`<div style="margin-bottom:8px">${badge('Heute: '+today.join(', '),'r')}</div>`}
+    if(tomorrow.length){html+=`<div style="margin-bottom:8px">${badge('Morgen: '+tomorrow.join(', '),'y')}</div>`}
+    if(cols.length){
+      html+='<table class="tbl"><tr><th>Typ</th><th>In Tagen</th><th>Datum</th></tr>';
+      cols.forEach(c=>{
+        const cls=c.days_to===0?'style="color:var(--red);font-weight:700"':c.days_to===1?'style="color:var(--yellow);font-weight:600"':'';
+        html+=`<tr><td ${cls}>${escapeHtml(c.waste_type||'?')}</td><td ${cls}>${c.days_to}</td><td>${escapeHtml(c.next_date||'')}</td></tr>`;
+      });
+      html+='</table>';
+    }else{
+      html+='<div class="empty">Keine Abfuhrtermine geladen. Sensordaten werden automatisch von der HACS-Integration gesendet.</div>';
+    }
+    c.innerHTML=html;
+  }catch(e){c.innerHTML='<div class="empty">Müllabfuhr-API nicht erreichbar</div>'}
+}
+
+// -- Birthday Panel (v3.2.0) --
+async function loadBirthdayPanel(){
+  const c=$('birthday-panel');if(!c)return;
+  try{
+    const r=await api('/api/v1/birthday/status');
+    if(!r?.ok){c.innerHTML='<div class="empty">Geburtstags-Modul nicht aktiv. Konfiguriere Kalender-Entities in den Einstellungen.</div>';return}
+    const today=r.today||[];
+    const upcoming=r.upcoming||[];
+    let html='';
+    if(today.length){
+      html+='<div style="margin-bottom:8px">';
+      today.forEach(b=>{
+        const age=b.age?` (wird ${b.age})`:'';
+        html+=badge(b.name+age+' - Heute!','g')+' ';
+      });
+      html+='</div>';
+    }
+    if(upcoming.length){
+      html+='<table class="tbl"><tr><th>Name</th><th>In Tagen</th><th>Datum</th><th>Alter</th></tr>';
+      upcoming.forEach(b=>{
+        html+=`<tr><td>${escapeHtml(b.name||'?')}</td><td>${b.days_until}</td><td>${escapeHtml(b.date||'')}</td><td>${b.age||'--'}</td></tr>`;
+      });
+      html+='</table>';
+    }else if(!today.length){
+      html+='<div class="empty">Keine bevorstehenden Geburtstage in den naechsten 14 Tagen.</div>';
+    }
+    c.innerHTML=html;
+  }catch(e){c.innerHTML='<div class="empty">Geburtstags-API nicht erreichbar</div>'}
+}
+
 // -- News & Warnings Panel (v3.1.0) --
 async function loadNewsWarnings(){
   const c=$('news-warnings-panel');if(!c)return;
@@ -1267,7 +1341,7 @@ function drawTrend(canvasId,dataPoints,realData){
 // ==================================================
 // PAGE LOADER — Resilient wrapper
 // ==================================================
-const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:async()=>{await loadModules();loadAutomations();loadMediaZones();loadNewsWarnings()},settings:loadSettings};
+const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:async()=>{await loadModules();loadAutomations();loadMediaZones();loadNewsWarnings();loadWastePanel();loadBirthdayPanel()},settings:loadSettings};
 function loadPage(p){
   const fn=_loaders[p];
   if(!fn)return;
