@@ -49,9 +49,9 @@
    ```
 4. **PilotSuite Core** (AI Home CoPilot Core) suchen und installieren
 5. Add-on starten
-6. Pruefen ob das Add-on laeuft: `http://<ha-ip>:8099/health`
+6. Pruefen ob das Add-on laeuft: `http://<ha-ip>:8909/health`
 
-Das Add-on laeuft auf Port **8099** und erwartet keine weitere Konfiguration fuer den Grundbetrieb.
+Das Add-on laeuft auf Port **8909** und erwartet keine weitere Konfiguration fuer den Grundbetrieb.
 
 ### 2.2 HACS Integration installieren
 
@@ -74,7 +74,7 @@ Das Add-on laeuft auf Port **8099** und erwartet keine weitere Konfiguration fue
 | Feld | Standard | Beschreibung |
 |------|----------|-------------|
 | Host | `homeassistant.local` | IP-Adresse oder Hostname |
-| Port | `8099` | Core Add-on Port |
+| Port | `8909` | Core Add-on Port |
 | API Token | (leer) | Optional: Shared Token fuer Authentifizierung |
 
 ---
@@ -183,16 +183,16 @@ Ueberwachung kritischer Zustaende:
 ### Core Add-on startet nicht
 
 1. Logs pruefen: **Settings** > **Add-ons** > **PilotSuite Core** > **Log**
-2. Port-Konflikt pruefen: Port 8099 muss frei sein
+2. Port-Konflikt pruefen: Port 8909 muss frei sein
 3. Speicherplatz pruefen: Add-on benoetigt Schreibzugriff auf `/data/`
 
 ### Integration verbindet sich nicht
 
-1. Core Add-on Health-Check: `http://<ha-ip>:8099/health`
+1. Core Add-on Health-Check: `http://<ha-ip>:8909/health`
    - Erwartet: `{"ok": true, ...}`
 2. Host/Port in Integration-Konfiguration pruefen
 3. Token pruefen (muss in beiden Konfigurationen identisch sein)
-4. Firewall-Regeln pruefen (Port 8099 muss erreichbar sein)
+4. Firewall-Regeln pruefen (Port 8909 muss erreichbar sein)
 
 ### Sensoren zeigen "unavailable"
 

@@ -37,6 +37,7 @@ from copilot_core.tags.api import init_tags_api as setup_tag_api
 from copilot_core.webhook_pusher import WebhookPusher
 from copilot_core.household import HouseholdProfile
 from copilot_core.neurons.manager import NeuronManager
+from copilot_core.telegram import TelegramBot
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +79,8 @@ def init_services(hass=None, config: dict = None):
         "webhook_pusher": None,
         "household_profile": None,
         "neuron_manager": None,
+        "conversation_memory": None,
+        "telegram_bot": None,
     }
 
     # Initialize system health service (requires hass)
@@ -201,6 +204,59 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init NeuronManager")
 
+    # Initialize Conversation Memory (lifelong learning)
+    try:
+        from copilot_core.conversation_memory import ConversationMemory
+        services["conversation_memory"] = ConversationMemory()
+        _LOGGER.info("ConversationMemory initialized (lifelong learning active)")
+    except Exception:
+        _LOGGER.exception("Failed to init ConversationMemory")
+
+    # Set conversation env vars from config (used by conversation.py + llm_provider.py)
+    try:
+        import os
+        conv_config = config.get("conversation", {}) if config else {}
+        if conv_config.get("ollama_url"):
+            os.environ.setdefault("OLLAMA_URL", conv_config["ollama_url"])
+        if conv_config.get("ollama_model"):
+            os.environ.setdefault("OLLAMA_MODEL", conv_config["ollama_model"])
+        if conv_config.get("assistant_name"):
+            os.environ.setdefault("ASSISTANT_NAME", conv_config["assistant_name"])
+        if conv_config.get("character"):
+            os.environ.setdefault("CONVERSATION_CHARACTER", conv_config["character"])
+        if conv_config.get("enabled"):
+            os.environ.setdefault("CONVERSATION_ENABLED", "true")
+        # Cloud fallback config (OpenClaw, OpenAI, etc.)
+        if conv_config.get("cloud_api_url"):
+            os.environ.setdefault("CLOUD_API_URL", conv_config["cloud_api_url"])
+        if conv_config.get("cloud_api_key"):
+            os.environ.setdefault("CLOUD_API_KEY", conv_config["cloud_api_key"])
+        if conv_config.get("cloud_model"):
+            os.environ.setdefault("CLOUD_MODEL", conv_config["cloud_model"])
+        if conv_config.get("prefer_local") is not None:
+            os.environ.setdefault("PREFER_LOCAL", str(conv_config["prefer_local"]).lower())
+    except Exception:
+        _LOGGER.exception("Failed to set conversation env vars")
+
+    # Initialize Telegram Bot (requires conversation to be configured)
+    try:
+        tg_config = config.get("telegram", {}) if config else {}
+        tg_token = tg_config.get("token", "")
+        if tg_config.get("enabled") and tg_token:
+            from copilot_core.api.v1.conversation import process_with_tool_execution
+            bot = TelegramBot(
+                token=tg_token,
+                allowed_chat_ids=tg_config.get("allowed_chat_ids", []),
+            )
+            bot.set_chat_handler(process_with_tool_execution)
+            bot.start()
+            services["telegram_bot"] = bot
+            _LOGGER.info("Telegram bot started (token=***%s)", tg_token[-4:])
+        elif tg_config.get("enabled"):
+            _LOGGER.warning("Telegram enabled but no token configured")
+    except Exception:
+        _LOGGER.exception("Failed to init Telegram bot")
+
     return services
 
 
@@ -226,14 +282,37 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     app.register_blueprint(unifi_bp)
     app.register_blueprint(energy_bp)
     app.register_blueprint(performance_bp)  # Performance monitoring
-    
+
+    # Register Conversation/LLM API (Ollama / lfm2.5-thinking)
+    try:
+        from copilot_core.api.v1.conversation import conversation_bp, openai_compat_bp
+        app.register_blueprint(conversation_bp)
+        app.register_blueprint(openai_compat_bp)
+        _LOGGER.info("Registered conversation API (/chat/* and /v1/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register conversation blueprint")
+
     # Register Tag System v0.2 blueprint (Decision Matrix 2026-02-14)
     # init_tags_api sets the global registry; the bp is already defined in tags/api.py
     if services and services.get("tag_registry"):
         setup_tag_api(services["tag_registry"])
     from copilot_core.tags.api import bp as tags_bp
     app.register_blueprint(tags_bp)
+
+    # Register Telegram Bot API
+    from copilot_core.telegram.api import telegram_bp, init_telegram_api
+    if services and services.get("telegram_bot"):
+        init_telegram_api(services["telegram_bot"])
+    app.register_blueprint(telegram_bp)
+
+    # Register PilotSuite MCP Server (expose skills to external AI clients)
+    from copilot_core.mcp_server import mcp_bp
+    app.register_blueprint(mcp_bp)
     
+    # Store services in app config for conversation context injection
+    if services:
+        app.config["COPILOT_SERVICES"] = services
+
     # Set global service instances for API access
     if services:
         from copilot_core import set_system_health_service

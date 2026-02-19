@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import time
 from dataclasses import dataclass
 from hashlib import sha256
@@ -24,6 +25,7 @@ class _IdemCfg:
 
 _IDEM = _IdemCfg()
 _IDEM_CACHE: dict[str, int] = {}
+_IDEM_LOCK = threading.Lock()
 
 
 def _now() -> int:
@@ -31,7 +33,7 @@ def _now() -> int:
 
 
 def _idem_prune(now: int) -> None:
-    # Remove expired.
+    # Must be called while holding _IDEM_LOCK.
     ttl = int(_IDEM.ttl_seconds)
     expired = [k for k, ts in _IDEM_CACHE.items() if now - int(ts) > ttl]
     for k in expired:
@@ -40,7 +42,6 @@ def _idem_prune(now: int) -> None:
     # Drop oldest if above LRU max.
     if len(_IDEM_CACHE) <= _IDEM.lru_max:
         return
-    # sort by ts asc
     items = sorted(_IDEM_CACHE.items(), key=lambda kv: kv[1])
     for k, _ in items[: max(0, len(items) - _IDEM.lru_max)]:
         _IDEM_CACHE.pop(k, None)
@@ -95,11 +96,12 @@ def graph_ops(body: GraphOpsRequest):
     payload = request.get_json(silent=True) or {}
 
     now = _now()
-    _idem_prune(now)
     key = _idem_key(payload)
-    if key in _IDEM_CACHE:
-        return jsonify({"ok": True, "idempotent": True, "key": key}), 200
-    _IDEM_CACHE[key] = now
+    with _IDEM_LOCK:
+        _idem_prune(now)
+        if key in _IDEM_CACHE:
+            return jsonify({"ok": True, "idempotent": True, "key": key}), 200
+        _IDEM_CACHE[key] = now
 
     svc = get_graph_service()
 

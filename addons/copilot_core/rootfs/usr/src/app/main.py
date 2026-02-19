@@ -1,21 +1,21 @@
 """
-AI Home CoPilot Core - Main Application Entry Point
+PilotSuite Core — Styx
 
-Minimal entry point that delegates service initialization and blueprint
-registration to modular components (core_setup.py).
+Main Application Entry Point.
+Delegates service initialization and blueprint registration to core_setup.py.
 """
 
 import json
 import os
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_compress import Compress
 from waitress import serve
 
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "0.9.0")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "1.1.0")
 
 
 def _load_options_json(path: str = "/data/options.json") -> dict:
@@ -57,8 +57,10 @@ try:
 except Exception:
     _main_logger.exception("CRITICAL: register_blueprints failed")
 
-# In-memory ring buffer of recent dev logs.
+# In-memory ring buffer of recent dev logs (thread-safe).
+import threading as _threading
 _DEV_LOG_CACHE: list[dict] = []
+_DEV_LOG_LOCK = _threading.Lock()
 
 
 def _now_iso():
@@ -72,9 +74,10 @@ def _append_dev_log(entry: dict) -> None:
     with open(DEV_LOG_PATH, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-    _DEV_LOG_CACHE.append(entry)
-    if len(_DEV_LOG_CACHE) > DEV_LOG_MAX_CACHE:
-        del _DEV_LOG_CACHE[: len(_DEV_LOG_CACHE) - DEV_LOG_MAX_CACHE]
+    with _DEV_LOG_LOCK:
+        _DEV_LOG_CACHE.append(entry)
+        if len(_DEV_LOG_CACHE) > DEV_LOG_MAX_CACHE:
+            del _DEV_LOG_CACHE[: len(_DEV_LOG_CACHE) - DEV_LOG_MAX_CACHE]
 
 
 def _load_dev_log_cache() -> None:
@@ -96,21 +99,13 @@ def _load_dev_log_cache() -> None:
 _load_dev_log_cache()
 
 
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+
+
 @app.get("/")
 def index():
-    return (
-        "AI Home CoPilot Core (MVP)\n"
-        "Endpoints: /health, /version, /api/v1/echo\n"
-        "API Docs: /api/v1/docs (Swagger UI), /api/v1/docs/openapi.yaml\n"
-        "Tag System: /api/v1/tag-system/tags, /assignments (store)\n"
-        "Event Ingest: /api/v1/events (POST/GET), /api/v1/events/stats\n"
-        "Brain Graph: /api/v1/graph/state, /snapshot.svg, /stats, /prune, /patterns\n"
-        "Candidates: /api/v1/candidates (POST/GET), /{id} (GET/PUT), /stats, /cleanup\n"
-        "Habitus: /api/v1/habitus/mine, /patterns, /stats, /health\n"
-        "Mood: /api/v1/mood, /summary, /{zone_id}, /suppress-energy-saving, /relevance\n"
-        "Dev: /api/v1/dev/logs (POST/GET)\n"
-        "Pipeline: Events → EventProcessor → BrainGraph → Habitus → Candidates (real-time)\n"
-    )
+    """Serve PilotSuite Dashboard (ingress panel)."""
+    return send_from_directory(TEMPLATE_DIR, 'dashboard.html')
 
 
 @app.get("/health")
@@ -120,7 +115,12 @@ def health():
 
 @app.get("/version")
 def version():
-    return jsonify({"version": APP_VERSION, "time": _now_iso()})
+    return jsonify({
+        "name": "Styx",
+        "suite": "PilotSuite",
+        "version": APP_VERSION,
+        "time": _now_iso(),
+    })
 
 
 @app.post("/api/v1/echo")
@@ -165,5 +165,5 @@ def get_dev_logs():
 
 if __name__ == "__main__":
     host = "0.0.0.0"
-    port = int(os.environ.get("PORT", "8099"))
+    port = int(os.environ.get("PORT", "8909"))
     serve(app, host=host, port=port)

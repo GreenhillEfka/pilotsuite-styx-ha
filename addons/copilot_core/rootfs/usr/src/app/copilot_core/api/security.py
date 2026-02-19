@@ -85,9 +85,8 @@ def validate_token(request) -> bool:
     # Auth required - validate token
     token = get_auth_token()
     if not token:
-        # Token configured but empty - reject all requests
-        # This is more secure than allowing all requests
-        return False
+        # No token configured - allow all requests (first-run / unconfigured)
+        return True
 
     header_token = (request.headers.get("X-Auth-Token") or "").strip()
     if header_token and hmac.compare_digest(header_token, token):

@@ -1,5 +1,19 @@
 # Changelog - PilotSuite Core Add-on
 
+## [1.1.0] - 2026-02-19
+
+### Styx — Die Verbindung beider Welten
+
+- **Styx Identity**: Configurable assistant name (`ASSISTANT_NAME` env var, config field)
+- **Unified Dashboard**: Brain Graph + Chat + History on one page, 5-page navigation
+- **Module Pipeline**: 15 modules with status indicators (active/learning/off)
+- **Domain-Colored Brain Graph**: 16 HA domain colors, SVG glow filter, auto-legend
+- **Canvas Trend Charts**: Habitus and Mood 24h gradient-fill mini charts
+- **Suggestion Bar**: Top suggestions from Habitus rules, clickable into chat
+- **Fix**: start_with_ollama.sh default model → qwen3:4b
+
+---
+
 ## [0.9.7-alpha.1] - 2026-02-18
 
 ### Bugfix

@@ -1,42 +1,42 @@
 #!/bin/bash
-# PilotSuite Core startup with embedded Ollama support
+# PilotSuite Core startup with embedded Ollama support (alternative script)
+# Use start_dual.sh as the primary startup script.
 
 set -e
 
-echo "🚀 Starting PilotSuite Core..."
+echo "Starting PilotSuite Core..."
 
-# Check if Ollama is needed
+# Ensure model persistence
+export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/ai_home_copilot/ollama/models}
+mkdir -p "$OLLAMA_MODELS"
+
 NEED_OLLAMA=${CONVERSATION_ENABLED:-false}
 
 if [ "$NEED_OLLAMA" = "true" ]; then
-    echo "🤖 Checking Ollama..."
-    
-    # Check if Ollama is running
+    echo "Checking Ollama..."
+
     if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-        echo "🤖 Starting Ollama service..."
-        
-        # Start Ollama in background
+        echo "Starting Ollama service..."
+
         ollama serve &
         OLLAMA_PID=$!
-        
-        # Wait for Ollama to be ready
-        echo "🤖 Waiting for Ollama..."
+
+        echo "Waiting for Ollama..."
         for i in {1..30}; do
             if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-                echo "🤖 Ollama is ready!"
+                echo "Ollama is ready!"
                 break
             fi
             sleep 1
         done
-        
-        # Pull model if not exists
-        MODEL=${OLLAMA_MODEL:-llm2.5-thinking:latest}
-        echo "🤖 Ensuring model $MODEL exists..."
-        ollama pull $MODEL || true
+
+        MODEL=${OLLAMA_MODEL:-qwen3:4b}
+        echo "Ensuring model $MODEL exists..."
+        ollama pull "$MODEL" || echo "WARNING: Failed to pull $MODEL"
     else
-        echo "🤖 Ollama already running"
+        echo "Ollama already running"
     fi
 fi
 
-echo "🚀 Starting PilotSuite Core API..."
+echo "Starting PilotSuite Core API on port ${PORT:-8909}..."
 exec python3 -u main.py

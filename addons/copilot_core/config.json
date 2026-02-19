@@ -2,7 +2,7 @@
   "name": "PilotSuite Core",
   "slug": "copilot_core",
   "description": "MVP Core Service for PilotSuite with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
-  "version": "0.9.8-alpha.1",
+  "version": "1.1.0",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": [
     "amd64",
@@ -12,16 +12,17 @@
   "boot": "auto",
   "init": false,
   "ingress": true,
-  "ingress_port": 8099,
+  "ingress_port": 8909,
+  "map": ["share:rw"],
   "panel_icon": "mdi:brain",
-  "panel_title": "CoPilot",
+  "panel_title": "Styx",
   "ports": {
-    "8099/tcp": 8099
+    "8909/tcp": 8909
   },
   "ports_description": {
-    "8099/tcp": "CoPilot Core HTTP API (mood, brain_graph, habitus)"
+    "8909/tcp": "CoPilot Core HTTP API (mood, brain_graph, habitus, LLM)"
   },
-  "webui": "http://[HOST]:[PORT:8099]/",
+  "webui": "http://[HOST]:[PORT:8909]/",
   "options": {
     "log_level": "info",
     "auth_token": "",
@@ -83,9 +84,19 @@
     },
     "conversation": {
       "ollama_url": "http://localhost:11434",
-      "ollama_model": "llm2.5-thinking:latest",
+      "ollama_model": "qwen3:4b",
+      "assistant_name": "Styx",
       "character": "copilot",
-      "enabled": true
+      "enabled": true,
+      "prefer_local": true,
+      "cloud_api_url": "",
+      "cloud_api_key": "",
+      "cloud_model": ""
+    },
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "allowed_chat_ids": []
     }
   },
   "schema": {
@@ -150,7 +161,19 @@
     },
     "conversation": {
       "ollama_url": "str?",
-      "ollama_model": "str?"
+      "ollama_model": "str?",
+      "assistant_name": "str?",
+      "character": "list(copilot|butler|energy_manager|security_guard|friendly|minimal)?",
+      "enabled": "bool?",
+      "prefer_local": "bool?",
+      "cloud_api_url": "str?",
+      "cloud_api_key": "password?",
+      "cloud_model": "str?"
+    },
+    "telegram": {
+      "enabled": "bool?",
+      "token": "password?",
+      "allowed_chat_ids": "list?"
     }
   }
 }
