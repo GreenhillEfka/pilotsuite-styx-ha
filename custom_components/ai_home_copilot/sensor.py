@@ -362,6 +362,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if net_mod is not None:
         entities.append(NetworkHealthSensor(hass, entry, net_mod))
 
+    # Entity Tags sensor (v3.2.2)
+    from .core.modules.entity_tags_module import get_entity_tags_module
+    tags_mod = get_entity_tags_module(hass, entry.entry_id)
+    if tags_mod is not None:
+        entities.append(EntityTagsSensor(hass, entry, tags_mod))
+
     async_add_entities(entities, True)
 
 
@@ -727,6 +733,40 @@ class NetworkHealthSensor(SensorEntity):
                 "wan_packet_loss_percent": snapshot.get("wan_packet_loss_percent"),
                 "clients_online": snapshot.get("clients_online"),
                 "clients_total": snapshot.get("clients_total"),
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# Entity Tags Sensor (v3.2.2)
+# ---------------------------------------------------------------------------
+
+class EntityTagsSensor(SensorEntity):
+    """Number of user-defined entity tags. Attributes: full tag list."""
+
+    _attr_icon = "mdi:tag-multiple"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "tags"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_entity_tags"
+        self._attr_name = "CoPilot Entity Tags"
+
+    @property
+    def native_value(self) -> int:
+        return self._module.get_tag_count()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        try:
+            summary = self._module.get_summary()
+            return {
+                "total_tagged_entities": self._module.get_total_tagged_entities(),
+                "tags": summary.get("tags", []),
             }
         except Exception:
             return {}
