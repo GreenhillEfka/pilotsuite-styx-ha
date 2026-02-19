@@ -20,6 +20,14 @@ _LOGGER = logging.getLogger(__name__)
 
 bp = Blueprint("weather", __name__, url_prefix="/weather")
 
+from copilot_core.api.security import validate_token as _validate_token
+
+
+@bp.before_request
+def _require_auth():
+    if not _validate_token(request):
+        return jsonify({"error": "unauthorized", "message": "Valid X-Auth-Token or Bearer token required"}), 401
+
 
 # Weather condition mapping
 CONDITION_MAP = {

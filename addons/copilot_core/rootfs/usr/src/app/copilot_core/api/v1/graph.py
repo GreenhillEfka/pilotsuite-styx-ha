@@ -10,6 +10,14 @@ from copilot_core.performance import brain_graph_cache
 
 bp = Blueprint("graph", __name__, url_prefix="/graph")
 
+from copilot_core.api.security import validate_token as _validate_token
+
+
+@bp.before_request
+def _require_auth():
+    if not _validate_token(request):
+        return jsonify({"error": "unauthorized", "message": "Valid X-Auth-Token or Bearer token required"}), 401
+
 
 def _svc():
     return get_graph_service()

@@ -13,7 +13,7 @@ FIX: Added auth token validation via @require_token decorator
 
 from flask import Blueprint, jsonify, request
 
-from copilot_core.api.security import validate_token
+from copilot_core.api.security import require_token
 from copilot_core.tags import (
     TagRegistry,
     TagFacet,
@@ -77,11 +77,9 @@ def _serialize_subject(subject):
 # ── Tag Endpoints ───────────────────────────────────────────────────
 
 @bp.route("/tags", methods=["POST"])
+@require_token
 def create_tag():
     """POST /api/v1/tags — Tag erstellen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -110,11 +108,9 @@ def create_tag():
 
 
 @bp.route("/tags/suggest", methods=["POST"])
+@require_token
 def suggest_tag():
     """POST /api/v1/tags/suggest — Learned Tag vorschlagen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -143,11 +139,9 @@ def suggest_tag():
 
 
 @bp.route("/tags/<tag_id>/confirm", methods=["POST"])
+@require_token
 def confirm_tag(tag_id):
     """POST /api/v1/tags/{tag_id}/confirm — Learned Tag bestätigen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -162,11 +156,9 @@ def confirm_tag(tag_id):
 
 
 @bp.route("/tags", methods=["GET"])
+@require_token
 def list_tags():
     """GET /api/v1/tags — Tags auflisten."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -182,11 +174,9 @@ def list_tags():
 
 
 @bp.route("/tags/<tag_id>", methods=["GET"])
+@require_token
 def get_tag(tag_id):
     """GET /api/v1/tags/{tag_id} — Tag details."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -198,11 +188,9 @@ def get_tag(tag_id):
 
 
 @bp.route("/tags/<tag_id>", methods=["DELETE"])
+@require_token
 def delete_tag(tag_id):
     """DELETE /api/v1/tags/{tag_id} — Tag löschen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -215,11 +203,9 @@ def delete_tag(tag_id):
 # ── Subject Endpoints ───────────────────────────────────────────────
 
 @bp.route("/subjects", methods=["POST"])
+@require_token
 def register_subject():
     """POST /api/v1/subjects — Subject registrieren."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -251,11 +237,9 @@ def register_subject():
 
 
 @bp.route("/subjects", methods=["GET"])
+@require_token
 def list_subjects():
     """GET /api/v1/subjects — Subjects auflisten."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -279,11 +263,9 @@ def list_subjects():
 
 
 @bp.route("/subjects/<subject_id>", methods=["GET"])
+@require_token
 def get_subject(subject_id):
     """GET /api/v1/subjects/{subject_id} — Subject details."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -307,11 +289,9 @@ def get_subject(subject_id):
 
 
 @bp.route("/subjects/<subject_id>/tags", methods=["GET"])
+@require_token
 def get_subject_tags(subject_id):
     """GET /api/v1/subjects/{subject_id}/tags — Tags für Subject."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -331,11 +311,9 @@ def get_subject_tags(subject_id):
 # ── Assignment Endpoints ────────────────────────────────────────────
 
 @bp.route("/assignments", methods=["POST"])
+@require_token
 def assign_tag():
     """POST /api/v1/assignments — Tag zu Subject zuweisen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -364,11 +342,9 @@ def assign_tag():
 
 
 @bp.route("/assignments", methods=["GET"])
+@require_token
 def list_assignments():
     """GET /api/v1/assignments — Alle Zuweisungen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -395,11 +371,9 @@ def list_assignments():
 
 
 @bp.route("/assignments", methods=["DELETE"])
+@require_token
 def delete_assignment():
     """DELETE /api/v1/assignments — Zuweisung entfernen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -426,11 +400,9 @@ def delete_assignment():
 
 
 @bp.route("/tags/<tag_id>/subjects", methods=["GET"])
+@require_token
 def get_tag_subjects(tag_id):
     """GET /api/v1/tags/{tag_id}/subjects — Subjects für Tag."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -450,11 +422,9 @@ def get_tag_subjects(tag_id):
 # ── Habitus Zones Endpoints ─────────────────────────────────────────
 
 @bp.route("/zones", methods=["POST"])
+@require_token
 def create_zone():
     """POST /api/v1/zones — Habitus-Zone erstellen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -479,11 +449,9 @@ def create_zone():
 
 
 @bp.route("/zones", methods=["GET"])
+@require_token
 def list_zones():
     """GET /api/v1/zones — Zonen auflisten."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -502,11 +470,9 @@ def list_zones():
 
 
 @bp.route("/zones/<zone_id>/members", methods=["POST"])
+@require_token
 def add_to_zone(zone_id):
     """POST /api/v1/zones/{zone_id}/members — Subject zu Zone hinzufügen."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 
@@ -531,11 +497,9 @@ def add_to_zone(zone_id):
 # ── HA Label Export ─────────────────────────────────────────────────
 
 @bp.route("/labels/export", methods=["GET"])
+@require_token
 def export_labels():
     """GET /api/v1/labels/export — Export für HA Labels Sync."""
-    if not validate_token(request):
-        return jsonify({"error": "Unauthorized"}), 401
-
     if _registry is None:
         return jsonify({"error": "Tags API not initialized"}), 503
 

@@ -1,5 +1,27 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.7.1] - 2026-02-19
+
+### Security — Defense-in-Depth Auth Hardening
+
+- **Blueprint-level auth guards** — All 19 previously undecorated Flask blueprints now have
+  `@bp.before_request` auth validation (was: relying solely on global middleware)
+  - `mood`, `habitus`, `habitus_dashboard_cards`, `graph`, `graph_ops`, `candidates`,
+    `events`, `neurons`, `user_preferences`, `user_hints`, `vector`, `search`,
+    `notifications`, `weather`, `voice_context_bp`, `dashboard`, `debug`, `dev`,
+    `mood` blueprints — all now protected at blueprint level
+- **tags/api.py** — Replaced 18 manual `validate_token(request)` checks with `@require_token`
+  decorator (was: inconsistent inline pattern; now: consistent decorator pattern)
+- **Auth tests** — New `test_auth_security.py`: 15+ tests covering:
+  - X-Auth-Token header validation
+  - Authorization: Bearer header validation
+  - Invalid token rejection
+  - Empty token → allow all (first-run)
+  - Auth disabled → allow all
+  - Allowlisted paths bypass (/health, /, /version, /api/v1/status)
+  - Global middleware + blueprint-level double coverage
+- Version: 3.7.0 → 3.7.1
+
 ## [3.7.0] - 2026-02-19
 
 ### Bug Fixes & Production Readiness
