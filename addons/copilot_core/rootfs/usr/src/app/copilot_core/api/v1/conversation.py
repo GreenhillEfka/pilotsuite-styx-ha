@@ -48,22 +48,33 @@ RECOMMENDED_MODELS = [
         "id": "lfm2.5-thinking",
         "name": "LFM 2.5 Thinking (1.2B)",
         "size_mb": 731,
-        "description": "Liquid AI reasoning model. Ultra-light (731MB), 125K context. Good for simple HA control.",
+        "description": "Liquid AI reasoning model. Ultra-light (731MB), 32K context. Good for simple conversation.",
         "tags": ["default", "lightweight", "reasoning"],
+        "supports_tools": False,
     },
     {
         "id": "qwen3:4b",
         "name": "Qwen 3 (4B)",
         "size_mb": 2500,
-        "description": "Excellent tool/function calling. Best balance of speed and capability for HA.",
+        "description": "Best for tool-calling (score 0.88). Native MCP support. Recommended for HA control.",
         "tags": ["recommended", "tool-calling"],
+        "supports_tools": True,
+    },
+    {
+        "id": "qwen3:0.6b",
+        "name": "Qwen 3 (0.6B)",
+        "size_mb": 400,
+        "description": "Ultra-lightweight with tool-calling (score 0.88). Smallest capable model.",
+        "tags": ["ultra-lightweight", "tool-calling"],
+        "supports_tools": True,
     },
     {
         "id": "llama3.2:3b",
         "name": "Llama 3.2 (3B)",
         "size_mb": 2000,
-        "description": "Meta's small model with native tool calling. Fast inference, low resource usage.",
+        "description": "Meta's small model. 128K context window. Basic tool calling support.",
         "tags": ["tool-calling", "lightweight"],
+        "supports_tools": True,
     },
     {
         "id": "mistral:7b",
@@ -71,6 +82,7 @@ RECOMMENDED_MODELS = [
         "size_mb": 4000,
         "description": "Proven function-calling reliability. Widely used in HA community.",
         "tags": ["reliable", "tool-calling"],
+        "supports_tools": True,
     },
     {
         "id": "fixt/home-3b-v3",
@@ -78,6 +90,7 @@ RECOMMENDED_MODELS = [
         "size_mb": 2000,
         "description": "Purpose-trained for HA device control. 97% function-calling accuracy. Use with home-llm.",
         "tags": ["ha-optimized", "tool-calling"],
+        "supports_tools": True,
     },
 ]
 
