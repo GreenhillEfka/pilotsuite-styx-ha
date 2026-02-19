@@ -74,7 +74,19 @@
           "ha_errors_digest_max_lines": "Ops: HA Fehler-Digest: letzte N Log-Zeilen lesen",
           "pilotsuite_show_safety_backup_buttons": "PilotSuite: Safety-Backup Buttons anzeigen",
           "pilotsuite_show_dev_surface_buttons": "PilotSuite: Debug/Dev Surface Buttons anzeigen",
-          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: Graph→Candidates Buttons anzeigen"
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: Graph→Candidates Buttons anzeigen",
+          "enable_user_preferences": "Nutzer-Praeferenzen aktivieren",
+          "events_forwarder_include_habitus_zones": "Core: Habitus-Zonen-Entities weiterleiten",
+          "events_forwarder_include_media_players": "Core: Media-Player weiterleiten",
+          "events_forwarder_additional_entities": "Core: Zusaetzliche Entities weiterleiten (csv)",
+          "user_preference_enabled": "Per-User Praeferenz-Tracking aktivieren",
+          "tracked_users": "Erfasste Nutzer (kommagetrennte person.entity_ids)",
+          "primary_user": "Hauptnutzer (person.entity_id)",
+          "user_learning_mode": "Lernmodus (passive/active/hybrid)",
+          "mupl_enabled": "Multi-User Praeferenz-Lernen aktivieren",
+          "mupl_privacy_mode": "MUPL Datenschutzmodus (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL Min. Interaktionen vor Lernen",
+          "mupl_retention_days": "MUPL Daten-Aufbewahrung (Tage)"
         }
       },
       "habitus_zones": {
@@ -257,7 +269,22 @@
           "devlog_push_max_chars": "Dev: max. Zeichen pro Snippet",
           "ha_errors_digest_enabled": "Ops: HA Fehler-Digest als Benachrichtigung (Opt-in)",
           "ha_errors_digest_interval_seconds": "Ops: HA Fehler-Digest Intervall (Sekunden)",
-          "ha_errors_digest_max_lines": "Ops: HA Fehler-Digest: letzte N Log-Zeilen lesen"
+          "ha_errors_digest_max_lines": "Ops: HA Fehler-Digest: letzte N Log-Zeilen lesen",
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: Safety-Backup Buttons anzeigen",
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: Debug/Dev Surface Buttons anzeigen",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: Graph→Candidates Buttons anzeigen",
+          "enable_user_preferences": "Nutzer-Praeferenzen aktivieren",
+          "events_forwarder_include_habitus_zones": "Core: Habitus-Zonen-Entities weiterleiten",
+          "events_forwarder_include_media_players": "Core: Media-Player weiterleiten",
+          "events_forwarder_additional_entities": "Core: Zusaetzliche Entities weiterleiten (csv)",
+          "user_preference_enabled": "Per-User Praeferenz-Tracking aktivieren",
+          "tracked_users": "Erfasste Nutzer (kommagetrennte person.entity_ids)",
+          "primary_user": "Hauptnutzer (person.entity_id)",
+          "user_learning_mode": "Lernmodus (passive/active/hybrid)",
+          "mupl_enabled": "Multi-User Praeferenz-Lernen aktivieren",
+          "mupl_privacy_mode": "MUPL Datenschutzmodus (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL Min. Interaktionen vor Lernen",
+          "mupl_retention_days": "MUPL Daten-Aufbewahrung (Tage)"
         }
       },
       "habitus_zones": {

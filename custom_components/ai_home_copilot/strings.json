@@ -53,7 +53,26 @@
           "devlog_push_interval_seconds": "Dev: push interval (seconds)",
           "devlog_push_path": "Dev: Core endpoint path",
           "devlog_push_max_lines": "Dev: read last N log lines",
-          "devlog_push_max_chars": "Dev: max chars per snippet"
+          "devlog_push_max_chars": "Dev: max chars per snippet",
+          "test_light_entity_id": "Test light (for the toggle button)",
+          "enable_user_preferences": "Enable user preferences module",
+          "user_preference_enabled": "Enable per-user preference tracking",
+          "tracked_users": "Tracked users (comma-separated person.entity_ids)",
+          "primary_user": "Primary user (person.entity_id)",
+          "user_learning_mode": "User learning mode (passive/active/hybrid)",
+          "mupl_enabled": "Enable Multi-User Preference Learning",
+          "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL min interactions before learning",
+          "mupl_retention_days": "MUPL data retention (days)",
+          "events_forwarder_persistent_queue_enabled": "Core: persistent queue for events (crash-safe)",
+          "events_forwarder_persistent_queue_max_size": "Core: persistent queue max size",
+          "events_forwarder_persistent_queue_flush_interval_seconds": "Core: persistent queue flush interval (s)",
+          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
+          "events_forwarder_include_media_players": "Core: include media players in forwarding",
+          "events_forwarder_additional_entities": "Core: additional entities to forward (comma-separated)",
+          "pilotsuite_show_safety_backup_buttons": "UI: show Safety Backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "UI: show Dev Surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "UI: show Graph Bridge buttons"
         }
       },
       "habitus_zones": {
