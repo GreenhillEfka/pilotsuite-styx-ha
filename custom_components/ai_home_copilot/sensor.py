@@ -392,6 +392,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if homekit_mod is not None:
         entities.append(HomeKitBridgeSensor(hass, entry, homekit_mod))
 
+    # Calendar Module sensor (v3.5.0)
+    from .core.modules.calendar_module import get_calendar_module
+    cal_mod = get_calendar_module(hass, entry.entry_id)
+    if cal_mod is not None:
+        entities.append(CalendarSensor(hass, entry, cal_mod))
+
     async_add_entities(entities, True)
 
 
@@ -971,6 +977,43 @@ class HomeKitBridgeSensor(SensorEntity):
                 "total_exposed_entities": summary.get("total_exposed_entities", 0),
                 "homekit_available": summary.get("homekit_available", False),
                 "zones": summary.get("zones", []),
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# Calendar Sensor (v3.5.0)
+# ---------------------------------------------------------------------------
+
+class CalendarSensor(SensorEntity):
+    """Number of HA calendar entities integrated with PilotSuite."""
+
+    _attr_icon = "mdi:calendar-month"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "calendars"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_calendar"
+        self._attr_name = "CoPilot Calendar"
+
+    @property
+    def native_value(self) -> int:
+        if self._module is None:
+            return 0
+        return self._module.get_calendar_count()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
+        try:
+            summary = self._module.get_summary()
+            return {
+                "calendars": summary.get("calendars", []),
             }
         except Exception:
             return {}
