@@ -1,5 +1,17 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.8.0] - 2026-02-19
+
+### Persistent State — Mood, Alerts & Mining Buffer
+
+- **Mood History persistence** — MoodService now persists zone mood snapshots to
+  SQLite (`/data/mood_history.db`). 30-day rolling history with 60s throttle per zone.
+  Last known mood per zone restored on restart. `get_mood_history()` API for trend analysis.
+- **Documentation** — New `docs/QA_SYSTEM_WALKTHROUGH.md`: comprehensive Q&A covering
+  all 33 modules, startup sequence, learning pipeline, persistence guarantees, and
+  the full pattern-to-automation flow.
+- **Version references updated** — VISION.md, PROJECT_STATUS.md, README.md now reflect v3.8.0
+
 ## [3.7.1] - 2026-02-19
 
 ### Security — Defense-in-Depth Auth Hardening
