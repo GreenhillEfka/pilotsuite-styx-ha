@@ -1,10 +1,10 @@
-# PilotSuite -- Core Add-on
+# PilotSuite — Styx
 
 [![Release](https://img.shields.io/github/v/release/GreenhillEfka/Home-Assistant-Copilot)](https://github.com/GreenhillEfka/Home-Assistant-Copilot/releases)
 
-**PilotSuite Core** (ehemals AI Home CoPilot) -- ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. Lernt die Muster deines Zuhauses, schlaegt intelligente Automatisierungen vor -- und handelt nur mit deiner Zustimmung. Alle Daten bleiben lokal.
+**Styx** — die Verbindung beider Welten. Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. Lernt die Muster deines Zuhauses, schlaegt intelligente Automatisierungen vor — und handelt nur mit deiner Zustimmung. Alle Daten bleiben lokal.
 
-> Erklaerend, begrenzt, dialogisch: bewertet (Neuronen), buendelt Bedeutung (Moods), berechnet Relevanz (Synapsen), erzeugt Vorschlaege, erhaelt Freigaben, laesst Home Assistant ausfuehren.
+> Bewertet (Neuronen), buendelt Bedeutung (Moods), berechnet Relevanz (Synapsen), erzeugt Vorschlaege, erhaelt Freigaben, laesst Home Assistant ausfuehren.
 
 ## Architektur
 
@@ -30,7 +30,7 @@ Home Assistant
    ```
    https://github.com/GreenhillEfka/Home-Assistant-Copilot
    ```
-3. **AI Home CoPilot Core** installieren und starten
+3. **PilotSuite Core** installieren und starten
 4. Das Add-on läuft auf Port **8909**
 
 ### 2. HACS Integration installieren
@@ -39,20 +39,29 @@ Siehe: [ai-home-copilot-ha](https://github.com/GreenhillEfka/ai-home-copilot-ha#
 
 ## Features
 
+### Styx — Unified Dashboard
+Einheitliche Oberflaeche: Brain Graph (links) + Chat (rechts) + History Log auf einer Seite. Modul-Pipeline-Indikatoren, farbcodierte Neuronen nach HA-Domain, Vorschlagsleiste, Trend-Charts. 5-Seiten-Navigation: Styx, Habitus, Stimmung, Module, Einstellungen.
+
+### LLM Provider Chain
+Ollama (lokal, Standard) mit automatischem Cloud-Fallback (OpenClaw, OpenAI). Tool-Calling mit 9 HA-Tools. Telegram Bot Integration.
+
 ### Neuronales System (12+ Neuronen)
 Bewertet jeden Aspekt deines Zuhauses: Anwesenheit, Stimmung, Energie, Wetter, Netzwerk, Kameras, Kontext, Zustaende u.v.m.
 
 ### Habitus — Das Lernende Zuhause
-Pattern-Discovery-Engine: beobachtet Verhaltensmuster und schlägt passende Automatisierungen vor. Confidence-Scoring, Feedback-Loop, zeitbasierte/trigger-basierte/sequenzielle/kontextuelle Muster.
+Pattern-Discovery-Engine: beobachtet Verhaltensmuster und schlaegt passende Automatisierungen vor. Confidence-Scoring, Feedback-Loop, zeitbasierte/trigger-basierte/sequenzielle/kontextuelle Muster.
 
 ### Brain Graph
-State-Tracking mit Nodes + Edges, exponential Decay, Snapshots, Pattern-Erkennung.
+State-Tracking mit Nodes + Edges, exponential Decay, Snapshots, Pattern-Erkennung. Domain-farbcodierte Visualisierung.
 
 ### Mood Engine
 Mood-Bewertung (Comfort, Joy, Frugality), Ranking und Kontext-Integration.
 
 ### Multi-User Preference Learning (MUPL)
-Erkennt wer zu Hause ist, attributiert Aktionen, lernt individuelle Präferenzen, löst Multi-User-Konflikte.
+Erkennt wer zu Hause ist, attributiert Aktionen, lernt individuelle Praeferenzen, loest Multi-User-Konflikte.
+
+### PilotSuite MCP Server
+8 Skills fuer externe AI-Clients (Claude Desktop, OpenClaw): Mood, Brain Graph, Habitus, Neurons, Preferences, Household, Memory, Energy.
 
 ### Sicherheit
 Token-Auth, PII-Redaktion, Bounded Storage, Rate Limiting, Idempotency-Key Deduplication, Source Allowlisting.
@@ -77,7 +86,7 @@ Token-Auth, PII-Redaktion, Bounded Storage, Rate Limiting, Idempotency-Key Dedup
 | **Notifications** | `/api/v1/notifications/*` | Push System |
 | **Performance** | `/api/v1/performance/*` | Cache, Pool, Metrics |
 
-37 API-Blueprints | 23 Module-Packages | 180 Python-Dateien | 521+ Tests
+37 API-Blueprints | 25 Module-Packages | 168 Python-Dateien | 521+ Tests
 
 ## Die 4 Grundprinzipien
 

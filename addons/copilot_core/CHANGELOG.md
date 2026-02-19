@@ -1,3 +1,30 @@
+## 1.1.0 - 2026-02-19
+
+### Styx — Die Verbindung beider Welten
+
+Identity release: PilotSuite gets its face and name.
+
+### Features
+- **Styx Identity**: Configurable assistant name (default: "Styx"), threaded through
+  system prompt, API responses, startup banner, and dashboard.
+- **Unified Dashboard**: Complete redesign — Brain Graph (left) + Chat (right) +
+  History Log (right bottom) on a single "Styx" page. Module pipeline indicators,
+  domain-colored neurons (16 HA domains), suggestion bar, canvas trend charts.
+- **5-Page Navigation**: Styx (main), Habitus, Stimmung, Module, Einstellungen.
+- **Module Pipeline Visibility**: 15 modules shown as color-coded pills
+  (green=active, yellow=learning, dim=off) on the Styx page.
+- **Domain Color Coding**: Brain Graph nodes colored by HA domain
+  (sensor, light, switch, climate, media_player, etc.).
+
+### Fixed
+- **start_with_ollama.sh**: Default model `lfm2.5-thinking` → `qwen3:4b`
+
+### Config
+- `conversation.assistant_name`: New field (default: "Styx")
+- `panel_title`: Changed from "CoPilot" to "Styx"
+
+---
+
 ## 1.0.0 - 2026-02-19
 
 ### PilotSuite v1.0.0 -- First Full Release
