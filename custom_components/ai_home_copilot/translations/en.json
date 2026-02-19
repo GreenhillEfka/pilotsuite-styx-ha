@@ -2,8 +2,13 @@
   "config": {
     "step": {
       "user": {
-        "title": "AI Home CoPilot",
-        "description": "Connect to the AI Home CoPilot Core add-on.",
+        "title": "PilotSuite Setup",
+        "description": "Choose how to set up PilotSuite.",
+        "menu_options": {
+          "zero_config": "Zero Config (recommended)",
+          "quick_start": "Quick Start (guided wizard)",
+          "manual_setup": "Manual Setup (expert)"
+        },
         "data": {
           "host": "Host",
           "port": "Port",

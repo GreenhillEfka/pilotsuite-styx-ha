@@ -2,13 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "AI Home CoPilot",
-        "description": "Verbinde dich mit dem AI Home CoPilot Core Add-on.",
+        "title": "PilotSuite Setup",
+        "description": "Waehle deine Einrichtungsmethode.",
+        "menu_options": {
+          "zero_config": "Zero Config (empfohlen)",
+          "quick_start": "Quick Start (gefuehrter Assistent)",
+          "manual_setup": "Manuelle Einrichtung (Experte)"
+        },
         "data": {
           "host": "Host",
           "port": "Port",
           "token": "API-Token",
-          "test_light_entity_id": "Test-Licht (für den Toggle-Button)",
+          "test_light_entity_id": "Test-Licht (fuer den Toggle-Button)",
           "webhook_url": "Webhook-URL (in Copilot-Core eintragen)"
         }
       },
