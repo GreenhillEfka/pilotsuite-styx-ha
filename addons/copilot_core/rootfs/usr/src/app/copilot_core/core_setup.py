@@ -307,18 +307,7 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init MediaZoneManager")
 
-    # Initialize Proactive Context Engine (v3.1.0)
-    try:
-        proactive_engine = ProactiveContextEngine(
-            media_zone_manager=services.get("media_zone_manager"),
-            mood_service=services.get("mood_service"),
-            household_profile=services.get("household_profile"),
-            conversation_memory=services.get("conversation_memory"),
-        )
-        services["proactive_engine"] = proactive_engine
-        _LOGGER.info("ProactiveContextEngine initialized")
-    except Exception:
-        _LOGGER.exception("Failed to init ProactiveContextEngine")
+    # NOTE: ProactiveContextEngine moved below waste/birthday init (v3.2.3)
 
     # Initialize Web Search Service (v3.1.0 -- news, search, regional warnings)
     try:
@@ -346,6 +335,22 @@ def init_services(hass=None, config: dict = None):
         _LOGGER.info("BirthdayService initialized")
     except Exception:
         _LOGGER.exception("Failed to init BirthdayService")
+
+    # Initialize Proactive Context Engine (v3.2.3 -- moved after waste/birthday)
+    try:
+        proactive_engine = ProactiveContextEngine(
+            media_zone_manager=services.get("media_zone_manager"),
+            mood_service=services.get("mood_service"),
+            household_profile=services.get("household_profile"),
+            conversation_memory=services.get("conversation_memory"),
+            waste_service=services.get("waste_service"),
+            birthday_service=services.get("birthday_service"),
+            habitus_service=services.get("habitus_service"),
+        )
+        services["proactive_engine"] = proactive_engine
+        _LOGGER.info("ProactiveContextEngine initialized (with presence triggers)")
+    except Exception:
+        _LOGGER.exception("Failed to init ProactiveContextEngine")
 
     # Initialize Telegram Bot (requires conversation to be configured)
     try:
@@ -489,6 +494,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Entity Assignment API (/api/v1/entity-assignment/*)")
     except Exception:
         _LOGGER.exception("Failed to register Entity Assignment API")
+
+    # Register Presence Tracking API (v3.3.0)
+    try:
+        from copilot_core.api.v1.presence import presence_bp
+        app.register_blueprint(presence_bp)
+        _LOGGER.info("Registered Presence API (/api/v1/presence/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Presence API")
 
     # Register Sharing API (fix: was never wired)
     try:

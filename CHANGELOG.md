@@ -1,5 +1,21 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.3.0] - 2026-02-19
+
+### Presence Dashboard + Proactive Engine
+
+- **Presence Tracking API** — `/api/v1/presence/status|update|history`
+  - Wer ist zuhause? (persons_home, persons_away, total)
+  - LLM-Kontext: "Anwesend: Max (Wohnzimmer), Lisa (Küche)"
+- **Proactive Engine** — Presence-basierte Vorschläge
+  - Ankunfts-Begrüßung: "Willkommen zuhause, Max!"
+  - Alle-weg: "Sparmodus aktivieren?"
+  - Kontext-reichere Grüße (Müll, Geburtstage)
+- **Dashboard** — Neue Haushalt-Karten
+  - Presence-Card (Avatare, Zonen, Seit-Angaben)
+  - Kamera-Ereignisse Timeline (Ankunft/Abfahrt)
+- Version: 3.2.3 → 3.3.0
+
 ## [3.2.3] - 2026-02-19
 
 ### Bugfixes
