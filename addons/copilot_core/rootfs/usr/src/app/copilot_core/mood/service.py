@@ -73,6 +73,7 @@ class MoodService:
         self._db_path = db_path or MOOD_DB_PATH
         self._lock = threading.Lock()
         self._last_save_ts: Dict[str, float] = {}  # zone_id -> last save timestamp
+        self._save_count: int = 0  # Global save counter for periodic prune
 
         self._init_db()
         self._load_latest_moods()
@@ -181,10 +182,10 @@ class MoodService:
                 )
                 conn.commit()
                 self._last_save_ts[snapshot.zone_id] = now
+                self._save_count += 1
 
                 # Prune old entries periodically (every 100th save)
-                total_saves = sum(1 for _ in self._last_save_ts.values())
-                if total_saves % 100 == 0:
+                if self._save_count % 100 == 0:
                     self._prune_old(conn)
             except Exception:
                 logger.exception("Failed to persist mood snapshot for %s", snapshot.zone_id)

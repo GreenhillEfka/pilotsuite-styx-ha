@@ -19,7 +19,7 @@ from waitress import serve
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "3.8.1")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "3.9.0")
 
 _main_logger = _logging.getLogger(__name__)
 
