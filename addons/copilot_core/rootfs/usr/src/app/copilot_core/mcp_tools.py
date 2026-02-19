@@ -291,6 +291,133 @@ HA_TOOLS = [
             "properties": {}
         }
     ),
+
+    # -- Web Search & News Tools (v3.1.0) ------------------------------------
+
+    MCPTool(
+        name="pilotsuite.web_search",
+        description=(
+            "Search the web for current information. Use this when the user asks "
+            "a question that requires up-to-date knowledge, research, or facts "
+            "that you don't have. Returns titles, URLs, and snippets."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query (e.g. 'best smart home sensors 2026')"
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results (default 5, max 10)",
+                    "default": 5
+                }
+            },
+            "required": ["query"]
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.get_news",
+        description=(
+            "Get current news headlines from German news sources (Tagesschau, Spiegel). "
+            "Use this when the user asks about current events, news, or what's happening."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "max_items": {
+                    "type": "integer",
+                    "description": "Maximum number of news items (default 10)",
+                    "default": 10
+                }
+            }
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.get_warnings",
+        description=(
+            "Get regional warnings and alerts for the home's area. Includes civil protection "
+            "warnings (NINA/BBK) and weather warnings (DWD). Use this when the user asks "
+            "about safety, severe weather, or regional alerts."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {}
+        }
+    ),
+
+    # -- Media Zone Tools (v3.1.0) -------------------------------------------
+
+    MCPTool(
+        name="pilotsuite.play_zone",
+        description=(
+            "Control media playback in a habitus zone. Can play, pause, set volume, "
+            "or start specific media in a zone (e.g. 'play music in Wohnzimmer')."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "zone_id": {
+                    "type": "string",
+                    "description": "The zone ID (e.g. 'wohnzimmer', 'kueche', 'schlafzimmer')"
+                },
+                "action": {
+                    "type": "string",
+                    "enum": ["play", "pause", "volume", "play_media"],
+                    "description": "What to do: play (resume), pause, volume (set level), play_media (specific content)"
+                },
+                "volume": {
+                    "type": "number",
+                    "description": "Volume level 0.0-1.0 (only for action=volume)"
+                },
+                "media_content_id": {
+                    "type": "string",
+                    "description": "Media content to play (only for action=play_media)"
+                },
+                "media_content_type": {
+                    "type": "string",
+                    "description": "Type: music, video, playlist (only for action=play_media)",
+                    "default": "music"
+                }
+            },
+            "required": ["zone_id", "action"]
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.musikwolke",
+        description=(
+            "Musikwolke (Smart Audio Follow): Music follows a person through habitus zones. "
+            "Start a session to have audio follow a person, or stop an active session. "
+            "Use when user says things like 'Musik soll mir folgen' or 'Musikwolke starten'."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["start", "stop", "status"],
+                    "description": "start: begin following, stop: end session, status: list active sessions"
+                },
+                "person_id": {
+                    "type": "string",
+                    "description": "HA person entity (e.g. 'person.alice'). Required for start."
+                },
+                "source_zone": {
+                    "type": "string",
+                    "description": "Zone where music is currently playing. Required for start."
+                },
+                "session_id": {
+                    "type": "string",
+                    "description": "Session ID to stop. Required for stop."
+                }
+            },
+            "required": ["action"]
+        }
+    ),
 ]
 
 

@@ -40,6 +40,9 @@ from copilot_core.neurons.manager import NeuronManager
 from copilot_core.telegram import TelegramBot
 from copilot_core.module_registry import ModuleRegistry
 from copilot_core.automation_creator import AutomationCreator
+from copilot_core.media_zone_manager import MediaZoneManager
+from copilot_core.proactive_engine import ProactiveContextEngine
+from copilot_core.web_search import WebSearchService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,6 +88,9 @@ def init_services(hass=None, config: dict = None):
         "telegram_bot": None,
         "module_registry": None,
         "automation_creator": None,
+        "media_zone_manager": None,
+        "proactive_engine": None,
+        "web_search_service": None,
     }
 
     # Initialize system health service (requires hass)
@@ -258,6 +264,38 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init AutomationCreator")
 
+    # Initialize Media Zone Manager (v3.1.0)
+    try:
+        media_zone_manager = MediaZoneManager()
+        services["media_zone_manager"] = media_zone_manager
+        _LOGGER.info("MediaZoneManager initialized")
+    except Exception:
+        _LOGGER.exception("Failed to init MediaZoneManager")
+
+    # Initialize Proactive Context Engine (v3.1.0)
+    try:
+        proactive_engine = ProactiveContextEngine(
+            media_zone_manager=services.get("media_zone_manager"),
+            mood_service=services.get("mood_service"),
+            household_profile=services.get("household_profile"),
+            conversation_memory=services.get("conversation_memory"),
+        )
+        services["proactive_engine"] = proactive_engine
+        _LOGGER.info("ProactiveContextEngine initialized")
+    except Exception:
+        _LOGGER.exception("Failed to init ProactiveContextEngine")
+
+    # Initialize Web Search Service (v3.1.0 -- news, search, regional warnings)
+    try:
+        search_config = config.get("web_search", {}) if config else {}
+        web_search_service = WebSearchService(
+            ags_code=search_config.get("ags_code", ""),
+        )
+        services["web_search_service"] = web_search_service
+        _LOGGER.info("WebSearchService initialized (NINA + DWD + DDG)")
+    except Exception:
+        _LOGGER.exception("Failed to init WebSearchService")
+
     # Initialize Telegram Bot (requires conversation to be configured)
     try:
         tg_config = config.get("telegram", {}) if config else {}
@@ -358,6 +396,27 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         app.register_blueprint(prediction_bp)
     except Exception:
         _LOGGER.exception("Failed to register Prediction API")
+
+    # Register Media Zones + Proactive API (v3.1.0)
+    try:
+        from copilot_core.api.v1.media_zones import media_zones_bp, init_media_zones_api
+        if services:
+            init_media_zones_api(
+                services.get("media_zone_manager"),
+                services.get("proactive_engine"),
+            )
+        app.register_blueprint(media_zones_bp)
+        _LOGGER.info("Registered Media Zones API (/api/v1/media/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Media Zones API")
+
+    # Register Sharing API (fix: was never wired)
+    try:
+        from copilot_core.sharing.api import sharing_bp
+        app.register_blueprint(sharing_bp)
+        _LOGGER.info("Registered Sharing API (/api/v1/sharing/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Sharing API")
 
     # Register PilotSuite MCP Server (expose skills to external AI clients)
     from copilot_core.mcp_server import mcp_bp

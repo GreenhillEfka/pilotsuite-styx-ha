@@ -190,9 +190,24 @@ Faehigkeiten:
   Frage den User nach der genauen Entity-ID wenn noetig (z.B. switch.coffee_machine).
 - Du kannst erstellte Automationen auflisten (pilotsuite.list_automations)
 - Du kannst Entity-Zustaende abfragen, Historie einsehen, Wetter vorhersagen, etc.
+- Du kannst das WEB DURCHSUCHEN (pilotsuite.web_search) fuer aktuelle Informationen,
+  Recherche, Produktvergleiche, Anleitungen, etc.
+- Du kannst AKTUELLE NACHRICHTEN laden (pilotsuite.get_news) von Tagesschau, Spiegel etc.
+- Du kannst REGIONALE WARNUNGEN abrufen (pilotsuite.get_warnings) -- NINA/BBK Zivilschutz
+  und DWD Wetterwarnungen fuer die Region.
+- Du kannst MEDIA ZONEN steuern (pilotsuite.play_zone) -- Musik/Video in Habituszonen
+  abspielen, pausieren, Lautstaerke einstellen.
+- Du kannst die MUSIKWOLKE starten (pilotsuite.musikwolke) -- Musik folgt dem User
+  durch die Raeume. Sage z.B. "Musik soll mir folgen" oder "Musikwolke starten".
+
+Modul-Zustaende (Autonomie-System):
+- active: Vorschlaege werden AUTOMATISCH umgesetzt (wenn BEIDE Module aktiv sind)
+- learning: Daten sammeln + Vorschlaege zur MANUELLEN Uebernahme erzeugen
+- off: Modul deaktiviert
 
 Regeln:
-- Du SCHLAEGST VOR, du FUEHRST NICHT AUS ohne Bestaetigung.
+- Wenn beide beteiligte Module AKTIV sind: Du FUEHRST AUS und informierst den User.
+- Wenn mindestens ein Modul im LEARNING ist: Du SCHLAEGST VOR und wartest auf Bestaetigung.
 - Du erklaerst WARUM, nicht nur WAS.
 - Bei Unsicherheit sage "Ich bin mir nicht sicher".
 - Antworte auf Deutsch, ausser der User schreibt auf Englisch.
@@ -383,6 +398,28 @@ def _get_user_context() -> str:
             pref_context = conv_memory.get_preferences_for_prompt()
             if pref_context:
                 context_parts.append(pref_context)
+
+        # Regional warnings (v3.1.0)
+        ws = services.get("web_search_service")
+        if ws:
+            try:
+                summary = ws.get_warning_summary()
+                if summary:
+                    context_parts.append(f"Regionale Warnungen: {summary}")
+            except Exception:
+                pass
+
+        # Active Musikwolke sessions (v3.1.0)
+        media_mgr = services.get("media_zone_manager")
+        if media_mgr:
+            try:
+                sessions = media_mgr.get_musikwolke_sessions()
+                if sessions:
+                    context_parts.append(
+                        f"Musikwolke aktiv: {len(sessions)} Session(s)"
+                    )
+            except Exception:
+                pass
 
     except Exception as exc:
         logger.debug("Could not load user context: %s", exc)
@@ -899,6 +936,21 @@ def _execute_ha_tool(name: str, arguments: dict) -> dict:
         elif name == "pilotsuite.list_automations":
             return _execute_list_automations()
 
+        elif name == "pilotsuite.web_search":
+            return _execute_web_search(arguments)
+
+        elif name == "pilotsuite.get_news":
+            return _execute_get_news(arguments)
+
+        elif name == "pilotsuite.get_warnings":
+            return _execute_get_warnings()
+
+        elif name == "pilotsuite.play_zone":
+            return _execute_play_zone(arguments)
+
+        elif name == "pilotsuite.musikwolke":
+            return _execute_musikwolke(arguments)
+
         else:
             return {"error": f"Unknown tool: {name}"}
 
@@ -1024,6 +1076,112 @@ def _execute_list_automations() -> dict:
     except Exception:
         pass
     return {"automations": [], "count": 0, "message": "AutomationCreator not available"}
+
+
+def _execute_web_search(args: dict) -> dict:
+    """Search the web via WebSearchService."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        ws = services.get("web_search_service")
+        if ws:
+            query = args.get("query", "")
+            max_results = min(int(args.get("max_results", 5)), 10)
+            return ws.search(query, max_results=max_results)
+    except Exception as exc:
+        logger.warning("Web search failed: %s", exc)
+    return {"error": "WebSearchService not available", "results": []}
+
+
+def _execute_get_news(args: dict) -> dict:
+    """Get current news headlines."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        ws = services.get("web_search_service")
+        if ws:
+            max_items = min(int(args.get("max_items", 10)), 20)
+            return ws.get_news(max_items=max_items)
+    except Exception as exc:
+        logger.warning("News fetch failed: %s", exc)
+    return {"error": "WebSearchService not available", "items": []}
+
+
+def _execute_get_warnings() -> dict:
+    """Get regional warnings (NINA + DWD)."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        ws = services.get("web_search_service")
+        if ws:
+            return ws.get_regional_warnings()
+    except Exception as exc:
+        logger.warning("Warning fetch failed: %s", exc)
+    return {"error": "WebSearchService not available", "warnings": []}
+
+
+def _execute_play_zone(args: dict) -> dict:
+    """Control media playback in a habitus zone."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        mgr = services.get("media_zone_manager")
+        if not mgr:
+            return {"error": "MediaZoneManager not available"}
+
+        zone_id = args.get("zone_id", "")
+        action = args.get("action", "play")
+
+        if action == "play":
+            return mgr.play_zone(zone_id)
+        elif action == "pause":
+            return mgr.pause_zone(zone_id)
+        elif action == "volume":
+            vol = float(args.get("volume", 0.5))
+            return mgr.set_zone_volume(zone_id, vol)
+        elif action == "play_media":
+            return mgr.play_media_in_zone(
+                zone_id,
+                args.get("media_content_id", ""),
+                args.get("media_content_type", "music"),
+            )
+        else:
+            return {"error": f"Unknown action: {action}"}
+    except Exception as exc:
+        logger.warning("Zone media control failed: %s", exc)
+        return {"error": str(exc)}
+
+
+def _execute_musikwolke(args: dict) -> dict:
+    """Control Musikwolke (smart audio follow) sessions."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        mgr = services.get("media_zone_manager")
+        if not mgr:
+            return {"error": "MediaZoneManager not available"}
+
+        action = args.get("action", "status")
+
+        if action == "start":
+            person_id = args.get("person_id", "")
+            source_zone = args.get("source_zone", "")
+            if not person_id or not source_zone:
+                return {"error": "person_id and source_zone are required for start"}
+            return mgr.start_musikwolke(person_id, source_zone)
+        elif action == "stop":
+            session_id = args.get("session_id", "")
+            if not session_id:
+                return {"error": "session_id is required for stop"}
+            return mgr.stop_musikwolke(session_id)
+        elif action == "status":
+            sessions = mgr.get_musikwolke_sessions()
+            return {"ok": True, "sessions": sessions, "count": len(sessions)}
+        else:
+            return {"error": f"Unknown action: {action}"}
+    except Exception as exc:
+        logger.warning("Musikwolke control failed: %s", exc)
+        return {"error": str(exc)}
 
 
 def process_with_tool_execution(user_message: str) -> str:

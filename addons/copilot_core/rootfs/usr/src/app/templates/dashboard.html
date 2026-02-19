@@ -379,16 +379,18 @@ const MODULE_DEFS=[
   {id:'brain_graph',name:'Brain Graph',desc:'Entity-Beziehungen erkennen',icon:'&#x1f9e0;',color:'var(--accent)'},
   {id:'habitus_miner',name:'Habitus Miner',desc:'A->B Muster finden',icon:'&#x1f50d;',color:'var(--cyan)'},
   {id:'mood_engine',name:'Mood Engine',desc:'Comfort/Joy/Frugality bewerten',icon:'&#x1f3b5;',color:'var(--yellow)'},
-  {id:'event_forwarder',name:'Event Forwarder',desc:'HA-Events an Core weiterleiten',icon:'&#x26a1;',color:'var(--green)'},
+  {id:'event_forwarder',name:'Event Bridge',desc:'HA-Events an Core weiterleiten',icon:'&#x26a1;',color:'var(--green)'},
   {id:'neurons',name:'Neuronen (14x)',desc:'Kontext-Signale (Presence, Energy...)',icon:'&#x1f4a1;',color:'var(--orange)'},
   {id:'knowledge_graph',name:'Knowledge Graph',desc:'Semantisches Entity-Netzwerk',icon:'&#x1f310;',color:'var(--blue)'},
   {id:'conversation_memory',name:'Gedaechtnis',desc:'Lifelong Learning SQLite',icon:'&#x1f4da;',color:'var(--pink)'},
-  {id:'media_context',name:'Media Context',desc:'Musik/TV/Sonos Tracking',icon:'&#x1f3b6;',color:'var(--orange)'},
-  {id:'energy_context',name:'Energy Monitor',desc:'PV, Grid, Verbrauch',icon:'&#x26a1;',color:'var(--green)'},
-  {id:'weather_context',name:'Wetter',desc:'Wetter-Integration',icon:'&#x26c5;',color:'var(--blue)'},
-  {id:'unifi_context',name:'UniFi Netzwerk',desc:'WLAN-Qualitaet, Praesenz',icon:'&#x1f4f6;',color:'var(--cyan)'},
+  {id:'media_zones',name:'Media Zonen',desc:'Musikwolke + Zonen-Player',icon:'&#x1f3b6;',color:'var(--orange)'},
+  {id:'energy_context',name:'Energie',desc:'PV, Grid, Verbrauch',icon:'&#x26a1;',color:'var(--green)'},
+  {id:'weather_context',name:'Wetter',desc:'Wetter + DWD Warnungen',icon:'&#x26c5;',color:'var(--blue)'},
+  {id:'network',name:'Netzwerk',desc:'WLAN/LAN-Qualitaet (UniFi wenn vorhanden)',icon:'&#x1f4f6;',color:'var(--cyan)'},
   {id:'camera_context',name:'Kamera',desc:'Bewegung & Praesenz',icon:'&#x1f4f7;',color:'var(--pink)'},
-  {id:'user_preferences',name:'Nutzer-Praeferenzen',desc:'Multi-User Learning (MUPL)',icon:'&#x1f464;',color:'var(--accent2)'},
+  {id:'user_preferences',name:'Nutzer-Profile',desc:'Multi-User Learning + Autonomie',icon:'&#x1f464;',color:'var(--accent2)'},
+  {id:'proactive',name:'Proaktiv',desc:'Kontext-Vorschlaege bei Raum-Eintritt',icon:'&#x1f4ac;',color:'var(--yellow)'},
+  {id:'web_search',name:'Web & News',desc:'Recherche, Nachrichten, NINA-Warnungen',icon:'&#x1f310;',color:'var(--blue)'},
   {id:'telegram_bot',name:'Telegram Bot',desc:'Chat-Bridge + Notifications',icon:'&#x2709;',color:'var(--blue)'},
   {id:'mcp_server',name:'MCP Server',desc:'Skills fuer externe KI-Clients',icon:'&#x1f50c;',color:'var(--accent)'},
 ];
@@ -420,15 +422,18 @@ async function fetchModuleHealth(){
     api('/chat/memory'),                 // [5] conversation_memory
     api('/api/v1/energy/health'),        // [6] energy_context
     api('/api/v1/weather/health'),       // [7] weather_context
-    api('/api/v1/unifi/health'),         // [8] unifi_context
+    api('/api/v1/unifi/health'),         // [8] network (was unifi_context)
     api('/telegram/status'),             // [9] telegram_bot
     api('/api/v1/capabilities'),         // [10] mcp_server, kg, user_prefs
+    api('/api/v1/media/zones'),          // [11] media_zones
+    api('/api/v1/media/musikwolke'),     // [12] media_zones musikwolke
   ]);
   const v=r=>r.status==='fulfilled'?r.value:null;
-  const [gr,hr,mr,sr,nr,memr,er,wr,ur,tgr,capr]=settled.map(v);
+  const [gr,hr,mr,sr,nr,memr,er,wr,ur,tgr,capr,mzr,mkr]=settled.map(v);
   const caps=capr?.capabilities||[];
   const feats=capr?.features||{};
   const neurons=(nr?.neurons||nr?.data||[]);
+  const zoneCount=mzr?Object.keys(mzr).length:0;
   _moduleHealth={
     brain_graph:  gr?.ok&&(gr?.stats?.nodes||gr?.nodes_total||0)>0?'active':gr?.ok?'learning':'off',
     habitus_miner:hr?.status==='ok'?'active':hr?'learning':'off',
@@ -437,12 +442,14 @@ async function fetchModuleHealth(){
     neurons:      neurons.length>0?'active':'learning',
     knowledge_graph:caps.includes('knowledge_graph')||feats.knowledge_graph?'active':'learning',
     conversation_memory:memr?.stats?.total_messages>0?'active':memr?'learning':'off',
-    media_context:caps.includes('voice_context')||caps.includes('media')?'active':'learning',
+    media_zones:  zoneCount>0?'active':mzr?'learning':'off',
     energy_context:er?.status==='ok'||er?.ok?'active':er?'learning':'off',
     weather_context:wr?.status==='ok'||wr?.ok?'active':wr?'learning':'off',
-    unifi_context: ur?.status==='healthy'?'active':ur?.status==='degraded'?'learning':'off',
+    network:      ur?.status==='healthy'?'active':ur?.status==='degraded'?'learning':'off',
     camera_context:caps.includes('camera')||caps.includes('events')?'learning':'off',
     user_preferences:caps.includes('user_preferences')||feats.multi_user_learning?'active':'learning',
+    proactive:    'learning',  // Always learning until user promotes
+    web_search:   'active',    // Web search is always active when available
     telegram_bot:  tgr?.running?'active':'off',
     mcp_server:    capr?.ok?'active':'off',
     _details:{
@@ -451,9 +458,14 @@ async function fetchModuleHealth(){
       mood_engine:  mr?.zones?`${Object.keys(mr.zones).length} Zonen`:(mr?'Keine Zonen':'API offline'),
       neurons:      neurons.length>0?`${neurons.length} Signale aktiv`:'Warte auf Events',
       conversation_memory:memr?.stats?`${memr.stats.total_messages||0} Nachrichten`:'Leer',
+      media_zones:  zoneCount>0?`${zoneCount} Zonen konfiguriert`:(mzr?'Bereit':'Nicht gestartet'),
       energy_context:er?.status==='ok'?'Online':(er?'Degradiert':'Nicht konfiguriert'),
       weather_context:wr?.status==='ok'?'Online':(wr?'Degradiert':'Nicht konfiguriert'),
-      unifi_context:ur?.status||'Nicht konfiguriert',
+      network:      ur?.status||'Nicht konfiguriert',
+      camera_context:'Bewegungserkennung',
+      user_preferences:'Multi-User Learning',
+      proactive:    'Kontext-Vorschlaege bei Zone-Eintritt',
+      web_search:   'DDG + Tagesschau + NINA/DWD',
       telegram_bot:tgr?.running?'Polling aktiv':'Nicht konfiguriert',
       mcp_server:capr?.ok?'Aktiv':'Nicht erreichbar',
     }
@@ -994,12 +1006,13 @@ async function loadModules(){
       if(!moduleStates[m.id])moduleStates[m.id]=detected;
       const toggleCls=st==='active'?'on':st==='learning'?'learn':'off';
       const badgeCls=st==='active'?'g':st==='learning'?'y':st==='off'?'r':'b';
+      const stTitles={active:'Aktiv: Auto-Apply (wenn beide Module aktiv)',learning:'Learning: Vorschlaege zur manuellen Uebernahme',off:'Deaktiviert'};
       const card=el('div','mod-card',
         `<div class="mod-icon" style="background:${m.color}20;color:${m.color}">${m.icon}</div>
         <div class="mod-info"><h3>${escapeHtml(m.name)}</h3><p>${escapeHtml(m.desc)}</p>
         <div style="margin-top:4px">${badge(detail,badgeCls)}</div></div>
         <div class="mod-status">
-          <button class="mod-toggle ${toggleCls}" data-mod="${m.id}" title="${escapeHtml(st)}"></button>
+          <button class="mod-toggle ${toggleCls}" data-mod="${m.id}" title="${stTitles[st]||st}"></button>
           <span class="mod-st-label" style="font-size:9px;color:var(--dim)">${escapeHtml(st)}</span>
           ${detected!==st?`<span style="font-size:8px;color:var(--yellow)" title="Nutzer-Override aktiv">\u270f</span>`:''}
         </div>`);

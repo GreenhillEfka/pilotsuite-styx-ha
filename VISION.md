@@ -2,7 +2,7 @@
 
 > **Single Source of Truth** for the entire PilotSuite project.
 > Both repos (Core Add-on + HACS Integration) reference this document.
-> Last Updated: 2026-02-19 | Core v3.0.0 | Integration v3.0.0
+> Last Updated: 2026-02-19 | Core v3.1.0 | Integration v3.0.0
 
 ---
 
@@ -23,7 +23,7 @@ Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant, der die Muster 
 |---------|-----------|------------|
 | **Local-first** | Alles laeuft lokal, keine Cloud | Kein externer API-Call, kein Log-Shipping |
 | **Privacy-first** | PII-Redaktion, bounded Storage | Max 2KB Metadata/Node, Context-ID auf 12 Zeichen gekuerzt |
-| **Governance-first** | Vorschlaege vor Aktionen | Human-in-the-Loop, kein stilles Automatisieren |
+| **Governance-first** | 3-Tier Autonomie (active/learning/off) | Auto-Apply nur wenn BEIDE Module aktiv (doppelte Sicherheit) |
 | **Safe Defaults** | Begrenzte Speicher, opt-in Persistenz | Max 500 Nodes, 1500 Edges, optional JSONL |
 | **Offline Voice** | Lokale Sprachsteuerung | Ollama-Integration, kein Cloud-TTS/STT |
 
@@ -38,17 +38,29 @@ States -> Neuronen -> Moods -> Synapsen -> Vorschlaege -> Dialog/Freigabe -> HA-
 **Regeln:**
 - Kein direkter Sprung State -> Mood (Neuronen sind zwingende Zwischenschicht)
 - Mood kennt keine Sensoren/Geraete - nur Bedeutung
-- Vorschlaege werden NIE ohne explizite Freigabe ausgefuehrt
+- Autonomie nur bei doppelter Sicherheit (beide Module aktiv)
 - Unsicherheit/Konflikt reduziert Handlungsspielraum
+
+### 3-Tier Autonomie-Modell (v3.1.0)
+
+| Modus | Datensammlung | Vorschlaege | Ausfuehrung | Use Case |
+|-------|--------------|-------------|-------------|----------|
+| **active** | Ja | Ja | AUTO (wenn Ziel auch active) | Vertrauenswuerdige Module |
+| **learning** | Ja | Ja (zur Genehmigung) | NUR nach User-Bestaetigung | Neue/unbekannte Module |
+| **off** | Nein | Nein | Nein | Deaktiviert |
+
+**Doppelte Sicherheit:** `should_auto_apply(source, target)` prueft ob BEIDE Module aktiv sind.
+Wenn nur eines aktiv und das andere learning: Vorschlag wird erzeugt, aber zur manuellen
+Uebernahme vorgelegt.
 
 ### Rollenmodell
 
 | Rolle | Verhalten | Standard |
 |-------|-----------|----------|
-| **CoPilot/Berater** | Schlaegt vor + begruendet | **Default** |
-| **Agent** | Handelt autonom, NUR nach Freigabe | Opt-in pro Scope |
-| **Autopilot** | Uebernimmt komplett, NUR wenn aktiviert | Explizit |
-| **Nutzer** | Entscheidet final | Immer |
+| **CoPilot/Berater** | Schlaegt vor + begruendet | **Default** (learning mode) |
+| **Agent** | Handelt autonom wenn beide Module aktiv | active + active |
+| **Autopilot** | Uebernimmt komplett (kuenftig) | Explizit, alle Module aktiv |
+| **Nutzer** | Entscheidet final | Immer (learning mode) |
 
 ### Risikoklassen
 
@@ -65,14 +77,12 @@ States -> Neuronen -> Moods -> Synapsen -> Vorschlaege -> Dialog/Freigabe -> HA-
 
 **Habitus** (lat. "Zustand") ist die Pattern-Discovery-Engine. Sie beobachtet Verhaltensmuster und schlaegt passende Automatisierungen vor.
 
-### Kernprinzipien
-
-1. **Beobachten, nicht annehmen** - Lernt aus tatsaechlichem Verhalten, nicht aus Regeln
+1. **Beobachten, nicht annehmen** - Lernt aus tatsaechlichem Verhalten
 2. **Vorschlagen, nicht handeln** - Proposes automations, never executes without permission
 3. **Kontinuierlich lernen** - Passt sich Lifestyle-Aenderungen an
 4. **Privacy respektieren** - Alles lokal, opt-in, loeschbar
 
-### Was Habitus entdeckt
+### Muster und Confidence
 
 | Mustertyp | Beispiel | Ergebnis |
 |-----------|----------|----------|
@@ -81,38 +91,15 @@ States -> Neuronen -> Moods -> Synapsen -> Vorschlaege -> Dialog/Freigabe -> HA-
 | **Sequenz** | Tuer auf -> Flur-Licht -> Thermostat | Ankunftsroutine |
 | **Kontextuell** | Filmabend -> Licht dimmen | Aktivitaetsbasierte Szene |
 
-### Confidence-System
-
-```
-Confidence = (Support x Consistency x Recency) / Complexity
-```
-
-| Confidence | Bedeutung | Aktion |
-|------------|-----------|--------|
-| 0.9+ | Sehr starkes Muster | Hohe Empfehlung |
-| 0.7-0.9 | Starkes Muster | Guter Vorschlag |
-| 0.5-0.7 | Moderates Muster | Test empfohlen |
-| <0.5 | Schwaches Muster | Nur informativ |
+`Confidence = (Support x Consistency x Recency) / Complexity` -- Werte >0.7 erzeugen aktive Vorschlaege, <0.5 nur informativ.
 
 ### Feedback-Loop
 
-```
-Vorschlag angezeigt -> User Feedback -> Lernen
-   +-- Akzeptiert -> Aehnliche boosten
-   +-- Modifiziert -> Parameter anpassen
-   +-- Abgelehnt -> Gewicht reduzieren
-```
+Akzeptiert -> aehnliche boosten | Modifiziert -> Parameter anpassen | Abgelehnt -> Gewicht reduzieren
 
 ---
 
 ## 5. Architektur: Zwei Projekte
-
-### Warum zwei Repos?
-
-1. **HACS-Anforderung**: HA-Integration muss eigenstaendiges HACS-Repo sein
-2. **Unabhaengige Skalierung**: Backend und Frontend separat entwickelbar
-3. **Flexibilitaet**: Headless-Betrieb moeglich (Core ohne Frontend)
-4. **Bekanntes Muster**: ESPHome, Node-RED, etc. nutzen dasselbe Pattern
 
 ### Repo-Uebersicht
 
@@ -121,171 +108,76 @@ Vorschlag angezeigt -> User Feedback -> Lernen
 | **Home-Assistant-Copilot** | Core Add-on (Backend) | v3.0.0 | 8909 |
 | **ai-home-copilot-ha** | HACS Integration (Frontend) | v3.0.0 | - (verbindet sich zum Core) |
 
+Warum zwei Repos: HACS-Anforderung (eigenstaendiges Repo), unabhaengige Skalierung, Headless-Betrieb moeglich, bekanntes Muster (ESPHome, Node-RED).
+
 ### Systemarchitektur
 
 ```
-+------------------------------------------------------------------+
-|                      Home Assistant                               |
-|                                                                   |
-|  +------------------------------------------------------------+  |
-|  |         HACS Integration (ai_home_copilot) v3.0.0          |  |
-|  |                                                             |  |
-|  |  25 Core-Module    80+ Sensoren   20+ Dashboard Cards      |  |
-|  |  +---------------+ +------------+ +---------------------+  |  |
-|  |  | Forwarder     | | Mood       | | Brain Graph Card    |  |  |
-|  |  | Habitus       | | Presence   | | Mood Card           |  |  |
-|  |  | Candidates    | | Activity   | | Neurons Card        |  |  |
-|  |  | Brain Sync    | | Energy     | | Habitus Card        |  |  |
-|  |  | Mood Context  | | Neurons14  | | Automation Manager  |  |  |
-|  |  | Media         | | Weather    | | Module Control      |  |  |
-|  |  | Energy        | | Anomaly    | | Prediction Cards    |  |  |
-|  |  | Weather       | | Predictive | |                     |  |  |
-|  |  | UniFi         | | Calendar   | | 3 Native Lovelace:  |  |  |
-|  |  | ML Context    | | Cognitive  | |   styx-mood-card    |  |  |
-|  |  | MUPL          | | Media      | |   styx-brain-card   |  |  |
-|  |  | Conversation  | | Habit v2   | |   styx-habitus-card |  |  |
-|  |  | Module Ctrl   | | ...        | |                     |  |  |
-|  |  +---------------+ +------------+ +---------------------+  |  |
-|  |                                                             |  |
-|  |  StyxConversationAgent (HA Assist Pipeline Integration)     |  |
-|  +---------------------------+----+----------------------------+  |
-|                              |    |                               |
-|              HTTP REST API --+    +-- WebSocket (real-time)       |
-|              (Token-Auth)    v                                    |
-|  +------------------------------------------------------------+  |
-|  |         Core Add-on (copilot_core) v3.0.0 - Port 8909      |  |
-|  |                                                             |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  | Brain    | | Habitus  | | Mood     | | Candidates   |   |  |
-|  |  | Graph    | | Miner    | | Engine   | | Generator    |   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  | Tag      | | Vector   | | Knowledge| | Collective   |   |  |
-|  |  | System   | | Store    | | Graph    | | Intel.       |   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  | Neurons  | | Search   | | Weather  | | Performance  |   |  |
-|  |  | (14+)    | | API      | | API      | | Monitor      |   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  | Module   | | Automat. | | Explain  | | Predict      |   |  |
-|  |  | Control  | | Creator  | | Engine   | | Intelligence |   |  |
-|  |  +----------+ +----------+ +----------+ +--------------+   |  |
-|  |  +----------+ +----------+                                  |  |
-|  |  | A/B Test | | Federated|                                  |  |
-|  |  | Engine   | | Learning |                                  |  |
-|  |  +----------+ +----------+                                  |  |
-|  |                                                             |  |
-|  |  40+ API-Blueprints | 30+ Module-Packages | SQLite + JSONL  |  |
-|  +------------------------------------------------------------+  |
-+------------------------------------------------------------------+
++---------------------------------------------------------------+
+| Home Assistant                                                 |
+|  +----------------------------------------------------------+ |
+|  | HACS Integration v3.0.0                                   | |
+|  | 25 Core-Module | 80+ Sensoren | 20+ Dashboard Cards      | |
+|  | 3 Native Lovelace: styx-mood-card, styx-brain-card,       | |
+|  |                    styx-habitus-card                       | |
+|  | StyxConversationAgent (HA Assist Pipeline)                 | |
+|  +-------------------+--+------------------------------------+ |
+|           REST API --+  +-- WebSocket (real-time)              |
+|                      v                                         |
+|  +----------------------------------------------------------+ |
+|  | Core Add-on v3.0.0 - Port 8909                            | |
+|  | Brain Graph | Habitus Miner | Mood Engine | Candidates    | |
+|  | Tag System  | Vector Store  | Knowledge G | Collective    | |
+|  | Neurons 14+ | Search API    | Weather API | Performance   | |
+|  | Module Ctrl | Automat.Creator| Explain Eng| Predict Intel | |
+|  | A/B Testing | Federated Learn|            |               | |
+|  | 40+ API-Blueprints | 30+ Packages | SQLite + JSONL       | |
+|  +----------------------------------------------------------+ |
++---------------------------------------------------------------+
 ```
 
 ### Datenfluss
 
 ```
-1. HA Event Bus
-      |
-      v
-2. EventsForwarder (batched, rate-limited, PII-redacted)
-      |
-      v
-3. POST /api/v1/events -> Core
-      |
-      +-->  Event Store (JSONL, bounded)
-      +-->  Brain Graph (Nodes + Edges, exponential decay)
-      +-->  Knowledge Graph (SQLite/Neo4j)
-      +-->  Habitus Miner (A->B Pattern Mining)
-      |        |
-      |        v
-      +-->  Predictive Intelligence (Zeitreihen, Arrival, Energy)
-               |
-               v
-4. Candidate Generator (confidence scoring)
-      |
-      v
-5. GET /api/v1/candidates <- CandidatePollerModule (5min)
-      |
-      v
-6. HA Repairs System (Vorschlag anzeigen)
-      |
-      v
-7. User: Akzeptieren / Modifizieren / Ablehnen
-      |
-      v
-8. Automation Creator -> POST supervisor/core/api/config/automation/config
-      |
-      v
-9. Echte HA-Automatisierung erstellt + Automation Manager
+HA Event Bus -> EventsForwarder (batched, PII-redacted)
+  -> POST /api/v1/events -> Core
+     +-> Event Store (JSONL) | Brain Graph | Knowledge Graph
+     +-> Habitus Miner -> Predictive Intelligence
+         -> Candidate Generator (confidence scoring)
+            -> GET /api/v1/candidates <- CandidatePollerModule (5min)
+               -> HA Repairs System -> User: Accept/Modify/Reject
+                  -> Automation Creator -> POST supervisor/core/api/config/automation/config
+                     -> Echte HA-Automatisierung + Automation Manager
 ```
 
 ---
 
 ## 6. Neuronales System
 
-### Neuronen (Core Add-on)
+### Neuronen (Core Add-on, 14+ Module)
 
-14+ Neuron-Module bewerten jeweils einen Aspekt des Zuhauses:
+| Neuron | Aspekt | Neuron | Aspekt |
+|--------|--------|--------|--------|
+| `presence` | Anwesenheit | `camera` | Kameras |
+| `mood` | Stimmung (Comfort/Joy/Frugality) | `context` | Tageszeit, Saison |
+| `energy` | PV-Forecast, Kosten, Grid | `state` | Entity-State-Tracking |
+| `weather` | Bedingungen + Empfehlungen | `calendar` | Termine + Zeitfenster |
+| `unifi` | WAN-Qualitaet, Latenz | `cognitive` | Aktivitaetskomplexitaet |
+| `media` | Player-Status, Inhalte | `time_pattern` | Tages-/Wochenzyklen |
 
-| Neuron | Aspekt | Bewertung |
-|--------|--------|-----------|
-| `presence.py` | Anwesenheit | Wer ist wo? |
-| `mood.py` | Stimmung | Comfort/Joy/Frugality |
-| `energy.py` | Energie | PV-Forecast, Kosten, Grid |
-| `weather.py` | Wetter | Bedingungen + Empfehlungen |
-| `unifi.py` | Netzwerk | WAN-Qualitaet, Latenz |
-| `camera.py` | Kameras | Status + Presence |
-| `context.py` | Kontext | Tageszeit, Saison |
-| `state.py` | Zustaende | Entity-State-Tracking |
-| `calendar.py` | Kalender | Termine + Zeitfenster |
-| `cognitive.py` | Kognitive Last | Aktivitaetskomplexitaet |
-| `media.py` | Media | Player-Status, Inhalte |
-| `time_pattern.py` | Zeitmuster | Tages-/Wochenzyklen |
-| `base.py` | Basis | Abstrakte Neuron-Klasse |
-| `manager.py` | Orchestrierung | NeuronManager |
+Plus `base.py` (abstrakte Klasse) und `manager.py` (NeuronManager/Orchestrierung).
 
-### Sensoren (HACS Integration)
+### Sensoren (HACS Integration, 80+)
 
-80+ Sensoren machen Neuron-Daten in HA sichtbar (17 Sensor-Module + Inspector):
-
-| Sensor | Funktion |
-|--------|----------|
-| `mood_sensor` | Mood-Entity fuer HA |
-| `presence_sensors` | Anwesenheitserkennung |
-| `activity_sensors` | Aktivitaetserkennung |
-| `energy_sensors` / `energy_insights` | Energieueberwachung |
-| `neurons_14` | 14+ Basis-Neuronen (Time, Calendar, Cognitive, etc.) |
-| `neuron_dashboard` | Dashboard-Integration |
-| `anomaly_alert` | Anomalie-Erkennung |
-| `predictive_automation` | Praediktive Vorschlaege |
-| `environment_sensors` | Temperatur, Feuchtigkeit |
-| `calendar_sensors` | Kalender-Integration |
-| `cognitive_sensors` | Kognitive Last |
-| `media_sensors` | Media-Player Tracking |
-| `habit_learning_v2` | Habit-Learning |
-| `time_sensors` | Zeitbasierte Trigger |
-| `voice_context` | Sprachsteuerung |
+`mood_sensor`, `presence_sensors`, `activity_sensors`, `energy_sensors`/`energy_insights`, `neurons_14` (14+ Basis-Neuronen), `neuron_dashboard`, `anomaly_alert`, `predictive_automation`, `environment_sensors`, `calendar_sensors`, `cognitive_sensors`, `media_sensors`, `habit_learning_v2`, `time_sensors`, `voice_context`.
 
 ---
 
 ## 7. Zone & Tag System
 
-### Zone-Hierarchie
+**Hierarchie:** Floor (EG/OG/UG) -> Area (Wohnbereich/Schlafbereich) -> Room (Wohnzimmer/Kueche/Bad)
 
-```
-Floor (EG, OG, UG)
-  +-- Area (Wohnbereich, Schlafbereich)
-        +-- Room (Wohnzimmer, Kueche, Bad)
-```
-
-### Tag-Konvention
-
-| Kategorie | Beispiele |
-|-----------|-----------|
-| `kind` | `aicp.kind.light`, `aicp.kind.sensor` |
-| `role` | `aicp.role.safety_critical`, `aicp.role.morning` |
-| `state` | `aicp.state.needs_repair`, `aicp.state.low_battery` |
-| `place` | `aicp.place.wohnzimmer` (auto-erstellt bei Zone) |
+**Tags:** `aicp.<kategorie>.<name>` -- Kategorien: `kind` (light, sensor), `role` (safety_critical, morning), `state` (needs_repair, low_battery), `place` (auto-erstellt bei Zone).
 
 Brain Graph verlinkt: Tag <-> Zone <-> Entity (bidirektional).
 
@@ -311,80 +203,51 @@ Brain Graph verlinkt: Tag <-> Zone <-> Entity (bidirektional).
 | Feature | Status |
 |---------|--------|
 | Token-Auth (X-Auth-Token / Bearer) | Implementiert |
-| PII-Redaktion | Implementiert |
+| PII-Redaktion + SHA256 Hashing | Implementiert |
 | Bounded Storage (alle Stores) | Implementiert |
-| Source Allowlisting (Events) | Implementiert |
-| Rate Limiting (Event Ingest) | Implementiert |
+| Source Allowlisting + Rate Limiting | Implementiert |
 | Idempotency-Key Deduplication | Implementiert |
 | `exec()` -> `ast.parse()` (Security Fix) | Implementiert |
-| SHA256 Hashing | Implementiert |
-| XSS-Schutz (Output Encoding) | Implementiert |
+| XSS-Schutz + CSRF Protection + CSP Headers | Implementiert |
 | Input Validation (Pydantic) | Implementiert |
-| CSRF Protection | Implementiert |
-| Content Security Policy Headers | Implementiert |
 | Differential Privacy (Federated Learning) | Implementiert |
 
-**Safety-First Checklist:**
-- Sicherheitsrelevante Aktionen (Tueren, Alarm): IMMER Manual Mode
-- Destructive Actions: Erst fragen, dann handeln
-- Secrets: Nie in Logs, immer in Config/Env
-- Updates: Governance-Event mit Persistent Notification
+**Safety-First:** Sicherheitsrelevante Aktionen immer Manual Mode. Destructive Actions erst fragen. Secrets nie in Logs. Updates mit Governance-Event + Persistent Notification.
 
 ---
 
 ## 10. Module Control System
 
-Das Module Control System erlaubt feingranulare Steuerung jedes PilotSuite-Moduls ueber API und Dashboard.
-
-### Modulzustaende
+Feingranulare Steuerung jedes PilotSuite-Moduls ueber API und Dashboard.
 
 | Zustand | Bedeutung | Verhalten |
 |---------|-----------|-----------|
 | **active** | Modul vollstaendig aktiv | Daten sammeln + Vorschlaege erzeugen |
-| **learning** | Beobachtungsmodus | Daten sammeln, aber KEINE Vorschlaege erzeugen |
+| **learning** | Beobachtungsmodus | Daten sammeln, aber KEINE Vorschlaege |
 | **off** | Modul deaktiviert | Kein Datensammeln, kein Processing |
 
 ### API
 
 ```
-POST /api/v1/modules/{id}/configure
-Body: { "state": "active" | "learning" | "off", "config": { ... } }
-
-GET  /api/v1/modules
-GET  /api/v1/modules/{id}
-GET  /api/v1/modules/{id}/status
+POST /api/v1/modules/{id}/configure   # Body: { "state": "active"|"learning"|"off" }
+GET  /api/v1/modules                  # Alle Module
+GET  /api/v1/modules/{id}             # Einzelnes Modul
+GET  /api/v1/modules/{id}/status      # Status-Details
 ```
 
-### Persistenz
-
-- Modulzustaende in SQLite (`/data/module_states.db`), ueberleben Neustarts
-- Dashboard-Toggle synchronisiert mit dem realen Backend-Zustand
-- Jede Zustandsaenderung erzeugt ein Governance-Event
-
-### Anwendungsfaelle
-
-- **Neues Modul testen:** Auf `learning` setzen, Datenqualitaet pruefen, dann `active`
-- **Modul pausieren:** Auf `off` setzen waehrend Renovierung oder Urlaub
-- **Schrittweise Aktivierung:** Module einzeln von `learning` auf `active` hochfahren
+**Persistenz:** SQLite (`/data/module_states.db`), ueberleben Neustarts. Dashboard-Toggle synchronisiert mit Backend-Zustand. Jede Aenderung erzeugt ein Governance-Event.
 
 ---
 
 ## 11. Automation Creator
 
-Akzeptierte Vorschlaege werden zu echten Home Assistant Automatisierungen.
-
-### Architektur
-
-```
-Vorschlag akzeptiert -> Template Mapping -> POST supervisor/core/api/config/automation/config
-      -> Echte HA-Automatisierung erstellt -> Automation Manager (Dashboard)
-```
+Akzeptierte Vorschlaege werden zu echten Home Assistant Automatisierungen via Supervisor REST API (`POST http://supervisor/core/api/config/automation/config`).
 
 ### Template Mapping
 
 | Mustertyp | HA Trigger | HA Action |
 |-----------|------------|-----------|
-| **Zeitbasiert** | `trigger: time` mit Wochentag-Condition | `service: light.turn_on` etc. |
+| **Zeitbasiert** | `trigger: time` + Wochentag-Condition | `service: light.turn_on` etc. |
 | **State-Trigger** | `trigger: state` auf Entity | `service: *` basierend auf Pattern |
 | **Sequenz** | `trigger: state` + `condition: time` | Mehrere Actions in Reihenfolge |
 
@@ -399,35 +262,21 @@ DELETE /api/v1/automations/{id}       # Automation entfernen
 POST /api/v1/automations/{id}/toggle  # Aktivieren/Deaktivieren
 ```
 
-### Automation Manager
-
-- Dashboard-Seite zeigt alle von PilotSuite erstellten Automatisierungen
-- Status-Anzeige: aktiv, pausiert, fehlerhaft
-- Performance-Metriken: Wie oft wurde die Automation ausgefuehrt?
-- Ein-Klick Deaktivierung und Loeschung
+**Automation Manager:** Dashboard-Seite mit Status-Anzeige (aktiv/pausiert/fehlerhaft), Performance-Metriken, Ein-Klick Deaktivierung und Loeschung.
 
 ---
 
 ## 12. Native Lovelace Cards
 
-Drei native Lovelace-Karten fuer direkte Integration in HA-Dashboards.
-
 | Karte | Custom Element | Funktion |
 |-------|---------------|----------|
-| **styx-mood-card** | `<styx-mood-card>` | Echtzeit-Stimmungsanzeige mit 3D-Visualisierung (Comfort/Joy/Frugality) |
+| **styx-mood-card** | `<styx-mood-card>` | Echtzeit-Stimmung mit 3D-Visualisierung (Comfort/Joy/Frugality) |
 | **styx-brain-card** | `<styx-brain-card>` | Interaktiver Brain Graph mit Zoom, Filter und Node-Details |
 | **styx-habitus-card** | `<styx-habitus-card>` | Pattern-Uebersicht mit Confidence-Bars und Trend-Anzeige |
 
-### Technische Details
-
-- Custom Elements registriert fuer HACS-Distribution
-- Echtzeit-Updates ueber WebSocket-Verbindung zum Core
-- Responsive Design fuer Desktop und Mobile
-- Dark/Light Theme Support (folgt HA Theme)
-- Konfiguration ueber YAML oder Visual Editor
+Custom Elements registriert fuer HACS. Echtzeit-Updates via WebSocket. Responsive (Desktop + Mobile). Dark/Light Theme Support. Konfiguration ueber YAML oder Visual Editor.
 
 ```yaml
-# Lovelace Dashboard YAML Beispiel
 type: custom:styx-mood-card
 entity: sensor.styx_mood
 show_history: true
@@ -440,26 +289,17 @@ animation: true
 
 `StyxConversationAgent` erweitert `AbstractConversationAgent` und ist nativ in der HA Assist Pipeline verfuegbar.
 
-### Architektur
-
 ```
-User Spracheingabe -> HA Assist Pipeline (STT -> Intent -> Conversation Agent)
-      -> StyxConversationAgent.async_process()
-      -> POST Core:8909/v1/chat/completions (OpenAI-kompatibel)
-      -> Ollama (lfm2.5-thinking / qwen3:4b fuer Tool-Calling)
-      -> Response mit optionalem Tool-Aufruf -> HA Action
+User Spracheingabe -> HA Assist (STT -> Intent -> Conversation Agent)
+  -> StyxConversationAgent.async_process()
+  -> POST Core:8909/v1/chat/completions -> Ollama -> Response + Tool-Aufruf -> HA Action
 ```
-
-### Features
 
 - **Nativ in HA:** Erscheint als Conversation Agent in der Assist-Konfiguration
-- **OpenAI-kompatibel:** Nutzt `/v1/chat/completions` Endpunkt des Core
-- **Kontextanreicherung:** User-Kontext (Mood, Neuronen, Haushalt) wird ins System-Prompt injiziert
-- **Tool-Calling:** 9+ HA-Tools (Licht, Klima, Szenen, etc.) ueber `qwen3:4b`
-- **Conversation Memory:** SQLite-basiertes Langzeitgedaechtnis fuer Kontextkontinuitaet
+- **Kontextanreicherung:** Mood, Neuronen, Haushalt wird ins System-Prompt injiziert
+- **Tool-Calling:** 9+ HA-Tools (Licht, Klima, Szenen) ueber `qwen3:4b`
+- **Conversation Memory:** SQLite-basiertes Langzeitgedaechtnis
 - **Offline:** 100% lokal, keine externen API-Calls
-
-### Konfiguration
 
 | Option | Default | Beschreibung |
 |--------|---------|--------------|
@@ -476,22 +316,15 @@ Jeder Vorschlag kann erklaert werden - warum wurde er erzeugt und wie sicher ist
 ### API
 
 ```
-GET /api/v1/explain/suggestions/{id}
-GET /api/v1/explain/neurons/{neuron_id}
-GET /api/v1/explain/mood/current
-GET /api/v1/explain/patterns/{pattern_id}
+GET /api/v1/explain/suggestions/{id}    # Vorschlag erklaeren
+GET /api/v1/explain/neurons/{neuron_id} # Neuron-Bewertung erklaeren
+GET /api/v1/explain/mood/current        # Aktuelle Stimmung erklaeren
+GET /api/v1/explain/patterns/{id}       # Pattern erklaeren
 ```
 
 ### Brain Graph Causal Chain
 
-```
-Trigger-Event (z.B. motion_sensor.flur = on)
-      -> Brain Graph Edge Traversal (Kausalitaetskette)
-      -> Pattern Match (Habitus Miner: Confidence 0.85)
-      -> Natuerlichsprachliche Erklaerung via LLM
-```
-
-### Erklaerungsformat
+Trigger-Event -> Brain Graph Edge Traversal (Kausalitaetskette) -> Pattern Match (Habitus Miner) -> Natuerlichsprachliche Erklaerung via LLM.
 
 ```json
 {
@@ -506,12 +339,7 @@ Trigger-Event (z.B. motion_sensor.flur = on)
 }
 ```
 
-### Confidence-Transparenz
-
-- Confidence-Scores sind in allen Vorschlaegen sichtbar
-- Brain Graph Kanten-Gewichte zeigen Staerke der Verbindung
-- Habitus-Patterns zeigen Support, Consistency und Recency einzeln
-- LLM generiert menschenlesbare Zusammenfassung der Kausalitaetskette
+Confidence-Scores in allen Vorschlaegen sichtbar. Brain Graph Gewichte zeigen Verbindungsstaerke. LLM generiert menschenlesbare Zusammenfassung.
 
 ---
 
@@ -521,12 +349,7 @@ Vorausschauende Intelligenz auf Basis historischer Daten - ohne Cloud, ohne exte
 
 ### Arrival Prediction
 
-```
-Person-Entity Historie (person.max, person.anna)
-      -> Zeitreihen-Analyse (Moving Average + Time-of-Day Weights)
-      -> Ankunftsvorhersage: "Max kommt voraussichtlich um 17:45 nach Hause"
-      -> Pre-Heating / Pre-Lighting Vorschlag
-```
+Person-Entity Historie -> Zeitreihen-Analyse (Moving Average + Time-of-Day Weights) -> Ankunftsvorhersage -> Pre-Heating/Pre-Lighting Vorschlag.
 
 ### Energy Price Optimization
 
@@ -536,22 +359,19 @@ Person-Entity Historie (person.max, person.anna)
 | **aWATTar** | aWATTar HA Integration | Day-Ahead Preise |
 | **PV-Forecast** | Forecast.Solar | Eigenproduktion vorhersagen |
 
-Optimierungslogik: Strompreis-Forecast + PV-Forecast + Verbrauchsmuster = optimaler Zeitpunkt fuer energieintensive Geraete.
+Strompreis-Forecast + PV-Forecast + Verbrauchsmuster = optimaler Zeitpunkt fuer energieintensive Geraete.
 
 ### Zeitreihen-Forecasting
 
-- **Methode:** Moving Average + Time-of-Day + Day-of-Week Gewichtung
-- **Lookback:** Konfigurierbar (Standard: 30 Tage)
-- **Vorhersagefenster:** 1-24 Stunden
-- **Anwendungen:** Temperatur, Energieverbrauch, Anwesenheit, Aktivitaetsmuster
+Moving Average + Time-of-Day + Day-of-Week Gewichtung. Lookback konfigurierbar (Standard: 30 Tage). Vorhersagefenster 1-24 Stunden. Anwendungen: Temperatur, Energieverbrauch, Anwesenheit, Aktivitaetsmuster.
 
 ### API
 
 ```
-GET  /api/v1/predict/arrival/{person_id}
-GET  /api/v1/predict/energy/optimal-time
-GET  /api/v1/predict/forecast/{entity_id}
-POST /api/v1/predict/configure
+GET  /api/v1/predict/arrival/{person_id}    # Ankunftsvorhersage
+GET  /api/v1/predict/energy/optimal-time    # Optimaler Zeitpunkt
+GET  /api/v1/predict/forecast/{entity_id}   # Zeitreihen-Forecast
+POST /api/v1/predict/configure              # Konfiguration
 ```
 
 ---
@@ -560,28 +380,14 @@ POST /api/v1/predict/configure
 
 Freiwilliges, datenschutzkonformes Lernen ueber Haushaltsgrenzen hinweg.
 
-### Federated Learning
+### Federated Learning mit Differential Privacy
 
-```
-Haushalt A: Lokales Modell trainieren
-      -> Gradient berechnen + Differential Privacy (Epsilon aus Config)
-      -> Verschluesselter Gradient-Upload (nur Gradienten, keine Rohdaten)
-      -> Aggregation Server (Federated Averaging)
-      -> Verbessertes globales Modell -> zurueck an alle Teilnehmer
-```
+Lokales Modell trainieren -> Gradient + Differential Privacy (Epsilon aus Config) -> Verschluesselter Upload (nur Gradienten, keine Rohdaten) -> Federated Averaging -> Verbessertes Modell zurueck.
 
-**Differential Privacy:**
-- Epsilon-Wert konfigurierbar (`config.collective.epsilon`, Default: 1.0)
-- Niedrigeres Epsilon = mehr Privacy, weniger Nutzen
-- Gaussian Noise wird vor Upload auf Gradienten addiert
-- Mathematische Garantie: Einzelne Datenpunkte nicht rekonstruierbar
-
-### Cross-Home Model Gradient Sharing
-
-- Nur Modell-Gradienten werden geteilt, NIEMALS Rohdaten
+- Epsilon konfigurierbar (`config.collective.epsilon`, Default: 1.0)
+- Gaussian Noise auf Gradienten vor Upload
 - Verschluesselung in Transit (TLS 1.3)
-- Opt-in pro Kategorie (Energie, Komfort, Anwesenheit)
-- Jederzeit widerrufbar, lokale Daten werden nicht beeinflusst
+- Opt-in pro Kategorie (Energie, Komfort, Anwesenheit), jederzeit widerrufbar
 
 ### A/B Testing fuer Automationen
 
@@ -590,26 +396,22 @@ Haushalt A: Lokales Modell trainieren
 | **Split-Testing** | Zwei Varianten einer Automation parallel testen |
 | **Metriken** | Energieverbrauch, User-Zufriedenheit, Ausfuehrungshaeufigkeit |
 | **Auto-Promotion** | Bessere Variante wird nach Testphase automatisch Standard |
-| **Testdauer** | Konfigurierbar (Standard: 14 Tage) |
-| **Mindest-Samples** | Mindestens 20 Ausfuehrungen pro Variante vor Entscheidung |
+| **Testdauer** | Konfigurierbar (Standard: 14 Tage, min. 20 Ausfuehrungen/Variante) |
 
 ### Pattern Library
 
-- Erprobte Muster aus dem Federated Learning als Pattern Library
-- Patterns mit hoher Cross-Home Confidence werden priorisiert
-- Nutzer koennen Patterns uebernehmen oder ignorieren
-- Kein automatisches Anwenden - immer Governance-first
+Erprobte Muster aus Federated Learning als Library. Patterns mit hoher Cross-Home Confidence priorisiert. Kein automatisches Anwenden - immer Governance-first.
 
 ### API
 
 ```
-GET  /api/v1/collective/status
-POST /api/v1/collective/opt-in
-POST /api/v1/collective/opt-out
-GET  /api/v1/collective/patterns
-GET  /api/v1/collective/ab-tests
-POST /api/v1/collective/ab-tests/create
-GET  /api/v1/collective/ab-tests/{id}/results
+GET  /api/v1/collective/status              # Federated Status
+POST /api/v1/collective/opt-in              # Teilnahme aktivieren
+POST /api/v1/collective/opt-out             # Teilnahme beenden
+GET  /api/v1/collective/patterns            # Pattern Library
+GET  /api/v1/collective/ab-tests            # Alle A/B Tests
+POST /api/v1/collective/ab-tests/create     # Neuen Test erstellen
+GET  /api/v1/collective/ab-tests/{id}/results  # Testergebnisse
 ```
 
 ---
@@ -694,40 +496,37 @@ GET  /api/v1/collective/ab-tests/{id}/results
 
 | Milestone | Version | Beschreibung |
 |-----------|---------|-------------|
-| M0: Foundation | v0.4.x | Grundarchitektur, Flask, erste Neuronen |
-| M1: Suggestions E2E | v0.5.x | Kompletter Vorschlags-Workflow |
-| M2: Mood Ranking | v0.5.7 | Mood-basierte Priorisierung |
-| M3: SystemHealth/UniFi/Energy | v0.4.9-v0.4.13 | Hardware-Neuronen |
-| N0: Modular Runtime | v0.5.4 | Plugin-faehige Architektur |
-| N1: Candidate Lifecycle + UX | v0.5.0-v0.5.2 | Governance-Workflow |
-| N2: Core API v1 | v0.4.3-v0.4.5 | REST API Grundgeruest |
-| N3: HA -> Core Event Forwarder | v0.5.x | Event-Bridge |
-| N4: Brain Graph | v0.6.x | Graph Store + Patterns |
-| N5: Core <-> HA Bridge | v0.5.0-v0.5.2 | Bidirektionale Kommunikation |
+| Foundation | v0.4.x | Grundarchitektur, Flask, erste Neuronen |
+| Suggestions E2E | v0.5.x | Kompletter Vorschlags-Workflow |
+| Mood Ranking | v0.5.7 | Mood-basierte Priorisierung |
+| SystemHealth/UniFi/Energy | v0.4.9-v0.4.13 | Hardware-Neuronen |
+| Modular Runtime | v0.5.4 | Plugin-faehige Architektur |
+| Candidate Lifecycle | v0.5.0-v0.5.2 | Governance-Workflow |
+| Core API v1 | v0.4.3-v0.4.5 | REST API Grundgeruest |
+| Event Forwarder | v0.5.x | HA -> Core Event-Bridge |
+| Brain Graph | v0.6.x | Graph Store + Patterns |
+| Integration Bridge | v0.5.0-v0.5.2 | Bidirektionale Kommunikation |
 | Tag System v0.2 | v0.4.14 | Tag-basierte Organisation |
 | Habitus Zones v2 | v0.4.15 | Zonenbasiertes Mining |
-| Character System v0.1 | v0.12.x | Styx Persoenlichkeit |
+| Character System | v0.12.x | Styx Persoenlichkeit |
 | Interactive Brain Graph | v0.8.x | Visuelle Graph-Exploration |
-| Multi-User Preference Learning | v0.8.0 | MUPL Framework |
-| Cross-Home Sync v0.2 | v0.6.0 | Haushaltuebergreifende Sync |
-| Collective Intelligence v0.2 | v0.6.1 | Erste Federated Features |
-| Security P0 Fixes | v0.12.x | Kritische Sicherheitsfixes |
-| Architecture Merge | v0.8.7 / v0.13.4 | HACS + Core vereinheitlicht |
-| Config Flow Modularization | v0.13.5 | config_flow.py -> 6 Module |
-| API Pydantic Validation | v0.8.8 | Schema-Validierung |
+| MUPL | v0.8.0 | Multi-User Preference Learning |
+| Cross-Home + Collective | v0.6.0-v0.6.1 | Federated Features |
+| Security P0 + Architecture Merge | v0.8.7-v0.12.x | Sicherheit + Vereinheitlichung |
+| Config Flow + Pydantic | v0.8.8-v0.13.5 | Modularisierung + Validation |
 
 ### Release-Versionen
 
 | Version | Codename | Highlights |
 |---------|----------|------------|
-| **v1.0.0** | First Full Release | Feature-Parity beider Repos, vollstaendige Test-Coverage, stabile API, Dokumentation komplett, Port 8909 finalisiert |
-| **v1.1.0** | Styx Identity + Unified Dashboard | Styx als benannte Identitaet, einheitliches Dashboard-Design, Character System v1.0, SOUL.md als Persoenlichkeitsquelle |
-| **v1.2.0** | Qualitaetsoffensive | Echtes Health-Monitoring, XSS-Schutz, Input Validation (Pydantic), Resilience-Patterns (Circuit Breaker, Retry), Error Isolation pro Modul |
-| **v1.3.0** | Module Control + Automation Creator | Module Control API (active/learning/off), Automation Creator via Supervisor REST API, Automation Manager Dashboard, SQLite-Persistenz fuer Modulzustaende |
-| **v2.0.0** | Native Lovelace + Conversation Agent | styx-mood-card, styx-brain-card, styx-habitus-card als native Lovelace Cards, StyxConversationAgent in HA Assist Pipeline, WebSocket Real-time Updates |
-| **v2.1.0** | Explainability + Multi-User Profiles | Explainability Engine mit Brain Graph Causal Chain Traversal, natuerlichsprachliche Erklaerungen via LLM, Confidence-Transparenz, Multi-User Profile Switching |
-| **v2.2.0** | Predictive Intelligence | Arrival Prediction aus Person-Entity Historie, Energy Price Optimization (Tibber/aWATTar), Zeitreihen-Forecasting (Moving Average + Time-of-Day), Pre-Heating/Pre-Lighting Vorschlaege |
-| **v3.0.0** | Federated Learning + A/B Testing | Federated Learning mit Differential Privacy, Cross-Home Gradient Sharing, A/B Testing fuer Automationen mit Auto-Promotion, Pattern Library aus Collective Learning |
+| **v1.0.0** | First Full Release | Feature-Parity, Test-Coverage, stabile API, Port 8909 |
+| **v1.1.0** | Styx Identity | Styx als Identitaet, Unified Dashboard, SOUL.md |
+| **v1.2.0** | Qualitaetsoffensive | Health-Monitoring, XSS, Pydantic, Circuit Breaker, Error Isolation |
+| **v1.3.0** | Module Control | Module Control API, Automation Creator, Automation Manager |
+| **v2.0.0** | Native Lovelace | styx-mood/brain/habitus-card, StyxConversationAgent, WebSocket |
+| **v2.1.0** | Explainability | Causal Chain Traversal, LLM-Erklaerungen, Multi-User Profiles |
+| **v2.2.0** | Predictive Intel | Arrival Prediction, Energy Optimization (Tibber/aWATTar) |
+| **v3.0.0** | Federated Learning | Differential Privacy, A/B Testing, Pattern Library |
 
 ---
 
@@ -753,18 +552,7 @@ Dieses Dokument (`VISION.md`) ist die **Single Source of Truth**.
 
 ### Archivierte Dokumente
 
-Die folgenden Dokumente sind durch `VISION.md` ersetzt und nur noch historisch relevant:
-
-- `PILOTSUITE_VISION.md` (beide Repos) -> ersetzt durch Kapitel 4-5
-- `HABITUS_PHILOSOPHY.md` (beide Repos) -> ersetzt durch Kapitel 4
-- `ARCHITECTURE_CONCEPT.md` -> ersetzt durch Kapitel 5
-- `BLUEPRINT_CoPilot_Addon_v0.1.md` -> ersetzt durch Kapitel 2-3
-- `MODULE_INVENTORY.md` (beide Repos) -> ersetzt durch Kapitel 6
-- `INDEX.md` (beide Repos) -> ersetzt durch dieses Dokument
-- `IMPLEMENTATION_TODO.md` -> ersetzt durch Kapitel 19
-- `PROJECT_PLAN.md` -> ersetzt durch Kapitel 19
-- `START_HERE.md` -> ersetzt durch dieses Dokument
-- `BOOTSTRAP.md` -> ersetzt durch dieses Dokument
+Durch `VISION.md` ersetzt: `PILOTSUITE_VISION.md`, `HABITUS_PHILOSOPHY.md`, `ARCHITECTURE_CONCEPT.md`, `BLUEPRINT_CoPilot_Addon_v0.1.md`, `MODULE_INVENTORY.md`, `INDEX.md`, `IMPLEMENTATION_TODO.md`, `PROJECT_PLAN.md`, `START_HERE.md`, `BOOTSTRAP.md`.
 
 ---
 
@@ -780,12 +568,7 @@ So kommuniziert Styx mit dem User:
 6. **Erklaerung:** "Der Vorschlag basiert auf 23 Beobachtungen in den letzten 30 Tagen..."
 7. **Vorhersage:** "Max kommt voraussichtlich um 17:45 - soll ich vorheizen?"
 
-**Persoenlichkeit** (aus SOUL.md):
-- Genuinely helpful, nicht performatively helpful
-- Hat Meinungen, darf widersprechen
-- Resourceful bevor er fragt
-- Behandelt Zugang zum Zuhause mit Respekt
-- Erklaert seine Entscheidungen transparent
+**Persoenlichkeit** (aus SOUL.md): Genuinely helpful, hat Meinungen und darf widersprechen, resourceful bevor er fragt, behandelt Zugang zum Zuhause mit Respekt, erklaert seine Entscheidungen transparent.
 
 ---
 

@@ -1,5 +1,58 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.1.0] - 2026-02-19
+
+### Autonomie + Web-Intelligenz + Musikwolke
+
+#### Autonomie-faehiges Modul-System (3-Tier)
+- **active**: Vorschlaege werden AUTOMATISCH umgesetzt — nur wenn BEIDE
+  beteiligten Module (Quelle + Ziel) aktiv sind (doppelte Sicherheit)
+- **learning**: Beobachtungsmodus — Daten sammeln + Vorschlaege zur
+  MANUELLEN Uebernahme erzeugen (User muss accept/reject)
+- **off**: Modul deaktiviert (keine Datensammlung, kein Output)
+- Neue API-Methoden: `should_auto_apply()`, `should_suggest()`,
+  `get_suggestion_mode()` in ModuleRegistry
+
+#### Web-Suche & Nachrichten fuer Styx
+- **DuckDuckGo-Suche**: Styx kann das Web durchsuchen (kein API-Key noetig)
+  Nutzer: "Recherchier mal die besten Zigbee-Sensoren 2026"
+- **News-Aggregation**: Aktuelle Nachrichten von Tagesschau + Spiegel
+  via RSS, mit 15-Min-Cache
+- **Regionale Warnungen**: NINA/BBK Zivilschutz + DWD Wetterwarnungen
+  mit AGS-Regionalfilter. Warnungen fliessen in den LLM-Kontext ein
+- Neue LLM Tools: `pilotsuite.web_search`, `pilotsuite.get_news`,
+  `pilotsuite.get_warnings`
+
+#### Musikwolke + Media Zonen
+- **MediaZoneManager**: Media-Player den Habituszonen zuordnen (SQLite),
+  Playback-Steuerung pro Zone (play/pause/volume)
+- **Musikwolke**: Smart Audio Follow — Musik folgt dem User durch die Raeume.
+  Start/Stop via Chat ("Musikwolke starten") oder REST API
+- **Proaktive Vorschlaege**: Kontext-basierte Suggestions bei Raum-Eintritt
+  (z.B. "Du bist im Wohnzimmer, soll Netflix auf AppleTV starten?")
+  mit Cooldown, Quiet Hours, Dismiss-Tracking
+- Neue LLM Tools: `pilotsuite.play_zone`, `pilotsuite.musikwolke`
+- REST API: 16 Endpoints unter `/api/v1/media/*`
+
+#### Modul-Umbenennung
+- `unifi_context` -> `network` (generisch, nutzt UniFi API wenn vorhanden)
+- `media_context` -> `media_zones` (Musikwolke + Zonen-Player)
+- `event_forwarder` -> `Event Bridge`
+- `user_preferences` -> `Nutzer-Profile` (Multi-User + Autonomie)
+- Neue Module: `proactive` (Kontext-Vorschlaege), `web_search` (News + Recherche)
+
+#### Sharing-Modul Fix
+- Blueprint-Registrierung nachgezogen (war nicht in core_setup.py verdrahtet)
+
+#### Dashboard v3.1
+- 17 Module (von 15), neue Autonomie-Tooltips auf Modul-Toggles
+- Media-Zonen Health-Check in der Module-Seite
+- Warnung-Context wird in LLM-System-Prompt injiziert
+
+Dateien: `module_registry.py`, `web_search.py`, `media_zone_manager.py`,
+`proactive_engine.py`, `api/v1/media_zones.py`, `mcp_tools.py`,
+`api/v1/conversation.py`, `core_setup.py`, `dashboard.html`, `main.py`
+
 ## [3.0.1] - 2026-02-19
 
 ### Natural Language Automation Creation -- End-to-End Pipeline Fix

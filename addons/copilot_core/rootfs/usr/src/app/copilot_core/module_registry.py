@@ -4,10 +4,18 @@ Module Registry -- Persistent module state management.
 Tracks per-module state (active/learning/off) with SQLite persistence.
 The dashboard UI and API use this to control which modules are active.
 
-States:
-  - active:   Module is fully operational (default for all modules)
-  - learning: Module collects data but does not act on it
-  - off:      Module is disabled entirely
+States (Autonomy-Ready):
+  - active:   Module fully operational. Suggestions are AUTO-APPLIED when
+              BOTH involved modules (source + target) are in active mode
+              (double-safety: no auto-apply unless both sides agree).
+  - learning: Observation mode. Module collects data AND generates
+              suggestions for MANUAL APPROVAL (user must accept/reject).
+  - off:      Module is disabled entirely (no data collection, no output).
+
+This 3-tier system enables a gradual path to autonomy:
+  1. Start all modules in "learning" to observe without acting
+  2. Promote trusted modules to "active" for auto-apply
+  3. Both source AND target must be "active" for auto-apply (double-safety)
 
 Thread-safe singleton with SQLite persistence under /data/.
 """
@@ -195,3 +203,54 @@ class ModuleRegistry:
     def is_off(self, module_id: str) -> bool:
         """Return ``True`` if the module is in ``"off"`` state."""
         return self.get_state(module_id) == "off"
+
+    # ------------------------------------------------------------------
+    # Autonomy helpers (v3.1.0)
+    # ------------------------------------------------------------------
+
+    def should_auto_apply(self, source_module: str, target_module: str) -> bool:
+        """Return ``True`` if a suggestion from *source_module* targeting
+        *target_module* should be automatically applied.
+
+        Double-safety: BOTH modules must be in ``"active"`` state.
+        This prevents unintended autonomous actions when only one side
+        has been promoted to active.
+        """
+        return self.is_active(source_module) and self.is_active(target_module)
+
+    def should_suggest(self, module_id: str) -> bool:
+        """Return ``True`` if *module_id* should generate suggestions.
+
+        Both ``"active"`` and ``"learning"`` modules generate suggestions.
+        The difference: active suggestions may be auto-applied (if the
+        target is also active), while learning suggestions require manual
+        approval.
+        """
+        state = self.get_state(module_id)
+        return state in ("active", "learning")
+
+    def should_collect_data(self, module_id: str) -> bool:
+        """Return ``True`` if *module_id* should collect/observe data.
+
+        Both ``"active"`` and ``"learning"`` modules collect data.
+        Only ``"off"`` modules are fully silent.
+        """
+        return not self.is_off(module_id)
+
+    def get_suggestion_mode(self, source_module: str,
+                            target_module: str) -> str:
+        """Determine how to handle a suggestion from *source* to *target*.
+
+        Returns:
+            ``"auto_apply"`` -- both active, execute immediately
+            ``"manual"``     -- at least one in learning, queue for approval
+            ``"suppress"``   -- at least one is off, discard
+        """
+        src_state = self.get_state(source_module)
+        tgt_state = self.get_state(target_module)
+
+        if src_state == "off" or tgt_state == "off":
+            return "suppress"
+        if src_state == "active" and tgt_state == "active":
+            return "auto_apply"
+        return "manual"
