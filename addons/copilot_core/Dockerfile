@@ -38,6 +38,10 @@ COPY rootfs/usr/src/app /usr/src/app
 
 EXPOSE 8909
 
+# Health check: verify the API server is responding (v3.6.0)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -sf http://localhost:8909/health || exit 1
+
 # Start script that launches Ollama + PilotSuite
 COPY rootfs/usr/src/app/start_dual.sh /start.sh
 RUN chmod +x /start.sh

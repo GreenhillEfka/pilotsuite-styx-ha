@@ -1008,12 +1008,23 @@ MAX_TOOL_ROUNDS = 5
 
 
 def _execute_ha_tool(name: str, arguments: dict) -> dict:
-    """Execute a Home Assistant tool via Supervisor REST API."""
+    """Execute a Home Assistant tool via Supervisor REST API.
+
+    Uses circuit breaker (v3.6.0) to fail fast when HA is unreachable.
+    """
     ha_url = os.environ.get("SUPERVISOR_API", "http://supervisor/core/api")
     ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
 
     if not ha_token:
         return {"error": "No SUPERVISOR_TOKEN -- HA tools unavailable outside addon"}
+
+    # Circuit breaker gate (v3.6.0)
+    try:
+        from copilot_core.circuit_breaker import ha_supervisor_breaker, CircuitOpenError
+        if ha_supervisor_breaker.state.value == "open":
+            return {"error": "HA Supervisor circuit breaker OPEN — service temporarily unavailable, retry later"}
+    except ImportError:
+        pass
 
     headers = {"Authorization": f"Bearer {ha_token}", "Content-Type": "application/json"}
 
@@ -1152,6 +1163,13 @@ def _execute_ha_tool(name: str, arguments: dict) -> dict:
 
     except Exception as exc:
         logger.warning("Tool execution failed (%s): %s", name, exc)
+        # Track HA failures in circuit breaker (v3.6.0)
+        if name.startswith("ha."):
+            try:
+                from copilot_core.circuit_breaker import ha_supervisor_breaker
+                ha_supervisor_breaker._on_failure()
+            except ImportError:
+                pass
         return {"error": str(exc)}
 
 

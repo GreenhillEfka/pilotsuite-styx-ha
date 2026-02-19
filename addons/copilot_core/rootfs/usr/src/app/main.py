@@ -6,16 +6,22 @@ Delegates service initialization and blueprint registration to core_setup.py.
 """
 
 import json
+import logging as _logging
 import os
+import time
+import threading as _threading
+import uuid
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, g
 from flask_compress import Compress
 from waitress import serve
 
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "3.1.0")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "3.6.0")
+
+_main_logger = _logging.getLogger(__name__)
 
 
 def _load_options_json(path: str = "/data/options.json") -> dict:
@@ -26,6 +32,62 @@ def _load_options_json(path: str = "/data/options.json") -> dict:
     except Exception:
         return {}
 
+
+# ---------------------------------------------------------------------------
+# Startup pre-flight validation (v3.6.0)
+# ---------------------------------------------------------------------------
+
+def _preflight_check() -> dict:
+    """Run pre-flight checks before starting the server.
+
+    Returns a dict with check results (all non-fatal — logged as warnings).
+    """
+    import requests as http_req
+    checks = {}
+
+    # 1) /data writable?
+    try:
+        os.makedirs("/data", exist_ok=True)
+        test_path = "/data/.preflight_test"
+        with open(test_path, "w") as f:
+            f.write("ok")
+        os.remove(test_path)
+        checks["data_writable"] = True
+    except Exception:
+        checks["data_writable"] = False
+        _main_logger.warning("PRE-FLIGHT: /data is NOT writable — persistence will fail")
+
+    # 2) HA Supervisor reachable?
+    ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
+    if ha_token:
+        try:
+            r = http_req.get(
+                "http://supervisor/core/api/",
+                headers={"Authorization": f"Bearer {ha_token}"},
+                timeout=5,
+            )
+            checks["ha_supervisor"] = r.ok
+        except Exception:
+            checks["ha_supervisor"] = False
+            _main_logger.warning("PRE-FLIGHT: HA Supervisor unreachable")
+    else:
+        checks["ha_supervisor"] = None  # No token = development mode
+
+    # 3) Ollama reachable?
+    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    try:
+        r = http_req.get(f"{ollama_url}/api/tags", timeout=5)
+        checks["ollama"] = r.ok
+        if r.ok:
+            models = r.json().get("models", [])
+            checks["ollama_models"] = len(models)
+    except Exception:
+        checks["ollama"] = False
+        _main_logger.warning("PRE-FLIGHT: Ollama unreachable at %s", ollama_url)
+
+    return checks
+
+
 DEV_LOG_PATH = "/data/dev_logs.jsonl"
 DEV_LOG_MAX_CACHE = 200
 
@@ -34,16 +96,68 @@ app = Flask(__name__)
 # Initialize compression for API responses
 Compress(app)
 app.config['COMPRESS_MIMETYPES'] = ['application/json', 'text/html']
-app.config['COMPRESS_LEVEL'] = 6  # Balance between compression ratio and CPU
-app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses > 500 bytes
+app.config['COMPRESS_LEVEL'] = 6
+app.config['COMPRESS_MIN_SIZE'] = 500
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
-# Konfiguration aus /data/options.json laden und an Services durchreichen
+# ---------------------------------------------------------------------------
+# Request timing middleware + correlation IDs (v3.6.0)
+# ---------------------------------------------------------------------------
+
+_REQUEST_METRICS: dict = {"total": 0, "slow": 0, "errors": 0, "by_endpoint": {}}
+_METRICS_LOCK = _threading.Lock()
+SLOW_REQUEST_THRESHOLD = 2.0  # seconds
+
+
+@app.before_request
+def _before_request():
+    g.start_time = time.time()
+    g.request_id = request.headers.get("X-Request-ID", uuid.uuid4().hex[:12])
+
+
+@app.after_request
+def _after_request(response):
+    duration = time.time() - getattr(g, "start_time", time.time())
+    req_id = getattr(g, "request_id", "-")
+    response.headers["X-Request-ID"] = req_id
+    response.headers["X-Response-Time"] = f"{duration:.3f}s"
+
+    endpoint = request.endpoint or request.path
+    status = response.status_code
+
+    with _METRICS_LOCK:
+        _REQUEST_METRICS["total"] += 1
+        if duration >= SLOW_REQUEST_THRESHOLD:
+            _REQUEST_METRICS["slow"] += 1
+            _main_logger.warning(
+                "SLOW REQUEST [%s] %s %s -> %d (%.2fs)",
+                req_id, request.method, request.path, status, duration,
+            )
+        if status >= 500:
+            _REQUEST_METRICS["errors"] += 1
+
+        ep_key = f"{request.method} {endpoint}"
+        ep = _REQUEST_METRICS["by_endpoint"].setdefault(ep_key, {
+            "count": 0, "total_ms": 0, "max_ms": 0, "errors": 0
+        })
+        ep["count"] += 1
+        ep["total_ms"] += int(duration * 1000)
+        ep["max_ms"] = max(ep["max_ms"], int(duration * 1000))
+        if status >= 500:
+            ep["errors"] += 1
+
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Service initialization
+# ---------------------------------------------------------------------------
+
 _options = _load_options_json()
 
-# Initialize all services (returns dict for potential testing/DI)
-import logging as _logging
-_main_logger = _logging.getLogger(__name__)
+# Run pre-flight checks
+_preflight_results = _preflight_check()
+_main_logger.info("Pre-flight check results: %s", json.dumps(_preflight_results))
 
 try:
     _services = init_services(config=_options)
@@ -51,14 +165,17 @@ except Exception:
     _main_logger.exception("CRITICAL: init_services failed — starting with empty services")
     _services = {}
 
-# Register all API blueprints (pass services for tag system & global accessors)
 try:
     register_blueprints(app, _services)
 except Exception:
     _main_logger.exception("CRITICAL: register_blueprints failed")
 
+# Store startup info
+_STARTUP_TIME = time.time()
+app.config["STARTUP_TIME"] = _STARTUP_TIME
+app.config["PREFLIGHT"] = _preflight_results
+
 # In-memory ring buffer of recent dev logs (thread-safe).
-import threading as _threading
 _DEV_LOG_CACHE: list[dict] = []
 _DEV_LOG_LOCK = _threading.Lock()
 
@@ -110,7 +227,128 @@ def index():
 
 @app.get("/health")
 def health():
+    """Basic liveness probe — always returns 200 if the process is alive."""
     return jsonify({"ok": True, "time": _now_iso()})
+
+
+@app.get("/ready")
+def readiness():
+    """Readiness probe — returns 200 only if critical services are initialized."""
+    services = app.config.get("COPILOT_SERVICES", {})
+    brain_ok = services.get("brain_graph_service") is not None
+    memory_ok = services.get("conversation_memory") is not None
+    ready = brain_ok and memory_ok
+    status = 200 if ready else 503
+    return jsonify({
+        "ready": ready,
+        "brain_graph": brain_ok,
+        "conversation_memory": memory_ok,
+        "vector_store": services.get("vector_store") is not None,
+        "uptime_s": int(time.time() - _STARTUP_TIME),
+    }), status
+
+
+@app.get("/api/v1/health/deep")
+def deep_health():
+    """Deep health check — tests all services and external dependencies."""
+    import requests as http_req
+
+    checks = {}
+
+    # 1. Internal services
+    services = app.config.get("COPILOT_SERVICES", {})
+    for svc_name in [
+        "brain_graph_service", "conversation_memory", "vector_store",
+        "mood_service", "habitus_service", "neuron_manager",
+        "web_search_service", "module_registry",
+    ]:
+        checks[svc_name] = services.get(svc_name) is not None
+
+    # 2. HA Supervisor
+    ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
+    if ha_token:
+        try:
+            r = http_req.get(
+                "http://supervisor/core/api/",
+                headers={"Authorization": f"Bearer {ha_token}"},
+                timeout=5,
+            )
+            checks["ha_supervisor"] = r.ok
+        except Exception:
+            checks["ha_supervisor"] = False
+    else:
+        checks["ha_supervisor"] = None
+
+    # 3. Ollama
+    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    try:
+        r = http_req.get(f"{ollama_url}/api/tags", timeout=5)
+        checks["ollama"] = r.ok
+    except Exception:
+        checks["ollama"] = False
+
+    # 4. SQLite databases
+    for db_label, db_path in [
+        ("conversation_memory_db", "/data/conversation_memory.db"),
+        ("vector_store_db", "/data/vector_store.db"),
+        ("shopping_db", "/data/shopping_reminders.db"),
+    ]:
+        checks[db_label] = os.path.exists(db_path)
+
+    # 5. Disk usage
+    try:
+        import shutil
+        usage = shutil.disk_usage("/data")
+        checks["disk_free_mb"] = int(usage.free / (1024 * 1024))
+        checks["disk_used_pct"] = int(usage.used / usage.total * 100)
+    except Exception:
+        checks["disk_free_mb"] = -1
+
+    # 6. Request metrics
+    checks["request_metrics"] = {
+        "total": _REQUEST_METRICS["total"],
+        "slow": _REQUEST_METRICS["slow"],
+        "errors": _REQUEST_METRICS["errors"],
+    }
+
+    # 7. Circuit breakers (v3.6.0)
+    try:
+        from copilot_core.circuit_breaker import get_all_breaker_status
+        checks["circuit_breakers"] = get_all_breaker_status()
+    except Exception:
+        checks["circuit_breakers"] = []
+
+    all_ok = all(
+        v is True for k, v in checks.items()
+        if isinstance(v, bool) and k not in ("ha_supervisor",)
+    )
+
+    return jsonify({
+        "healthy": all_ok,
+        "version": APP_VERSION,
+        "uptime_s": int(time.time() - _STARTUP_TIME),
+        "checks": checks,
+        "time": _now_iso(),
+    }), 200 if all_ok else 503
+
+
+@app.get("/api/v1/health/metrics")
+def request_metrics():
+    """Request timing metrics — endpoint latencies, slow requests, error rates."""
+    with _METRICS_LOCK:
+        top_slow = sorted(
+            _REQUEST_METRICS["by_endpoint"].items(),
+            key=lambda x: x[1]["max_ms"],
+            reverse=True,
+        )[:10]
+    return jsonify({
+        "total_requests": _REQUEST_METRICS["total"],
+        "slow_requests": _REQUEST_METRICS["slow"],
+        "errors": _REQUEST_METRICS["errors"],
+        "slow_threshold_s": SLOW_REQUEST_THRESHOLD,
+        "top_endpoints_by_latency": {k: v for k, v in top_slow},
+        "uptime_s": int(time.time() - _STARTUP_TIME),
+    })
 
 
 @app.get("/version")
@@ -166,4 +404,8 @@ def get_dev_logs():
 if __name__ == "__main__":
     host = "0.0.0.0"
     port = int(os.environ.get("PORT", "8909"))
+    _main_logger.info(
+        "Starting PilotSuite v%s on %s:%d (pre-flight: %s)",
+        APP_VERSION, host, port, json.dumps(_preflight_results),
+    )
     serve(app, host=host, port=port)

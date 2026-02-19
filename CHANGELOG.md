@@ -1,5 +1,43 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.6.0] - 2026-02-19
+
+### Production Hardening
+
+- **Deep Health Endpoint** — `/api/v1/health/deep`
+  - Prueft alle internen Services (BrainGraph, Memory, VectorStore, Mood, etc.)
+  - Prueft externe Dependencies (HA Supervisor, Ollama)
+  - Prueft SQLite-Datenbanken, Speicherplatz, Circuit Breaker Status
+  - Gibt HTTP 200 (healthy) oder 503 (unhealthy) zurueck
+- **Readiness + Liveness Probes** — `/ready` + `/health`
+  - `/health`: Liveness — immer 200 wenn Prozess lebt
+  - `/ready`: Readiness — 200 nur wenn BrainGraph + ConversationMemory initialisiert
+  - Kubernetes-/Docker-kompatibel
+- **Request Timing Middleware** (Flask before/after hooks)
+  - Jede Anfrage bekommt eine `X-Request-ID` (Correlation ID)
+  - `X-Response-Time` Header fuer alle Responses
+  - Slow Request Logging (>2s → WARNING)
+  - `/api/v1/health/metrics`: Top-Endpoints nach Latenz, Error Rate, Slow Count
+- **Startup Pre-Flight Checks**
+  - Prueft `/data` Schreibbarkeit vor dem Start
+  - Prueft HA Supervisor Erreichbarkeit (5s Timeout)
+  - Prueft Ollama Erreichbarkeit + Modell-Count
+  - Ergebnisse geloggt bei Startup, verfuegbar in deep health
+- **Circuit Breaker** — `copilot_core/circuit_breaker.py`
+  - HA Supervisor: 5 Fehler → OPEN (30s Recovery)
+  - Ollama: 3 Fehler → OPEN (60s Recovery)
+  - Conversation Tool-Execution prueft Circuit State vor HA-Calls
+  - Status in `/api/v1/health/deep` sichtbar
+- **Dockerfile HEALTHCHECK** — Container-Health-Monitoring
+  - `HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3`
+  - Docker/Kubernetes erkennt automatisch unhealthy Container
+- **CI Pipeline erweitert** (3 Jobs statt 1)
+  - `lint`: py_compile + import smoke test (wie bisher)
+  - `test`: Full pytest Suite + pytest-cov Coverage Report
+  - `security`: bandit Security Scan (SQL-Injection, Command-Injection, etc.)
+- **start_dual.sh**: Version Banner aktualisiert (v3.6.0)
+- Version: 3.5.0 -> 3.6.0
+
 ## [3.5.0] - 2026-02-19
 
 ### RAG Pipeline + Kalender + Einkaufsliste + Erinnerungen
