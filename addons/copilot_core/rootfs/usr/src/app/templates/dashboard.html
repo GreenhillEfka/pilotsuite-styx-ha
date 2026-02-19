@@ -100,10 +100,45 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .hist-item{padding:6px 14px;font-size:11px;border-bottom:1px solid rgba(30,42,58,.3);display:flex;gap:8px;align-items:center}
 .hist-item .ht{color:var(--dim);font-size:10px;flex-shrink:0;width:40px}
 
-/* Suggestions bar */
+/* Suggestions bar (legacy compat) */
 .suggest-bar{display:flex;gap:8px;overflow-x:auto;padding:8px 0;flex-shrink:0}
 .suggest-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;transition:.2s}
 .suggest-btn:hover{border-color:var(--accent);background:rgba(124,106,239,.08)}
+
+/* Suggestion Inbox */
+.sugg-inbox{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);flex-shrink:0;max-height:260px;display:flex;flex-direction:column}
+.sugg-inbox .sugg-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.sugg-inbox .sugg-hd .sugg-count{font-size:10px;color:var(--accent2);font-weight:700}
+.sugg-batch{display:flex;gap:6px;align-items:center}
+.sugg-batch button{background:none;border:1px solid var(--border);color:var(--dim);padding:3px 10px;border-radius:6px;font-size:10px;cursor:pointer;transition:.2s}
+.sugg-batch button:hover{border-color:var(--accent);color:var(--text)}
+.sugg-batch .sugg-accept-all{border-color:rgba(52,211,153,.3);color:var(--green)}
+.sugg-batch .sugg-accept-all:hover{background:rgba(52,211,153,.1);border-color:var(--green)}
+.sugg-batch .sugg-reject-all{border-color:rgba(248,113,113,.3);color:var(--red)}
+.sugg-batch .sugg-reject-all:hover{background:rgba(248,113,113,.1);border-color:var(--red)}
+.sugg-list{overflow-y:auto;flex:1;min-height:0}
+.sugg-item{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(30,42,58,.3);font-size:12px;transition:background .15s}
+.sugg-item:hover{background:rgba(124,106,239,.04)}
+.sugg-item.accepted{background:rgba(52,211,153,.06);opacity:.7}
+.sugg-item.rejected{background:rgba(248,113,113,.04);opacity:.4;text-decoration:line-through}
+.sugg-check{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border);background:none;cursor:pointer;flex-shrink:0;transition:.2s;appearance:none;-webkit-appearance:none}
+.sugg-check:checked{background:var(--accent);border-color:var(--accent)}
+.sugg-check:checked::after{content:'\2713';color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.sugg-body{flex:1;min-width:0}
+.sugg-rule{display:flex;align-items:center;gap:5px;font-size:12px}
+.sugg-rule .arr{color:var(--accent2);font-weight:700}
+.sugg-zone{font-size:9px;color:var(--dim);margin-top:2px;display:flex;gap:4px;align-items:center}
+.sugg-zone .zone-tag{background:rgba(34,211,238,.08);color:var(--cyan);padding:1px 6px;border-radius:4px;font-size:9px}
+.sugg-conf{font-size:10px;color:var(--dim);white-space:nowrap;flex-shrink:0;width:40px;text-align:right}
+.sugg-actions{display:flex;gap:4px;flex-shrink:0}
+.sugg-act{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:.2s;color:var(--dim)}
+.sugg-act.accept:hover{background:rgba(52,211,153,.15);border-color:var(--green);color:var(--green)}
+.sugg-act.reject:hover{background:rgba(248,113,113,.1);border-color:var(--red);color:var(--red)}
+.sugg-empty{text-align:center;padding:20px;color:var(--dim);font-size:11px}
+
+/* Brain edge animation */
+@keyframes edgePulse{0%{stroke-opacity:0;stroke-width:0}30%{stroke-opacity:1;stroke-width:4}100%{stroke-opacity:.4;stroke-width:1.5}}
+.brain-edge-new{animation:edgePulse 1.2s ease-out forwards;stroke:var(--green);filter:url(#glow)}
 
 /* ============== MODULE PAGE ============== */
 .mod-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px}
@@ -178,12 +213,24 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
       <div class="brain-controls"><button onclick="reloadBrain()" title="Neu laden">&#x21bb;</button></div>
       <div class="loading"><div class="spinner"></div>Brain Graph laden...</div>
     </div>
-    <!-- Suggestions -->
-    <div class="suggest-bar" id="suggestions">
+    <!-- Suggestion Inbox -->
+    <div class="sugg-inbox" id="sugg-inbox">
+      <div class="sugg-hd">
+        <span>Vorschlaege <span class="sugg-count" id="sugg-count">0</span></span>
+        <div class="sugg-batch" id="sugg-batch" style="display:none">
+          <button class="sugg-accept-all" onclick="batchAccept()" title="Alle markierten annehmen">&#x2713; Annehmen</button>
+          <button class="sugg-reject-all" onclick="batchReject()" title="Alle markierten ablehnen">&#x2717; Ablehnen</button>
+        </div>
+      </div>
+      <div class="sugg-list" id="sugg-list">
+        <div class="sugg-empty">Lade Vorschlaege...</div>
+      </div>
+    </div>
+    <!-- Quick navigation -->
+    <div class="suggest-bar">
       <span class="suggest-btn" onclick="navigateTo('habitus')">Habitus erkunden</span>
       <span class="suggest-btn" onclick="navigateTo('mood')">Stimmung pruefen</span>
       <span class="suggest-btn" onclick="navigateTo('modules')">Module verwalten</span>
-      <span class="suggest-btn" onclick="window.open('/api/v1/docs/','_blank')">API Docs</span>
     </div>
   </div>
   <!-- RIGHT: Chat + History -->
@@ -280,6 +327,8 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
       <tr><td>MCP Server</td><td><code>/mcp</code></td></tr>
       <tr><td>Brain Graph</td><td><code>/api/v1/graph/state</code></td></tr>
       <tr><td>Habitus</td><td><code>/api/v1/habitus/rules</code></td></tr>
+      <tr><td>Vorschlaege</td><td><code>/api/v1/hints</code></td></tr>
+      <tr><td>Kandidaten</td><td><code>/api/v1/candidates</code></td></tr>
       <tr><td>Mood</td><td><code>/api/v1/mood/state</code></td></tr>
       <tr><td>Neuronen</td><td><code>/api/v1/neurons</code></td></tr>
       <tr><td>Telegram</td><td><code>/telegram/status</code></td></tr>
@@ -385,8 +434,8 @@ async function loadStyx(){
   loadPipelines(status);
   // Load brain
   loadBrainGraph();
-  // Load suggestions from habitus
-  loadSuggestions();
+  // Load suggestion inbox (candidates + rules + hints)
+  loadSuggestionInbox();
   addHistory('Dashboard geladen');
 }
 
@@ -524,25 +573,206 @@ async function sendChat(){
   btn.disabled=false;msgs.scrollTop=msgs.scrollHeight;
 }
 
-// -- Suggestions --
-async function loadSuggestions(){
-  const data=await api('/api/v1/habitus/rules?limit=3');
-  const rules=data?.rules||data?.data||[];
-  const c=$('suggestions');if(!c||!rules.length)return;
-  c.innerHTML='';
-  rules.slice(0,3).forEach(r=>{
-    const meta=r.metadata||r;
-    const ant=meta.antecedent?.full||meta.antecedent||'?';
-    const cons=meta.consequent?.full||meta.consequent||'?';
-    const btn=el('span','suggest-btn',`${ant} \u2192 ${cons}`);
-    btn.onclick=()=>{$('chat-input').value=`Erklaere das Muster: ${ant} -> ${cons}`;sendChat()};
-    c.appendChild(btn);
+// -- Suggestion Inbox --
+let suggestionItems=[];
+let dismissedSuggestions=JSON.parse(localStorage.getItem('styx_dismissed_sugg')||'[]');
+
+async function loadSuggestionInbox(){
+  const list=$('sugg-list');
+  if(!list)return;
+  // Fetch from multiple sources in parallel
+  const [rulesData,candidatesData,hintsData]=await Promise.all([
+    api('/api/v1/habitus/rules?limit=15'),
+    api('/api/v1/candidates/graph_candidates?limit=10'),
+    api('/api/v1/hints?status=pending')
+  ]);
+  suggestionItems=[];
+  // 1. Pending hints (already in the system)
+  const hints=hintsData?.hints||[];
+  hints.forEach(h=>{
+    if(dismissedSuggestions.includes(h.id))return;
+    suggestionItems.push({
+      id:h.id,type:'hint',status:h.status||'pending',
+      antecedent:h.text||h.title||'?',consequent:'',
+      confidence:h.confidence||0,zone:h.zone||'',
+      source:'hints',raw:h
+    });
   });
-  // Add defaults
-  ['Habitus erkunden','Stimmung pruefen','Module verwalten'].forEach((t,i)=>{
-    const targets=['habitus','mood','modules'];
-    c.appendChild(Object.assign(el('span','suggest-btn',t),{onclick:()=>navigateTo(targets[i])}));
+  // 2. Habitus rules as suggestions
+  const rules=rulesData?.rules||rulesData?.data||[];
+  rules.forEach(r=>{
+    const m=r.metadata||r;
+    const ant=m.antecedent?.full||m.antecedent||'?';
+    const cons=m.consequent?.full||m.consequent||'?';
+    const sid='rule_'+btoa(ant+'->'+cons).slice(0,16);
+    if(dismissedSuggestions.includes(sid))return;
+    suggestionItems.push({
+      id:sid,type:'rule',status:'pending',
+      antecedent:ant,consequent:cons,
+      confidence:m.confidence||0,lift:m.lift||0,support:m.support||0,
+      zone:m.zone||'',source:'habitus',raw:m
+    });
   });
+  // 3. Graph candidates (Brain Graph edges)
+  const candidates=candidatesData?.items||[];
+  candidates.forEach(c=>{
+    if(dismissedSuggestions.includes(c.candidate_id))return;
+    const d=c.data||{};
+    const fromId=(d.from||'').replace('ha.entity:','');
+    const toId=(d.to||'').replace('ha.entity:','');
+    suggestionItems.push({
+      id:c.candidate_id,type:'graph',status:'pending',
+      antecedent:fromId||c.title||'?',consequent:toId||'',
+      confidence:d.evidence?.weight||0,zone:'',
+      edgeType:d.edge_type||'observed_with',
+      source:'brain_graph',raw:c
+    });
+  });
+  // Limit to 15, sort by confidence
+  suggestionItems.sort((a,b)=>(b.confidence||0)-(a.confidence||0));
+  suggestionItems=suggestionItems.slice(0,15);
+  renderSuggestionInbox();
+}
+
+function renderSuggestionInbox(){
+  const list=$('sugg-list');
+  const countEl=$('sugg-count');
+  const pending=suggestionItems.filter(s=>s.status==='pending');
+  if(countEl)countEl.textContent=pending.length;
+  if(!pending.length&&!suggestionItems.length){
+    list.innerHTML='<div class="sugg-empty">Noch keine Vorschlaege. Styx lernt aus Events und erstellt automatisch Muster.</div>';
+    return;
+  }
+  list.innerHTML='';
+  suggestionItems.forEach((s,i)=>{
+    if(s.status==='rejected')return;// hide rejected
+    const item=document.createElement('div');
+    item.className='sugg-item'+(s.status==='accepted'?' accepted':'');
+    item.dataset.idx=i;
+    // Source icon + color
+    const srcIcon=s.source==='brain_graph'?'\u{1F9E0}':s.source==='habitus'?'\u{1F50D}':'\u{1F4A1}';
+    const srcColor=s.source==='brain_graph'?'var(--accent)':s.source==='habitus'?'var(--cyan)':'var(--yellow)';
+    // Zone tag
+    const zoneTag=s.zone?`<span class="zone-tag">${s.zone}</span>`:'';
+    // Source tag
+    const srcTag=`<span class="zone-tag" style="background:${srcColor}15;color:${srcColor}">${s.source==='brain_graph'?'Graph':s.source==='habitus'?'Habitus':'Hint'}</span>`;
+    const confPct=s.type==='graph'?((s.confidence||0)*10).toFixed(0)+'w':((s.confidence||0)*100).toFixed(0)+'%';
+    item.innerHTML=`
+      <input type="checkbox" class="sugg-check" data-idx="${i}" onchange="updateBatchBar()">
+      <span style="font-size:14px;flex-shrink:0">${srcIcon}</span>
+      <div class="sugg-body">
+        <div class="sugg-rule"><span>${s.antecedent}</span>${s.consequent?'<span class="arr">\u2192</span><span>'+s.consequent+'</span>':''}</div>
+        <div class="sugg-zone">${srcTag}${zoneTag}</div>
+      </div>
+      <span class="sugg-conf">${confPct}</span>
+      <div class="sugg-actions">
+        ${s.status==='pending'?`
+          <button class="sugg-act accept" onclick="acceptSuggestion(${i})" title="Annehmen">\u2713</button>
+          <button class="sugg-act reject" onclick="rejectSuggestion(${i})" title="Ablehnen">\u2717</button>
+        `:`<span class="b b-g" style="font-size:9px">\u2713</span>`}
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+function updateBatchBar(){
+  const checked=document.querySelectorAll('.sugg-check:checked');
+  const bar=$('sugg-batch');
+  if(bar)bar.style.display=checked.length>0?'flex':'none';
+}
+
+async function acceptSuggestion(idx){
+  const s=suggestionItems[idx];if(!s||s.status!=='pending')return;
+  s.status='accepted';
+  addHistory('Vorschlag angenommen: '+s.antecedent+(s.consequent?' \u2192 '+s.consequent:''));
+  // 1. Create hint in backend
+  try{
+    const hintRes=await fetch(API+'/api/v1/hints',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:s.antecedent+(s.consequent?' -> '+s.consequent:''),type:'automation'})
+    });
+    const hintData=await hintRes.json();
+    const hintId=hintData?.hint?.id||s.id;
+    // 2. Accept the hint
+    await fetch(API+'/api/v1/hints/'+hintId+'/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  }catch(e){console.warn('Hint accept error:',e)}
+  // 3. Touch edge in Brain Graph (visual connection)
+  if(s.consequent&&s.antecedent){
+    const fromNode=s.raw?.data?.from||'ha.entity:'+s.antecedent;
+    const toNode=s.raw?.data?.to||'ha.entity:'+s.consequent;
+    try{
+      await fetch(API+'/api/v1/graph/ops',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({op:'touch_edge',from:fromNode,to:toNode,type:s.edgeType||'controls',delta:1.0})
+      });
+    }catch(e){console.warn('Graph ops error:',e)}
+    // 4. Animate edge in Brain SVG
+    animateBrainEdge(s.antecedent,s.consequent);
+  }
+  renderSuggestionInbox();
+}
+
+async function rejectSuggestion(idx){
+  const s=suggestionItems[idx];if(!s||s.status!=='pending')return;
+  s.status='rejected';
+  dismissedSuggestions.push(s.id);
+  // Keep only last 100 dismissed
+  if(dismissedSuggestions.length>100)dismissedSuggestions=dismissedSuggestions.slice(-100);
+  localStorage.setItem('styx_dismissed_sugg',JSON.stringify(dismissedSuggestions));
+  addHistory('Vorschlag abgelehnt: '+s.antecedent);
+  // Backend reject if it's a hint
+  if(s.type==='hint'){
+    try{await fetch(API+'/api/v1/hints/'+s.id+'/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(e){}
+  }
+  renderSuggestionInbox();
+}
+
+async function batchAccept(){
+  const checked=document.querySelectorAll('.sugg-check:checked');
+  const indices=[...checked].map(c=>parseInt(c.dataset.idx));
+  for(const idx of indices)await acceptSuggestion(idx);
+  updateBatchBar();
+  addHistory(indices.length+' Vorschlaege angenommen (Batch)');
+}
+
+async function batchReject(){
+  const checked=document.querySelectorAll('.sugg-check:checked');
+  const indices=[...checked].map(c=>parseInt(c.dataset.idx));
+  for(const idx of indices)await rejectSuggestion(idx);
+  updateBatchBar();
+  addHistory(indices.length+' Vorschlaege abgelehnt (Batch)');
+}
+
+function animateBrainEdge(fromEntity,toEntity){
+  const svg=document.querySelector('#brain-canvas svg');
+  if(!svg||!brainNodes.length)return;
+  // Find matching nodes
+  const fromNode=brainNodes.find(n=>{const id=n.id||n.entity_id||'';return id.includes(fromEntity)});
+  const toNode=brainNodes.find(n=>{const id=n.id||n.entity_id||'';return id.includes(toEntity)});
+  if(!fromNode||!toNode)return;
+  // Create animated edge
+  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1',fromNode.x);line.setAttribute('y1',fromNode.y);
+  line.setAttribute('x2',toNode.x);line.setAttribute('y2',toNode.y);
+  line.setAttribute('class','brain-edge-new');
+  line.setAttribute('stroke','#34d399');line.setAttribute('stroke-width','3');
+  svg.appendChild(line);
+  // Pulse circles at endpoints
+  [fromNode,toNode].forEach(n=>{
+    const circ=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circ.setAttribute('cx',n.x);circ.setAttribute('cy',n.y);circ.setAttribute('r','8');
+    circ.setAttribute('fill','none');circ.setAttribute('stroke','#34d399');circ.setAttribute('stroke-width','2');
+    circ.setAttribute('opacity','1');
+    svg.appendChild(circ);
+    // Animate expand + fade
+    let frame=0;
+    const anim=()=>{frame++;const r=8+frame*.5;const op=Math.max(0,1-frame/30);
+      circ.setAttribute('r',r);circ.setAttribute('opacity',op);
+      if(frame<30)requestAnimationFrame(anim);else circ.remove();
+    };requestAnimationFrame(anim);
+  });
+  // Remove animated line after 3s (it stays as a regular edge)
+  setTimeout(()=>{line.classList.remove('brain-edge-new');line.setAttribute('stroke','#34d399');line.setAttribute('stroke-opacity','.6');line.setAttribute('stroke-width','1.5')},3000);
 }
 
 // ==================================================
