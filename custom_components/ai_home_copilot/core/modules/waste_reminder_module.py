@@ -174,6 +174,12 @@ class WasteReminderModule(CopilotModule):
 
         config = ctx.entry.options or ctx.entry.data
 
+        # Enable-flag guard
+        from ...const import CONF_WASTE_ENABLED, DEFAULT_WASTE_ENABLED
+        if not config.get(CONF_WASTE_ENABLED, DEFAULT_WASTE_ENABLED):
+            _LOGGER.debug("WasteReminder module disabled in config, skipping setup")
+            return
+
         # Read config
         from ...const import (
             CONF_WASTE_ENTITIES,
@@ -467,3 +473,9 @@ class WasteReminderModule(CopilotModule):
             )
         except Exception:
             _LOGGER.debug("Failed to forward waste event to Core", exc_info=True)
+
+
+def get_waste_reminder_module(hass, entry_id):
+    """Return the WasteReminderModule instance for a config entry, or None."""
+    data = hass.data.get("ai_home_copilot", {}).get(entry_id, {})
+    return data.get("waste_reminder")

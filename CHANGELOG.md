@@ -1,5 +1,22 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.2.1] - 2026-02-19
+
+### Fixes + Modul-Sweep
+
+- **Fix: Enable-Flags enforced** — `waste_enabled: false` / `birthday_enabled: false` im Config Flow
+  werden jetzt korrekt ausgewertet; Module überspringen das Setup vollständig wenn deaktiviert
+- **Fix: Neue HA Sensor-Entities** (6 neue Sensoren)
+  - `sensor.ai_home_copilot_waste_next_collection` — nächste Abfuhr (Typ + Tage)
+  - `sensor.ai_home_copilot_waste_today_count` — Anzahl Abfuhren heute
+  - `sensor.ai_home_copilot_birthday_today_count` — Anzahl Geburtstage heute
+  - `sensor.ai_home_copilot_birthday_next` — nächster Geburtstag (Name + Tage)
+  - `sensor.ai_home_copilot_character_preset` — aktives Charakter-Preset (Modul-Sweep)
+  - `sensor.ai_home_copilot_network_health` — Netzwerk-Gesundheit: healthy/degraded/offline (Modul-Sweep)
+- **Fix: pilotsuite.create_automation** — `numeric_state` Trigger + optionale Conditions
+  - Ermöglicht feuchtigkeitsbasierte Automationen: "Wenn Bad > 70% Luftfeuchtigkeit"
+  - `conditions` Array: numeric_state + template Bedingungen
+
 ## [3.2.0] - 2026-02-19
 
 ### Müllabfuhr + Geburtstags-Erinnerungen

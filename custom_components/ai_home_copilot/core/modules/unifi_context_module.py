@@ -406,3 +406,24 @@ class UnifiContextModule:
         """Quick check if WAN is online."""
         status = self.get_wan_status()
         return status.get("online", False) if status else False
+
+    def get_health_status(self) -> str:
+        """Return a simple health string: healthy / degraded / offline / unavailable."""
+        if not self.is_available:
+            return "unavailable"
+        snapshot = self.get_snapshot()
+        if not snapshot:
+            return "unavailable"
+        if not snapshot.get("wan_online"):
+            return "offline"
+        loss = snapshot.get("wan_packet_loss_percent", 0) or 0
+        latency = snapshot.get("wan_latency_ms", 0) or 0
+        if loss > 5 or latency > 200:
+            return "degraded"
+        return "healthy"
+
+
+def get_network_module(hass, entry_id):
+    """Return the UniFiContextModule instance for a config entry, or None."""
+    data = hass.data.get("ai_home_copilot", {}).get(entry_id, {})
+    return data.get("network_module")

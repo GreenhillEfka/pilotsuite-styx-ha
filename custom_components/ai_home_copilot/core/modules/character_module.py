@@ -619,3 +619,9 @@ class CharacterModule(CopilotModule):
 def create_module() -> CharacterModule:
     """Create a new CharacterModule instance."""
     return CharacterModule()
+
+
+def get_character_module(hass, entry_id):
+    """Return the CharacterModule instance for a config entry, or None."""
+    data = hass.data.get("ai_home_copilot", {}).get(entry_id, {})
+    return data.get("character_module")

@@ -134,6 +134,12 @@ class BirthdayReminderModule(CopilotModule):
 
         config = ctx.entry.options or ctx.entry.data
 
+        # Enable-flag guard
+        from ...const import CONF_BIRTHDAY_ENABLED, DEFAULT_BIRTHDAY_ENABLED
+        if not config.get(CONF_BIRTHDAY_ENABLED, DEFAULT_BIRTHDAY_ENABLED):
+            _LOGGER.debug("BirthdayReminder module disabled in config, skipping setup")
+            return
+
         from ...const import (
             CONF_BIRTHDAY_CALENDAR_ENTITIES,
             CONF_BIRTHDAY_LOOKAHEAD_DAYS,
@@ -445,3 +451,9 @@ class BirthdayReminderModule(CopilotModule):
                 _LOGGER.debug("Birthday TTS failed", exc_info=True)
 
         _LOGGER.info("Birthday reminder: %s", message)
+
+
+def get_birthday_reminder_module(hass, entry_id):
+    """Return the BirthdayReminderModule instance for a config entry, or None."""
+    data = hass.data.get("ai_home_copilot", {}).get(entry_id, {})
+    return data.get("birthday_reminder")
