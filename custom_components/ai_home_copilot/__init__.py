@@ -143,6 +143,8 @@ _MODULES = [
     "waste_reminder",
     "birthday_reminder",
     "entity_tags",
+    "person_tracking",
+    "frigate_bridge",
 ]
 
 
@@ -186,6 +188,8 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     from .core.modules.waste_reminder_module import WasteReminderModule
     from .core.modules.birthday_reminder_module import BirthdayReminderModule
     from .core.modules.entity_tags_module import EntityTagsModule
+    from .core.modules.person_tracking_module import PersonTrackingModule
+    from .core.modules.frigate_bridge import FrigateBridgeModule
 
     _module_classes = {
         "legacy": LegacyModule,
@@ -213,6 +217,8 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "waste_reminder": WasteReminderModule,
         "birthday_reminder": BirthdayReminderModule,
         "entity_tags": EntityTagsModule,
+        "person_tracking": PersonTrackingModule,
+        "frigate_bridge": FrigateBridgeModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():

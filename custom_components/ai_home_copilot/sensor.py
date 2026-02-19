@@ -368,6 +368,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if tags_mod is not None:
         entities.append(EntityTagsSensor(hass, entry, tags_mod))
 
+    # Person Tracking sensor (v3.3.0)
+    from .core.modules.person_tracking_module import get_person_tracking_module
+    person_mod = get_person_tracking_module(hass, entry.entry_id)
+    if person_mod is not None:
+        entities.append(PersonsHomeSensor(hass, entry, person_mod))
+
+    # Frigate Cameras sensor (v3.3.0)
+    from .core.modules.frigate_bridge import get_frigate_bridge
+    frigate_mod = get_frigate_bridge(hass, entry.entry_id)
+    if frigate_mod is not None:
+        entities.append(FrigateCamerasSensor(hass, entry, frigate_mod))
+
     async_add_entities(entities, True)
 
 
@@ -785,6 +797,88 @@ class EntityTagsSensor(SensorEntity):
             return {
                 "total_tagged_entities": self._module.get_total_tagged_entities(),
                 "tags": summary.get("tags", []),
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# Person Tracking Sensor (v3.3.0)
+# ---------------------------------------------------------------------------
+
+class PersonsHomeSensor(SensorEntity):
+    """Number of persons currently home."""
+
+    _attr_icon = "mdi:account-group"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "persons"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_persons_home"
+        self._attr_name = "CoPilot Persons Home"
+
+    @property
+    def native_value(self) -> int:
+        if self._module is None:
+            return 0
+        return self._module.get_person_count()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
+        try:
+            home = self._module.get_persons_home()
+            away = self._module.get_persons_away()
+            return {
+                "persons_home": home,
+                "persons_away": away,
+                "total_tracked": len(home) + len(away),
+                "presence_map": self._module.get_presence_map(),
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# Frigate Cameras Sensor (v3.3.0)
+# ---------------------------------------------------------------------------
+
+class FrigateCamerasSensor(SensorEntity):
+    """Number of discovered Frigate cameras."""
+
+    _attr_icon = "mdi:cctv"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "cameras"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_frigate_cameras"
+        self._attr_name = "CoPilot Frigate Cameras"
+
+    @property
+    def native_value(self) -> int:
+        if self._module is None:
+            return 0
+        cams = self._module.get_frigate_cameras()
+        return len(cams) if cams else 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
+        try:
+            cams = self._module.get_frigate_cameras()
+            recent = self._module.get_recent_detections()
+            return {
+                "cameras": cams,
+                "recent_detections": recent[:10] if recent else [],
+                "enabled": self._module._enabled,
             }
         except Exception:
             return {}

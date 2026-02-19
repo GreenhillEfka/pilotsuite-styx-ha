@@ -1,5 +1,21 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.3.0] - 2026-02-19
+
+### Personen-Tracking + Frigate-Integration
+
+- **Person Tracking Module** — Verfolgt Anwesenheit über HA `person.*` + `device_tracker.*`
+  - Live-Presence-Map: Wer ist wo (Zone, seit wann, Quelle)
+  - Ankunft/Abfahrt-History mit Event-Erkennung
+  - LLM-Kontext: "Anwesend: Max (Wohnzimmer, seit 14:30). Abwesend: Lisa."
+  - Sensor: `sensor.ai_home_copilot_persons_home` — Anzahl + Presence-Map
+- **Frigate Bridge Module** — Optionale NVR-Integration (auto-disabled wenn kein Frigate)
+  - Auto-Discovery von `binary_sensor.*_person` + `binary_sensor.*_motion`
+  - Person/Motion-Events → CameraContext Bus-Events
+  - Recent Detections Timeline + LLM-Kontext
+  - Sensor: `sensor.ai_home_copilot_frigate_cameras`
+- Version: 3.2.3 → 3.3.0
+
 ## [3.2.3] - 2026-02-19
 
 ### Bugfixes
