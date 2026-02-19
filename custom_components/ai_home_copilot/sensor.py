@@ -424,7 +424,7 @@ class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):
     def native_value(self) -> str | None:
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.version
+        return self.coordinator.data.get("version", "unknown")
 
 
 class ZoneOccupancySensor(SensorEntity):

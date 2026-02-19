@@ -403,14 +403,16 @@ class HabitusMinerModule:
 
         # Clean up every hour
         from homeassistant.helpers.event import async_track_time_interval
-        async_track_time_interval(hass, periodic_cleanup, timedelta(hours=1))
+        unsub_cleanup = async_track_time_interval(hass, periodic_cleanup, timedelta(hours=1))
+        module_data["listeners"].append(unsub_cleanup)
 
         # Set up periodic buffer persistence (every 5 minutes)
         async def periodic_save(now: datetime) -> None:
             """Persist event buffer to HA Storage."""
             await self._save_persisted_state(hass, entry)
 
-        async_track_time_interval(hass, periodic_save, BUFFER_SAVE_INTERVAL)
+        unsub_save = async_track_time_interval(hass, periodic_save, BUFFER_SAVE_INTERVAL)
+        module_data["listeners"].append(unsub_save)
 
     async def _cleanup_buffer(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Clean up old events from buffer."""
