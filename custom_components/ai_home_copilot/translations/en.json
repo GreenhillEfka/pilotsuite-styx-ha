@@ -2,10 +2,10 @@
   "config": {
     "step": {
       "user": {
-        "title": "PilotSuite Setup",
-        "description": "Choose how to set up PilotSuite.",
+        "title": "PilotSuite — Styx Setup",
+        "description": "Choose how to set up PilotSuite with Styx, your local AI assistant.",
         "menu_options": {
-          "zero_config": "Zero Config (recommended)",
+          "zero_config": "Zero Config — Styx sofort starten (recommended)",
           "quick_start": "Quick Start (guided wizard)",
           "manual_setup": "Manual Setup (expert)"
         },
@@ -15,6 +15,17 @@
           "token": "API token",
           "test_light_entity_id": "Test light (for the toggle button)",
           "webhook_url": "Webhook URL (copy into Copilot-Core)"
+        }
+      },
+      "manual_setup": {
+        "title": "Manual Setup",
+        "description": "Configure your PilotSuite connection. Give your assistant a name (default: Styx).",
+        "data": {
+          "assistant_name": "Assistant Name",
+          "host": "Host",
+          "port": "Port",
+          "token": "API Token",
+          "test_light_entity_id": "Test Light (optional)"
         }
       },
       "init": {

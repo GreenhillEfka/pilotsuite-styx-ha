@@ -86,13 +86,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_zero_config(self, user_input: dict | None = None) -> FlowResult:
-        """Zero Config - instant start with all defaults. No questions asked."""
+        """Zero Config - instant start with Styx defaults. No questions asked."""
         config = {
             CONF_HOST: DEFAULT_HOST,
             CONF_PORT: DEFAULT_PORT,
             CONF_TOKEN: "",
+            "assistant_name": "Styx",
         }
-        title = f"PilotSuite ({DEFAULT_HOST}:{DEFAULT_PORT})"
+        title = "Styx — PilotSuite"
         return self.async_create_entry(title=title, data=config)
 
     async def async_step_quick_start(self, user_input: dict | None = None) -> FlowResult:
@@ -116,11 +117,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("Config validation error details", exc_info=True)
                 errors["base"] = "cannot_connect"
             else:
-                title = f"AI Home CoPilot ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
+                name = user_input.get("assistant_name", "Styx")
+                title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
                 return self.async_create_entry(title=title, data=user_input)
 
         schema = vol.Schema(
             {
+                vol.Optional("assistant_name", default="Styx"): str,
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_TOKEN): str,
