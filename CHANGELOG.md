@@ -1,5 +1,14 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [1.2.0] - 2026-02-19
+
+### Qualitaetsoffensive — Stabile Integration fuer den Livetest
+
+- **Versions-Sync**: manifest.json auf 1.2.0 synchronisiert mit Core Add-on v1.2.0
+- **HA Kompatibilitaet**: Vollstaendig kompatibel mit HA 2024.x und 2025.x
+- **Keine Breaking Changes**: Config Flow, Sensors, Translations, HACS-Installation
+  unveraendert stabil
+
 ## [1.1.0] - 2026-02-19
 
 ### Styx — Die Verbindung beider Welten
