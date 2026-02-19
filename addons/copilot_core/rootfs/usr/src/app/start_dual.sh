@@ -8,7 +8,7 @@ set -e
 echo "Starting PilotSuite Core with Ollama..."
 
 # Model to use (configurable via addon options -> env var)
-MODEL=${OLLAMA_MODEL:-lfm2.5-thinking}
+MODEL=${OLLAMA_MODEL:-qwen3:4b}
 
 # Ensure model persistence directory exists
 export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/ai_home_copilot/ollama/models}

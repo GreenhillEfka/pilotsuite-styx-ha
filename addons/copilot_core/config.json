@@ -84,9 +84,13 @@
     },
     "conversation": {
       "ollama_url": "http://localhost:11434",
-      "ollama_model": "lfm2.5-thinking",
+      "ollama_model": "qwen3:4b",
       "character": "copilot",
-      "enabled": true
+      "enabled": true,
+      "prefer_local": true,
+      "cloud_api_url": "",
+      "cloud_api_key": "",
+      "cloud_model": ""
     },
     "telegram": {
       "enabled": false,
@@ -158,7 +162,11 @@
       "ollama_url": "str?",
       "ollama_model": "str?",
       "character": "list(copilot|butler|energy_manager|security_guard|friendly|minimal)?",
-      "enabled": "bool?"
+      "enabled": "bool?",
+      "prefer_local": "bool?",
+      "cloud_api_url": "str?",
+      "cloud_api_key": "password?",
+      "cloud_model": "str?"
     },
     "telegram": {
       "enabled": "bool?",
