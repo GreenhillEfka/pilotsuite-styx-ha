@@ -42,7 +42,7 @@ class CopilotConfig:
     candidates_json_path: str = "/data/candidates.json"
     candidates_max: int = 500
 
-    # Mood scaffolding
+    # Mood engine
     mood_window_seconds: int = 3600
 
     # Brain graph (v0.1)
@@ -151,9 +151,9 @@ def create_app() -> Flask:
     @app.get("/")
     def index():
         return (
-            "AI Home CoPilot Core (scaffold)\n"
-            "Endpoints: /health, /version, /api/v1/*\n"
-            "Modules: events, candidates, mood (scaffolding)\n"
+            "PilotSuite Core Add-on\n"
+            "Endpoints: /health, /ready, /version, /api/v1/*\n"
+            "Modules: brain_graph, mood, habitus, candidates, conversation, calendar, shopping\n"
         )
 
     @app.get("/health")

@@ -98,8 +98,11 @@ class GraphStore:
         os.makedirs(os.path.dirname(self._sqlite_path) or ".", exist_ok=True)
         self._sqlite_conn = sqlite3.connect(self._sqlite_path, check_same_thread=False)
         self._sqlite_conn.row_factory = sqlite3.Row
-        
+
         with self._lock:
+            # Enable WAL mode for concurrent read/write and better crash resilience
+            self._sqlite_conn.execute("PRAGMA journal_mode=WAL")
+            self._sqlite_conn.execute("PRAGMA busy_timeout=5000")
             cursor = self._sqlite_conn.cursor()
             
             # Create nodes table
@@ -509,61 +512,99 @@ class GraphStore:
         return GraphResult(nodes=[], edges=[])
     
     def _query_sqlite(self, query: GraphQuery) -> GraphResult:
-        """Execute a query against SQLite."""
+        """Execute a query against SQLite.
+
+        All reads happen under a single cursor/transaction so the snapshot
+        is consistent (no phantom reads between sub-queries).
+        """
         nodes = []
         edges = []
-        
+        cursor = self._sqlite_conn.cursor()
+
+        def _row_to_node(row) -> Node:
+            return Node(
+                id=row["id"],
+                type=NodeType(row["type"]),
+                label=row["label"],
+                properties=json.loads(row["properties"]),
+                created_at=row["created_at"],
+                updated_at=row["updated_at"],
+            )
+
+        def _row_to_edge(row) -> Edge:
+            return Edge(
+                source=row["source"],
+                target=row["target"],
+                type=EdgeType(row["type"]),
+                weight=row["weight"],
+                confidence=row["confidence"],
+                source_type=row["source_type"],
+                evidence=json.loads(row["evidence"]),
+                created_at=row["created_at"],
+                updated_at=row["updated_at"],
+            )
+
+        def _fetch_node(node_id: str):
+            cursor.execute(f"SELECT * FROM {NODE_TABLE} WHERE id = ?", (node_id,))
+            row = cursor.fetchone()
+            return _row_to_node(row) if row else None
+
         if query.entity_id:
-            # Get related entities
-            node = self.get_node(query.entity_id)
+            node = _fetch_node(query.entity_id)
             if node:
                 nodes.append(node)
-            
-            # Get edges from this node
-            out_edges = self.get_edges_from(query.entity_id)
-            in_edges = self.get_edges_to(query.entity_id)
-            
-            all_edges = out_edges + in_edges
+
+            cursor.execute(
+                f"SELECT * FROM {EDGE_TABLE} WHERE source = ? OR target = ?",
+                (query.entity_id, query.entity_id),
+            )
+            all_edges = [_row_to_edge(r) for r in cursor.fetchall()]
             all_edges.sort(key=lambda e: e.confidence, reverse=True)
             all_edges = [e for e in all_edges if e.confidence >= query.min_confidence]
-            all_edges = all_edges[:query.max_results]
-            
+            all_edges = all_edges[: query.max_results]
             edges.extend(all_edges)
-            
-            # Get connected nodes
+
+            seen_ids = {query.entity_id}
             for edge in all_edges:
                 connected_id = edge.target if edge.source == query.entity_id else edge.source
-                connected = self.get_node(connected_id)
-                if connected and connected not in nodes:
-                    nodes.append(connected)
-        
+                if connected_id not in seen_ids:
+                    seen_ids.add(connected_id)
+                    connected = _fetch_node(connected_id)
+                    if connected:
+                        nodes.append(connected)
+
         elif query.zone_id:
-            # Get all entities in a zone
-            zone_node = self.get_node(query.zone_id)
+            zone_node = _fetch_node(query.zone_id)
             if zone_node:
                 nodes.append(zone_node)
-            
-            # Get entities that belong to this zone
-            zone_edges = self.get_edges_to(query.zone_id, EdgeType.BELONGS_TO)
-            for edge in zone_edges[:query.max_results]:
-                entity = self.get_node(edge.source)
+
+            cursor.execute(
+                f"SELECT * FROM {EDGE_TABLE} WHERE target = ? AND type = ? LIMIT ?",
+                (query.zone_id, EdgeType.BELONGS_TO.value, query.max_results),
+            )
+            for row in cursor.fetchall():
+                edge = _row_to_edge(row)
+                entity = _fetch_node(edge.source)
                 if entity:
                     nodes.append(entity)
                     edges.append(edge)
-        
+
         elif query.mood:
-            # Get patterns/entities related to a mood
-            mood_edges = self.get_edges_to(f"mood:{query.mood}", EdgeType.RELATES_TO_MOOD)
+            mood_id = f"mood:{query.mood}"
+            cursor.execute(
+                f"SELECT * FROM {EDGE_TABLE} WHERE target = ? AND type = ?",
+                (mood_id, EdgeType.RELATES_TO_MOOD.value),
+            )
+            mood_edges = [_row_to_edge(r) for r in cursor.fetchall()]
             mood_edges = [e for e in mood_edges if e.confidence >= query.min_confidence]
-            mood_edges = mood_edges[:query.max_results]
-            
+            mood_edges = mood_edges[: query.max_results]
             edges.extend(mood_edges)
-            
+
             for edge in mood_edges:
-                node = self.get_node(edge.source)
+                node = _fetch_node(edge.source)
                 if node:
                     nodes.append(node)
-        
+
         return GraphResult(
             nodes=nodes,
             edges=edges,

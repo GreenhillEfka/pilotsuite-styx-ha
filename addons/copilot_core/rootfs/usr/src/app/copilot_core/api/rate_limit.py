@@ -9,7 +9,7 @@ from threading import Lock
 from typing import Any, Callable, Dict, Optional
 from functools import wraps
 
-from flask import Request, jsonify, request
+from flask import jsonify, request
 
 
 class RateLimiter:

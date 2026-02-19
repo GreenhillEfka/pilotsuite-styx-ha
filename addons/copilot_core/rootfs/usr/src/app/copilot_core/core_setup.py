@@ -48,18 +48,18 @@ from copilot_core.waste_service import WasteCollectionService, BirthdayService
 _LOGGER = logging.getLogger(__name__)
 
 
-def _safe_int(value, default: int, minimum: int = 1) -> int:
+def _safe_int(value, default: int, minimum: int = 1, maximum: int = 100000) -> int:
     """Parse an int config value with bounds checking."""
     try:
-        return max(minimum, int(value))
+        return max(minimum, min(maximum, int(value)))
     except (TypeError, ValueError):
         return default
 
 
-def _safe_float(value, default: float, minimum: float = 0.0) -> float:
+def _safe_float(value, default: float, minimum: float = 0.0, maximum: float = 1e6) -> float:
     """Parse a float config value with bounds checking."""
     try:
-        return max(minimum, float(value))
+        return max(minimum, min(maximum, float(value)))
     except (TypeError, ValueError):
         return default
 
@@ -124,13 +124,13 @@ def init_services(hass=None, config: dict = None):
         bg_config = config.get("brain_graph", {}) if config else {}
         brain_graph_service = BrainGraphService(
             store=GraphStore(
-                max_nodes=_safe_int(bg_config.get("max_nodes", 500), 500, 1),
-                max_edges=_safe_int(bg_config.get("max_edges", 1500), 1500, 1),
-                node_min_score=_safe_float(bg_config.get("node_min_score", 0.1), 0.1),
-                edge_min_weight=_safe_float(bg_config.get("edge_min_weight", 0.1), 0.1)
+                max_nodes=_safe_int(bg_config.get("max_nodes", 500), 500, 100, 5000),
+                max_edges=_safe_int(bg_config.get("max_edges", 1500), 1500, 100, 15000),
+                node_min_score=_safe_float(bg_config.get("node_min_score", 0.1), 0.1, 0.0, 1.0),
+                edge_min_weight=_safe_float(bg_config.get("edge_min_weight", 0.1), 0.1, 0.0, 1.0),
             ),
-            node_half_life_hours=_safe_float(bg_config.get("node_half_life_hours", 24.0), 24.0, 0.1),
-            edge_half_life_hours=_safe_float(bg_config.get("edge_half_life_hours", 12.0), 12.0, 0.1)
+            node_half_life_hours=_safe_float(bg_config.get("node_half_life_hours", 24.0), 24.0, 0.1, 8760.0),
+            edge_half_life_hours=_safe_float(bg_config.get("edge_half_life_hours", 12.0), 12.0, 0.1, 8760.0),
         )
         services["brain_graph_service"] = brain_graph_service
         services["graph_renderer"] = GraphRenderer()
