@@ -332,6 +332,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         for category in ["battery", "climate", "presence", "system"]:
             entities.append(HomeAlertsByCategorySensor(hass, entry, home_alerts_module, category))
 
+    # Waste Reminder sensors (v3.2.1)
+    from .core.modules.waste_reminder_module import get_waste_reminder_module
+    waste_mod = get_waste_reminder_module(hass, entry.entry_id)
+    if waste_mod is not None:
+        entities.extend([
+            WasteNextCollectionSensor(hass, entry, waste_mod),
+            WasteTodayCountSensor(hass, entry, waste_mod),
+        ])
+
+    # Birthday Reminder sensors (v3.2.1)
+    from .core.modules.birthday_reminder_module import get_birthday_reminder_module
+    birthday_mod = get_birthday_reminder_module(hass, entry.entry_id)
+    if birthday_mod is not None:
+        entities.extend([
+            BirthdayTodayCountSensor(hass, entry, birthday_mod),
+            BirthdayNextSensor(hass, entry, birthday_mod),
+        ])
+
+    # Character Preset sensor (v3.2.1)
+    from .core.modules.character_module import get_character_module
+    char_mod = get_character_module(hass, entry.entry_id)
+    if char_mod is not None:
+        entities.append(CharacterPresetSensor(hass, entry, char_mod))
+
+    # Network Health sensor (v3.2.1)
+    from .core.modules.unifi_context_module import get_network_module
+    net_mod = get_network_module(hass, entry.entry_id)
+    if net_mod is not None:
+        entities.append(NetworkHealthSensor(hass, entry, net_mod))
+
+    # Entity Tags sensor (v3.2.2)
+    from .core.modules.entity_tags_module import get_entity_tags_module
+    tags_mod = get_entity_tags_module(hass, entry.entry_id)
+    if tags_mod is not None:
+        entities.append(EntityTagsSensor(hass, entry, tags_mod))
+
     async_add_entities(entities, True)
 
 
@@ -483,3 +519,254 @@ class SuggestionQueueSensor(SensorEntity):
     def update_queue(self, queue_data: dict[str, Any]) -> None:
         self._queue_data = queue_data
         self.async_write_ha_state()
+
+
+# ---------------------------------------------------------------------------
+# Waste Reminder Sensors (v3.2.1)
+# ---------------------------------------------------------------------------
+
+class WasteNextCollectionSensor(SensorEntity):
+    """Next waste collection type and date."""
+
+    _attr_icon = "mdi:trash-can-outline"
+    _attr_has_entity_name = True
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_waste_next_collection"
+        self._attr_name = "CoPilot Waste Next Collection"
+
+    @property
+    def native_value(self) -> str | None:
+        state = self._module.get_state()
+        nc = state.next_collection
+        return nc.waste_type if nc else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        state = self._module.get_state()
+        nc = state.next_collection
+        return {
+            "days_to": nc.days_to if nc else None,
+            "next_date": nc.next_date if nc else None,
+            "icon": nc.icon if nc else None,
+            "today": [c.waste_type for c in state.today_collections],
+            "tomorrow": [c.waste_type for c in state.tomorrow_collections],
+            "all_collections": [
+                {"type": c.waste_type, "days_to": c.days_to, "date": c.next_date}
+                for c in state.collections
+            ],
+        }
+
+
+class WasteTodayCountSensor(SensorEntity):
+    """Number of waste collections scheduled for today."""
+
+    _attr_icon = "mdi:trash-can"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "collections"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_waste_today_count"
+        self._attr_name = "CoPilot Waste Today Count"
+
+    @property
+    def native_value(self) -> int:
+        return len(self._module.get_state().today_collections)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        state = self._module.get_state()
+        return {
+            "today_types": [c.waste_type for c in state.today_collections],
+            "tomorrow_types": [c.waste_type for c in state.tomorrow_collections],
+            "last_scan": state.last_scan.isoformat() if state.last_scan else None,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Birthday Reminder Sensors (v3.2.1)
+# ---------------------------------------------------------------------------
+
+class BirthdayTodayCountSensor(SensorEntity):
+    """Number of birthdays today."""
+
+    _attr_icon = "mdi:cake-variant"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "birthdays"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_birthday_today_count"
+        self._attr_name = "CoPilot Birthday Today Count"
+
+    @property
+    def native_value(self) -> int:
+        return len(self._module.get_state().today_birthdays)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        state = self._module.get_state()
+        today = state.today_birthdays
+        upcoming = [b for b in state.upcoming_birthdays if b.days_until > 0]
+        return {
+            "today_names": [b.name for b in today],
+            "today_details": [b.to_dict() for b in today],
+            "upcoming": [b.to_dict() for b in upcoming[:10]],
+            "last_scan": state.last_scan.isoformat() if state.last_scan else None,
+        }
+
+
+class BirthdayNextSensor(SensorEntity):
+    """Next upcoming birthday name."""
+
+    _attr_icon = "mdi:cake-variant-outline"
+    _attr_has_entity_name = True
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_birthday_next"
+        self._attr_name = "CoPilot Birthday Next"
+
+    @property
+    def native_value(self) -> str | None:
+        state = self._module.get_state()
+        upcoming = sorted(state.upcoming_birthdays, key=lambda b: b.days_until)
+        if upcoming:
+            return upcoming[0].name
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        state = self._module.get_state()
+        upcoming = sorted(state.upcoming_birthdays, key=lambda b: b.days_until)
+        if upcoming:
+            nxt = upcoming[0]
+            return {
+                "days_until": nxt.days_until,
+                "age": nxt.age,
+                "date": nxt.date.strftime("%Y-%m-%d") if nxt.date else None,
+                "calendar_entity": nxt.calendar_entity,
+            }
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Module-Sweep Sensors (v3.2.1)
+# ---------------------------------------------------------------------------
+
+class CharacterPresetSensor(SensorEntity):
+    """Active character preset name."""
+
+    _attr_icon = "mdi:drama-masks"
+    _attr_has_entity_name = True
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_character_preset"
+        self._attr_name = "CoPilot Character Preset"
+
+    @property
+    def native_value(self) -> str | None:
+        try:
+            preset = self._module.get_current_preset()
+            return preset.name.value if hasattr(preset.name, "value") else str(preset.name)
+        except Exception:
+            return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        try:
+            preset = self._module.get_current_preset()
+            return {
+                "display_name": preset.display_name,
+                "description": preset.description,
+                "icon": preset.icon,
+                "available_modes": [
+                    m["mode"] for m in self._module.get_available_modes()
+                ],
+            }
+        except Exception:
+            return {}
+
+
+class NetworkHealthSensor(SensorEntity):
+    """UniFi network health status."""
+
+    _attr_icon = "mdi:lan-check"
+    _attr_has_entity_name = True
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_network_health"
+        self._attr_name = "CoPilot Network Health"
+
+    @property
+    def native_value(self) -> str | None:
+        try:
+            return self._module.get_health_status()
+        except Exception:
+            return "unavailable"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        try:
+            snapshot = self._module.get_snapshot()
+            if not snapshot:
+                return {}
+            return {
+                "wan_online": snapshot.get("wan_online"),
+                "wan_latency_ms": snapshot.get("wan_latency_ms"),
+                "wan_packet_loss_percent": snapshot.get("wan_packet_loss_percent"),
+                "clients_online": snapshot.get("clients_online"),
+                "clients_total": snapshot.get("clients_total"),
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# Entity Tags Sensor (v3.2.2)
+# ---------------------------------------------------------------------------
+
+class EntityTagsSensor(SensorEntity):
+    """Number of user-defined entity tags. Attributes: full tag list."""
+
+    _attr_icon = "mdi:tag-multiple"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "tags"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_entity_tags"
+        self._attr_name = "CoPilot Entity Tags"
+
+    @property
+    def native_value(self) -> int:
+        return self._module.get_tag_count()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        try:
+            summary = self._module.get_summary()
+            return {
+                "total_tagged_entities": self._module.get_total_tagged_entities(),
+                "tags": summary.get("tags", []),
+            }
+        except Exception:
+            return {}

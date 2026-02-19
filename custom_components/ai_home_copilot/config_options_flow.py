@@ -15,6 +15,7 @@ from .config_helpers import as_csv, parse_csv
 from .config_schema_builders import build_settings_schema, build_neuron_schema
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
 from .config_zones_flow import async_step_zone_form
+from .config_tags_flow import async_step_add_tag, async_step_edit_tag, async_step_delete_tag
 from .const import (
     CONF_HOST,
     CONF_PORT,
@@ -41,7 +42,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="init",
-            menu_options=["settings", "habitus_zones", "neurons", "backup_restore"],
+            menu_options=["settings", "habitus_zones", "entity_tags", "neurons", "backup_restore"],
         )
 
     async def async_step_settings(self, user_input: dict | None = None) -> FlowResult:
@@ -110,6 +111,24 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
 
     async def async_step_back(self, user_input: dict | None = None) -> FlowResult:
         return await self.async_step_init()
+
+    # ── Entity Tags ─────────────────────────────────────────────────
+
+    async def async_step_entity_tags(self, user_input: dict | None = None) -> FlowResult:
+        """Show entity tags management menu."""
+        return self.async_show_menu(
+            step_id="entity_tags",
+            menu_options=["add_tag", "edit_tag", "delete_tag", "back"],
+        )
+
+    async def async_step_add_tag(self, user_input: dict | None = None) -> FlowResult:
+        return await async_step_add_tag(self, user_input)
+
+    async def async_step_edit_tag(self, user_input: dict | None = None) -> FlowResult:
+        return await async_step_edit_tag(self, user_input)
+
+    async def async_step_delete_tag(self, user_input: dict | None = None) -> FlowResult:
+        return await async_step_delete_tag(self, user_input)
 
     async def async_step_create_zone(self, user_input: dict | None = None) -> FlowResult:
         return await async_step_zone_form(self, mode="create", user_input=user_input)
