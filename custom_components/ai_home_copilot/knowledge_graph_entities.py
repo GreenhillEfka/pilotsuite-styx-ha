@@ -159,7 +159,10 @@ async def async_setup_knowledge_graph_sensors(
 ) -> None:
     """Set up Knowledge Graph sensors."""
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data["coordinator"]
+    coordinator = data.get("coordinator")
+    if coordinator is None:
+        _LOGGER.error("Coordinator not available for %s, skipping knowledge_graph setup", entry.entry_id)
+        return
 
     entities = [
         KnowledgeGraphStatsSensor(coordinator, entry),
