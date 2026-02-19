@@ -1,5 +1,43 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.5.0] - 2026-02-19
+
+### RAG Pipeline + Kalender + Einkaufsliste + Erinnerungen
+
+- **RAG Pipeline aktiviert** — VectorStore + EmbeddingEngine endlich verdrahtet
+  - `core_setup.py`: Initialisiert `get_vector_store()` + `get_embedding_engine()`
+  - `conversation.py` `_store_in_memory()`: Embeddet jede Nachricht als Vektor (bag-of-words)
+  - `conversation.py` `_get_user_context()`: Semantische Suche (cosine similarity, threshold 0.45)
+  - `embeddings.py`: Neues `embed_text_sync()` — Bag-of-Words Approach (kein externer Service noetig)
+  - `store.py`: Neue `upsert_sync()` + `search_similar_sync()` fuer Flask (nicht-async)
+  - `/v1/conversation/memory` Endpoint zeigt jetzt auch `vector_store` Stats + `rag_active` Flag
+- **Calendar REST API** — `/api/v1/calendar/*` (3 Endpoints)
+  - `GET /`: Alle HA-Kalender auflisten
+  - `GET /events/today`: Heutige Termine aus allen Kalendern
+  - `GET /events/upcoming?days=7`: Kommende Termine
+  - `get_calendar_context_for_llm()`: Termine im LLM System Prompt
+- **Einkaufsliste REST API** — `/api/v1/shopping/*` (5 Endpoints)
+  - `POST /shopping`: Artikel hinzufuegen (einzeln oder mehrere)
+  - `GET /shopping`: Artikel auflisten (?completed=0|1)
+  - `POST /shopping/<id>/complete`: Artikel abhaken
+  - `DELETE /shopping/<id>`: Artikel loeschen
+  - `POST /shopping/clear-completed`: Erledigte Artikel loeschen
+  - SQLite Persistenz (/data/shopping_reminders.db)
+- **Erinnerungen REST API** — `/api/v1/reminders/*` (5 Endpoints)
+  - `POST /reminders`: Erinnerung erstellen (mit optionalem Faelligkeitsdatum)
+  - `GET /reminders`: Erinnerungen auflisten (?completed=0, ?due=1)
+  - `POST /reminders/<id>/complete`: Erinnerung abschliessen
+  - `POST /reminders/<id>/snooze`: Erinnerung snoozen (Minuten)
+  - `DELETE /reminders/<id>`: Erinnerung loeschen
+- **LLM Tools**: +3 neue Tools (22 total)
+  - `pilotsuite.calendar_events`: Termine abrufen
+  - `pilotsuite.shopping_list`: Einkaufsliste verwalten (add/list/complete)
+  - `pilotsuite.reminder`: Erinnerungen verwalten (add/list/complete/snooze)
+- **LLM Kontext**: Kalender-Termine, Einkaufsliste, Erinnerungen + semantische Erinnerungen
+- **Dashboard**: Kalender-Card, Einkaufsliste mit Input + Abhaken, Erinnerungen mit Snooze
+- **System Prompt**: Styx weiss jetzt ueber Langzeitgedaechtnis, Kalender, Listen, Erinnerungen
+- Version: 3.4.0 -> 3.5.0
+
 ## [3.4.0] - 2026-02-19
 
 ### Scene System + Styx Auto-Tagging + HomeKit Bridge

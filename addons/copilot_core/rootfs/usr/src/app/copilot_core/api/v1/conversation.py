@@ -203,8 +203,16 @@ Faehigkeiten:
   Habituszone als Szene sichern. Z.B. "Speichere die aktuelle Stimmung als Szene".
 - Du kannst SZENEN ANWENDEN (pilotsuite.apply_scene) -- gespeicherte Szenen aktivieren.
   Z.B. "Wende die Filmabend-Szene an" oder "Stelle die Abendszene ein".
+- Du kannst KALENDER-TERMINE abrufen (pilotsuite.calendar_events) -- zeigt Termine
+  fuer heute, morgen oder die naechsten Tage aus allen HA-Kalendern.
+- Du kannst die EINKAUFSLISTE verwalten (pilotsuite.shopping_list) -- Artikel
+  hinzufuegen, auflisten, abhaken. Z.B. "Milch auf die Einkaufsliste".
+- Du kannst ERINNERUNGEN verwalten (pilotsuite.reminder) -- erstellen, auflisten,
+  abschliessen, snoozen. Z.B. "Erinnere mich in 30 Minuten an die Waschmaschine".
 - JEDE Entitaet mit der du interagierst wird automatisch mit "Styx" getaggt.
   Styx-getaggte Entitaeten werden von PilotSuite besonders beruecksichtigt.
+- Du hast ein LANGZEITGEDAECHTNIS: Vergangene Gespraeche und Praeferenzen werden
+  semantisch gespeichert und bei neuen Fragen automatisch als Kontext geladen.
 
 Modul-Zustaende (Autonomie-System):
 - active: Vorschlaege werden AUTOMATISCH umgesetzt (wenn BEIDE Module aktiv sind)
@@ -484,8 +492,68 @@ def _get_user_context() -> str:
         except Exception:
             pass
 
+        # Calendar context (v3.5.0)
+        try:
+            from copilot_core.api.v1.calendar import get_calendar_context_for_llm
+            cal_ctx = get_calendar_context_for_llm()
+            if cal_ctx:
+                context_parts.append(cal_ctx)
+        except Exception:
+            pass
+
+        # Shopping list context (v3.5.0)
+        try:
+            from copilot_core.api.v1.shopping import get_shopping_context_for_llm
+            shop_ctx = get_shopping_context_for_llm()
+            if shop_ctx:
+                context_parts.append(shop_ctx)
+        except Exception:
+            pass
+
+        # Reminders context (v3.5.0)
+        try:
+            from copilot_core.api.v1.shopping import get_reminders_context_for_llm
+            rem_ctx = get_reminders_context_for_llm()
+            if rem_ctx:
+                context_parts.append(rem_ctx)
+        except Exception:
+            pass
+
     except Exception as exc:
         logger.debug("Could not load user context: %s", exc)
+
+    # RAG: semantic retrieval from VectorStore (v3.5.0)
+    # Runs outside the main try/except so it never blocks other context
+    try:
+        from flask import current_app as _ca
+        _services = _ca.config.get("COPILOT_SERVICES", {})
+        _vs = _services.get("vector_store")
+        _ee = _services.get("embedding_engine")
+        if _vs and _ee:
+            # We need the current user message — it's passed through the caller
+            _current_msg = getattr(_get_user_context, "_current_query", "")
+            if _current_msg:
+                query_vec = _ee.embed_text_sync(_current_msg)
+                hits = _vs.search_similar_sync(
+                    query_vector=query_vec,
+                    entry_type="conversation",
+                    limit=5,
+                    threshold=0.45,
+                )
+                if hits:
+                    mem_lines = []
+                    for h in hits:
+                        snippet = h.metadata.get("snippet", "")
+                        role = h.metadata.get("role", "?")
+                        ts = h.metadata.get("timestamp", 0)
+                        age_days = int((time.time() - ts) / 86400) if ts else 0
+                        prefix = "User" if role == "user" else ASSISTANT_NAME
+                        mem_lines.append(f"[{age_days}d ago] {prefix}: {snippet[:120]}")
+                    context_parts.append(
+                        "Relevante Erinnerungen (semantisch):\n  " + "\n  ".join(mem_lines)
+                    )
+    except Exception:
+        logger.debug("RAG retrieval failed (non-critical)", exc_info=True)
 
     if not context_parts:
         return ""
@@ -737,23 +805,39 @@ def llm_status():
 
 @conversation_bp.route('/memory', methods=['GET'])
 def memory_stats():
-    """Return conversation memory statistics."""
+    """Return conversation memory + RAG vector store statistics."""
     try:
         from flask import current_app
         services = current_app.config.get("COPILOT_SERVICES", {})
         conv_memory = services.get("conversation_memory")
+        result = {"stats": {}, "preferences": [], "vector_store": {}}
+
         if conv_memory:
-            stats = conv_memory.get_stats()
+            result["stats"] = conv_memory.get_stats()
             prefs = conv_memory.get_user_preferences()
-            return jsonify({
-                "stats": stats,
-                "preferences": [
-                    {"key": p.key, "value": p.value, "confidence": p.confidence,
-                     "source": p.source, "mentions": p.mention_count}
-                    for p in prefs
-                ],
-            })
-        return jsonify({"stats": {}, "preferences": [], "message": "Memory not initialized"})
+            result["preferences"] = [
+                {"key": p.key, "value": p.value, "confidence": p.confidence,
+                 "source": p.source, "mentions": p.mention_count}
+                for p in prefs
+            ]
+
+        # RAG vector store stats (v3.5.0)
+        vector_store = services.get("vector_store")
+        if vector_store:
+            import asyncio
+            try:
+                loop = asyncio.new_event_loop()
+                vs_stats = loop.run_until_complete(vector_store.stats())
+                loop.close()
+                result["vector_store"] = vs_stats
+                result["rag_active"] = True
+            except Exception:
+                result["vector_store"] = {"error": "Stats unavailable"}
+                result["rag_active"] = False
+        else:
+            result["rag_active"] = False
+
+        return jsonify(result)
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
@@ -780,14 +864,34 @@ def memory_preferences():
 
 
 def _store_in_memory(content: str, role: str = "user"):
-    """Store a message in conversation memory (fire-and-forget)."""
+    """Store a message in conversation memory + vector store (fire-and-forget)."""
     try:
         from flask import current_app
         services = current_app.config.get("COPILOT_SERVICES", {})
         conv_memory = services.get("conversation_memory")
         if conv_memory and content:
             character = os.environ.get("CONVERSATION_CHARACTER", DEFAULT_CHARACTER)
-            conv_memory.store_message(role=role, content=content, character=character)
+            msg_id = conv_memory.store_message(role=role, content=content, character=character)
+
+            # RAG: also embed the message in VectorStore for semantic retrieval
+            vector_store = services.get("vector_store")
+            embedding_engine = services.get("embedding_engine")
+            if vector_store and embedding_engine and msg_id:
+                try:
+                    vec = embedding_engine.embed_text_sync(content)
+                    vector_store.upsert_sync(
+                        entry_id=f"conv:{msg_id}",
+                        vector=vec,
+                        entry_type="conversation",
+                        metadata={
+                            "role": role,
+                            "snippet": content[:200],
+                            "timestamp": time.time(),
+                            "character": character,
+                        },
+                    )
+                except Exception:
+                    logger.debug("RAG embed failed (non-critical)", exc_info=True)
     except Exception:
         logger.debug("Could not store message in memory", exc_info=True)
 
@@ -816,6 +920,14 @@ def _process_conversation(messages: list, model_override: str = None,
             break
 
     character = CONVERSATION_CHARACTERS.get(character_name, CONVERSATION_CHARACTERS[DEFAULT_CHARACTER])
+
+    # Extract last user message for RAG retrieval
+    last_user_msg = ""
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            last_user_msg = msg.get("content", "")
+            break
+    _get_user_context._current_query = last_user_msg
 
     # Build system prompt with user context injection
     system_prompt = character["system_prompt"]
@@ -1025,6 +1137,15 @@ def _execute_ha_tool(name: str, arguments: dict) -> dict:
 
         elif name == "pilotsuite.apply_scene":
             return _execute_apply_scene(arguments)
+
+        elif name == "pilotsuite.calendar_events":
+            return _execute_calendar_events(arguments)
+
+        elif name == "pilotsuite.shopping_list":
+            return _execute_shopping_list(arguments)
+
+        elif name == "pilotsuite.reminder":
+            return _execute_reminder(arguments)
 
         else:
             return {"error": f"Unknown tool: {name}"}
@@ -1428,6 +1549,210 @@ def _execute_apply_scene(args: dict) -> dict:
         }
     except Exception as exc:
         logger.warning("Apply scene failed: %s", exc)
+        return {"error": str(exc)}
+
+
+def _execute_calendar_events(args: dict) -> dict:
+    """Get calendar events from HA."""
+    try:
+        from copilot_core.api.v1.calendar import _fetch_events, _fetch_calendar_entities
+        from datetime import datetime, timedelta
+
+        days = min(int(args.get("days", 1)), 30)
+        now = datetime.now()
+        start = now.replace(hour=0, minute=0, second=0).isoformat()
+        end = (now.replace(hour=0, minute=0, second=0) + timedelta(days=days)).isoformat()
+
+        events = _fetch_events(start, end)
+        calendars = _fetch_calendar_entities()
+
+        formatted = []
+        for ev in events[:20]:
+            ev_start = ev.get("start", {})
+            start_str = ev_start.get("dateTime", ev_start.get("date", "?"))
+            formatted.append({
+                "summary": ev.get("summary", "?"),
+                "start": start_str,
+                "calendar": ev.get("calendar_entity_id", "?"),
+            })
+
+        return {
+            "events": formatted,
+            "count": len(formatted),
+            "calendars": len(calendars),
+            "days_queried": days,
+        }
+    except Exception as exc:
+        logger.warning("Calendar events failed: %s", exc)
+        return {"error": str(exc), "events": []}
+
+
+def _execute_shopping_list(args: dict) -> dict:
+    """Manage shopping list items."""
+    try:
+        from copilot_core.api.v1.shopping import _get_conn, _lock
+        action = args.get("action", "list")
+
+        if action == "list":
+            with _lock:
+                conn = _get_conn()
+                try:
+                    rows = conn.execute(
+                        "SELECT id, name, quantity, category FROM shopping_items "
+                        "WHERE completed = 0 ORDER BY created_at DESC LIMIT 30"
+                    ).fetchall()
+                    items = [dict(r) for r in rows]
+                    return {"items": items, "count": len(items)}
+                finally:
+                    conn.close()
+
+        elif action == "add":
+            import uuid as _uuid
+            items_to_add = args.get("items", [])
+            if not items_to_add:
+                name = args.get("name", "").strip()
+                if not name:
+                    return {"error": "name is required"}
+                items_to_add = [{"name": name, "quantity": args.get("quantity", "")}]
+
+            added = []
+            with _lock:
+                conn = _get_conn()
+                try:
+                    for item in items_to_add:
+                        n = item.get("name", "").strip()
+                        if not n:
+                            continue
+                        item_id = f"shop_{_uuid.uuid4().hex[:8]}"
+                        conn.execute(
+                            "INSERT INTO shopping_items (id, name, quantity, category, created_at) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            (item_id, n, item.get("quantity", ""), item.get("category", ""), time.time()),
+                        )
+                        added.append(n)
+                    conn.commit()
+                    return {"success": True, "added": added, "message": f"{len(added)} Artikel hinzugefuegt"}
+                finally:
+                    conn.close()
+
+        elif action == "complete":
+            item_id = args.get("item_id", "")
+            if not item_id:
+                return {"error": "item_id is required"}
+            with _lock:
+                conn = _get_conn()
+                try:
+                    cursor = conn.execute(
+                        "UPDATE shopping_items SET completed = 1, completed_at = ? WHERE id = ?",
+                        (time.time(), item_id),
+                    )
+                    conn.commit()
+                    return {"success": cursor.rowcount > 0}
+                finally:
+                    conn.close()
+
+        elif action == "clear_completed":
+            with _lock:
+                conn = _get_conn()
+                try:
+                    cursor = conn.execute("DELETE FROM shopping_items WHERE completed = 1")
+                    conn.commit()
+                    return {"success": True, "deleted": cursor.rowcount}
+                finally:
+                    conn.close()
+
+        return {"error": f"Unknown action: {action}"}
+    except Exception as exc:
+        logger.warning("Shopping list failed: %s", exc)
+        return {"error": str(exc)}
+
+
+def _execute_reminder(args: dict) -> dict:
+    """Manage reminders."""
+    try:
+        from copilot_core.api.v1.shopping import _get_conn, _lock
+        action = args.get("action", "list")
+
+        if action == "list":
+            with _lock:
+                conn = _get_conn()
+                try:
+                    rows = conn.execute(
+                        "SELECT id, title, description, due_at, recurring FROM reminders "
+                        "WHERE completed = 0 ORDER BY due_at ASC NULLS LAST LIMIT 20"
+                    ).fetchall()
+                    items = [dict(r) for r in rows]
+                    return {"reminders": items, "count": len(items)}
+                finally:
+                    conn.close()
+
+        elif action == "add":
+            import uuid as _uuid
+            title = args.get("title", "").strip()
+            if not title:
+                return {"error": "title is required"}
+
+            due_at = args.get("due_at")
+            if isinstance(due_at, str):
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(due_at.replace("Z", "+00:00"))
+                    due_at = dt.timestamp()
+                except (ValueError, TypeError):
+                    due_at = None
+
+            rem_id = f"rem_{_uuid.uuid4().hex[:8]}"
+            with _lock:
+                conn = _get_conn()
+                try:
+                    conn.execute(
+                        "INSERT INTO reminders (id, title, description, due_at, recurring, created_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        (rem_id, title, args.get("description", ""), due_at,
+                         args.get("recurring", ""), time.time()),
+                    )
+                    conn.commit()
+                    return {"success": True, "id": rem_id, "title": title,
+                            "message": f"Erinnerung '{title}' erstellt!"}
+                finally:
+                    conn.close()
+
+        elif action == "complete":
+            rem_id = args.get("reminder_id", "")
+            if not rem_id:
+                return {"error": "reminder_id is required"}
+            with _lock:
+                conn = _get_conn()
+                try:
+                    cursor = conn.execute(
+                        "UPDATE reminders SET completed = 1, completed_at = ? WHERE id = ?",
+                        (time.time(), rem_id),
+                    )
+                    conn.commit()
+                    return {"success": cursor.rowcount > 0}
+                finally:
+                    conn.close()
+
+        elif action == "snooze":
+            rem_id = args.get("reminder_id", "")
+            minutes = int(args.get("snooze_minutes", 30))
+            if not rem_id:
+                return {"error": "reminder_id is required"}
+            with _lock:
+                conn = _get_conn()
+                try:
+                    conn.execute(
+                        "UPDATE reminders SET snoozed_until = ? WHERE id = ? AND completed = 0",
+                        (time.time() + minutes * 60, rem_id),
+                    )
+                    conn.commit()
+                    return {"success": True, "snoozed_minutes": minutes}
+                finally:
+                    conn.close()
+
+        return {"error": f"Unknown action: {action}"}
+    except Exception as exc:
+        logger.warning("Reminder failed: %s", exc)
         return {"error": str(exc)}
 
 

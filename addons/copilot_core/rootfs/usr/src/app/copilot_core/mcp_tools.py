@@ -544,6 +544,104 @@ HA_TOOLS = [
             "required": []
         }
     ),
+
+    # v3.5.0 — Calendar, Shopping List, Reminders
+    MCPTool(
+        name="pilotsuite.calendar_events",
+        description=(
+            "Get calendar events for today or upcoming days. "
+            "Use when user asks 'what's on my calendar?', 'Termine heute?', "
+            "'was steht diese Woche an?', or 'habe ich morgen Termine?'."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer",
+                    "description": "Number of days to look ahead (default 1 for today, max 30)"
+                },
+            },
+            "required": []
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.shopping_list",
+        description=(
+            "Manage the shopping list: add, list, or complete items. "
+            "Use when user says 'add milk to shopping list', 'Einkaufsliste zeigen', "
+            "'was muss ich einkaufen?', or 'Milch auf die Liste'."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "add", "complete", "clear_completed"],
+                    "description": "Action: list items, add new item, complete item, or clear done items"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Item name (for 'add' action)"
+                },
+                "quantity": {
+                    "type": "string",
+                    "description": "Quantity (for 'add' action, e.g. '2 Liter', '500g')"
+                },
+                "item_id": {
+                    "type": "string",
+                    "description": "Item ID (for 'complete' action)"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {"type": "object", "properties": {"name": {"type": "string"}, "quantity": {"type": "string"}}},
+                    "description": "Multiple items to add at once"
+                },
+            },
+            "required": ["action"]
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.reminder",
+        description=(
+            "Manage reminders: add, list, complete, or snooze. "
+            "Use when user says 'remind me to...', 'Erinnerung erstellen', "
+            "'erinnere mich an...', 'was sind meine Erinnerungen?', "
+            "'Erinnerung in 30 Minuten', or 'snooze reminder'."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "add", "complete", "snooze"],
+                    "description": "Action: list, add, complete, or snooze a reminder"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Reminder title (for 'add' action)"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Optional description"
+                },
+                "due_at": {
+                    "type": "string",
+                    "description": "Due date/time as ISO string or epoch (for 'add' action)"
+                },
+                "reminder_id": {
+                    "type": "string",
+                    "description": "Reminder ID (for 'complete' or 'snooze' action)"
+                },
+                "snooze_minutes": {
+                    "type": "integer",
+                    "description": "Minutes to snooze (for 'snooze' action, default 30)"
+                },
+            },
+            "required": ["action"]
+        }
+    ),
 ]
 
 

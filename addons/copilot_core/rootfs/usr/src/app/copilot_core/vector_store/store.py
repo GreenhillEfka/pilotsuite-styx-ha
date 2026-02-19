@@ -561,6 +561,100 @@ class VectorStore:
             metadata=meta,
         )
         
+    # ==================== Synchronous helpers (Flask / non-async) ===========
+
+    def upsert_sync(
+        self,
+        entry_id: str,
+        vector: list[float],
+        entry_type: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> VectorEntry:
+        """Synchronous variant of :meth:`upsert` for Flask (non-async) code."""
+        now = datetime.now(timezone.utc).isoformat()
+        entry = VectorEntry(
+            id=entry_id,
+            vector=vector,
+            entry_type=entry_type,
+            metadata=metadata or {},
+            created_at=now,
+            updated_at=now,
+        )
+
+        with self._lock:
+            if entry_id in self._cache:
+                entry.created_at = self._cache[entry_id].created_at
+            self._cache[entry_id] = entry
+            self._prune_cache()
+
+            if self.config.persist and self._db:
+                vector_blob = json.dumps(vector).encode("utf-8")
+                metadata_json = json.dumps(entry.metadata)
+                self._db.execute(
+                    """INSERT OR REPLACE INTO vectors
+                    (id, entry_type, vector, metadata, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)""",
+                    (entry_id, entry_type, vector_blob, metadata_json,
+                     entry.created_at, entry.updated_at),
+                )
+                self._db.commit()
+
+        return entry
+
+    def search_similar_sync(
+        self,
+        query_vector: list[float],
+        entry_type: str | None = None,
+        limit: int = 10,
+        threshold: float | None = None,
+        exclude_ids: list[str] | None = None,
+    ) -> list[SearchResult]:
+        """Synchronous variant of :meth:`search_similar` for Flask code."""
+        threshold = threshold if threshold is not None else self.config.similarity_threshold
+        exclude_ids = exclude_ids or []
+        results: list[SearchResult] = []
+
+        with self._lock:
+            entries_to_search = list(self._cache.values())
+
+            if self.config.persist and self._db:
+                if entry_type:
+                    rows = self._db.execute(
+                        "SELECT * FROM vectors WHERE entry_type = ?",
+                        (entry_type,),
+                    ).fetchall()
+                else:
+                    rows = self._db.execute("SELECT * FROM vectors").fetchall()
+
+                for row in rows:
+                    if row["id"] not in self._cache:
+                        entry = VectorEntry(
+                            id=row["id"],
+                            vector=json.loads(row["vector"]),
+                            entry_type=row["entry_type"],
+                            metadata=json.loads(row["metadata"]),
+                            created_at=row["created_at"],
+                            updated_at=row["updated_at"],
+                        )
+                        entries_to_search.append(entry)
+
+            for entry in entries_to_search:
+                if entry.id in exclude_ids:
+                    continue
+                if entry_type and entry.entry_type != entry_type:
+                    continue
+                similarity = _cosine_similarity(query_vector, entry.vector)
+                if similarity >= threshold:
+                    results.append(SearchResult(
+                        id=entry.id,
+                        similarity=similarity,
+                        entry_type=entry.entry_type,
+                        metadata=entry.metadata,
+                    ))
+
+        results.sort(key=lambda r: r.similarity, reverse=True)
+        return results[:limit]
+
     # ==================== Stats & Maintenance ====================
     
     async def stats(self) -> dict[str, Any]:

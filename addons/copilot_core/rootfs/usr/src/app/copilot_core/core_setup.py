@@ -94,6 +94,8 @@ def init_services(hass=None, config: dict = None):
         "web_search_service": None,
         "waste_service": None,
         "birthday_service": None,
+        "vector_store": None,
+        "embedding_engine": None,
     }
 
     # Initialize system health service (requires hass)
@@ -256,6 +258,18 @@ def init_services(hass=None, config: dict = None):
         _LOGGER.info("ConversationMemory initialized (lifelong learning active)")
     except Exception:
         _LOGGER.exception("Failed to init ConversationMemory")
+
+    # Initialize Vector Store + Embedding Engine (RAG pipeline, v3.5.0)
+    try:
+        from copilot_core.vector_store import get_vector_store, get_embedding_engine
+        embedding_engine = get_embedding_engine()
+        vector_store = get_vector_store()
+        vector_store.set_embedding_engine(embedding_engine)
+        services["vector_store"] = vector_store
+        services["embedding_engine"] = embedding_engine
+        _LOGGER.info("VectorStore + EmbeddingEngine initialized (RAG pipeline active)")
+    except Exception:
+        _LOGGER.exception("Failed to init VectorStore / EmbeddingEngine")
 
     # Set conversation env vars from config (used by conversation.py + llm_provider.py)
     try:
@@ -518,6 +532,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered HomeKit API (/api/v1/homekit/*)")
     except Exception:
         _LOGGER.exception("Failed to register HomeKit API")
+
+    # Register Calendar API (v3.5.0)
+    try:
+        from copilot_core.api.v1.calendar import calendar_bp
+        app.register_blueprint(calendar_bp)
+        _LOGGER.info("Registered Calendar API (/api/v1/calendar/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Calendar API")
+
+    # Register Shopping List & Reminders API (v3.5.0)
+    try:
+        from copilot_core.api.v1.shopping import shopping_bp
+        app.register_blueprint(shopping_bp)
+        _LOGGER.info("Registered Shopping/Reminders API (/api/v1/shopping/*, /api/v1/reminders/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Shopping/Reminders API")
 
     # Register Sharing API (fix: was never wired)
     try:

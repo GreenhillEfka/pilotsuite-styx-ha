@@ -437,6 +437,28 @@ class EmbeddingEngine:
             _LOGGER.warning("Ollama embedding error: %s", e)
             return self._embed_text_local(text)
             
+    def embed_text_sync(self, text: str) -> list[float]:
+        """Generate embedding for arbitrary text (synchronous, bag-of-words).
+
+        Hashes each word independently and averages the vectors.  Texts with
+        similar vocabulary get similar embeddings — good enough for
+        conversational RAG without requiring an external model.
+        """
+        import re as _re
+        words = _re.findall(r"[a-zäöüß]+", text.lower())
+        if not words:
+            return [0.0] * self.config.dimension
+
+        vec = [0.0] * self.config.dimension
+        for word in words:
+            word_vec = _hash_to_vector(f"word:{word}", self.config.dimension)
+            for i in range(self.config.dimension):
+                vec[i] += word_vec[i]
+
+        n = len(words)
+        vec = [v / n for v in vec]
+        return _normalize(vec)
+
     def _embed_text_local(self, text: str) -> EmbeddingResult:
         """Generate local embedding for arbitrary text."""
         return EmbeddingResult(
