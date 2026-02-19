@@ -212,21 +212,27 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init ConversationMemory")
 
-    # Set conversation env vars from config (used by conversation.py)
+    # Set conversation env vars from config (used by conversation.py + llm_provider.py)
     try:
+        import os
         conv_config = config.get("conversation", {}) if config else {}
         if conv_config.get("ollama_url"):
-            import os
             os.environ.setdefault("OLLAMA_URL", conv_config["ollama_url"])
         if conv_config.get("ollama_model"):
-            import os
             os.environ.setdefault("OLLAMA_MODEL", conv_config["ollama_model"])
         if conv_config.get("character"):
-            import os
             os.environ.setdefault("CONVERSATION_CHARACTER", conv_config["character"])
         if conv_config.get("enabled"):
-            import os
             os.environ.setdefault("CONVERSATION_ENABLED", "true")
+        # Cloud fallback config (OpenClaw, OpenAI, etc.)
+        if conv_config.get("cloud_api_url"):
+            os.environ.setdefault("CLOUD_API_URL", conv_config["cloud_api_url"])
+        if conv_config.get("cloud_api_key"):
+            os.environ.setdefault("CLOUD_API_KEY", conv_config["cloud_api_key"])
+        if conv_config.get("cloud_model"):
+            os.environ.setdefault("CLOUD_MODEL", conv_config["cloud_model"])
+        if conv_config.get("prefer_local") is not None:
+            os.environ.setdefault("PREFER_LOCAL", str(conv_config["prefer_local"]).lower())
     except Exception:
         _LOGGER.exception("Failed to set conversation env vars")
 
@@ -296,6 +302,10 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     if services and services.get("telegram_bot"):
         init_telegram_api(services["telegram_bot"])
     app.register_blueprint(telegram_bp)
+
+    # Register PilotSuite MCP Server (expose skills to external AI clients)
+    from copilot_core.mcp_server import mcp_bp
+    app.register_blueprint(mcp_bp)
     
     # Store services in app config for conversation context injection
     if services:

@@ -4,20 +4,24 @@ OpenAI-Compatible Conversation API for PilotSuite Core
 Provides /v1/chat/completions and /v1/models endpoints compatible with:
 - Extended OpenAI Conversation (jekalmin/extended_openai_conversation)
 - OpenAI Python SDK (AsyncOpenAI)
-- Any OpenAI-compatible client
+- Any OpenAI-compatible client (incl. OpenClaw)
 
 Integration with HA:
   Base URL: http://<addon-host>:8909/v1
   API Key:  (your auth_token or any non-empty string)
-  Model:    lfm2.5-thinking (or any installed Ollama model)
+  Model:    qwen3:4b (default, best tool-calling) or any installed Ollama model
+
+LLM Provider Chain:
+  1. Ollama (local, default, privacy-first)
+  2. Cloud API fallback (OpenClaw, OpenAI, any /v1/ endpoint)
+  Config: prefer_local=true tries Ollama first, falls back to cloud
 
 Features:
 - Character presets (copilot, butler, energy_manager, security_guard, friendly, minimal)
-- Ollama integration for offline AI (lfm2.5-thinking default)
-- Selectable model list (lfm2.5-thinking, qwen3:4b, llama3.2:3b, mistral:7b, fixt/home-3b-v3)
+- Ollama + Cloud fallback for offline/online AI
+- Tool-calling with server-side HA execution (9 tools)
+- Selectable models (qwen3:4b, qwen3:0.6b, lfm2.5-thinking, llama3.2:3b, mistral:7b)
 - Streaming SSE support
-- Token-based authentication
-- Rate limiting
 - User habit/context injection for individualization
 """
 
@@ -31,8 +35,24 @@ import time
 import requests as http_requests
 
 from copilot_core.api.security import require_token
+from copilot_core.llm_provider import LLMProvider
 
 logger = logging.getLogger(__name__)
+
+# Singleton LLM provider (thread-safe via GIL for reads)
+_llm_provider = None
+_llm_provider_lock = threading.Lock()
+
+
+def _get_llm_provider() -> LLMProvider:
+    global _llm_provider
+    if _llm_provider is not None:
+        return _llm_provider
+    with _llm_provider_lock:
+        if _llm_provider is not None:
+            return _llm_provider
+        _llm_provider = LLMProvider()
+        return _llm_provider
 
 # Two blueprints: /chat/* (legacy) and /v1/* (OpenAI-compatible)
 conversation_bp = Blueprint('conversation', __name__, url_prefix='/chat')
@@ -94,7 +114,7 @@ RECOMMENDED_MODELS = [
     },
 ]
 
-DEFAULT_MODEL = "lfm2.5-thinking"
+DEFAULT_MODEL = "qwen3:4b"
 
 
 # ---------------------------------------------------------------------------
@@ -561,17 +581,15 @@ def list_recommended_models():
 @conversation_bp.route('/status', methods=['GET'])
 def llm_status():
     """Return LLM availability and configuration."""
-    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-    ollama_model = os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
-    available = False
-    installed_models = []
+    provider = _get_llm_provider()
+    provider_status = provider.status()
 
+    # Also check installed Ollama models
+    installed_models = []
     try:
-        resp = http_requests.get(f"{ollama_url}/api/tags", timeout=5)
+        resp = http_requests.get(f"{provider_status['ollama_url']}/api/tags", timeout=5)
         if resp.status_code == 200:
-            models = resp.json().get("models", [])
-            installed_models = [m.get("name", "") for m in models]
-            available = any(m.startswith(ollama_model) for m in installed_models)
+            installed_models = [m.get("name", "") for m in resp.json().get("models", [])]
     except Exception:
         pass
 
@@ -580,16 +598,21 @@ def llm_status():
         calls_this_hour = len([t for t in _rate_limit_calls if now - t < 3600])
 
     return jsonify({
-        "available": available,
-        "model": ollama_model,
-        "provider": "ollama",
-        "ollama_url": ollama_url,
+        "available": provider_status["ollama_available"] or provider_status["cloud_configured"],
+        "model": provider_status["ollama_model"],
+        "active_provider": provider_status["active_provider"],
+        "prefer_local": provider_status["prefer_local"],
+        "ollama_url": provider_status["ollama_url"],
+        "ollama_available": provider_status["ollama_available"],
+        "cloud_configured": provider_status["cloud_configured"],
+        "cloud_api_url": provider_status["cloud_api_url"],
+        "cloud_model": provider_status["cloud_model"],
         "installed_models": installed_models,
         "calls_this_hour": calls_this_hour,
         "max_calls_per_hour": MAX_CALLS_PER_HOUR,
         "characters": list(CONVERSATION_CHARACTERS.keys()),
-        "integration_url": f"http://[HOST]:8909/v1",
-        "integration_hint": "Use base_url=http://<addon-host>:8909/v1 in extended_openai_conversation",
+        "integration_url": "http://[HOST]:8909/v1",
+        "integration_hint": "Use base_url=http://<addon-host>:8909/v1 in extended_openai_conversation or OpenClaw",
     })
 
 
@@ -658,19 +681,18 @@ def _store_in_memory(content: str, role: str = "user"):
 def _process_conversation(messages: list, model_override: str = None,
                           temperature: float = None, max_tokens: int = None,
                           tools: list = None) -> dict:
-    """Process conversation through Ollama.
+    """Process conversation through LLM provider (Ollama -> Cloud fallback).
 
-    Handles character selection, user context injection, and Ollama API calls.
-    When ``tools`` are provided, Ollama may return ``tool_calls`` instead of text.
+    Handles character selection, user context injection, and LLM calls.
+    When ``tools`` are provided, the LLM may return ``tool_calls`` instead of text.
     """
-    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-    ollama_model = model_override or os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
-    timeout = int(os.environ.get("LLM_TIMEOUT", "120"))
+    provider = _get_llm_provider()
+    model = model_override or provider.active_model
 
     # Resolve character
     character_name = os.environ.get("CONVERSATION_CHARACTER", DEFAULT_CHARACTER)
     for char_key in CONVERSATION_CHARACTERS:
-        if char_key in ollama_model.lower():
+        if char_key in model.lower():
             character_name = char_key
             break
 
@@ -682,80 +704,47 @@ def _process_conversation(messages: list, model_override: str = None,
     if user_context:
         system_prompt += user_context
 
-    logger.info("Using character: %s (%s), model: %s", character_name, character['name'], ollama_model)
+    logger.info("Using character: %s (%s), model: %s", character_name, character['name'], model)
 
-    # Build Ollama messages -- inject our system prompt, keep conversation history
-    ollama_messages = [{"role": "system", "content": system_prompt}]
+    # Build LLM messages -- inject our system prompt, keep conversation history
+    llm_messages = [{"role": "system", "content": system_prompt}]
     for msg in messages:
         role = msg.get("role", "user")
         if role != "system":
-            # Preserve tool_calls and tool_call_id for multi-turn tool conversations
             entry = {"role": role, "content": msg.get("content", "")}
             if msg.get("tool_calls"):
                 entry["tool_calls"] = msg["tool_calls"]
             if msg.get("tool_call_id"):
                 entry["tool_call_id"] = msg["tool_call_id"]
-            ollama_messages.append(entry)
+            llm_messages.append(entry)
 
-    # Build Ollama request options
-    ollama_options = {}
-    if temperature is not None:
-        ollama_options["temperature"] = temperature
-    if max_tokens is not None:
-        ollama_options["num_predict"] = max_tokens
+    # Call LLM provider (handles Ollama -> Cloud fallback)
+    result = provider.chat(
+        messages=llm_messages, tools=tools,
+        model=model, temperature=temperature, max_tokens=max_tokens,
+    )
 
-    response_content = ""
-    tool_calls_response = None
+    response_content = result.get("content", "")
+    raw_tool_calls = result.get("tool_calls")
+    used_provider = result.get("provider", "unknown")
     finish_reason = "stop"
+    tool_calls_response = None
 
-    try:
-        payload = {
-            "model": ollama_model,
-            "messages": ollama_messages,
-            "stream": False,
-        }
-        if ollama_options:
-            payload["options"] = ollama_options
-        if tools:
-            payload["tools"] = tools
-
-        resp = http_requests.post(
-            f"{ollama_url}/api/chat",
-            json=payload,
-            timeout=timeout,
-        )
-        if resp.status_code == 200:
-            result = resp.json()
-            message = result.get("message", {})
-            response_content = message.get("content", "")
-
-            # Check for tool calls from Ollama
-            raw_tool_calls = message.get("tool_calls")
-            if raw_tool_calls:
-                finish_reason = "tool_calls"
-                tool_calls_response = []
-                for tc in raw_tool_calls:
-                    fn = tc.get("function", {})
-                    tool_calls_response.append({
-                        "id": f"call_{os.urandom(12).hex()}",
-                        "type": "function",
-                        "function": {
-                            "name": fn.get("name", ""),
-                            "arguments": json.dumps(fn.get("arguments", {})),
-                        },
-                    })
-        else:
-            logger.warning("Ollama returned %s: %s", resp.status_code, resp.text[:200])
-            response_content = _fallback_response(ollama_url, ollama_model)
-    except http_requests.exceptions.ConnectionError:
-        logger.error("Could not connect to Ollama at %s", ollama_url)
-        response_content = _offline_fallback(ollama_url, ollama_model)
-    except http_requests.exceptions.Timeout:
-        logger.error("Ollama timeout after %ds", timeout)
-        response_content = f"Timeout nach {timeout}s. Das Modell braucht zu lange -- pruefe Ollama und Modellgroesse."
-    except Exception:
-        logger.exception("Error calling Ollama")
-        response_content = _fallback_response(ollama_url, ollama_model)
+    if raw_tool_calls:
+        finish_reason = "tool_calls"
+        tool_calls_response = []
+        for tc in raw_tool_calls:
+            fn = tc.get("function", {})
+            tool_calls_response.append({
+                "id": f"call_{os.urandom(12).hex()}",
+                "type": "function",
+                "function": {
+                    "name": fn.get("name", ""),
+                    "arguments": json.dumps(fn.get("arguments", {}))
+                        if isinstance(fn.get("arguments"), dict)
+                        else fn.get("arguments", "{}"),
+                },
+            })
 
     response_message = {"role": "assistant", "content": response_content}
     if tool_calls_response:
@@ -765,17 +754,18 @@ def _process_conversation(messages: list, model_override: str = None,
         "id": f"chatcmpl-{os.urandom(12).hex()}",
         "object": "chat.completion",
         "created": int(time.time()),
-        "model": ollama_model,
+        "model": model,
         "choices": [{
             "index": 0,
             "message": response_message,
             "finish_reason": finish_reason,
         }],
         "usage": {
-            "prompt_tokens": sum(len(m.get("content", "")) for m in ollama_messages),
+            "prompt_tokens": sum(len(m.get("content", "")) for m in llm_messages),
             "completion_tokens": len(response_content),
-            "total_tokens": sum(len(m.get("content", "")) for m in ollama_messages) + len(response_content),
+            "total_tokens": sum(len(m.get("content", "")) for m in llm_messages) + len(response_content),
         },
+        "system_fingerprint": f"pilotsuite-{used_provider}",
     }
 
 
@@ -929,20 +919,6 @@ def process_with_tool_execution(user_message: str) -> str:
             })
 
     return msg.get("content", "") or "Maximale Tool-Runden erreicht."
-
-
-def _fallback_response(url: str, model: str) -> str:
-    return (
-        f"Ollama ist nicht erreichbar ({url}, Modell: {model}). "
-        "Bitte pruefe ob Ollama laeuft und das Modell installiert ist."
-    )
-
-
-def _offline_fallback(url: str, model: str) -> str:
-    return (
-        f"Ich bin offline. Ollama unter {url} mit Modell {model} nicht erreichbar. "
-        "Bitte pruefe die Addon-Konfiguration."
-    )
 
 
 def _stream_response(response: dict):
