@@ -2,7 +2,7 @@
 
 > **Single Source of Truth** for the entire PilotSuite project.
 > Both repos (Core Add-on + HACS Integration) reference this document.
-> Last Updated: 2026-02-19 | Core v3.0.0 | Integration v3.0.0
+> Last Updated: 2026-02-19 | Core v3.8.0 | Integration v3.8.0
 
 ---
 

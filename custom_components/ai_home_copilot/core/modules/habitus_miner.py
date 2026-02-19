@@ -2,6 +2,11 @@
 
 Zone-based pattern mining that discovers behavioral patterns from HA events
 and integrates with Brain Graph, Mood Service, and Suggestions system.
+
+Persistence:
+- Event buffer and discovered rules persist via HA Storage (survives restarts)
+- Buffer saved every 5 minutes and on unload
+- Discovered rules retained until explicit reset
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from typing import Any, TypedDict
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
 
@@ -23,6 +29,11 @@ from ...const import DOMAIN
 from ..module import ModuleContext
 
 _LOGGER = logging.getLogger(__name__)
+
+# Persistence
+STORAGE_KEY = "ai_home_copilot.habitus_miner"
+STORAGE_VERSION = 1
+BUFFER_SAVE_INTERVAL = timedelta(minutes=5)
 
 
 # Type definitions for better type safety
@@ -66,12 +77,19 @@ class MiningResult:
 
 
 class HabitusMinerModule:
-    """Module for discovering A→B behavioral patterns from HA events."""
+    """Module for discovering A→B behavioral patterns from HA events.
+
+    Persistence:
+    - Event buffer saved to HA Storage every 5 minutes and on unload
+    - Discovered rules persist until explicit reset
+    - Buffer restored on startup (no cold-start data loss)
+    """
 
     name = "habitus_miner"
 
     # Lock for thread-safe buffer operations
     _buffer_lock: asyncio.Lock | None = None
+    _store: Store | None = None
 
     async def async_setup_entry(self, ctx: ModuleContext) -> bool:
         """Set up the Habitus Miner module."""
@@ -82,6 +100,9 @@ class HabitusMinerModule:
 
         # Initialize buffer lock for thread safety
         self._buffer_lock = asyncio.Lock()
+
+        # Initialize persistent storage
+        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
         # Store module data with proper typing
         module_data: ModuleData = {
@@ -103,6 +124,9 @@ class HabitusMinerModule:
 
         hass.data[DOMAIN][entry.entry_id]["habitus_miner"] = module_data
 
+        # Restore persisted state (buffer + rules)
+        await self._load_persisted_state(hass, entry)
+
         # Register services
         await self._register_services(hass, entry)
 
@@ -115,12 +139,69 @@ class HabitusMinerModule:
         _LOGGER.info("Habitus Miner module setup completed")
         return True
 
+    # ── Persistence ─────────────────────────────────────────────────────
+
+    async def _load_persisted_state(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Restore event buffer and discovered rules from HA Storage."""
+        try:
+            data = await self._store.async_load()
+            if not data:
+                return
+
+            module_data: ModuleData = hass.data[DOMAIN][entry.entry_id]["habitus_miner"]
+
+            # Restore event buffer
+            saved_events = data.get("event_buffer", [])
+            if saved_events:
+                buffer = module_data["event_buffer"]
+                for event in saved_events:
+                    buffer.append(event)
+                _LOGGER.info("Restored %d events from persistent buffer", len(saved_events))
+
+            # Restore discovered rules
+            saved_rules = data.get("discovered_rules", [])
+            if saved_rules:
+                module_data["discovered_rules"] = saved_rules
+                _LOGGER.info("Restored %d discovered rules", len(saved_rules))
+
+            # Restore last mining timestamp
+            last_ts = data.get("last_mining_ts")
+            if last_ts:
+                module_data["last_mining_ts"] = last_ts
+
+        except Exception:
+            _LOGGER.exception("Failed to load persisted habitus state")
+
+    async def _save_persisted_state(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Save event buffer and discovered rules to HA Storage."""
+        try:
+            entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+            module_data: ModuleData | None = entry_data.get("habitus_miner")
+            if not module_data:
+                return
+
+            buffer = module_data["event_buffer"]
+            await self._store.async_save({
+                "event_buffer": list(buffer),
+                "discovered_rules": module_data.get("discovered_rules", []),
+                "last_mining_ts": module_data.get("last_mining_ts"),
+            })
+            _LOGGER.debug("Persisted %d buffer events + %d rules",
+                          len(buffer), len(module_data.get("discovered_rules", [])))
+        except Exception:
+            _LOGGER.exception("Failed to save persisted habitus state")
+
+    # ── Lifecycle ────────────────────────────────────────────────────────
+
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload the Habitus Miner module."""
         hass: HomeAssistant = ctx.hass
         entry: ConfigEntry = ctx.entry
 
         _LOGGER.info("Unloading Habitus Miner module")
+
+        # Save buffer to persistent storage before unloading
+        await self._save_persisted_state(hass, entry)
 
         # Safely get module data
         entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
@@ -324,6 +405,13 @@ class HabitusMinerModule:
         from homeassistant.helpers.event import async_track_time_interval
         async_track_time_interval(hass, periodic_cleanup, timedelta(hours=1))
 
+        # Set up periodic buffer persistence (every 5 minutes)
+        async def periodic_save(now: datetime) -> None:
+            """Persist event buffer to HA Storage."""
+            await self._save_persisted_state(hass, entry)
+
+        async_track_time_interval(hass, periodic_save, BUFFER_SAVE_INTERVAL)
+
     async def _cleanup_buffer(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Clean up old events from buffer."""
         try:
@@ -464,6 +552,9 @@ class HabitusMinerModule:
                         "notification_id": "habitus_mining_complete",
                     },
                 )
+
+                # Persist rules immediately
+                await self._save_persisted_state(hass, entry)
 
                 # Integrate with Suggestions system
                 await self._create_suggestions_from_rules(hass, entry, rules)
@@ -630,6 +721,9 @@ class HabitusMinerModule:
                 module_data["event_buffer"].clear()
                 module_data["last_mining_ts"] = None
                 module_data["discovered_rules"] = []
+
+            # Persist the cleared state
+            await self._save_persisted_state(hass, entry)
 
             _LOGGER.info("Reset Habitus Miner cache")
 

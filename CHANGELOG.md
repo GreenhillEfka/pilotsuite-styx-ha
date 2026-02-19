@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.8.0] - 2026-02-19
+
+### Persistent State — Alerts & Mining Buffer
+
+- **Alert State persistence** — HomeAlertsModule now persists acknowledged alert IDs
+  and daily alert history (30 days) via HA Storage. Acknowledged alerts survive restarts.
+  New `get_alert_history(days)` API for trend analysis.
+- **Habitus Mining Buffer persistence** — HabitusMinerModule event buffer and discovered
+  rules now persist via HA Storage. Buffer saved every 5 minutes + on unload.
+  No more cold-start data loss after HA restart.
+- **Documentation** — New `docs/QA_SYSTEM_WALKTHROUGH.md`: comprehensive Q&A covering
+  all 33 modules, startup sequence, learning pipeline, and persistence guarantees.
+- **Version references updated** — README.md, VISION.md, PROJECT_STATUS.md now reflect v3.8.0
+
 ## [3.7.1] - 2026-02-19
 
 ### Error Isolation — Modul-Setup

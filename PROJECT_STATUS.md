@@ -1,7 +1,7 @@
 # PilotSuite — Projekt-Statusbericht & Roadmap
 
 > **Zentrale Projektanalyse** — Aktualisiert 2026-02-19 10:00
-> Core v3.0.0 | Integration v3.0.0
+> Core v3.8.0 | Integration v3.8.0
 > Gilt fuer beide Repos: Home-Assistant-Copilot (Core) + ai-home-copilot-ha (HACS)
 
 ---
@@ -10,7 +10,7 @@
 
 PilotSuite (ehemals AI Home CoPilot) ist ein **einzigartiges Open-Source-Projekt** — es gibt kein vergleichbares System, das Pattern Learning, Privacy-First, Governance und Multi-User-Support in einer lokalen HA-Integration vereint.
 
-**Status: v3.0.0 — Kollektive Intelligenz Release**
+**Status: v3.8.0 — Kollektive Intelligenz Release**
 
 Das System hat die Alpha-Phase verlassen und ist nun als vollstaendiges Smart-Home-KI-System verfuegbar mit:
 - Module Control API (echte Backend-Steuerung)

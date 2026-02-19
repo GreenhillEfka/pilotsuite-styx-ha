@@ -1,11 +1,11 @@
-# PilotSuite — Styx (HACS Integration v1.1.0)
+# PilotSuite — Styx (HACS Integration v3.8.0)
 
 [![Release](https://img.shields.io/github/v/release/GreenhillEfka/ai-home-copilot-ha)](https://github.com/GreenhillEfka/ai-home-copilot-ha/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 
 Home Assistant Custom Integration fuer **PilotSuite — Styx**, die Verbindung beider Welten. Privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **23 Core-Module** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **33 Core-Module** in Home Assistant bereit.
 
 ## Installation
 
