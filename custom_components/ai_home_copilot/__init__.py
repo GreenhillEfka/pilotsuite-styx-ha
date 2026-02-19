@@ -145,6 +145,8 @@ _MODULES = [
     "entity_tags",
     "person_tracking",
     "frigate_bridge",
+    "scene_module",
+    "homekit_bridge",
 ]
 
 
@@ -190,6 +192,8 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     from .core.modules.entity_tags_module import EntityTagsModule
     from .core.modules.person_tracking_module import PersonTrackingModule
     from .core.modules.frigate_bridge import FrigateBridgeModule
+    from .core.modules.scene_module import SceneModule
+    from .core.modules.homekit_bridge import HomeKitBridgeModule
 
     _module_classes = {
         "legacy": LegacyModule,
@@ -219,6 +223,8 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "entity_tags": EntityTagsModule,
         "person_tracking": PersonTrackingModule,
         "frigate_bridge": FrigateBridgeModule,
+        "scene_module": SceneModule,
+        "homekit_bridge": HomeKitBridgeModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():

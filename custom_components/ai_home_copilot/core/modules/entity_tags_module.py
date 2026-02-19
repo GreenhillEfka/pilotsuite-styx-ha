@@ -1,11 +1,14 @@
-"""Entity Tags Module — manual entity tagging for targeted monitoring.
+"""Entity Tags Module — manual + automatic entity tagging for PilotSuite.
 
 Provides a way for users to assign custom tags to HA entities, enabling
 modules to query "give me all entities tagged as Licht" instead of blindly
 scanning all entities.
 
-Tags visible in Styx LLM context, in HA sensor entities, and queryable by
-other modules via get_entities_by_tag().
+Features:
+- Manual tagging via config flow UI
+- Auto "Styx" tagging: every entity Styx interacts with gets auto-tagged
+- User-labeled "Styx" entities are monitored by PilotSuite
+- Tags visible in LLM context, sensors, and queryable by modules
 """
 from __future__ import annotations
 
@@ -18,9 +21,14 @@ from .module import CopilotModule, ModuleContext
 
 _LOGGER = logging.getLogger(__name__)
 
+STYX_TAG_ID = "styx"
+STYX_TAG_NAME = "Styx"
+STYX_TAG_COLOR = "#8b5cf6"  # Purple
+STYX_TAG_ICON = "mdi:robot"
+
 
 class EntityTagsModule(CopilotModule):
-    """Module managing user-defined entity tags."""
+    """Module managing user-defined and auto-generated entity tags."""
 
     @property
     def name(self) -> str:
@@ -28,7 +36,7 @@ class EntityTagsModule(CopilotModule):
 
     @property
     def version(self) -> str:
-        return "0.1.0"
+        return "0.2.0"
 
     def __init__(self):
         self._tags: dict = {}   # tag_id -> EntityTag
@@ -71,9 +79,18 @@ class EntityTagsModule(CopilotModule):
         tag = self._tags.get(tag_id)
         return list(tag.entity_ids) if tag else []
 
+    def get_styx_entities(self) -> list[str]:
+        """Return all entities tagged with 'Styx'."""
+        return self.get_entities_by_tag(STYX_TAG_ID)
+
     def get_tags_for_entity(self, entity_id: str) -> list:
         """Return all tags that include this entity_id."""
         return [t for t in self._tags.values() if entity_id in t.entity_ids]
+
+    def is_styx_entity(self, entity_id: str) -> bool:
+        """Check if an entity is tagged with 'Styx'."""
+        tag = self._tags.get(STYX_TAG_ID)
+        return tag is not None and entity_id in tag.entity_ids
 
     def get_tag_count(self) -> int:
         return len(self._tags)
@@ -87,8 +104,10 @@ class EntityTagsModule(CopilotModule):
 
     def get_summary(self) -> dict[str, Any]:
         """Structured summary for sensor attributes."""
+        styx_count = len(self.get_styx_entities())
         return {
             "tag_count": len(self._tags),
+            "styx_tagged_count": styx_count,
             "tags": [
                 {
                     "tag_id": t.tag_id,
@@ -112,6 +131,36 @@ class EntityTagsModule(CopilotModule):
             self._tags = await async_get_entity_tags(self._hass)
             _LOGGER.debug("EntityTagsModule reloaded: %d tags", len(self._tags))
 
+    async def async_auto_tag_styx(self, entity_ids: list[str]) -> int:
+        """Auto-tag entities with 'Styx' when Styx interacts with them.
+
+        Called by tool execution, scene application, automation creation, etc.
+        Returns the number of newly tagged entities.
+        """
+        if not self._hass or not entity_ids:
+            return 0
+
+        from ...entity_tags_store import async_upsert_tag
+
+        current = self.get_styx_entities()
+        new_ids = [eid for eid in entity_ids if eid not in current]
+        if not new_ids:
+            return 0
+
+        merged = list(set(current + new_ids))
+        await async_upsert_tag(
+            self._hass,
+            tag_id=STYX_TAG_ID,
+            name=STYX_TAG_NAME,
+            entity_ids=merged,
+            color=STYX_TAG_COLOR,
+            icon=STYX_TAG_ICON,
+            module_hints=["pilotsuite", "monitoring"],
+        )
+        await self.reload_from_storage()
+        _LOGGER.info("Auto-tagged %d entities with Styx (total: %d)", len(new_ids), len(merged))
+        return len(new_ids)
+
     # ------------------------------------------------------------------
     # LLM Context
     # ------------------------------------------------------------------
@@ -126,7 +175,11 @@ class EntityTagsModule(CopilotModule):
                 continue
             sample = tag.entity_ids[:5]
             suffix = " …" if len(tag.entity_ids) > 5 else ""
-            lines.append(f"  [{tag.name}]: {', '.join(sample)}{suffix}")
+            marker = " [auto]" if tag.tag_id == STYX_TAG_ID else ""
+            lines.append(f"  [{tag.name}]{marker}: {', '.join(sample)}{suffix}")
+        styx_count = len(self.get_styx_entities())
+        if styx_count > 0:
+            lines.append(f"  Styx hat insgesamt {styx_count} Entitäten berührt.")
         return "\n".join(lines) if len(lines) > 1 else ""
 
 

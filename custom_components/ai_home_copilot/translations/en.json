@@ -245,6 +245,7 @@
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
           "entity_tags": "Entity tags",
+          "scenes": "Zone scenes",
           "neurons": "Neurons",
           "backup_restore": "Backup / restore"
         }
@@ -282,6 +283,13 @@
         "description": "{hint}",
         "data": {
           "tag_id": "Tag to delete"
+        }
+      },
+      "scenes": {
+        "title": "Zone scenes",
+        "description": "Manage saved scenes for habitus zones — capture, apply, and delete zone snapshots.",
+        "menu_options": {
+          "back": "Back"
         }
       },
       "settings": {

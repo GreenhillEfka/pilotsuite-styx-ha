@@ -245,6 +245,7 @@
           "settings": "Einstellungen",
           "habitus_zones": "Habituszonen",
           "entity_tags": "Entitäts-Tags",
+          "scenes": "Zonen-Szenen",
           "neurons": "Neuronen",
           "backup_restore": "Backup / Wiederherstellen"
         }
@@ -282,6 +283,13 @@
         "description": "{hint}",
         "data": {
           "tag_id": "Zu löschender Tag"
+        }
+      },
+      "scenes": {
+        "title": "Zonen-Szenen",
+        "description": "Verwalte gespeicherte Szenen für Habituszonen — Zone-Snapshots aufnehmen, anwenden und löschen.",
+        "menu_options": {
+          "back": "Zurück"
         }
       },
       "settings": {

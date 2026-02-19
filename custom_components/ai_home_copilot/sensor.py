@@ -380,6 +380,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if frigate_mod is not None:
         entities.append(FrigateCamerasSensor(hass, entry, frigate_mod))
 
+    # Scene Module sensor (v3.4.0)
+    from .core.modules.scene_module import get_scene_module
+    scene_mod = get_scene_module(hass, entry.entry_id)
+    if scene_mod is not None:
+        entities.append(ZoneScenesSensor(hass, entry, scene_mod))
+
+    # HomeKit Bridge sensor (v3.4.0)
+    from .core.modules.homekit_bridge import get_homekit_bridge
+    homekit_mod = get_homekit_bridge(hass, entry.entry_id)
+    if homekit_mod is not None:
+        entities.append(HomeKitBridgeSensor(hass, entry, homekit_mod))
+
     async_add_entities(entities, True)
 
 
@@ -879,6 +891,86 @@ class FrigateCamerasSensor(SensorEntity):
                 "cameras": cams,
                 "recent_detections": recent[:10] if recent else [],
                 "enabled": self._module._enabled,
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# Zone Scenes Sensor (v3.4.0)
+# ---------------------------------------------------------------------------
+
+class ZoneScenesSensor(SensorEntity):
+    """Number of saved zone scenes."""
+
+    _attr_icon = "mdi:palette-outline"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "scenes"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_zone_scenes"
+        self._attr_name = "CoPilot Zone Scenes"
+
+    @property
+    def native_value(self) -> int:
+        if self._module is None:
+            return 0
+        return self._module.get_scene_count()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
+        try:
+            summary = self._module.get_summary()
+            return {
+                "zones_with_scenes": summary.get("zones_with_scenes", 0),
+                "manual_count": summary.get("manual_count", 0),
+                "learned_count": summary.get("learned_count", 0),
+                "preset_count": summary.get("preset_count", 0),
+                "popular": [s["name"] for s in self._module.get_popular_scenes(3)],
+            }
+        except Exception:
+            return {}
+
+
+# ---------------------------------------------------------------------------
+# HomeKit Bridge Sensor (v3.4.0)
+# ---------------------------------------------------------------------------
+
+class HomeKitBridgeSensor(SensorEntity):
+    """Number of habitus zones exposed to HomeKit."""
+
+    _attr_icon = "mdi:apple"
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "zones"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, module) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._module = module
+        self._attr_unique_id = f"{entry.entry_id}_homekit_bridge"
+        self._attr_name = "CoPilot HomeKit Bridge"
+
+    @property
+    def native_value(self) -> int:
+        if self._module is None:
+            return 0
+        return self._module.get_zone_count()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
+        try:
+            summary = self._module.get_summary()
+            return {
+                "total_exposed_entities": summary.get("total_exposed_entities", 0),
+                "homekit_available": summary.get("homekit_available", False),
+                "zones": summary.get("zones", []),
             }
         except Exception:
             return {}
