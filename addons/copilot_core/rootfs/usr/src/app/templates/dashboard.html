@@ -157,6 +157,12 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .zone-card h3{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .zone-entities{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .zone-entities .ze{font-size:10px;background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:6px;color:var(--dim)}
+.btn-scene{background:var(--surface);border:1px solid var(--border);color:var(--accent2);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .2s}.btn-scene:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.scene-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;transition:border-color .2s}.scene-item:hover{border-color:var(--accent)}
+.scene-item .scene-name{flex:1;font-size:12px;font-weight:600}.scene-item .scene-meta{font-size:10px;color:var(--dim)}
+.scene-item .scene-actions{display:flex;gap:4px}
+.scene-item .scene-actions button{background:none;border:1px solid var(--border);color:var(--dim);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer}.scene-item .scene-actions button:hover{color:var(--accent2);border-color:var(--accent)}
+.preset-chip{background:var(--card);border:1px solid var(--border);color:var(--text);font-size:11px;padding:5px 12px;border-radius:16px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:4px}.preset-chip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 
 /* ============== TREND CHART ============== */
 .trend-chart{width:100%;height:120px;position:relative}
@@ -308,6 +314,15 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 <div class="card">
   <h2><span class="ic">&#x1f4c8;</span> Pattern Trend (letzte 24h)</h2>
   <div class="trend-chart" id="hab-trend"><canvas id="hab-trend-canvas"></canvas></div>
+</div>
+<div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x1f3ac;</span> Zonen-Szenen</h2>
+  <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Gespeicherte Szenen pro Habituszone — speichern, anwenden, löschen.</p>
+  <div id="hab-scenes"><div class="loading"><div class="spinner"></div>Lade Szenen...</div></div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--dim);margin-bottom:6px">Presets</div>
+    <div id="hab-presets" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+  </div>
 </div>
 <div class="card" style="margin-top:14px">
   <h2><span class="ic">&#x1f4a1;</span> Entitäts-Zuordnungsvorschläge</h2>
@@ -1040,10 +1055,15 @@ async function loadHabitus(){
   if(zones&&zones.zones){
     zc.innerHTML='';
     Object.entries(zones.zones).forEach(([id,z])=>{
+      const ents=(z.entities||[]);
       const card=el('div','zone-card',
         `<h3><span style="color:var(--cyan)">&#x1f3e0;</span> ${escapeHtml(z.name||id)}</h3>
         <p style="font-size:11px;color:var(--dim)">${escapeHtml(z.description||'Zone: '+id)}</p>
-        <div class="zone-entities">${(z.entities||[]).map(e=>`<span class="ze">${escapeHtml(e)}</span>`).join('')}</div>`);
+        <div class="zone-entities">${ents.map(e=>`<span class="ze">${escapeHtml(e)}</span>`).join('')}</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="saveZoneScene('${escapeHtml(id)}','${escapeHtml(z.name||id)}',${JSON.stringify(ents).replace(/'/g,"\\'")})" class="btn-scene" title="Aktuelle Zustände als Szene speichern">&#x1f3ac; Szene speichern</button>
+          <button onclick="toggleHomeKit('${escapeHtml(id)}','${escapeHtml(z.name||id)}',${JSON.stringify(ents).replace(/'/g,"\\'")})" class="btn-scene" title="Zone zu HomeKit hinzufügen">&#x1f34e; HomeKit</button>
+        </div>`);
       zc.appendChild(card);
     });
   }else{
@@ -1633,9 +1653,106 @@ function drawTrend(canvasId,dataPoints,realData){
 }
 
 // ==================================================
+// SCENE MANAGEMENT (v3.4.0)
+// ==================================================
+async function loadScenes(){
+  const c=$('hab-scenes');if(!c)return;
+  try{
+    const r=await api('/api/v1/scenes');
+    const scenes=r?.scenes||[];
+    if(!scenes.length){
+      c.innerHTML='<div class="empty">Noch keine Szenen gespeichert. Nutze den Button auf einer Zone oder sage Styx "Szene speichern".</div>';
+    }else{
+      let html='';
+      // Group by zone
+      const byZone={};
+      scenes.forEach(s=>{const z=s.zone_name||s.zone_id||'?';(byZone[z]=byZone[z]||[]).push(s)});
+      Object.entries(byZone).forEach(([zname,zscenes])=>{
+        html+=`<div style="font-size:11px;color:var(--cyan);margin:8px 0 4px;font-weight:600">${escapeHtml(zname)}</div>`;
+        zscenes.forEach(s=>{
+          const cnt=Object.keys(s.entity_states||{}).length;
+          const applied=s.applied_count||0;
+          const src=s.source==='learned'?' [gelernt]':s.source==='preset'?' [preset]':'';
+          html+=`<div class="scene-item">
+            <div class="scene-name">${escapeHtml(s.name)}${src}</div>
+            <div class="scene-meta">${cnt} Entitäten | ${applied}x angewendet</div>
+            <div class="scene-actions">
+              <button onclick="applyScene('${escapeHtml(s.scene_id)}')" title="Szene anwenden">&#x25b6;</button>
+              <button onclick="deleteScene('${escapeHtml(s.scene_id)}')" title="Szene löschen" style="color:var(--red)">&#x2715;</button>
+            </div>
+          </div>`;
+        });
+      });
+      c.innerHTML=html;
+    }
+  }catch(e){c.innerHTML='<div class="empty">Fehler beim Laden der Szenen.</div>'}
+  // Presets
+  const pc=$('hab-presets');if(!pc)return;
+  try{
+    const pr=await api('/api/v1/scenes/presets');
+    const presets=pr?.presets||[];
+    pc.innerHTML=presets.map(p=>`<span class="preset-chip" title="${escapeHtml(p.description)}">${escapeHtml(p.name)}</span>`).join('');
+  }catch(e){pc.innerHTML=''}
+}
+
+async function saveZoneScene(zoneId,zoneName,entityIds){
+  const name=prompt('Szenen-Name (optional):','');
+  try{
+    const r=await fetch(API+'/api/v1/scenes/create',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({zone_id:zoneId,zone_name:zoneName,name:name||undefined,entity_ids:entityIds})
+    });
+    const d=await r.json();
+    if(d.success){
+      addHistory('Szene gespeichert: '+(d.scene?.name||zoneId));
+      loadScenes();
+    }else{addHistory('Szene-Fehler: '+(d.error||'unbekannt'))}
+  }catch(e){addHistory('Szene-Fehler: '+e.message)}
+}
+
+async function applyScene(sceneId){
+  try{
+    const r=await fetch(API+'/api/v1/scenes/'+sceneId+'/apply',{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await r.json();
+    if(d.success){
+      addHistory('Szene angewendet: '+(d.scene?.name||sceneId));
+      loadScenes();
+    }else{addHistory('Szene-Fehler: '+(d.error||'unbekannt'))}
+  }catch(e){addHistory('Szene-Fehler: '+e.message)}
+}
+
+async function deleteScene(sceneId){
+  if(!confirm('Szene wirklich löschen?'))return;
+  try{
+    const r=await fetch(API+'/api/v1/scenes/'+sceneId,{method:'DELETE'});
+    const d=await r.json();
+    if(d.success){addHistory('Szene gelöscht');loadScenes()}
+    else{addHistory('Lösch-Fehler: '+(d.error||'unbekannt'))}
+  }catch(e){addHistory('Lösch-Fehler: '+e.message)}
+}
+
+// ==================================================
+// HOMEKIT BRIDGE (v3.4.0)
+// ==================================================
+async function toggleHomeKit(zoneId,zoneName,entityIds){
+  const action=confirm(`Zone "${zoneName}" zu HomeKit hinzufügen?\n\n${entityIds.length} Entitäten werden exponiert.\nAbbrechen = HomeKit für Zone deaktivieren.`);
+  try{
+    const r=await fetch(API+'/api/v1/homekit/toggle',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({zone_id:zoneId,zone_name:zoneName,entity_ids:entityIds,enabled:action})
+    });
+    const d=await r.json();
+    if(d.success){
+      const msg=action?`HomeKit aktiviert: ${zoneName} (${d.entities_exposed} Entitäten)`:`HomeKit deaktiviert: ${zoneName}`;
+      addHistory(msg);
+    }else{addHistory('HomeKit-Fehler: '+(d.error||'unbekannt'))}
+  }catch(e){addHistory('HomeKit-Fehler: '+e.message)}
+}
+
+// ==================================================
 // PAGE LOADER — Resilient wrapper
 // ==================================================
-const _loaders={styx:loadStyx,habitus:async()=>{await loadHabitus();loadEntitySuggestions('hab-entity-suggestions');},mood:loadMood,modules:async()=>{await loadModules();loadAutomations();loadMediaZones();loadNewsWarnings();loadWastePanel();loadBirthdayPanel()},haushalt:loadHaushalt,settings:loadSettings};
+const _loaders={styx:loadStyx,habitus:async()=>{await loadHabitus();loadEntitySuggestions('hab-entity-suggestions');loadScenes();},mood:loadMood,modules:async()=>{await loadModules();loadAutomations();loadMediaZones();loadNewsWarnings();loadWastePanel();loadBirthdayPanel()},haushalt:loadHaushalt,settings:loadSettings};
 function loadPage(p){
   const fn=_loaders[p];
   if(!fn)return;

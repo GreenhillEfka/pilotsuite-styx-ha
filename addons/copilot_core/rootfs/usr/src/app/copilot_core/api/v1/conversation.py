@@ -199,6 +199,12 @@ Faehigkeiten:
   abspielen, pausieren, Lautstaerke einstellen.
 - Du kannst die MUSIKWOLKE starten (pilotsuite.musikwolke) -- Musik folgt dem User
   durch die Raeume. Sage z.B. "Musik soll mir folgen" oder "Musikwolke starten".
+- Du kannst SZENEN SPEICHERN (pilotsuite.save_scene) -- aktuelle Zustaende einer
+  Habituszone als Szene sichern. Z.B. "Speichere die aktuelle Stimmung als Szene".
+- Du kannst SZENEN ANWENDEN (pilotsuite.apply_scene) -- gespeicherte Szenen aktivieren.
+  Z.B. "Wende die Filmabend-Szene an" oder "Stelle die Abendszene ein".
+- JEDE Entitaet mit der du interagierst wird automatisch mit "Styx" getaggt.
+  Styx-getaggte Entitaeten werden von PilotSuite besonders beruecksichtigt.
 
 Modul-Zustaende (Autonomie-System):
 - active: Vorschlaege werden AUTOMATISCH umgesetzt (wenn BEIDE Module aktiv sind)
@@ -457,6 +463,24 @@ def _get_user_context() -> str:
             presence_ctx = get_presence_context_for_llm()
             if presence_ctx:
                 context_parts.append(presence_ctx)
+        except Exception:
+            pass
+
+        # Scene context (v3.4.0)
+        try:
+            from copilot_core.api.v1.scenes import get_scene_context_for_llm
+            scene_ctx = get_scene_context_for_llm()
+            if scene_ctx:
+                context_parts.append(scene_ctx)
+        except Exception:
+            pass
+
+        # HomeKit context (v3.4.0)
+        try:
+            from copilot_core.api.v1.homekit import get_homekit_context_for_llm
+            homekit_ctx = get_homekit_context_for_llm()
+            if homekit_ctx:
+                context_parts.append(homekit_ctx)
         except Exception:
             pass
 
@@ -996,6 +1020,12 @@ def _execute_ha_tool(name: str, arguments: dict) -> dict:
         elif name == "pilotsuite.birthday_status":
             return _execute_birthday_status()
 
+        elif name == "pilotsuite.save_scene":
+            return _execute_save_scene(arguments)
+
+        elif name == "pilotsuite.apply_scene":
+            return _execute_apply_scene(arguments)
+
         else:
             return {"error": f"Unknown tool: {name}"}
 
@@ -1285,6 +1315,184 @@ def _execute_birthday_status() -> dict:
     return {"error": "BirthdayService not available", "today": [], "upcoming": []}
 
 
+def _execute_save_scene(args: dict) -> dict:
+    """Save current zone conditions as a scene."""
+    try:
+        from copilot_core.api.v1.scenes import _scene_cache
+        import uuid
+
+        zone_id = args.get("zone_id", "")
+        zone_name = args.get("zone_name", zone_id)
+        scene_name = args.get("name")
+        entity_ids = args.get("entity_ids", [])
+
+        if not zone_id or not entity_ids:
+            return {"error": "zone_id and entity_ids are required"}
+
+        ha_url = os.environ.get("SUPERVISOR_API", "http://supervisor/core/api")
+        ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
+        if not ha_token:
+            return {"error": "No SUPERVISOR_TOKEN"}
+
+        headers = {"Authorization": f"Bearer {ha_token}", "Content-Type": "application/json"}
+        capturable = {"light", "switch", "cover", "climate", "fan", "media_player"}
+
+        entity_states = {}
+        for eid in entity_ids:
+            domain = eid.split(".", 1)[0]
+            if domain not in capturable:
+                continue
+            try:
+                resp = http_requests.get(f"{ha_url}/states/{eid}", headers=headers, timeout=5)
+                if resp.ok:
+                    sd = resp.json()
+                    entity_states[eid] = {"state": sd.get("state", "unknown")}
+                    attrs = sd.get("attributes", {})
+                    for k in ("brightness", "color_temp_kelvin", "current_position", "temperature", "hvac_mode"):
+                        if k in attrs:
+                            entity_states[eid][k] = attrs[k]
+            except Exception:
+                pass
+
+        if not entity_states:
+            return {"error": "Keine steuerbaren Entitaeten gefunden"}
+
+        scene_id = f"zone_scene_{uuid.uuid4().hex[:12]}"
+        name = scene_name or f"{zone_name} — {time.strftime('%d.%m %H:%M')}"
+
+        scene = {
+            "scene_id": scene_id,
+            "zone_id": zone_id,
+            "zone_name": zone_name,
+            "name": name,
+            "entity_states": entity_states,
+            "created_at": time.time(),
+            "applied_count": 0,
+            "source": "conversation",
+        }
+        _scene_cache[scene_id] = scene
+
+        # Auto-tag entities with Styx
+        _auto_tag_styx_entities("ha.call_service", {"service_data": {"entity_id": list(entity_states.keys())}})
+
+        return {
+            "success": True,
+            "scene_id": scene_id,
+            "name": name,
+            "entities_captured": len(entity_states),
+            "message": f"Szene '{name}' mit {len(entity_states)} Entitaeten gespeichert!",
+        }
+    except Exception as exc:
+        logger.warning("Save scene failed: %s", exc)
+        return {"error": str(exc)}
+
+
+def _execute_apply_scene(args: dict) -> dict:
+    """Apply a saved scene."""
+    try:
+        from copilot_core.api.v1.scenes import _scene_cache, _apply_entity_state
+
+        scene_id = args.get("scene_id", "")
+        if not scene_id:
+            # Try by name
+            name = args.get("name", "").lower()
+            for sid, s in _scene_cache.items():
+                if name in s.get("name", "").lower():
+                    scene_id = sid
+                    break
+
+        scene = _scene_cache.get(scene_id)
+        if not scene:
+            available = [s.get("name", "?") for s in _scene_cache.values()]
+            return {"error": f"Szene nicht gefunden. Verfuegbar: {', '.join(available[:5])}"}
+
+        ha_url = os.environ.get("SUPERVISOR_API", "http://supervisor/core/api")
+        ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
+        if not ha_token:
+            return {"error": "No SUPERVISOR_TOKEN"}
+
+        headers = {"Authorization": f"Bearer {ha_token}", "Content-Type": "application/json"}
+        for eid, state_data in scene.get("entity_states", {}).items():
+            try:
+                _apply_entity_state(ha_url, headers, eid, state_data)
+            except Exception:
+                pass
+
+        scene["applied_count"] = scene.get("applied_count", 0) + 1
+        scene["last_applied"] = time.time()
+        return {
+            "success": True,
+            "scene": scene.get("name", scene_id),
+            "entities_applied": len(scene.get("entity_states", {})),
+            "message": f"Szene '{scene.get('name', scene_id)}' angewendet!",
+        }
+    except Exception as exc:
+        logger.warning("Apply scene failed: %s", exc)
+        return {"error": str(exc)}
+
+
+def _auto_tag_styx_entities(tool_name: str, tool_args: dict) -> None:
+    """Auto-tag entities Styx interacted with via the 'Styx' tag.
+
+    Fire-and-forget: posts entity_ids to the HACS integration's tag endpoint.
+    The HACS EntityTagsModule handles persistence.
+    """
+    entity_ids = []
+    try:
+        # Extract entity IDs from tool call arguments
+        if tool_name == "ha.call_service":
+            target = tool_args.get("target", {})
+            if isinstance(target, dict):
+                eid = target.get("entity_id")
+                if isinstance(eid, str):
+                    entity_ids.append(eid)
+                elif isinstance(eid, list):
+                    entity_ids.extend(eid)
+            # Also check service_data for entity_id
+            sdata = tool_args.get("service_data", {})
+            if isinstance(sdata, dict) and "entity_id" in sdata:
+                eid = sdata["entity_id"]
+                if isinstance(eid, str):
+                    entity_ids.append(eid)
+                elif isinstance(eid, list):
+                    entity_ids.extend(eid)
+        elif tool_name in ("ha.get_states", "ha.activate_scene"):
+            eid = tool_args.get("entity_id", "")
+            if eid:
+                entity_ids.append(eid)
+        elif tool_name == "ha.get_history":
+            eids = tool_args.get("entity_ids", [])
+            entity_ids.extend(eids)
+        elif tool_name == "pilotsuite.play_zone":
+            # Zone interactions don't have direct entity IDs
+            pass
+        elif tool_name == "pilotsuite.create_automation":
+            eid = tool_args.get("trigger_entity", "")
+            if eid:
+                entity_ids.append(eid)
+            eid = tool_args.get("action_entity", "")
+            if eid:
+                entity_ids.append(eid)
+
+        if not entity_ids:
+            return
+
+        # Post to HACS integration via Core addon's internal tag sync
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        tag_registry = services.get("tag_registry")
+        if tag_registry and hasattr(tag_registry, "auto_tag_styx"):
+            tag_registry.auto_tag_styx(entity_ids)
+        else:
+            # Store for batch sync to HACS
+            styx_queue = current_app.config.setdefault("STYX_TAG_QUEUE", [])
+            styx_queue.extend(entity_ids)
+            logger.debug("Queued %d entities for Styx auto-tagging", len(entity_ids))
+
+    except Exception:
+        logger.debug("Auto Styx tagging failed (non-critical)", exc_info=True)
+
+
 def process_with_tool_execution(user_message: str) -> str:
     """Process a message with server-side tool execution.
 
@@ -1315,6 +1523,10 @@ def process_with_tool_execution(user_message: str) -> str:
                 tool_args = {}
 
             result = _execute_ha_tool(tool_name, tool_args)
+
+            # Auto-tag Styx-interacted entities (v3.4.0)
+            _auto_tag_styx_entities(tool_name, tool_args)
+
             messages.append({
                 "role": "tool",
                 "content": json.dumps(result, default=str),

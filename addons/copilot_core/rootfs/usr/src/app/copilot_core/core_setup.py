@@ -503,6 +503,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Presence API")
 
+    # Register Scene Management API (v3.4.0)
+    try:
+        from copilot_core.api.v1.scenes import scenes_bp
+        app.register_blueprint(scenes_bp)
+        _LOGGER.info("Registered Scenes API (/api/v1/scenes/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Scenes API")
+
+    # Register HomeKit Bridge API (v3.4.0)
+    try:
+        from copilot_core.api.v1.homekit import homekit_bp
+        app.register_blueprint(homekit_bp)
+        _LOGGER.info("Registered HomeKit API (/api/v1/homekit/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register HomeKit API")
+
     # Register Sharing API (fix: was never wired)
     try:
         from copilot_core.sharing.api import sharing_bp
