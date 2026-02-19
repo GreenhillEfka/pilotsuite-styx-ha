@@ -1,8 +1,8 @@
 """
-AI Home CoPilot Core - Main Application Entry Point
+PilotSuite Core — Styx
 
-Minimal entry point that delegates service initialization and blueprint
-registration to modular components (core_setup.py).
+Main Application Entry Point.
+Delegates service initialization and blueprint registration to core_setup.py.
 """
 
 import json
@@ -115,7 +115,12 @@ def health():
 
 @app.get("/version")
 def version():
-    return jsonify({"version": APP_VERSION, "time": _now_iso()})
+    return jsonify({
+        "name": "Styx",
+        "suite": "PilotSuite",
+        "version": APP_VERSION,
+        "time": _now_iso(),
+    })
 
 
 @app.post("/api/v1/echo")

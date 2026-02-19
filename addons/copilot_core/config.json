@@ -15,7 +15,7 @@
   "ingress_port": 8909,
   "map": ["share:rw"],
   "panel_icon": "mdi:brain",
-  "panel_title": "CoPilot",
+  "panel_title": "Styx",
   "ports": {
     "8909/tcp": 8909
   },
@@ -85,6 +85,7 @@
     "conversation": {
       "ollama_url": "http://localhost:11434",
       "ollama_model": "qwen3:4b",
+      "assistant_name": "Styx",
       "character": "copilot",
       "enabled": true,
       "prefer_local": true,
@@ -161,6 +162,7 @@
     "conversation": {
       "ollama_url": "str?",
       "ollama_model": "str?",
+      "assistant_name": "str?",
       "character": "list(copilot|butler|energy_manager|security_guard|friendly|minimal)?",
       "enabled": "bool?",
       "prefer_local": "bool?",

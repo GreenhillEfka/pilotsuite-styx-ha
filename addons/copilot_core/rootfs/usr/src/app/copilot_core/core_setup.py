@@ -220,6 +220,8 @@ def init_services(hass=None, config: dict = None):
             os.environ.setdefault("OLLAMA_URL", conv_config["ollama_url"])
         if conv_config.get("ollama_model"):
             os.environ.setdefault("OLLAMA_MODEL", conv_config["ollama_model"])
+        if conv_config.get("assistant_name"):
+            os.environ.setdefault("ASSISTANT_NAME", conv_config["assistant_name"])
         if conv_config.get("character"):
             os.environ.setdefault("CONVERSATION_CHARACTER", conv_config["character"])
         if conv_config.get("enabled"):

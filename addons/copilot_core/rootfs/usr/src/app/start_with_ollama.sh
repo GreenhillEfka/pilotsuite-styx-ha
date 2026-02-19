@@ -30,7 +30,7 @@ if [ "$NEED_OLLAMA" = "true" ]; then
             sleep 1
         done
 
-        MODEL=${OLLAMA_MODEL:-lfm2.5-thinking}
+        MODEL=${OLLAMA_MODEL:-qwen3:4b}
         echo "Ensuring model $MODEL exists..."
         ollama pull "$MODEL" || echo "WARNING: Failed to pull $MODEL"
     else

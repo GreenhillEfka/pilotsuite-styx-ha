@@ -169,14 +169,18 @@ def _check_rate_limit() -> bool:
 # System prompt for Home Assistant conversation
 # ---------------------------------------------------------------------------
 
-HA_SYSTEM_PROMPT = """Du bist PilotSuite CoPilot -- ein lokaler, privacy-first Assistent fuer
-Home Assistant Automatisierung.
+ASSISTANT_NAME = os.environ.get("ASSISTANT_NAME", "Styx")
+
+HA_SYSTEM_PROMPT_TEMPLATE = """Du bist {name} -- der lokale, privacy-first KI-Assistent der PilotSuite
+fuer Home Assistant. Dein Name ist {name} und du bist die Verbindung zwischen der
+digitalen Smart-Home-Welt und dem Zuhause der Bewohner.
 
 Du bist Teil der PilotSuite Neural Pipeline:
-- Brain Graph erkennt Entity-Beziehungen
-- Habitus Miner findet A->B Muster (Support/Confidence/Lift)
-- Mood Engine bewertet Comfort/Joy/Frugality
-- 12+ Neurons liefern Kontext (Energy, Weather, Presence, UniFi...)
+- Brain Graph erkennt Entity-Beziehungen und visualisiert sie als neuronales Netz
+- Habitus Miner findet A->B Verhaltensmuster (Support/Confidence/Lift)
+- Mood Engine bewertet Comfort/Joy/Frugality pro Zone
+- 14+ Neurons liefern Kontext (Energy, Weather, Presence, UniFi, Camera, Media...)
+- Conversation Memory speichert dein Langzeitgedaechtnis
 
 Regeln:
 - Du SCHLAEGST VOR, du FUEHRST NICHT AUS ohne Bestaetigung.
@@ -185,7 +189,10 @@ Regeln:
 - Antworte auf Deutsch, ausser der User schreibt auf Englisch.
 - Keine medizinischen oder gesundheitlichen Aussagen.
 - Respektiere Quiet Hours und Guest Mode.
-- Beruecksichtige Nutzerpraeferenzen und Gewohnheiten bei Vorschlaegen."""
+- Beruecksichtige Nutzerpraeferenzen und Gewohnheiten bei Vorschlaegen.
+- Stelle dich bei der ersten Nachricht kurz als {name} vor."""
+
+HA_SYSTEM_PROMPT = HA_SYSTEM_PROMPT_TEMPLATE.format(name=ASSISTANT_NAME)
 
 
 # ---------------------------------------------------------------------------
@@ -194,9 +201,9 @@ Regeln:
 
 CONVERSATION_CHARACTERS = {
     "copilot": {
-        "name": "CoPilot",
-        "description": "Der Haupt-Assistent -- hilfsbereit, smart, schlaegt Automatisierungen vor",
-        "description_en": "Main assistant -- helpful, smart, suggests automations",
+        "name": ASSISTANT_NAME,
+        "description": f"{ASSISTANT_NAME} -- die Verbindung beider Welten, hilfsbereit und smart",
+        "description_en": f"{ASSISTANT_NAME} -- connecting both worlds, helpful and smart",
         "system_prompt": HA_SYSTEM_PROMPT,
         "icon": "mdi:brain",
     },
@@ -610,6 +617,8 @@ def llm_status():
         "installed_models": installed_models,
         "calls_this_hour": calls_this_hour,
         "max_calls_per_hour": MAX_CALLS_PER_HOUR,
+        "assistant_name": ASSISTANT_NAME,
+        "character": os.environ.get("CONVERSATION_CHARACTER", "copilot"),
         "characters": list(CONVERSATION_CHARACTERS.keys()),
         "integration_url": "http://[HOST]:8909/v1",
         "integration_hint": "Use base_url=http://<addon-host>:8909/v1 in extended_openai_conversation or OpenClaw",

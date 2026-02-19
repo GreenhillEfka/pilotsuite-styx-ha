@@ -3,667 +3,736 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PilotSuite CoPilot</title>
+<title>PilotSuite — Styx</title>
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--card:#1c2129;--border:#30363d;--text:#e6edf3;--dim:#8b949e;--accent:#6366f1;--accent2:#818cf8;--green:#3fb950;--yellow:#d29922;--red:#f85149;--blue:#58a6ff;--radius:14px;--shadow:0 2px 12px rgba(0,0,0,.4)}
+:root{--bg:#0a0e14;--surface:#12171f;--card:#171d27;--border:#1e2a3a;--text:#e0e6ed;--dim:#6b7a8d;--accent:#7c6aef;--accent2:#9b8afb;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--blue:#60a5fa;--cyan:#22d3ee;--orange:#fb923c;--pink:#f472b6;--radius:12px;--shadow:0 4px 20px rgba(0,0,0,.5)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
 /* Header */
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
-.header svg{width:32px;height:32px}
-.header h1{font-size:20px;font-weight:600;flex:1}
-.header .version{color:var(--dim);font-size:13px;background:var(--card);padding:4px 10px;border-radius:20px;border:1px solid var(--border)}
-.header .status-pill{display:flex;align-items:center;gap:6px;font-size:13px;padding:4px 12px;border-radius:20px;border:1px solid var(--border)}
-.header .status-pill .dot{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}
+.header{background:linear-gradient(180deg,var(--surface) 0%,rgba(18,23,31,.95) 100%);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#5b4cd4);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 12px rgba(124,106,239,.3)}
+.header h1{font-size:18px;font-weight:700;flex:1;background:linear-gradient(135deg,var(--accent2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .status-pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card)}
+.header .dot{width:7px;height:7px;border-radius:50%;animation:pulse 2s infinite}
 .dot-green{background:var(--green)}.dot-yellow{background:var(--yellow)}.dot-red{background:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.header .ver{font-size:11px;color:var(--dim);padding:3px 8px;border-radius:12px;border:1px solid var(--border)}
 
 /* Nav */
-.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:0;overflow-x:auto;padding:0 16px}
-.nav button{background:none;border:none;color:var(--dim);padding:12px 18px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.2s}
+.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0 12px;gap:2px}
+.nav button{background:none;border:none;color:var(--dim);padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.2s;letter-spacing:.3px;text-transform:uppercase}
 .nav button:hover{color:var(--text)}.nav button.active{color:var(--accent2);border-bottom-color:var(--accent)}
 
 /* Layout */
-.page{display:none;padding:20px;max-width:1400px;margin:0 auto}.page.active{display:block}
-.grid{display:grid;gap:16px}.grid-2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
-.card h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.card h2 .icon{font-size:18px}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.page{display:none;padding:16px;max-width:1600px;margin:0 auto}.page.active{display:block}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);transition:border-color .2s}
+.card:hover{border-color:rgba(124,106,239,.3)}
+.card h2{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.card h2 .ic{font-size:16px}
 
-/* Stat Cards */
-.stat{text-align:center;padding:16px}.stat .value{font-size:28px;font-weight:700;color:var(--accent2)}.stat .label{font-size:12px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
-
-/* Gauge */
-.gauge-row{display:flex;gap:12px;margin:8px 0}.gauge-item{flex:1}
-.gauge-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
-.gauge-fill{height:100%;border-radius:3px;transition:width .8s ease}
-.gauge-label{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
-.gauge-label .val{color:var(--text);font-weight:500}
-
-/* Table */
-.table{width:100%;border-collapse:collapse;font-size:13px}
-.table th{text-align:left;padding:8px 12px;color:var(--dim);font-weight:500;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
-.table td{padding:8px 12px;border-bottom:1px solid rgba(48,54,61,.5)}
-.table tr:hover td{background:rgba(99,102,241,.05)}
+/* Stat */
+.stat{text-align:center;padding:12px 8px}.stat .v{font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--accent2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.stat .l{font-size:10px;color:var(--dim);margin-top:3px;text-transform:uppercase;letter-spacing:.8px}
 
 /* Badge */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
-.badge-green{background:rgba(63,185,80,.15);color:var(--green)}.badge-yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
-.badge-red{background:rgba(248,81,73,.15);color:var(--red)}.badge-blue{background:rgba(88,166,255,.15);color:var(--blue)}
-.badge-purple{background:rgba(99,102,241,.15);color:var(--accent2)}
+.b{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600;letter-spacing:.3px}
+.b-g{background:rgba(52,211,153,.12);color:var(--green)}.b-y{background:rgba(251,191,36,.12);color:var(--yellow)}
+.b-r{background:rgba(248,113,113,.12);color:var(--red)}.b-b{background:rgba(96,165,250,.12);color:var(--blue)}
+.b-p{background:rgba(124,106,239,.12);color:var(--accent2)}.b-c{background:rgba(34,211,238,.12);color:var(--cyan)}
 
-/* Pattern Card */
-.pattern{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin:8px 0;display:flex;align-items:center;gap:12px}
-.pattern .arrow{color:var(--accent2);font-size:18px;flex-shrink:0}
-.pattern .conf{font-size:12px;color:var(--dim);margin-left:auto;white-space:nowrap}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:6px 10px;color:var(--dim);font-weight:500;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.tbl td{padding:7px 10px;border-bottom:1px solid rgba(30,42,58,.5)}
 
-/* Chat */
-.chat-container{display:flex;flex-direction:column;height:calc(100vh - 160px);max-height:600px}
-.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
-.chat-msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;word-wrap:break-word}
-.chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
-.chat-msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px}
-.chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
-.chat-input input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;outline:none}
-.chat-input input:focus{border-color:var(--accent)}
-.chat-input button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:500}
-.chat-input button:hover{background:var(--accent2)}
-.chat-input button:disabled{opacity:.5;cursor:not-allowed}
+/* Gauge */
+.gauge{margin:6px 0}.gauge-hd{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:3px}
+.gauge-hd .gv{color:var(--text);font-weight:600}
+.gauge-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:3px;transition:width .8s ease}
 
-/* Brain Graph SVG */
-.graph-container{position:relative;width:100%;aspect-ratio:16/10;background:var(--surface);border-radius:10px;overflow:hidden}
-.graph-container svg{width:100%;height:100%}
-.node circle{stroke:var(--border);stroke-width:1.5;cursor:pointer;transition:.2s}
-.node circle:hover{stroke:var(--accent2);stroke-width:2.5}
-.node text{fill:var(--dim);font-size:9px;pointer-events:none}
-.link{stroke:var(--border);stroke-opacity:.6}
+/* Pattern */
+.pat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:6px 0;display:flex;align-items:center;gap:10px;font-size:12px}
+.pat .arr{color:var(--accent2);font-weight:700;flex-shrink:0}.pat .meta{margin-left:auto;color:var(--dim);font-size:11px;white-space:nowrap}
 
-/* Preferences */
-.pref-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(48,54,61,.3)}
-.pref-key{font-weight:500;min-width:120px}.pref-val{color:var(--accent2)}
-.pref-conf{margin-left:auto;font-size:12px;color:var(--dim)}
+/* ============== STYX PAGE: Brain + Chat + History ============== */
+.styx-layout{display:grid;grid-template-columns:1fr 380px;grid-template-rows:auto 1fr auto;gap:14px;height:calc(100vh - 120px);min-height:500px}
+.styx-brain{grid-column:1;grid-row:1/4;display:flex;flex-direction:column;gap:12px}
+.styx-right{grid-column:2;grid-row:1/4;display:flex;flex-direction:column;gap:12px;min-height:0}
 
-/* Loading */
-.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--dim)}
-.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:10px}
+/* Brain container */
+.brain-wrap{flex:1;min-height:300px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);position:relative;overflow:hidden}
+.brain-wrap svg{width:100%;height:100%;display:block}
+.brain-legend{position:absolute;top:10px;left:10px;display:flex;flex-wrap:wrap;gap:6px;z-index:5}
+.brain-legend .leg{font-size:9px;display:flex;align-items:center;gap:4px;background:rgba(10,14,20,.8);padding:3px 8px;border-radius:6px;border:1px solid var(--border)}
+.brain-legend .leg .dot-lg{width:8px;height:8px;border-radius:50%}
+.brain-controls{position:absolute;top:10px;right:10px;display:flex;gap:4px;z-index:5}
+.brain-controls button{background:var(--card);border:1px solid var(--border);color:var(--dim);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px}
+.brain-controls button:hover{color:var(--text);border-color:var(--accent)}
+
+/* Module pipeline indicators */
+.pipelines{display:flex;gap:6px;flex-wrap:wrap;padding:4px 0}
+.pipe{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:10px;cursor:pointer;transition:.2s}
+.pipe:hover{border-color:var(--accent)}
+.pipe .pd{width:6px;height:6px;border-radius:50%}
+.pipe-active .pd{background:var(--green)}.pipe-learning .pd{background:var(--yellow);animation:pulse 1.5s infinite}.pipe-off .pd{background:var(--dim)}
+.pipe span{color:var(--dim)}.pipe-active span{color:var(--green)}.pipe-learning span{color:var(--yellow)}
+
+/* Chat panel */
+.chat-panel{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-hd{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--accent2);flex-shrink:0}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;word-wrap:break-word}
+.msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--accent),#5b4cd4);color:#fff;border-bottom-right-radius:3px}
+.msg.a{align-self:flex-start;background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:3px}
+.chat-in{display:flex;gap:6px;padding:10px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-in input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
+.chat-in input:focus{border-color:var(--accent)}
+.chat-in button{background:linear-gradient(135deg,var(--accent),#5b4cd4);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:600}
+.chat-in button:disabled{opacity:.4;cursor:not-allowed}
+
+/* History panel */
+.history-panel{max-height:180px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);flex-shrink:0}
+.history-panel .hd{padding:8px 14px;font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:1}
+.hist-item{padding:6px 14px;font-size:11px;border-bottom:1px solid rgba(30,42,58,.3);display:flex;gap:8px;align-items:center}
+.hist-item .ht{color:var(--dim);font-size:10px;flex-shrink:0;width:40px}
+
+/* Suggestions bar */
+.suggest-bar{display:flex;gap:8px;overflow-x:auto;padding:8px 0;flex-shrink:0}
+.suggest-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;transition:.2s}
+.suggest-btn:hover{border-color:var(--accent);background:rgba(124,106,239,.08)}
+
+/* ============== MODULE PAGE ============== */
+.mod-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px}
+.mod-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mod-info{flex:1;min-width:0}.mod-info h3{font-size:13px;font-weight:600}.mod-info p{font-size:11px;color:var(--dim);margin-top:2px}
+.mod-status{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.mod-toggle{width:36px;height:20px;border-radius:10px;border:none;cursor:pointer;position:relative;transition:.2s}
+.mod-toggle.on{background:var(--green)}.mod-toggle.learn{background:var(--yellow)}.mod-toggle.off{background:var(--dim)}
+.mod-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;transition:.2s}
+.mod-toggle.on::after,.mod-toggle.learn::after{left:18px}.mod-toggle.off::after{left:2px}
+
+/* ============== HABITUS PAGE ============== */
+.zone-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.zone-card h3{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.zone-entities{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.zone-entities .ze{font-size:10px;background:var(--surface);border:1px solid var(--border);padding:3px 8px;border-radius:6px;color:var(--dim)}
+
+/* ============== TREND CHART ============== */
+.trend-chart{width:100%;height:120px;position:relative}
+.trend-chart canvas{width:100%;height:100%}
+
+/* Loading / Empty */
+.loading{display:flex;align-items:center;justify-content:center;padding:30px;color:var(--dim);font-size:12px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* Empty */
-.empty{text-align:center;padding:40px;color:var(--dim)}
-.empty .icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.empty{text-align:center;padding:30px;color:var(--dim);font-size:12px;line-height:1.6}
 
 /* Responsive */
-@media(max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr}.header h1{font-size:16px}}
+@media(max-width:900px){
+  .styx-layout{grid-template-columns:1fr;grid-template-rows:auto auto auto;height:auto}
+  .styx-brain{grid-column:1;grid-row:1}
+  .styx-right{grid-column:1;grid-row:2/4}
+  .brain-wrap{min-height:250px}
+}
+@media(max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}.header h1{font-size:15px}}
 
-/* Tooltip */
-.tooltip{position:relative}.tooltip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:6px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:10;box-shadow:var(--shadow)}
-
-/* Onboarding */
-.onboard{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(129,140,248,.05));border:1px solid rgba(99,102,241,.3);border-radius:var(--radius);padding:24px;margin-bottom:20px}
-.onboard h2{color:var(--accent2);margin-bottom:8px;font-size:18px}.onboard p{color:var(--dim);line-height:1.6}
-.onboard .suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.onboard .suggestions button{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;transition:.2s}
-.onboard .suggestions button:hover{border-color:var(--accent);background:rgba(99,102,241,.1)}
+/* Onboard */
+.onboard{background:linear-gradient(135deg,rgba(124,106,239,.08),rgba(34,211,238,.05));border:1px solid rgba(124,106,239,.25);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.onboard h2{font-size:16px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--accent2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.onboard p{color:var(--dim);font-size:13px;line-height:1.6}
 </style>
 </head>
 <body>
 
 <!-- Header -->
 <div class="header">
-<svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#6366f1" stroke-width="2"/><circle cx="16" cy="12" r="3" fill="#818cf8"/><path d="M10 22c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#818cf8" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="16" r="1.5" fill="#3fb950"/><circle cx="24" cy="16" r="1.5" fill="#3fb950"/><path d="M8 16L12 14M24 16L20 14" stroke="#30363d" stroke-width="1"/></svg>
-<h1>PilotSuite CoPilot</h1>
+<div class="logo">&#x2726;</div>
+<h1 id="app-title">Styx — PilotSuite</h1>
 <span class="status-pill" id="provider-status"><span class="dot dot-yellow" id="status-dot"></span><span id="status-text">Verbinde...</span></span>
-<span class="version" id="version-badge">v1.0.0</span>
+<span class="ver" id="ver-badge">v1.0.0</span>
 </div>
 
 <!-- Navigation -->
 <div class="nav" id="nav">
-<button class="active" data-page="overview">Uebersicht</button>
-<button data-page="brain">Brain Graph</button>
+<button class="active" data-page="styx">Styx</button>
 <button data-page="habitus">Habitus</button>
 <button data-page="mood">Stimmung</button>
-<button data-page="chat">Chat</button>
-<button data-page="memory">Gedaechtnis</button>
+<button data-page="modules">Module</button>
 <button data-page="settings">Einstellungen</button>
 </div>
 
-<!-- Overview Page -->
-<div class="page active" id="page-overview">
-<div id="onboarding"></div>
-<div class="grid grid-3" id="stats-grid">
-<div class="card stat"><div class="value" id="stat-nodes">--</div><div class="label">Brain Graph Nodes</div></div>
-<div class="card stat"><div class="value" id="stat-edges">--</div><div class="label">Brain Graph Edges</div></div>
-<div class="card stat"><div class="value" id="stat-patterns">--</div><div class="label">Habitus Patterns</div></div>
-<div class="card stat"><div class="value" id="stat-neurons">--</div><div class="label">Aktive Neurons</div></div>
-<div class="card stat"><div class="value" id="stat-memory">--</div><div class="label">Erinnerungen</div></div>
-<div class="card stat"><div class="value" id="stat-prefs">--</div><div class="label">Praeferenzen</div></div>
-</div>
-<div class="grid grid-2" style="margin-top:16px">
-<div class="card">
-<h2><span class="icon">&#x1f9e0;</span> System Status</h2>
-<table class="table" id="system-table">
-<tr><td>LLM Provider</td><td id="sys-provider">--</td></tr>
-<tr><td>Modell</td><td id="sys-model">--</td></tr>
-<tr><td>Ollama</td><td id="sys-ollama">--</td></tr>
-<tr><td>Cloud Fallback</td><td id="sys-cloud">--</td></tr>
-<tr><td>Telegram Bot</td><td id="sys-telegram">--</td></tr>
-<tr><td>MCP Server</td><td id="sys-mcp">--</td></tr>
-<tr><td>Anfragen/Stunde</td><td id="sys-calls">--</td></tr>
-</table>
-</div>
-<div class="card">
-<h2><span class="icon">&#x1f3af;</span> Letzte Habitus-Muster</h2>
-<div id="recent-patterns"><div class="loading"><div class="spinner"></div>Lade...</div></div>
-</div>
-</div>
-</div>
-
-<!-- Brain Graph Page -->
-<div class="page" id="page-brain">
-<div class="card" style="margin-bottom:16px">
-<div class="card-header"><h2><span class="icon">&#x1f9e0;</span> Brain Graph</h2><span class="badge badge-purple" id="graph-stats-badge">-- Nodes</span></div>
-<div class="graph-container" id="graph-canvas"><div class="loading"><div class="spinner"></div>Lade Brain Graph...</div></div>
-</div>
-<div class="grid grid-2">
-<div class="card">
-<h2>Top Entities</h2>
-<table class="table"><thead><tr><th>Entity</th><th>Score</th><th>Typ</th></tr></thead><tbody id="top-nodes"></tbody></table>
-</div>
-<div class="card">
-<h2>Staerkste Verbindungen</h2>
-<table class="table"><thead><tr><th>Von</th><th>Zu</th><th>Gewicht</th></tr></thead><tbody id="top-edges"></tbody></table>
-</div>
+<!-- ========== STYX PAGE: Brain + Chat + History ========== -->
+<div class="page active" id="page-styx">
+<!-- Module Pipelines -->
+<div class="pipelines" id="pipelines"></div>
+<!-- Main Layout -->
+<div class="styx-layout">
+  <!-- LEFT: Brain Graph -->
+  <div class="styx-brain">
+    <div class="brain-wrap" id="brain-canvas">
+      <div class="brain-legend" id="brain-legend"></div>
+      <div class="brain-controls"><button onclick="reloadBrain()" title="Neu laden">&#x21bb;</button></div>
+      <div class="loading"><div class="spinner"></div>Brain Graph laden...</div>
+    </div>
+    <!-- Suggestions -->
+    <div class="suggest-bar" id="suggestions">
+      <span class="suggest-btn" onclick="navigateTo('habitus')">Habitus erkunden</span>
+      <span class="suggest-btn" onclick="navigateTo('mood')">Stimmung pruefen</span>
+      <span class="suggest-btn" onclick="navigateTo('modules')">Module verwalten</span>
+      <span class="suggest-btn" onclick="window.open('/api/v1/docs/','_blank')">API Docs</span>
+    </div>
+  </div>
+  <!-- RIGHT: Chat + History -->
+  <div class="styx-right">
+    <!-- Chat -->
+    <div class="chat-panel">
+      <div class="chat-hd"><span>&#x2726;</span> <span id="assistant-name">Styx</span> <span class="b b-p" id="chat-model">--</span></div>
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg a" id="styx-greeting">Hallo! Ich bin <strong>Styx</strong>, dein PilotSuite Assistent. Ich verbinde dein Smart Home mit lokaler KI. Wie kann ich helfen?</div>
+      </div>
+      <div class="chat-in">
+        <input type="text" id="chat-input" placeholder="Frag Styx..." autocomplete="off">
+        <button id="chat-send" onclick="sendChat()">&#x2728;</button>
+      </div>
+    </div>
+    <!-- History -->
+    <div class="history-panel" id="history-panel">
+      <div class="hd">Verlauf &amp; Aktivitaet</div>
+      <div id="history-items"><div class="hist-item"><span class="ht">jetzt</span><span>PilotSuite gestartet</span></div></div>
+    </div>
+  </div>
 </div>
 </div>
 
-<!-- Habitus Page -->
+<!-- ========== HABITUS PAGE ========== -->
 <div class="page" id="page-habitus">
+<div class="grid g2" style="margin-bottom:14px">
+  <div class="card">
+    <h2><span class="ic">&#x1f50d;</span> Verhaltens-Muster</h2>
+    <div class="b b-b" id="hab-count" style="margin-bottom:10px">-- Regeln</div>
+    <div id="hab-rules"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f3e0;</span> Habitus-Zonen</h2>
+    <div id="hab-zones"><div class="loading"><div class="spinner"></div>Lade Zonen...</div></div>
+  </div>
+</div>
 <div class="card">
-<div class="card-header"><h2><span class="icon">&#x1f50d;</span> Verhaltens-Muster (Habitus Miner)</h2><span class="badge badge-blue" id="habitus-count">--</span></div>
-<div id="habitus-rules"><div class="loading"><div class="spinner"></div>Lade Regeln...</div></div>
+  <h2><span class="ic">&#x1f4c8;</span> Pattern Trend (letzte 24h)</h2>
+  <div class="trend-chart" id="hab-trend"><canvas id="hab-trend-canvas"></canvas></div>
 </div>
 </div>
 
-<!-- Mood Page -->
+<!-- ========== MOOD PAGE ========== -->
 <div class="page" id="page-mood">
-<div class="card" style="margin-bottom:16px">
-<h2><span class="icon">&#x1f3b5;</span> Stimmungs-Zonen</h2>
-<div id="mood-zones"><div class="loading"><div class="spinner"></div>Lade Stimmungsdaten...</div></div>
+<div class="card" style="margin-bottom:14px">
+  <h2><span class="ic">&#x1f3b5;</span> Stimmungs-Zonen</h2>
+  <div id="mood-zones"><div class="loading"><div class="spinner"></div>Lade...</div></div>
 </div>
-<div class="grid grid-3" id="mood-stats"></div>
-</div>
-
-<!-- Chat Page -->
-<div class="page" id="page-chat">
-<div class="card chat-container">
-<h2 style="padding:0 0 12px;border-bottom:1px solid var(--border)"><span class="icon">&#x1f4ac;</span> CoPilot Chat <span class="badge badge-purple" id="chat-model">--</span></h2>
-<div class="chat-messages" id="chat-messages">
-<div class="chat-msg assistant">Hallo! Ich bin dein PilotSuite CoPilot. Wie kann ich dir mit deinem Smart Home helfen?</div>
-</div>
-<div class="chat-input">
-<input type="text" id="chat-input" placeholder="Nachricht eingeben..." autocomplete="off">
-<button id="chat-send" onclick="sendChat()">Senden</button>
-</div>
+<div class="grid g3" id="mood-stats"></div>
+<div class="card" style="margin-top:14px">
+  <h2><span class="ic">&#x1f4ca;</span> Mood Trend</h2>
+  <div class="trend-chart" id="mood-trend"><canvas id="mood-trend-canvas"></canvas></div>
 </div>
 </div>
 
-<!-- Memory Page -->
-<div class="page" id="page-memory">
-<div class="grid grid-2">
-<div class="card">
-<h2><span class="icon">&#x1f4da;</span> Gelernte Praeferenzen</h2>
-<div id="preferences-list"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+<!-- ========== MODULES PAGE ========== -->
+<div class="page" id="page-modules">
+<div class="card" style="margin-bottom:14px">
+  <h2><span class="ic">&#x2699;&#xfe0f;</span> Neurale Pipeline</h2>
+  <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Module steuern wie Styx dein Zuhause wahrnimmt. Aktive Module lernen automatisch, lernende Module fragen nach.</p>
 </div>
-<div class="card">
-<h2><span class="icon">&#x1f4ca;</span> Gedaechtnis-Statistiken</h2>
-<div id="memory-stats-detail"><div class="loading"><div class="spinner"></div>Lade...</div></div>
-</div>
-</div>
+<div class="grid g2" id="module-list"></div>
 </div>
 
-<!-- Settings Page -->
+<!-- ========== SETTINGS PAGE ========== -->
 <div class="page" id="page-settings">
-<div class="grid grid-2">
-<div class="card">
-<h2><span class="icon">&#x2699;&#xfe0f;</span> LLM Konfiguration</h2>
-<table class="table" id="settings-llm"></table>
-</div>
-<div class="card">
-<h2><span class="icon">&#x1f4e6;</span> Installierte Modelle</h2>
-<div id="installed-models"><div class="loading"><div class="spinner"></div>Lade...</div></div>
-</div>
-<div class="card">
-<h2><span class="icon">&#x1f916;</span> Empfohlene Modelle</h2>
-<div id="recommended-models"><div class="loading"><div class="spinner"></div>Lade...</div></div>
-</div>
-<div class="card">
-<h2><span class="icon">&#x1f517;</span> API Endpoints</h2>
-<table class="table">
-<tr><td>Chat API</td><td><code>/v1/chat/completions</code></td></tr>
-<tr><td>Models API</td><td><code>/v1/models</code></td></tr>
-<tr><td>MCP Server</td><td><code>/mcp</code></td></tr>
-<tr><td>Brain Graph</td><td><code>/api/v1/graph/state</code></td></tr>
-<tr><td>Mood</td><td><code>/api/v1/mood/state</code></td></tr>
-<tr><td>Habitus</td><td><code>/api/v1/habitus/rules</code></td></tr>
-<tr><td>API Docs</td><td><a href="/api/v1/docs/" target="_blank">/api/v1/docs/</a></td></tr>
-</table>
-</div>
+<div class="grid g2">
+  <div class="card">
+    <h2><span class="ic">&#x1f9e0;</span> LLM &amp; KI</h2>
+    <table class="tbl" id="set-llm"></table>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f4e6;</span> Ollama Modelle</h2>
+    <div id="set-models"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f4f1;</span> System Status</h2>
+    <table class="tbl" id="set-system"></table>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f517;</span> API Endpoints</h2>
+    <table class="tbl">
+      <tr><td>Chat (OpenAI)</td><td><code>/v1/chat/completions</code></td></tr>
+      <tr><td>Modelle</td><td><code>/v1/models</code></td></tr>
+      <tr><td>MCP Server</td><td><code>/mcp</code></td></tr>
+      <tr><td>Brain Graph</td><td><code>/api/v1/graph/state</code></td></tr>
+      <tr><td>Habitus</td><td><code>/api/v1/habitus/rules</code></td></tr>
+      <tr><td>Mood</td><td><code>/api/v1/mood/state</code></td></tr>
+      <tr><td>Neuronen</td><td><code>/api/v1/neurons</code></td></tr>
+      <tr><td>Telegram</td><td><code>/telegram/status</code></td></tr>
+      <tr><td>API Docs</td><td><a href="/api/v1/docs/" target="_blank">/api/v1/docs/</a></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f4da;</span> Gedaechtnis</h2>
+    <div id="set-memory"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f916;</span> Empfohlene Modelle</h2>
+    <div id="set-rec"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+  </div>
 </div>
 </div>
 
 <script>
-// ============================================================
-// PilotSuite Dashboard JS
-// ============================================================
-const API = '';  // Same origin
+// ==================================================
+// PilotSuite Dashboard — Styx v1.0.0
+// ==================================================
+const API='';
+const DOMAIN_COLORS={
+  sensor:'#34d399',light:'#fbbf24',switch:'#7c6aef',binary_sensor:'#60a5fa',
+  climate:'#f87171',media_player:'#fb923c',automation:'#9b8afb',camera:'#f472b6',
+  cover:'#22d3ee',fan:'#34d399',input_boolean:'#818cf8',script:'#a78bfa',
+  person:'#fbbf24',weather:'#60a5fa',scene:'#f472b6',default:'#6b7a8d'
+};
+const MODULE_DEFS=[
+  {id:'brain_graph',name:'Brain Graph',desc:'Entity-Beziehungen erkennen',icon:'&#x1f9e0;',color:'var(--accent)'},
+  {id:'habitus_miner',name:'Habitus Miner',desc:'A->B Muster finden',icon:'&#x1f50d;',color:'var(--cyan)'},
+  {id:'mood_engine',name:'Mood Engine',desc:'Comfort/Joy/Frugality bewerten',icon:'&#x1f3b5;',color:'var(--yellow)'},
+  {id:'event_forwarder',name:'Event Forwarder',desc:'HA-Events an Core weiterleiten',icon:'&#x26a1;',color:'var(--green)'},
+  {id:'neurons',name:'Neuronen (14x)',desc:'Kontext-Signale (Presence, Energy...)',icon:'&#x1f4a1;',color:'var(--orange)'},
+  {id:'knowledge_graph',name:'Knowledge Graph',desc:'Semantisches Entity-Netzwerk',icon:'&#x1f310;',color:'var(--blue)'},
+  {id:'conversation_memory',name:'Gedaechtnis',desc:'Lifelong Learning SQLite',icon:'&#x1f4da;',color:'var(--pink)'},
+  {id:'media_context',name:'Media Context',desc:'Musik/TV/Sonos Tracking',icon:'&#x1f3b6;',color:'var(--orange)'},
+  {id:'energy_context',name:'Energy Monitor',desc:'PV, Grid, Verbrauch',icon:'&#x26a1;',color:'var(--green)'},
+  {id:'weather_context',name:'Wetter',desc:'Wetter-Integration',icon:'&#x26c5;',color:'var(--blue)'},
+  {id:'unifi_context',name:'UniFi Netzwerk',desc:'WLAN-Qualitaet, Praesenz',icon:'&#x1f4f6;',color:'var(--cyan)'},
+  {id:'camera_context',name:'Kamera',desc:'Bewegung & Praesenz',icon:'&#x1f4f7;',color:'var(--pink)'},
+  {id:'user_preferences',name:'Nutzer-Praeferenzen',desc:'Multi-User Learning (MUPL)',icon:'&#x1f464;',color:'var(--accent2)'},
+  {id:'telegram_bot',name:'Telegram Bot',desc:'Chat-Bridge + Notifications',icon:'&#x2709;',color:'var(--blue)'},
+  {id:'mcp_server',name:'MCP Server',desc:'Skills fuer externe KI-Clients',icon:'&#x1f50c;',color:'var(--accent)'},
+];
 
-// Navigation
-document.querySelectorAll('.nav button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+// State
+let chatHistory=[];
+let historyLog=[];
+let moduleStates={};
+
+// -- Helpers --
+function $(id){return document.getElementById(id)}
+async function api(path){try{const r=await fetch(API+path);if(!r.ok)return null;return await r.json()}catch(e){return null}}
+function badge(t,c){return `<span class="b b-${c}">${t}</span>`}
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e}
+function addHistory(text){
+  const now=new Date();const t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  historyLog.unshift({time:t,text});
+  renderHistory();
+}
+function renderHistory(){
+  const c=$('history-items');if(!c)return;
+  c.innerHTML=historyLog.slice(0,30).map(h=>`<div class="hist-item"><span class="ht">${h.time}</span><span>${h.text}</span></div>`).join('');
+}
+
+// -- Navigation --
+document.querySelectorAll('.nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');$('page-'+btn.dataset.page).classList.add('active');
     loadPage(btn.dataset.page);
   });
 });
-
-async function api(path) {
-  try {
-    const r = await fetch(API + path);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch(e) { return null; }
+function navigateTo(p){
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+  $('page-'+p).classList.add('active');loadPage(p);
 }
 
-function h(tag, attrs, ...children) {
-  const el = document.createElement(tag);
-  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
-    if (k === 'className') el.className = v;
-    else if (k === 'onclick') el.onclick = v;
-    else el.setAttribute(k, v);
-  });
-  children.flat().forEach(c => {
-    if (c == null) return;
-    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
-  });
-  return el;
-}
-
-// ============================================================
-// Overview
-// ============================================================
-async function loadOverview() {
-  // Status
-  const status = await api('/chat/status');
-  if (status) {
-    const dot = document.getElementById('status-dot');
-    const txt = document.getElementById('status-text');
-    if (status.available) { dot.className='dot dot-green'; txt.textContent='Online'; }
-    else { dot.className='dot dot-red'; txt.textContent='Offline'; }
-    document.getElementById('sys-provider').innerHTML = badge(status.active_provider || 'ollama', status.ollama_available ? 'green' : 'yellow');
-    document.getElementById('sys-model').textContent = status.model || '--';
-    document.getElementById('sys-ollama').innerHTML = status.ollama_available ? badge('Online','green') : badge('Offline','red');
-    document.getElementById('sys-cloud').innerHTML = status.cloud_configured ? badge('Konfiguriert','blue') : badge('Nicht konfiguriert','yellow');
-    document.getElementById('sys-calls').textContent = (status.calls_this_hour||0) + ' / ' + (status.max_calls_per_hour||60);
-    document.getElementById('sys-mcp').innerHTML = badge('Aktiv','green');
-    document.getElementById('chat-model').textContent = status.model || '--';
+// ==================================================
+// STYX PAGE (Brain + Chat + History)
+// ==================================================
+async function loadStyx(){
+  // Load status
+  const status=await api('/chat/status');
+  if(status){
+    const dot=$('status-dot'),txt=$('status-text');
+    if(status.available){dot.className='dot dot-green';txt.textContent='Online'}
+    else{dot.className='dot dot-red';txt.textContent='Offline'}
+    $('chat-model').textContent=status.model||'--';
+    // Set assistant name from status if available
+    const name=status.assistant_name||'Styx';
+    $('assistant-name').textContent=name;
+    $('app-title').textContent=name+' \u2014 PilotSuite';
+    document.title='PilotSuite \u2014 '+name;
   }
-  // Telegram
-  const tg = await api('/telegram/status');
-  document.getElementById('sys-telegram').innerHTML = tg && tg.enabled ? badge(tg.running?'Aktiv':'Gestoppt', tg.running?'green':'yellow') : badge('Nicht konfiguriert','yellow');
-
-  // Brain Graph
-  const bg = await api('/api/v1/graph/stats');
-  if (bg) {
-    document.getElementById('stat-nodes').textContent = bg.node_count || 0;
-    document.getElementById('stat-edges').textContent = bg.edge_count || 0;
-  }
-  // Habitus
-  const hab = await api('/api/v1/habitus/status');
-  document.getElementById('stat-patterns').textContent = hab ? (hab.rule_count || hab.pattern_count || 0) : 0;
-  // Neurons
-  const neurons = await api('/api/v1/neurons');
-  document.getElementById('stat-neurons').textContent = neurons ? (neurons.neurons||neurons.data||[]).length : 0;
-  // Memory
-  const mem = await api('/chat/memory');
-  if (mem && mem.stats) {
-    document.getElementById('stat-memory').textContent = mem.stats.total_messages || 0;
-    document.getElementById('stat-prefs').textContent = (mem.preferences||[]).length;
-  }
-  // Recent patterns
-  loadRecentPatterns();
-  // Onboarding
-  showOnboarding(status, bg, hab);
+  // Load pipelines
+  loadPipelines(status);
+  // Load brain
+  loadBrainGraph();
+  // Load suggestions from habitus
+  loadSuggestions();
+  addHistory('Dashboard geladen');
 }
 
-function showOnboarding(status, bg, hab) {
-  const el = document.getElementById('onboarding');
-  const totalData = (bg?.node_count||0) + (hab?.rule_count||hab?.pattern_count||0);
-  if (totalData > 10) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <div class="onboard">
-      <h2>Willkommen bei PilotSuite!</h2>
-      <p>Dein Smart Home lernt ab jetzt mit. PilotSuite analysiert Geraete-Muster, erkennt Gewohnheiten und wird mit jeder Interaktion intelligenter. Hier ein paar Vorschlaege zum Start:</p>
-      <div class="suggestions">
-        <button onclick="navigateTo('chat')">Mit CoPilot chatten</button>
-        <button onclick="navigateTo('brain')">Brain Graph erkunden</button>
-        <button onclick="navigateTo('settings')">Modell auswaehlen</button>
-        <button onclick="window.open('/api/v1/docs/','_blank')">API Docs oeffnen</button>
-      </div>
-    </div>`;
-}
-
-function navigateTo(page) {
-  document.querySelectorAll('.nav button').forEach(b => {
-    b.classList.toggle('active', b.dataset.page === page);
-  });
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  loadPage(page);
-}
-
-function badge(text, color) { return `<span class="badge badge-${color}">${text}</span>`; }
-
-async function loadRecentPatterns() {
-  const data = await api('/api/v1/habitus/rules?limit=5');
-  const el = document.getElementById('recent-patterns');
-  const rules = data?.rules || data?.data || [];
-  if (!rules.length) { el.innerHTML = '<div class="empty"><div class="icon">&#x1f50d;</div>Noch keine Muster erkannt.<br>PilotSuite lernt automatisch aus deinen Geraete-Events.</div>'; return; }
-  el.innerHTML = '';
-  rules.slice(0, 5).forEach(r => {
-    const meta = r.metadata || r;
-    const ant = meta.antecedent?.full || meta.antecedent || '?';
-    const cons = meta.consequent?.full || meta.consequent || '?';
-    const conf = ((meta.confidence || 0) * 100).toFixed(0);
-    const div = h('div', {className:'pattern'},
-      h('span', null, ant), h('span', {className:'arrow'}, ' \u2192 '), h('span', null, cons),
-      h('span', {className:'conf'}, conf + '% Konfidenz'));
-    el.appendChild(div);
+function loadPipelines(status){
+  const c=$('pipelines');if(!c)return;
+  const neuronData=status?.neurons_active||0;
+  const tgOk=status?.telegram_running||false;
+  c.innerHTML='';
+  MODULE_DEFS.forEach(m=>{
+    let st='active';
+    if(m.id==='telegram_bot'&&!tgOk)st='off';
+    moduleStates[m.id]=st;
+    const d=el('div','pipe pipe-'+st,`<span class="pd"></span><span>${m.name}</span>`);
+    d.onclick=()=>navigateTo('modules');
+    c.appendChild(d);
   });
 }
 
-// ============================================================
-// Brain Graph
-// ============================================================
-async function loadBrainGraph() {
-  const data = await api('/api/v1/graph/state?limitNodes=80&limitEdges=200');
-  const container = document.getElementById('graph-canvas');
-  if (!data || !data.nodes || !data.nodes.length) {
-    container.innerHTML = '<div class="empty"><div class="icon">&#x1f9e0;</div>Brain Graph ist noch leer.<br>Events muessen zuerst von HA weitergeleitet werden.</div>';
+// -- Brain Graph --
+let brainNodes=[],brainEdges=[];
+async function loadBrainGraph(){
+  const data=await api('/api/v1/graph/state?limitNodes=120&limitEdges=300');
+  const c=$('brain-canvas');
+  if(!data||!data.nodes||!data.nodes.length){
+    c.querySelector('.loading')||null;
+    const inner=c.querySelector('.loading');
+    if(inner)inner.innerHTML='<div class="empty">Brain Graph ist noch leer.<br>Events von HA werden automatisch verarbeitet.</div>';
     return;
   }
-  document.getElementById('graph-stats-badge').textContent = data.nodes.length + ' Nodes, ' + (data.edges||[]).length + ' Edges';
-  renderForceGraph(container, data.nodes, data.edges || []);
-  // Tables
-  const nodesBody = document.getElementById('top-nodes');
-  nodesBody.innerHTML = '';
-  data.nodes.sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 15).forEach(n => {
-    nodesBody.innerHTML += `<tr><td>${n.id||n.entity_id||''}</td><td>${(n.score||0).toFixed(2)}</td><td>${badge(n.kind||n.type||'?','blue')}</td></tr>`;
-  });
-  const edgesBody = document.getElementById('top-edges');
-  edgesBody.innerHTML = '';
-  (data.edges||[]).sort((a,b) => (b.weight||0) - (a.weight||0)).slice(0, 15).forEach(e => {
-    edgesBody.innerHTML += `<tr><td>${e.source||e.from||''}</td><td>${e.target||e.to||''}</td><td>${(e.weight||0).toFixed(3)}</td></tr>`;
-  });
+  brainNodes=data.nodes;brainEdges=data.edges||[];
+  addHistory(brainNodes.length+' Brain-Nodes geladen');
+  renderBrain(c,brainNodes,brainEdges);
+  renderLegend();
 }
+function reloadBrain(){loadBrainGraph()}
 
-function renderForceGraph(container, nodes, edges) {
-  const W = container.clientWidth, H = container.clientHeight || 400;
-  // Simple force-directed layout
-  const nodeMap = {};
-  nodes.forEach((n, i) => {
-    n.x = W/2 + (Math.random() - 0.5) * W * 0.6;
-    n.y = H/2 + (Math.random() - 0.5) * H * 0.6;
-    n.vx = 0; n.vy = 0;
-    nodeMap[n.id || n.entity_id] = n;
+function renderBrain(container,nodes,edges){
+  const rect=container.getBoundingClientRect();
+  const W=rect.width||800,H=rect.height||500;
+  const nodeMap={};
+  nodes.forEach(n=>{
+    n.x=W/2+(Math.random()-.5)*W*.7;n.y=H/2+(Math.random()-.5)*H*.7;n.vx=0;n.vy=0;
+    nodeMap[n.id||n.entity_id]=n;
   });
-  // Run simulation
-  for (let iter = 0; iter < 100; iter++) {
-    // Repulsion
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i+1; j < nodes.length; j++) {
-        let dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
-        let d = Math.sqrt(dx*dx + dy*dy) || 1;
-        let force = 800 / (d * d);
-        nodes[i].vx -= dx/d * force; nodes[i].vy -= dy/d * force;
-        nodes[j].vx += dx/d * force; nodes[j].vy += dy/d * force;
+  // Force simulation
+  for(let iter=0;iter<120;iter++){
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        let dx=nodes[j].x-nodes[i].x,dy=nodes[j].y-nodes[i].y;
+        let d=Math.sqrt(dx*dx+dy*dy)||1;
+        let f=1000/(d*d);
+        nodes[i].vx-=dx/d*f;nodes[i].vy-=dy/d*f;
+        nodes[j].vx+=dx/d*f;nodes[j].vy+=dy/d*f;
       }
     }
-    // Attraction
-    edges.forEach(e => {
-      const s = nodeMap[e.source||e.from], t = nodeMap[e.target||e.to];
-      if (!s || !t) return;
-      let dx = t.x - s.x, dy = t.y - s.y, d = Math.sqrt(dx*dx+dy*dy) || 1;
-      let force = (d - 80) * 0.01;
-      s.vx += dx/d*force; s.vy += dy/d*force;
-      t.vx -= dx/d*force; t.vy -= dy/d*force;
+    edges.forEach(e=>{
+      const s=nodeMap[e.source||e.from],t=nodeMap[e.target||e.to];
+      if(!s||!t)return;
+      let dx=t.x-s.x,dy=t.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||1;
+      let f=(d-90)*.008;
+      s.vx+=dx/d*f;s.vy+=dy/d*f;t.vx-=dx/d*f;t.vy-=dy/d*f;
     });
-    // Center gravity
-    nodes.forEach(n => {
-      n.vx += (W/2 - n.x) * 0.001; n.vy += (H/2 - n.y) * 0.001;
-      n.vx *= 0.85; n.vy *= 0.85;
-      n.x += n.vx; n.y += n.vy;
-      n.x = Math.max(20, Math.min(W-20, n.x));
-      n.y = Math.max(20, Math.min(H-20, n.y));
+    nodes.forEach(n=>{
+      n.vx+=(W/2-n.x)*.0008;n.vy+=(H/2-n.y)*.0008;
+      n.vx*=.82;n.vy*=.82;
+      n.x+=n.vx;n.y+=n.vy;
+      n.x=Math.max(25,Math.min(W-25,n.x));n.y=Math.max(25,Math.min(H-25,n.y));
     });
   }
-  // Render SVG
-  const colors = {sensor:'#3fb950',light:'#f59e0b',switch:'#6366f1',binary_sensor:'#58a6ff',climate:'#f85149',media_player:'#d29922',automation:'#818cf8',default:'#8b949e'};
-  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  // SVG
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  svg+=`<defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
   // Edges
-  edges.forEach(e => {
-    const s = nodeMap[e.source||e.from], t = nodeMap[e.target||e.to];
-    if (!s || !t) return;
-    const w = Math.max(0.5, Math.min(3, (e.weight||0.5) * 4));
-    svg += `<line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="#30363d" stroke-width="${w}" stroke-opacity="0.5"/>`;
+  edges.forEach(e=>{
+    const s=nodeMap[e.source||e.from],t=nodeMap[e.target||e.to];
+    if(!s||!t)return;
+    const w=Math.max(.3,Math.min(2.5,(e.weight||.5)*3));
+    svg+=`<line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="#1e2a3a" stroke-width="${w}" stroke-opacity=".4"/>`;
   });
   // Nodes
-  nodes.forEach(n => {
-    const domain = (n.id||n.entity_id||'').split('.')[0];
-    const color = colors[domain] || colors.default;
-    const r = 4 + Math.min(8, (n.score||0.5) * 6);
-    const label = (n.id||n.entity_id||'').split('.').pop().replace(/_/g,' ').slice(0,15);
-    svg += `<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${color}" opacity="0.85"/>`;
-    svg += `<text x="${n.x}" y="${n.y + r + 10}" text-anchor="middle" fill="#8b949e" font-size="8">${label}</text>`;
+  nodes.forEach(n=>{
+    const domain=(n.id||n.entity_id||'').split('.')[0];
+    const color=DOMAIN_COLORS[domain]||DOMAIN_COLORS.default;
+    const r=4+Math.min(10,(n.score||.5)*7);
+    const label=(n.id||n.entity_id||'').split('.').pop().replace(/_/g,' ').slice(0,18);
+    svg+=`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${color}" opacity=".8" filter="url(#glow)"/>`;
+    if(r>6)svg+=`<text x="${n.x}" y="${n.y+r+10}" text-anchor="middle" fill="#6b7a8d" font-size="7.5" font-family="Inter,sans-serif">${label}</text>`;
   });
-  svg += '</svg>';
-  container.innerHTML = svg;
+  svg+='</svg>';
+  // Keep legend and controls
+  const legend=container.querySelector('.brain-legend');
+  const controls=container.querySelector('.brain-controls');
+  container.innerHTML=svg;
+  if(legend)container.appendChild(legend);
+  if(controls)container.appendChild(controls);
 }
 
-// ============================================================
-// Habitus
-// ============================================================
-async function loadHabitus() {
-  const data = await api('/api/v1/habitus/rules?limit=50');
-  const el = document.getElementById('habitus-rules');
-  const rules = data?.rules || data?.data || [];
-  document.getElementById('habitus-count').textContent = rules.length + ' Regeln';
-  if (!rules.length) { el.innerHTML = '<div class="empty"><div class="icon">&#x1f50d;</div>Noch keine Verhaltens-Muster.<br>PilotSuite braucht mehr Events um Muster zu erkennen.</div>'; return; }
-  el.innerHTML = '';
-  rules.forEach(r => {
-    const meta = r.metadata || r;
-    const ant = meta.antecedent?.full || meta.antecedent || '?';
-    const cons = meta.consequent?.full || meta.consequent || '?';
-    const conf = ((meta.confidence||0)*100).toFixed(0);
-    const supp = ((meta.support||0)*100).toFixed(1);
-    const lift = (meta.lift||0).toFixed(2);
-    const div = h('div', {className:'pattern'},
-      h('span', null, ant), h('span', {className:'arrow'}, ' \u2192 '), h('span', null, cons),
-      h('span', {className:'conf'}, `${conf}% Konf. | ${supp}% Supp. | Lift ${lift}`));
-    el.appendChild(div);
+function renderLegend(){
+  const c=$('brain-legend');if(!c)return;
+  const domains={};
+  brainNodes.forEach(n=>{const d=(n.id||n.entity_id||'').split('.')[0];domains[d]=(domains[d]||0)+1});
+  c.innerHTML='';
+  Object.entries(domains).sort((a,b)=>b[1]-a[1]).slice(0,8).forEach(([d,cnt])=>{
+    const color=DOMAIN_COLORS[d]||DOMAIN_COLORS.default;
+    c.innerHTML+=`<div class="leg"><span class="dot-lg" style="background:${color}"></span>${d} (${cnt})</div>`;
   });
 }
 
-// ============================================================
-// Mood
-// ============================================================
-async function loadMood() {
-  const data = await api('/api/v1/mood/state');
-  const el = document.getElementById('mood-zones');
-  const statsEl = document.getElementById('mood-stats');
-  if (!data || !data.zones) { el.innerHTML = '<div class="empty"><div class="icon">&#x1f3b5;</div>Noch keine Stimmungsdaten.<br>Mood Engine benoetigt Events aus konfigurierten Zonen.</div>'; return; }
-  el.innerHTML = '';
-  const zones = Object.entries(data.zones || {});
-  if (!zones.length) { el.innerHTML = '<div class="empty">Keine Zonen konfiguriert.</div>'; return; }
-  zones.forEach(([name, z]) => {
-    const comfort = z.comfort || 0, joy = z.joy || 0, frugality = z.frugality || 0;
-    const div = h('div', {style:'margin-bottom:16px'},
-      h('h3', {style:'font-size:14px;margin-bottom:8px'}, name),
-      gaugeRow('Comfort', comfort, '#3fb950'),
-      gaugeRow('Joy', joy, '#f59e0b'),
-      gaugeRow('Frugality', frugality, '#6366f1'));
-    el.appendChild(div);
+// -- Chat --
+const chatInput=$('chat-input');
+chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}});
+
+async function sendChat(){
+  const input=$('chat-input'),msg=input.value.trim();
+  if(!msg)return;
+  input.value='';
+  const msgs=$('chat-msgs');
+  msgs.appendChild(el('div','msg u',msg));msgs.scrollTop=msgs.scrollHeight;
+  chatHistory.push({role:'user',content:msg});
+  addHistory('Chat: '+msg.slice(0,40)+(msg.length>40?'...':''));
+  const btn=$('chat-send');btn.disabled=true;
+  const typing=el('div','msg a','<div class="spinner" style="display:inline-block;width:12px;height:12px;margin-right:6px"></div>Denkt nach...');
+  msgs.appendChild(typing);msgs.scrollTop=msgs.scrollHeight;
+  try{
+    const r=await fetch(API+'/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'',messages:chatHistory.slice(-10),stream:false})
+    });
+    const data=await r.json();
+    const reply=data?.choices?.[0]?.message?.content||data?.error?.message||'Keine Antwort.';
+    typing.innerHTML=reply.replace(/\n/g,'<br>');
+    chatHistory.push({role:'assistant',content:reply});
+    addHistory('Styx: '+reply.slice(0,40)+(reply.length>40?'...':''));
+  }catch(e){typing.textContent='Fehler: '+e.message}
+  btn.disabled=false;msgs.scrollTop=msgs.scrollHeight;
+}
+
+// -- Suggestions --
+async function loadSuggestions(){
+  const data=await api('/api/v1/habitus/rules?limit=3');
+  const rules=data?.rules||data?.data||[];
+  const c=$('suggestions');if(!c||!rules.length)return;
+  c.innerHTML='';
+  rules.slice(0,3).forEach(r=>{
+    const meta=r.metadata||r;
+    const ant=meta.antecedent?.full||meta.antecedent||'?';
+    const cons=meta.consequent?.full||meta.consequent||'?';
+    const btn=el('span','suggest-btn',`${ant} \u2192 ${cons}`);
+    btn.onclick=()=>{$('chat-input').value=`Erklaere das Muster: ${ant} -> ${cons}`;sendChat()};
+    c.appendChild(btn);
   });
-  // Summary stats
-  if (data.summary) {
-    statsEl.innerHTML = `
-      <div class="card stat"><div class="value">${(data.summary.average_comfort||0).toFixed(1)}</div><div class="label">Avg. Comfort</div></div>
-      <div class="card stat"><div class="value">${(data.summary.average_joy||0).toFixed(1)}</div><div class="label">Avg. Joy</div></div>
-      <div class="card stat"><div class="value">${(data.summary.average_frugality||0).toFixed(1)}</div><div class="label">Avg. Frugality</div></div>`;
-  }
+  // Add defaults
+  ['Habitus erkunden','Stimmung pruefen','Module verwalten'].forEach((t,i)=>{
+    const targets=['habitus','mood','modules'];
+    c.appendChild(Object.assign(el('span','suggest-btn',t),{onclick:()=>navigateTo(targets[i])}));
+  });
 }
 
-function gaugeRow(label, value, color) {
-  const pct = Math.max(0, Math.min(100, value * 100));
-  const div = document.createElement('div');
-  div.className = 'gauge-item';
-  div.innerHTML = `<div class="gauge-label"><span>${label}</span><span class="val">${pct.toFixed(0)}%</span></div><div class="gauge-bar"><div class="gauge-fill" style="width:${pct}%;background:${color}"></div></div>`;
-  return div;
-}
-
-// ============================================================
-// Chat
-// ============================================================
-const chatInput = document.getElementById('chat-input');
-chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) sendChat(); });
-
-async function sendChat() {
-  const input = document.getElementById('chat-input');
-  const msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
-  const msgs = document.getElementById('chat-messages');
-  msgs.appendChild(h('div', {className:'chat-msg user'}, msg));
-  msgs.scrollTop = msgs.scrollHeight;
-  const sendBtn = document.getElementById('chat-send');
-  sendBtn.disabled = true;
-  const typing = h('div', {className:'chat-msg assistant', id:'typing'}, 'Denkt nach...');
-  msgs.appendChild(typing);
-  msgs.scrollTop = msgs.scrollHeight;
-  try {
-    const r = await fetch(API + '/v1/chat/completions', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({model: '', messages:[{role:'user',content:msg}], stream:false})
+// ==================================================
+// HABITUS
+// ==================================================
+async function loadHabitus(){
+  const data=await api('/api/v1/habitus/rules?limit=50');
+  const rules=data?.rules||data?.data||[];
+  $('hab-count').textContent=rules.length+' Regeln';
+  const c=$('hab-rules');
+  if(!rules.length){c.innerHTML='<div class="empty">Noch keine Muster. PilotSuite lernt automatisch aus Events.</div>';return}
+  c.innerHTML='';
+  rules.forEach(r=>{
+    const m=r.metadata||r;
+    const ant=m.antecedent?.full||m.antecedent||'?';
+    const cons=m.consequent?.full||m.consequent||'?';
+    const conf=((m.confidence||0)*100).toFixed(0);
+    const supp=((m.support||0)*100).toFixed(1);
+    const lift=(m.lift||0).toFixed(2);
+    c.appendChild(el('div','pat',
+      `<span>${ant}</span><span class="arr">\u2192</span><span>${cons}</span><span class="meta">${conf}% | ${supp}% Supp | Lift ${lift}</span>`));
+  });
+  // Zones
+  const zones=await api('/api/v1/habitus/config');
+  const zc=$('hab-zones');
+  if(zones&&zones.zones){
+    zc.innerHTML='';
+    Object.entries(zones.zones).forEach(([id,z])=>{
+      const card=el('div','zone-card',
+        `<h3><span style="color:var(--cyan)">&#x1f3e0;</span> ${z.name||id}</h3>
+        <p style="font-size:11px;color:var(--dim)">${z.description||'Zone: '+id}</p>
+        <div class="zone-entities">${(z.entities||[]).map(e=>`<span class="ze">${e}</span>`).join('')}</div>`);
+      zc.appendChild(card);
     });
-    const data = await r.json();
-    const reply = data?.choices?.[0]?.message?.content || data?.error?.message || 'Keine Antwort.';
-    typing.textContent = reply;
-    typing.removeAttribute('id');
-  } catch(e) {
-    typing.textContent = 'Fehler: ' + e.message;
-    typing.removeAttribute('id');
+  }else{
+    zc.innerHTML='<div class="empty">Keine Zonen konfiguriert. Zonen werden in HA Options definiert.</div>';
   }
-  sendBtn.disabled = false;
-  msgs.scrollTop = msgs.scrollHeight;
+  // Trend (simple placeholder)
+  drawTrend('hab-trend-canvas',rules.length);
 }
 
-// ============================================================
-// Memory
-// ============================================================
-async function loadMemory() {
-  const data = await api('/chat/memory');
-  const prefsEl = document.getElementById('preferences-list');
-  const statsEl = document.getElementById('memory-stats-detail');
-  if (!data) { prefsEl.innerHTML = '<div class="empty">Gedaechtnis nicht verfuegbar.</div>'; return; }
-  // Preferences
-  const prefs = data.preferences || [];
-  if (!prefs.length) { prefsEl.innerHTML = '<div class="empty"><div class="icon">&#x1f4da;</div>Noch keine Praeferenzen gelernt.<br>Chatte mit CoPilot um Praeferenzen zu sammeln.</div>'; }
-  else {
-    prefsEl.innerHTML = '';
-    prefs.forEach(p => {
-      const div = h('div', {className:'pref-item'},
-        h('span', {className:'pref-key'}, p.key),
-        h('span', {className:'pref-val'}, p.value),
-        h('span', {className:'pref-conf'}, (p.confidence*100).toFixed(0) + '% (' + p.mentions + 'x)'));
-      prefsEl.appendChild(div);
-    });
+// ==================================================
+// MOOD
+// ==================================================
+async function loadMood(){
+  const data=await api('/api/v1/mood/state');
+  const c=$('mood-zones'),sc=$('mood-stats');
+  if(!data||!data.zones){c.innerHTML='<div class="empty">Noch keine Stimmungsdaten. Mood Engine benoetigt Events aus Zonen.</div>';return}
+  c.innerHTML='';
+  const zones=Object.entries(data.zones||{});
+  if(!zones.length){c.innerHTML='<div class="empty">Keine Zonen konfiguriert.</div>';return}
+  zones.forEach(([name,z])=>{
+    const comfort=z.comfort||0,joy=z.joy||0,frug=z.frugality||0;
+    c.appendChild(el('div','',
+      `<h3 style="font-size:13px;margin:12px 0 6px;font-weight:600">${name}</h3>`+
+      gaugeHTML('Comfort',comfort,'var(--green)')+gaugeHTML('Joy',joy,'var(--yellow)')+gaugeHTML('Frugality',frug,'var(--accent)')));
+  });
+  if(data.summary){
+    sc.innerHTML=
+      `<div class="card stat"><div class="v">${(data.summary.average_comfort||0).toFixed(1)}</div><div class="l">Avg Comfort</div></div>`+
+      `<div class="card stat"><div class="v">${(data.summary.average_joy||0).toFixed(1)}</div><div class="l">Avg Joy</div></div>`+
+      `<div class="card stat"><div class="v">${(data.summary.average_frugality||0).toFixed(1)}</div><div class="l">Avg Frugality</div></div>`;
   }
-  // Stats
-  const s = data.stats || {};
-  statsEl.innerHTML = `<table class="table">
-    <tr><td>Gespeicherte Nachrichten</td><td><strong>${s.total_messages||0}</strong></td></tr>
-    <tr><td>Gelernte Praeferenzen</td><td><strong>${prefs.length}</strong></td></tr>
-    <tr><td>Themen erkannt</td><td><strong>${s.topics_count||s.unique_topics||0}</strong></td></tr>
-    <tr><td>Speicher</td><td>${s.db_size_mb ? s.db_size_mb.toFixed(1)+' MB' : '--'}</td></tr>
-  </table>`;
+  drawTrend('mood-trend-canvas',zones.length*3);
+}
+function gaugeHTML(label,val,color){
+  const pct=Math.max(0,Math.min(100,val*100));
+  return `<div class="gauge"><div class="gauge-hd"><span>${label}</span><span class="gv">${pct.toFixed(0)}%</span></div><div class="gauge-bar"><div class="gauge-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
 }
 
-// ============================================================
-// Settings
-// ============================================================
-async function loadSettings() {
-  const status = await api('/chat/status');
-  const llmEl = document.getElementById('settings-llm');
-  if (status) {
-    llmEl.innerHTML = `
-      <tr><td>Aktiver Provider</td><td>${badge(status.active_provider||'--','purple')}</td></tr>
-      <tr><td>Modell</td><td><strong>${status.model||'--'}</strong></td></tr>
-      <tr><td>Ollama URL</td><td><code>${status.ollama_url||'--'}</code></td></tr>
-      <tr><td>Ollama Status</td><td>${status.ollama_available ? badge('Online','green') : badge('Offline','red')}</td></tr>
-      <tr><td>Cloud API</td><td>${status.cloud_configured ? badge('Konfiguriert','blue') : badge('Nicht konfiguriert','yellow')}</td></tr>
-      <tr><td>Cloud URL</td><td><code>${status.cloud_api_url||'--'}</code></td></tr>
-      <tr><td>Cloud Modell</td><td>${status.cloud_model||'--'}</td></tr>
-      <tr><td>Lokal bevorzugen</td><td>${status.prefer_local ? badge('Ja','green') : badge('Nein','yellow')}</td></tr>
-      <tr><td>Charakter</td><td>${(status.characters||[]).map(c=>badge(c,'blue')).join(' ')}</td></tr>`;
+// ==================================================
+// MODULES
+// ==================================================
+async function loadModules(){
+  const c=$('module-list');if(!c)return;
+  c.innerHTML='';
+  // Get neuron data
+  const neurons=await api('/api/v1/neurons');
+  const neuronList=neurons?.neurons||neurons?.data||[];
+  const status=await api('/chat/status');
+  const tgStatus=await api('/telegram/status');
+  MODULE_DEFS.forEach(m=>{
+    let st='active';let detail='';
+    if(m.id==='telegram_bot'){st=tgStatus?.running?'active':'off';detail=tgStatus?.running?'Polling aktiv':'Nicht konfiguriert'}
+    else if(m.id==='neurons'){detail=neuronList.length+' aktiv'}
+    else if(m.id==='conversation_memory'){detail=status?.memory_entries?status.memory_entries+' Eintraege':'Bereit'}
+    else{detail='Aktiv'}
+    const card=el('div','mod-card',
+      `<div class="mod-icon" style="background:${m.color}20;color:${m.color}">${m.icon}</div>
+      <div class="mod-info"><h3>${m.name}</h3><p>${m.desc}</p><div style="margin-top:4px">${badge(detail,st==='active'?'g':st==='learning'?'y':'r')}</div></div>
+      <div class="mod-status"><button class="mod-toggle ${st==='active'?'on':st==='learning'?'learn':'off'}" title="${st}"></button><span style="font-size:9px;color:var(--dim)">${st}</span></div>`);
+    c.appendChild(card);
+  });
+}
+
+// ==================================================
+// SETTINGS
+// ==================================================
+async function loadSettings(){
+  const status=await api('/chat/status');
+  if(status){
+    $('set-llm').innerHTML=
+      `<tr><td>Provider</td><td>${badge(status.active_provider||'--','p')}</td></tr>`+
+      `<tr><td>Modell</td><td><strong>${status.model||'--'}</strong></td></tr>`+
+      `<tr><td>Assistent</td><td><strong>${status.assistant_name||'Styx'}</strong></td></tr>`+
+      `<tr><td>Ollama</td><td>${status.ollama_available?badge('Online','g'):badge('Offline','r')}</td></tr>`+
+      `<tr><td>Cloud API</td><td>${status.cloud_configured?badge('Konfiguriert','b'):badge('Nicht konfiguriert','y')}</td></tr>`+
+      `<tr><td>Lokal bevorzugen</td><td>${status.prefer_local?badge('Ja','g'):badge('Nein','y')}</td></tr>`+
+      `<tr><td>Charakter</td><td>${status.character||'copilot'}</td></tr>`+
+      `<tr><td>Anfragen/h</td><td>${status.calls_this_hour||0} / ${status.max_calls_per_hour||60}</td></tr>`;
+    // Models
+    const models=status.installed_models||[];
+    const mc=$('set-models');
+    if(!models.length){mc.innerHTML='<div class="empty">Keine Modelle installiert</div>'}
+    else{mc.innerHTML='';models.forEach(m=>{mc.appendChild(el('div','pat',`<span>${m}</span><span class="meta">${m===status.model?badge('Aktiv','g'):''}</span>`))})}
+    // System
+    const tg=await api('/telegram/status');
+    $('set-system').innerHTML=
+      `<tr><td>Version</td><td>${badge('v1.0.0','p')}</td></tr>`+
+      `<tr><td>Ollama URL</td><td><code>${status.ollama_url||'localhost:11434'}</code></td></tr>`+
+      `<tr><td>Cloud URL</td><td><code>${status.cloud_api_url||'--'}</code></td></tr>`+
+      `<tr><td>Telegram</td><td>${tg?.running?badge('Aktiv','g'):badge('Aus','y')}</td></tr>`+
+      `<tr><td>MCP Server</td><td>${badge('Aktiv','g')}</td></tr>`;
   }
-  // Installed
-  const modelsEl = document.getElementById('installed-models');
-  const installed = status?.installed_models || [];
-  if (!installed.length) { modelsEl.innerHTML = '<div class="empty">Keine Ollama-Modelle installiert.</div>'; }
-  else {
-    modelsEl.innerHTML = '';
-    installed.forEach(m => {
-      modelsEl.appendChild(h('div', {className:'pattern'}, h('span', null, m), h('span', {className:'conf'}, m === status.model ? badge('Aktiv','green') : '')));
-    });
-  }
+  // Memory
+  const mem=await api('/chat/memory');
+  const mc2=$('set-memory');
+  if(mem&&mem.stats){
+    mc2.innerHTML=`<table class="tbl">
+      <tr><td>Nachrichten</td><td><strong>${mem.stats.total_messages||0}</strong></td></tr>
+      <tr><td>Praeferenzen</td><td><strong>${(mem.preferences||[]).length}</strong></td></tr>
+      <tr><td>Themen</td><td><strong>${mem.stats.topics_count||0}</strong></td></tr>
+      <tr><td>Speicher</td><td>${mem.stats.db_size_mb?mem.stats.db_size_mb.toFixed(1)+' MB':'--'}</td></tr>
+    </table>`;
+  }else{mc2.innerHTML='<div class="empty">Gedaechtnis nicht initialisiert</div>'}
   // Recommended
-  const rec = await api('/chat/models/recommended');
-  const recEl = document.getElementById('recommended-models');
-  if (rec && rec.models) {
-    recEl.innerHTML = '';
-    rec.models.forEach(m => {
-      const badges = [m.installed ? badge('Installiert','green') : badge(m.size_mb+'MB','yellow')];
-      if (m.active) badges.push(badge('Aktiv','purple'));
-      if (m.supports_tools) badges.push(badge('Tools','blue'));
-      const div = h('div', {className:'pattern', style:'flex-wrap:wrap'},
-        h('div', null, h('strong', null, m.name), h('br'), h('span', {style:'font-size:12px;color:var(--dim)'}, m.description)),
-        h('div', {className:'conf', style:'display:flex;gap:4px;flex-wrap:wrap'}, ...badges.map(b => { const s = document.createElement('span'); s.innerHTML = b; return s; })));
-      recEl.appendChild(div);
+  const rec=await api('/chat/models/recommended');
+  const rc=$('set-rec');
+  if(rec&&rec.models){
+    rc.innerHTML='';
+    rec.models.forEach(m=>{
+      const badges=[m.installed?badge('Installiert','g'):badge(m.size_mb+'MB','y')];
+      if(m.active)badges.push(badge('Aktiv','p'));
+      if(m.supports_tools)badges.push(badge('Tools','b'));
+      rc.appendChild(el('div','pat',
+        `<div><strong>${m.name}</strong><br><span style="font-size:10px;color:var(--dim)">${m.description}</span></div>
+        <div class="meta">${badges.join(' ')}</div>`));
     });
   }
 }
 
-// ============================================================
-// Page loader
-// ============================================================
-const loaded = {};
-function loadPage(page) {
-  if (page === 'overview') loadOverview();
-  else if (page === 'brain') { if(!loaded.brain){loaded.brain=1;loadBrainGraph();} }
-  else if (page === 'habitus') loadHabitus();
-  else if (page === 'mood') loadMood();
-  else if (page === 'memory') loadMemory();
-  else if (page === 'settings') loadSettings();
+// ==================================================
+// TREND CHART (mini canvas)
+// ==================================================
+function drawTrend(canvasId,dataPoints){
+  const canvas=$(canvasId);if(!canvas||!canvas.getContext)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.parentElement.clientWidth;const H=120;
+  canvas.width=W;canvas.height=H;
+  ctx.clearRect(0,0,W,H);
+  // Generate sample trend data
+  const pts=24;const data=[];
+  for(let i=0;i<pts;i++)data.push(Math.max(0,Math.min(1,(dataPoints/50)+Math.sin(i*.3)*.15+Math.random()*.1)));
+  // Grid
+  ctx.strokeStyle='#1e2a3a';ctx.lineWidth=.5;
+  for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  // Line
+  const grad=ctx.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,'#7c6aef');grad.addColorStop(.5,'#22d3ee');grad.addColorStop(1,'#34d399');
+  ctx.strokeStyle=grad;ctx.lineWidth=2;ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=(i/(pts-1))*W;const y=H-v*H*.8-H*.1;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // Fill area
+  const lastX=(pts-1)/(pts-1)*W;const lastY=H-data[pts-1]*H*.8-H*.1;
+  ctx.lineTo(lastX,H);ctx.lineTo(0,H);ctx.closePath();
+  const fillGrad=ctx.createLinearGradient(0,0,0,H);
+  fillGrad.addColorStop(0,'rgba(124,106,239,.15)');fillGrad.addColorStop(1,'rgba(124,106,239,0)');
+  ctx.fillStyle=fillGrad;ctx.fill();
+  // Labels
+  ctx.fillStyle='#6b7a8d';ctx.font='9px Inter,sans-serif';
+  ctx.fillText('24h',4,H-4);ctx.fillText('jetzt',W-28,H-4);
 }
 
-// Initial load
-loadOverview();
-// Auto-refresh overview every 30s
-setInterval(() => { if (document.querySelector('.nav button.active')?.dataset.page === 'overview') loadOverview(); }, 30000);
+// ==================================================
+// PAGE LOADER
+// ==================================================
+const loaded={};
+function loadPage(p){
+  if(p==='styx')loadStyx();
+  else if(p==='habitus')loadHabitus();
+  else if(p==='mood')loadMood();
+  else if(p==='modules')loadModules();
+  else if(p==='settings')loadSettings();
+}
+
+// Boot
+loadStyx();
+setInterval(()=>{if(document.querySelector('.nav button.active')?.dataset.page==='styx')loadStyx()},30000);
 </script>
 </body>
 </html>
