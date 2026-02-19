@@ -86,7 +86,19 @@
           "mupl_enabled": "Multi-User Praeferenz-Lernen aktivieren",
           "mupl_privacy_mode": "MUPL Datenschutzmodus (standard/strict/anonymized)",
           "mupl_min_interactions": "MUPL Min. Interaktionen vor Lernen",
-          "mupl_retention_days": "MUPL Daten-Aufbewahrung (Tage)"
+          "mupl_retention_days": "MUPL Daten-Aufbewahrung (Tage)",
+          "waste_enabled": "Müll: Abfuhr-Erinnerungen aktivieren",
+          "waste_entities": "Müll: Sensor-Entities (CSV, leer = Autoerkennung)",
+          "waste_tts_enabled": "Müll: TTS-Ansagen aktivieren",
+          "waste_tts_entity": "Müll: TTS Media-Player Entity",
+          "waste_reminder_evening_hour": "Müll: Abend-Erinnerung Stunde (0-23)",
+          "waste_reminder_morning_hour": "Müll: Morgen-Erinnerung Stunde (0-23)",
+          "birthday_enabled": "Geburtstag: Erinnerungen aktivieren",
+          "birthday_calendar_entities": "Geburtstag: Kalender-Entities (CSV, leer = Autoerkennung)",
+          "birthday_lookahead_days": "Geburtstag: Vorschau-Tage",
+          "birthday_tts_enabled": "Geburtstag: TTS-Ansagen aktivieren",
+          "birthday_tts_entity": "Geburtstag: TTS Media-Player Entity",
+          "birthday_reminder_hour": "Geburtstag: Morgen-Erinnerung Stunde (0-23)"
         }
       },
       "habitus_zones": {
@@ -284,7 +296,19 @@
           "mupl_enabled": "Multi-User Praeferenz-Lernen aktivieren",
           "mupl_privacy_mode": "MUPL Datenschutzmodus (standard/strict/anonymized)",
           "mupl_min_interactions": "MUPL Min. Interaktionen vor Lernen",
-          "mupl_retention_days": "MUPL Daten-Aufbewahrung (Tage)"
+          "mupl_retention_days": "MUPL Daten-Aufbewahrung (Tage)",
+          "waste_enabled": "Müll: Abfuhr-Erinnerungen aktivieren",
+          "waste_entities": "Müll: Sensor-Entities (CSV, leer = Autoerkennung)",
+          "waste_tts_enabled": "Müll: TTS-Ansagen aktivieren",
+          "waste_tts_entity": "Müll: TTS Media-Player Entity",
+          "waste_reminder_evening_hour": "Müll: Abend-Erinnerung Stunde (0-23)",
+          "waste_reminder_morning_hour": "Müll: Morgen-Erinnerung Stunde (0-23)",
+          "birthday_enabled": "Geburtstag: Erinnerungen aktivieren",
+          "birthday_calendar_entities": "Geburtstag: Kalender-Entities (CSV, leer = Autoerkennung)",
+          "birthday_lookahead_days": "Geburtstag: Vorschau-Tage",
+          "birthday_tts_enabled": "Geburtstag: TTS-Ansagen aktivieren",
+          "birthday_tts_entity": "Geburtstag: TTS Media-Player Entity",
+          "birthday_reminder_hour": "Geburtstag: Morgen-Erinnerung Stunde (0-23)"
         }
       },
       "habitus_zones": {

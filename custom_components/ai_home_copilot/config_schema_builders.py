@@ -106,6 +106,30 @@ from .const import (
     DEFAULT_NEURON_CONTEXT_ENTITIES,
     DEFAULT_NEURON_STATE_ENTITIES,
     DEFAULT_NEURON_MOOD_ENTITIES,
+    CONF_WASTE_ENABLED,
+    CONF_WASTE_ENTITIES,
+    CONF_WASTE_TTS_ENABLED,
+    CONF_WASTE_TTS_ENTITY,
+    CONF_WASTE_REMINDER_EVENING_HOUR,
+    CONF_WASTE_REMINDER_MORNING_HOUR,
+    DEFAULT_WASTE_ENABLED,
+    DEFAULT_WASTE_ENTITIES,
+    DEFAULT_WASTE_TTS_ENABLED,
+    DEFAULT_WASTE_TTS_ENTITY,
+    DEFAULT_WASTE_REMINDER_EVENING_HOUR,
+    DEFAULT_WASTE_REMINDER_MORNING_HOUR,
+    CONF_BIRTHDAY_ENABLED,
+    CONF_BIRTHDAY_CALENDAR_ENTITIES,
+    CONF_BIRTHDAY_LOOKAHEAD_DAYS,
+    CONF_BIRTHDAY_TTS_ENABLED,
+    CONF_BIRTHDAY_TTS_ENTITY,
+    CONF_BIRTHDAY_REMINDER_HOUR,
+    DEFAULT_BIRTHDAY_ENABLED,
+    DEFAULT_BIRTHDAY_CALENDAR_ENTITIES,
+    DEFAULT_BIRTHDAY_LOOKAHEAD_DAYS,
+    DEFAULT_BIRTHDAY_TTS_ENABLED,
+    DEFAULT_BIRTHDAY_TTS_ENTITY,
+    DEFAULT_BIRTHDAY_REMINDER_HOUR,
 )
 
 
@@ -359,6 +383,66 @@ def build_neuron_schema(data: dict) -> dict:
     }
 
 
+def build_waste_schema(data: dict) -> dict:
+    """Build schema fields for waste collection reminder settings."""
+    return {
+        vol.Optional(
+            CONF_WASTE_ENABLED,
+            default=data.get(CONF_WASTE_ENABLED, DEFAULT_WASTE_ENABLED),
+        ): bool,
+        vol.Optional(
+            CONF_WASTE_ENTITIES,
+            default=as_csv(data.get(CONF_WASTE_ENTITIES, DEFAULT_WASTE_ENTITIES)),
+        ): str,
+        vol.Optional(
+            CONF_WASTE_TTS_ENABLED,
+            default=data.get(CONF_WASTE_TTS_ENABLED, DEFAULT_WASTE_TTS_ENABLED),
+        ): bool,
+        vol.Optional(
+            CONF_WASTE_TTS_ENTITY,
+            default=data.get(CONF_WASTE_TTS_ENTITY, DEFAULT_WASTE_TTS_ENTITY),
+        ): str,
+        vol.Optional(
+            CONF_WASTE_REMINDER_EVENING_HOUR,
+            default=data.get(CONF_WASTE_REMINDER_EVENING_HOUR, DEFAULT_WASTE_REMINDER_EVENING_HOUR),
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=23)),
+        vol.Optional(
+            CONF_WASTE_REMINDER_MORNING_HOUR,
+            default=data.get(CONF_WASTE_REMINDER_MORNING_HOUR, DEFAULT_WASTE_REMINDER_MORNING_HOUR),
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=23)),
+    }
+
+
+def build_birthday_schema(data: dict) -> dict:
+    """Build schema fields for birthday reminder settings."""
+    return {
+        vol.Optional(
+            CONF_BIRTHDAY_ENABLED,
+            default=data.get(CONF_BIRTHDAY_ENABLED, DEFAULT_BIRTHDAY_ENABLED),
+        ): bool,
+        vol.Optional(
+            CONF_BIRTHDAY_CALENDAR_ENTITIES,
+            default=as_csv(data.get(CONF_BIRTHDAY_CALENDAR_ENTITIES, DEFAULT_BIRTHDAY_CALENDAR_ENTITIES)),
+        ): str,
+        vol.Optional(
+            CONF_BIRTHDAY_LOOKAHEAD_DAYS,
+            default=data.get(CONF_BIRTHDAY_LOOKAHEAD_DAYS, DEFAULT_BIRTHDAY_LOOKAHEAD_DAYS),
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+        vol.Optional(
+            CONF_BIRTHDAY_TTS_ENABLED,
+            default=data.get(CONF_BIRTHDAY_TTS_ENABLED, DEFAULT_BIRTHDAY_TTS_ENABLED),
+        ): bool,
+        vol.Optional(
+            CONF_BIRTHDAY_TTS_ENTITY,
+            default=data.get(CONF_BIRTHDAY_TTS_ENTITY, DEFAULT_BIRTHDAY_TTS_ENTITY),
+        ): str,
+        vol.Optional(
+            CONF_BIRTHDAY_REMINDER_HOUR,
+            default=data.get(CONF_BIRTHDAY_REMINDER_HOUR, DEFAULT_BIRTHDAY_REMINDER_HOUR),
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=23)),
+    }
+
+
 def build_settings_schema(data: dict, webhook_url: str, token_hint: str) -> vol.Schema:
     """Build the complete settings schema from all builder functions."""
     fields: dict = {}
@@ -371,4 +455,6 @@ def build_settings_schema(data: dict, webhook_url: str, token_hint: str) -> vol.
     fields.update(build_ha_errors_schema(data))
     fields.update(build_devlog_schema(data))
     fields.update(build_user_prefs_schema(data))
+    fields.update(build_waste_schema(data))
+    fields.update(build_birthday_schema(data))
     return vol.Schema(fields)

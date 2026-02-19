@@ -86,7 +86,19 @@
           "mupl_enabled": "Enable Multi-User Preference Learning",
           "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
           "mupl_min_interactions": "MUPL min interactions before learning",
-          "mupl_retention_days": "MUPL data retention (days)"
+          "mupl_retention_days": "MUPL data retention (days)",
+          "waste_enabled": "Waste: enable waste collection reminders",
+          "waste_entities": "Waste: sensor entities (csv, auto-detect if empty)",
+          "waste_tts_enabled": "Waste: enable TTS announcements",
+          "waste_tts_entity": "Waste: TTS media player entity",
+          "waste_reminder_evening_hour": "Waste: evening reminder hour (0-23)",
+          "waste_reminder_morning_hour": "Waste: morning reminder hour (0-23)",
+          "birthday_enabled": "Birthday: enable birthday reminders",
+          "birthday_calendar_entities": "Birthday: calendar entities (csv, auto-detect if empty)",
+          "birthday_lookahead_days": "Birthday: lookahead days",
+          "birthday_tts_enabled": "Birthday: enable TTS announcements",
+          "birthday_tts_entity": "Birthday: TTS media player entity",
+          "birthday_reminder_hour": "Birthday: morning reminder hour (0-23)"
         }
       },
       "habitus_zones": {
@@ -284,7 +296,19 @@
           "mupl_enabled": "Enable Multi-User Preference Learning",
           "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
           "mupl_min_interactions": "MUPL min interactions before learning",
-          "mupl_retention_days": "MUPL data retention (days)"
+          "mupl_retention_days": "MUPL data retention (days)",
+          "waste_enabled": "Waste: enable waste collection reminders",
+          "waste_entities": "Waste: sensor entities (csv, auto-detect if empty)",
+          "waste_tts_enabled": "Waste: enable TTS announcements",
+          "waste_tts_entity": "Waste: TTS media player entity",
+          "waste_reminder_evening_hour": "Waste: evening reminder hour (0-23)",
+          "waste_reminder_morning_hour": "Waste: morning reminder hour (0-23)",
+          "birthday_enabled": "Birthday: enable birthday reminders",
+          "birthday_calendar_entities": "Birthday: calendar entities (csv, auto-detect if empty)",
+          "birthday_lookahead_days": "Birthday: lookahead days",
+          "birthday_tts_enabled": "Birthday: enable TTS announcements",
+          "birthday_tts_entity": "Birthday: TTS media player entity",
+          "birthday_reminder_hour": "Birthday: morning reminder hour (0-23)"
         }
       },
       "habitus_zones": {
