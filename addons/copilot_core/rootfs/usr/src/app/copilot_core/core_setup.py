@@ -38,6 +38,8 @@ from copilot_core.webhook_pusher import WebhookPusher
 from copilot_core.household import HouseholdProfile
 from copilot_core.neurons.manager import NeuronManager
 from copilot_core.telegram import TelegramBot
+from copilot_core.module_registry import ModuleRegistry
+from copilot_core.automation_creator import AutomationCreator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,6 +83,8 @@ def init_services(hass=None, config: dict = None):
         "neuron_manager": None,
         "conversation_memory": None,
         "telegram_bot": None,
+        "module_registry": None,
+        "automation_creator": None,
     }
 
     # Initialize system health service (requires hass)
@@ -238,6 +242,22 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to set conversation env vars")
 
+    # Initialize Module Registry (v1.3.0 — persistent module state control)
+    try:
+        module_registry = ModuleRegistry()
+        services["module_registry"] = module_registry
+        _LOGGER.info("ModuleRegistry initialized (SQLite persistence)")
+    except Exception:
+        _LOGGER.exception("Failed to init ModuleRegistry")
+
+    # Initialize Automation Creator (v1.3.0 — create HA automations from suggestions)
+    try:
+        automation_creator = AutomationCreator()
+        services["automation_creator"] = automation_creator
+        _LOGGER.info("AutomationCreator initialized")
+    except Exception:
+        _LOGGER.exception("Failed to init AutomationCreator")
+
     # Initialize Telegram Bot (requires conversation to be configured)
     try:
         tg_config = config.get("telegram", {}) if config else {}
@@ -304,6 +324,40 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     if services and services.get("telegram_bot"):
         init_telegram_api(services["telegram_bot"])
     app.register_blueprint(telegram_bp)
+
+    # Register Module Control API (v1.3.0)
+    from copilot_core.api.v1.module_control import module_control_bp, init_module_control_api
+    if services and services.get("module_registry"):
+        init_module_control_api(services["module_registry"])
+    app.register_blueprint(module_control_bp)
+
+    # Register Automation API (v1.3.0)
+    from copilot_core.api.v1.automation_api import automation_bp, init_automation_api
+    if services and services.get("automation_creator"):
+        init_automation_api(services["automation_creator"])
+    app.register_blueprint(automation_bp)
+
+    # Register Explainability API (v2.1.0)
+    try:
+        from copilot_core.api.v1.explain import explain_bp, init_explain_api
+        from copilot_core.explainability import ExplainabilityEngine
+        engine = ExplainabilityEngine(
+            brain_graph_service=services.get("brain_graph_service") if services else None
+        )
+        init_explain_api(engine)
+        app.register_blueprint(explain_bp)
+    except Exception:
+        _LOGGER.exception("Failed to register Explainability API")
+
+    # Register Prediction API (v2.2.0)
+    try:
+        from copilot_core.prediction.api import prediction_bp, init_prediction_api
+        from copilot_core.prediction.forecaster import ArrivalForecaster
+        from copilot_core.prediction.energy_optimizer import EnergyOptimizer
+        init_prediction_api(ArrivalForecaster(), EnergyOptimizer())
+        app.register_blueprint(prediction_bp)
+    except Exception:
+        _LOGGER.exception("Failed to register Prediction API")
 
     # Register PilotSuite MCP Server (expose skills to external AI clients)
     from copilot_core.mcp_server import mcp_bp
