@@ -67,13 +67,15 @@ class AutomationCreator:
     def create_from_suggestion(self, suggestion: dict) -> dict:
         """Convert a suggestion dict into a real HA automation.
 
-        Expected *suggestion* keys::
+        Accepts either natural-language or pre-parsed structured data::
 
-            {
-                "antecedent": "When the sun sets",
-                "consequent": "Turn on living room lights",
-                "alias":      "Sunset lights"           # optional
-            }
+            # Natural language (regex-parsed):
+            {"antecedent": "When the sun sets", "consequent": "Turn on light.living_room"}
+
+            # Pre-parsed (from LLM tool call, bypasses regex):
+            {"alias": "Sunset lights",
+             "trigger": [{"platform": "sun", "event": "sunset"}],
+             "action":  [{"service": "light.turn_on", "target": {"entity_id": "light.living_room"}}]}
 
         Returns a result dict with ``ok: True/False`` and details.
         """
@@ -83,31 +85,45 @@ class AutomationCreator:
                 "error": "No SUPERVISOR_TOKEN -- HA automation API unavailable",
             }
 
-        antecedent = (suggestion.get("antecedent") or "").strip()
-        consequent = (suggestion.get("consequent") or "").strip()
+        # Path 1: Pre-parsed structured trigger/action (from LLM tool calls)
+        if suggestion.get("trigger") and suggestion.get("action"):
+            trigger = suggestion["trigger"]
+            if not isinstance(trigger, list):
+                trigger = [trigger]
+            action = suggestion["action"]
+            if not isinstance(action, list):
+                action = [action]
+            alias = suggestion.get("alias", "PilotSuite Automation")
+            antecedent = suggestion.get("antecedent", alias)
+            consequent = suggestion.get("consequent", alias)
+        else:
+            # Path 2: Natural language (regex-parsed)
+            antecedent = (suggestion.get("antecedent") or "").strip()
+            consequent = (suggestion.get("consequent") or "").strip()
 
-        if not antecedent or not consequent:
-            return {
-                "ok": False,
-                "error": "Both 'antecedent' and 'consequent' are required",
-            }
+            if not antecedent or not consequent:
+                return {
+                    "ok": False,
+                    "error": "Both 'antecedent' and 'consequent' are required",
+                }
+
+            alias = (
+                suggestion.get("alias")
+                or f"PilotSuite: {antecedent[:40]} -> {consequent[:40]}"
+            )
+
+            try:
+                trigger = self._build_trigger(antecedent)
+            except ValueError as exc:
+                return {"ok": False, "error": f"Cannot parse trigger: {exc}"}
+
+            try:
+                action = self._build_action(consequent)
+            except ValueError as exc:
+                return {"ok": False, "error": f"Cannot parse action: {exc}"}
 
         # Build HA automation config
-        alias = (
-            suggestion.get("alias")
-            or f"PilotSuite: {antecedent[:40]} -> {consequent[:40]}"
-        )
         automation_id = f"styx_{uuid.uuid4().hex[:12]}"
-
-        try:
-            trigger = self._build_trigger(antecedent)
-        except ValueError as exc:
-            return {"ok": False, "error": f"Cannot parse trigger: {exc}"}
-
-        try:
-            action = self._build_action(consequent)
-        except ValueError as exc:
-            return {"ok": False, "error": f"Cannot parse action: {exc}"}
 
         config = {
             "id": automation_id,

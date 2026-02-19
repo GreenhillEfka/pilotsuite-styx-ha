@@ -19,10 +19,18 @@ def init_hints_service(service: UserHintsService) -> None:
 
 
 def get_hints_service() -> UserHintsService:
-    """Get the hints service."""
+    """Get the hints service, auto-wiring AutomationCreator if available."""
     global _hints_service
     if _hints_service is None:
-        _hints_service = UserHintsService()
+        # Try to get AutomationCreator from Flask app context
+        automation_creator = None
+        try:
+            from flask import current_app
+            services = current_app.config.get("COPILOT_SERVICES", {})
+            automation_creator = services.get("automation_creator")
+        except Exception:
+            pass
+        _hints_service = UserHintsService(automation_creator=automation_creator)
     return _hints_service
 
 

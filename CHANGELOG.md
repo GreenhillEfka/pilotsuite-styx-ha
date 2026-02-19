@@ -1,5 +1,27 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.0.1] - 2026-02-19
+
+### Natural Language Automation Creation -- End-to-End Pipeline Fix
+
+- **Neues LLM Tool `pilotsuite.create_automation`**: Der LLM kann jetzt echte
+  HA-Automationen erstellen wenn der User z.B. sagt "Wenn die Kaffeemaschine
+  einschaltet, soll die Kaffeemuehle sich synchronisieren". Der LLM parsed die
+  natuerliche Sprache in strukturierte Trigger/Action-Daten und erstellt die
+  Automation via Supervisor API.
+- **Neues LLM Tool `pilotsuite.list_automations`**: Erstellte Automationen auflisten.
+- **UserHintsService komplett**: `accept_suggestion()` und `reject_suggestion()`
+  implementiert mit AutomationCreator-Bridge. Akzeptierte Suggestions erstellen
+  jetzt echte HA-Automationen.
+- **HintData Model**: `to_dict()` und `to_automation()` Methoden hinzugefuegt.
+- **AutomationCreator erweitert**: Akzeptiert jetzt auch strukturierte
+  Trigger/Action-Dicts (nicht nur Regex-parsbare Strings).
+- **System Prompt aktualisiert**: LLM weiss jetzt ueber seine
+  Automations-Erstellungs-Faehigkeit.
+
+Dateien: `mcp_tools.py`, `api/v1/conversation.py`, `api/v1/service.py`,
+`api/v1/models.py`, `api/v1/user_hints.py`, `automation_creator.py`
+
 ## [3.0.0] - 2026-02-19
 
 ### Kollektive Intelligenz — Cross-Home Learning

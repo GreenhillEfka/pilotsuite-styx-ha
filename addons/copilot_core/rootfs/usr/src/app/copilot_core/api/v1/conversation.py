@@ -182,6 +182,15 @@ Du bist Teil der PilotSuite Neural Pipeline:
 - 14+ Neurons liefern Kontext (Energy, Weather, Presence, UniFi, Camera, Media...)
 - Conversation Memory speichert dein Langzeitgedaechtnis
 
+Faehigkeiten:
+- Du kannst Geraete steuern (Lichter, Schalter, Klima, Szenen, etc.)
+- Du kannst AUTOMATIONEN ERSTELLEN wenn der User z.B. sagt:
+  "Wenn die Kaffeemaschine einschaltet, schalte die Kaffeemuehle ein"
+  Nutze dafuer das pilotsuite.create_automation Tool mit strukturierten Triggern und Aktionen.
+  Frage den User nach der genauen Entity-ID wenn noetig (z.B. switch.coffee_machine).
+- Du kannst erstellte Automationen auflisten (pilotsuite.list_automations)
+- Du kannst Entity-Zustaende abfragen, Historie einsehen, Wetter vorhersagen, etc.
+
 Regeln:
 - Du SCHLAEGST VOR, du FUEHRST NICHT AUS ohne Bestaetigung.
 - Du erklaerst WARUM, nicht nur WAS.
@@ -884,12 +893,137 @@ def _execute_ha_tool(name: str, arguments: dict) -> dict:
             )
             return resp.json() if resp.ok else {"error": resp.text[:200]}
 
+        elif name == "pilotsuite.create_automation":
+            return _execute_create_automation(arguments)
+
+        elif name == "pilotsuite.list_automations":
+            return _execute_list_automations()
+
         else:
             return {"error": f"Unknown tool: {name}"}
 
     except Exception as exc:
         logger.warning("Tool execution failed (%s): %s", name, exc)
         return {"error": str(exc)}
+
+
+def _execute_create_automation(args: dict) -> dict:
+    """Create a HA automation from structured LLM tool call arguments.
+
+    This bridges the conversation pipeline to the AutomationCreator,
+    allowing users to say things like:
+      "When the coffee machine turns on, sync the coffee grinder"
+    and have it create a real HA automation.
+    """
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        creator = services.get("automation_creator")
+    except Exception:
+        creator = None
+
+    # Build structured trigger/action for AutomationCreator
+    alias = args.get("alias", "PilotSuite Automation")
+    trigger_type = args.get("trigger_type", "state")
+
+    # Build trigger dict directly (bypassing regex parsing)
+    trigger = None
+    if trigger_type == "state":
+        entity = args.get("trigger_entity")
+        if not entity:
+            return {"error": "trigger_entity is required for state triggers"}
+        trigger = {"platform": "state", "entity_id": entity}
+        if args.get("trigger_to"):
+            trigger["to"] = args["trigger_to"]
+        if args.get("trigger_from"):
+            trigger["from"] = args["trigger_from"]
+    elif trigger_type == "time":
+        t = args.get("trigger_time")
+        if not t:
+            return {"error": "trigger_time is required for time triggers (HH:MM:SS)"}
+        trigger = {"platform": "time", "at": t}
+    elif trigger_type == "sun":
+        event = args.get("trigger_sun_event", "sunset")
+        trigger = {"platform": "sun", "event": event}
+        if args.get("trigger_sun_offset"):
+            trigger["offset"] = args["trigger_sun_offset"]
+    else:
+        return {"error": f"Unknown trigger_type: {trigger_type}"}
+
+    # Build action dict
+    action_service = args.get("action_service", "")
+    action_entity = args.get("action_entity", "")
+    if not action_service or not action_entity:
+        return {"error": "action_service and action_entity are required"}
+
+    action = {"service": action_service, "target": {"entity_id": action_entity}}
+    if args.get("action_data"):
+        action["data"] = args["action_data"]
+
+    # Post directly to HA Supervisor API (structured, no regex needed)
+    ha_url = os.environ.get("SUPERVISOR_API", "http://supervisor/core/api")
+    ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
+
+    if not ha_token:
+        return {"error": "No SUPERVISOR_TOKEN -- cannot create automations outside HA add-on"}
+
+    import uuid
+    automation_id = f"styx_{uuid.uuid4().hex[:12]}"
+    config = {
+        "id": automation_id,
+        "alias": alias,
+        "description": f"Created by PilotSuite Styx via conversation.",
+        "trigger": [trigger],
+        "action": [action],
+        "mode": "single",
+        "tags": ["pilotsuite_styx"],
+    }
+
+    headers = {"Authorization": f"Bearer {ha_token}", "Content-Type": "application/json"}
+    try:
+        resp = http_requests.post(
+            f"{ha_url}/config/automation/config/{automation_id}",
+            json=config, headers=headers, timeout=15,
+        )
+        if resp.ok:
+            # Also record in AutomationCreator if available
+            if creator:
+                try:
+                    creator._created.append({
+                        "automation_id": automation_id,
+                        "alias": alias,
+                        "created_at": time.time(),
+                        "antecedent": json.dumps(trigger),
+                        "consequent": json.dumps(action),
+                    })
+                except Exception:
+                    pass
+
+            logger.info("Automation created via conversation: %s (%s)", automation_id, alias)
+            return {
+                "success": True,
+                "automation_id": automation_id,
+                "alias": alias,
+                "message": f"Automation '{alias}' erfolgreich erstellt!",
+            }
+        else:
+            return {"error": f"HA API error ({resp.status_code}): {resp.text[:200]}"}
+    except Exception as exc:
+        return {"error": f"Failed to create automation: {exc}"}
+
+
+def _execute_list_automations() -> dict:
+    """List automations created by PilotSuite."""
+    try:
+        from flask import current_app
+        services = current_app.config.get("COPILOT_SERVICES", {})
+        creator = services.get("automation_creator")
+        if creator:
+            items = creator.list_created()
+            return {"automations": items, "count": len(items)}
+    except Exception:
+        pass
+    return {"automations": [], "count": 0, "message": "AutomationCreator not available"}
 
 
 def process_with_tool_execution(user_message: str) -> str:

@@ -218,6 +218,79 @@ HA_TOOLS = [
             "required": ["entity_id"]
         }
     ),
+
+    # -- PilotSuite Automation Tools -----------------------------------------
+
+    MCPTool(
+        name="pilotsuite.create_automation",
+        description=(
+            "Create a Home Assistant automation. Use this when the user asks to "
+            "set up a rule like 'when X happens, do Y'. You MUST parse the user's "
+            "intent into structured trigger and action data. Supports state, time, "
+            "and sun triggers with turn_on/turn_off/scene/notify actions."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "alias": {
+                    "type": "string",
+                    "description": "Human-readable name for the automation (e.g. 'Coffee grinder sync')"
+                },
+                "trigger_type": {
+                    "type": "string",
+                    "enum": ["state", "time", "sun"],
+                    "description": "Type of trigger: state (entity changes), time (at HH:MM), sun (sunset/sunrise)"
+                },
+                "trigger_entity": {
+                    "type": "string",
+                    "description": "Entity ID that triggers the automation (for state triggers, e.g. switch.coffee_machine)"
+                },
+                "trigger_to": {
+                    "type": "string",
+                    "description": "Target state for state trigger (e.g. 'on', 'off', 'home', 'not_home')"
+                },
+                "trigger_from": {
+                    "type": "string",
+                    "description": "Optional: previous state for state trigger (e.g. 'off' -> 'on')"
+                },
+                "trigger_time": {
+                    "type": "string",
+                    "description": "Time for time trigger in HH:MM:SS format (e.g. '06:30:00')"
+                },
+                "trigger_sun_event": {
+                    "type": "string",
+                    "enum": ["sunset", "sunrise"],
+                    "description": "Sun event for sun trigger"
+                },
+                "trigger_sun_offset": {
+                    "type": "string",
+                    "description": "Optional offset for sun trigger (e.g. '-00:30:00' for 30 min before)"
+                },
+                "action_service": {
+                    "type": "string",
+                    "description": "HA service to call (e.g. 'light.turn_on', 'switch.turn_off', 'scene.turn_on', 'notify.persistent_notification')"
+                },
+                "action_entity": {
+                    "type": "string",
+                    "description": "Entity ID to act on (e.g. 'switch.coffee_grinder', 'light.living_room')"
+                },
+                "action_data": {
+                    "type": "object",
+                    "description": "Optional service data (e.g. {\"brightness_pct\": 50, \"color_temp\": 300})"
+                }
+            },
+            "required": ["alias", "trigger_type", "action_service", "action_entity"]
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.list_automations",
+        description="List automations created by PilotSuite/Styx. Use this to show the user what automations have been created.",
+        input_schema={
+            "type": "object",
+            "properties": {}
+        }
+    ),
 ]
 
 
