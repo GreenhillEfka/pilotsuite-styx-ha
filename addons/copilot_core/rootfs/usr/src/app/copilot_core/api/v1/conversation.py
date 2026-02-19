@@ -441,6 +441,16 @@ def _get_user_context() -> str:
             except Exception:
                 pass
 
+        # Entity tags context (v3.2.3)
+        tag_registry = services.get("tag_registry")
+        if tag_registry and hasattr(tag_registry, "get_context_for_llm"):
+            try:
+                tags_ctx = tag_registry.get_context_for_llm()
+                if tags_ctx:
+                    context_parts.append(tags_ctx)
+            except Exception:
+                pass
+
     except Exception as exc:
         logger.debug("Could not load user context: %s", exc)
 

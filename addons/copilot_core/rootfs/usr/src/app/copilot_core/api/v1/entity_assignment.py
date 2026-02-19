@@ -83,10 +83,11 @@ def _fetch_states() -> list[dict]:
             timeout=10,
         )
         if resp.ok:
-            return resp.json() or []
+            data = resp.json()
+            return data if isinstance(data, list) else []
     except Exception as exc:
         _LOGGER.warning("Failed to fetch HA states: %s", exc)
-    return []
+    return None
 
 
 @entity_assignment_bp.route("/suggestions", methods=["GET"])
@@ -94,8 +95,10 @@ def _fetch_states() -> list[dict]:
 def get_suggestions():
     """Return entity groupings with zone assignment suggestions."""
     states = _fetch_states()
+    if states is None:
+        return jsonify({"ok": False, "error": "Supervisor API nicht erreichbar", "suggestions": []})
     if not states:
-        return jsonify({"ok": False, "error": "Could not fetch HA states", "suggestions": []})
+        return jsonify({"ok": True, "suggestion_count": 0, "suggestions": []})
 
     # Group entities by room hint
     groups: dict[str, list[dict]] = defaultdict(list)

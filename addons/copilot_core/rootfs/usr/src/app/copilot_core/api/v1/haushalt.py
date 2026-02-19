@@ -95,7 +95,7 @@ def haushalt_remind_birthday():
         today = status.get("today", [])
         if not today:
             return jsonify({"ok": True, "message": "Keine Geburtstage heute."})
-        names = [b.get("name", "?") + (f" (wird {b['age']})" if b.get("age") else "") for b in today]
+        names = [b.get("name", "?") + (f" (wird {b.get('age', '?')})" if b.get("age") else "") for b in today]
         message = f"Heute hat Geburtstag: {', '.join(names)}. Herzlichen Glückwunsch!"
         return jsonify(birthday_service.deliver_reminder(message))
     except Exception as exc:

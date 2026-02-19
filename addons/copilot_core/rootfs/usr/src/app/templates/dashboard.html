@@ -1106,15 +1106,16 @@ async function loadHaushaltData(){
       $('haushalt-birthdays').innerHTML='<div class="empty">Haushalt API nicht verfügbar</div>';
       return;
     }
-    // -- Alerts strip --
+    // -- Alerts strip (separated by type) --
     const alerts=r.alerts||{};
-    let alertHtml='';
-    if(alerts.birthday_today){alertHtml+=badge('&#x1f382; Geburtstag heute!','g')+' '}
-    if(alerts.waste_today){alertHtml+=badge('&#x267b; Abfuhr heute!','r')+' '}
-    if(alerts.waste_tomorrow){alertHtml+=badge('&#x267b; Abfuhr morgen','y')+' '}
-    if(alerts.upcoming_birthdays_7d>0){alertHtml+=badge('&#x1f382; '+alerts.upcoming_birthdays_7d+' Geburtstage diese Woche','b')+' '}
-    $('haushalt-waste-alerts').innerHTML=alertHtml;
-    $('haushalt-birthday-alerts').innerHTML=alertHtml;
+    let wasteAlertHtml='';
+    if(alerts.waste_today){wasteAlertHtml+=badge('&#x267b; Abfuhr heute!','r')+' '}
+    if(alerts.waste_tomorrow){wasteAlertHtml+=badge('&#x267b; Abfuhr morgen','y')+' '}
+    let bdayAlertHtml='';
+    if(alerts.birthday_today){bdayAlertHtml+=badge('&#x1f382; Geburtstag heute!','g')+' '}
+    if(alerts.upcoming_birthdays_7d>0){bdayAlertHtml+=badge('&#x1f382; '+alerts.upcoming_birthdays_7d+' diese Woche','b')+' '}
+    $('haushalt-waste-alerts').innerHTML=wasteAlertHtml;
+    $('haushalt-birthday-alerts').innerHTML=bdayAlertHtml;
 
     // -- Waste --
     const waste=r.waste||{};

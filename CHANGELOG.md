@@ -1,5 +1,18 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.2.3] - 2026-02-19
+
+### Bugfixes
+
+- **Fix: Haushalt Alert-Duplikation** — Müll- und Geburtstags-Alerts wurden im Dashboard
+  gegenseitig gespiegelt (beide Karten zeigten alle Alerts). Jetzt typ-getrennt
+- **Fix: entity_assignment None-Unterscheidung** — `_fetch_states()` gibt `None` bei API-Fehler
+  zurück vs. `[]` wenn API ok aber keine Entitäten → korrekter Fehlertext im UI
+- **Fix: haushalt.py birthday KeyError** — `b['age']` → `b.get('age', '?')` in Geburtstags-Reminder
+- **Feature: Entity-Tags LLM-Kontext** — `tag_registry.get_context_for_llm()` wird in LLM
+  System-Prompt injiziert, sodass Styx Tag-Zuweisungen kennt
+- Version: 3.2.2 → 3.2.3
+
 ## [3.2.2] - 2026-02-19
 
 ### Hauswirtschafts-Dashboard + Entity Suggestions API
