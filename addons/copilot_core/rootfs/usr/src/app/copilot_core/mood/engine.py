@@ -27,14 +27,19 @@ class MoodState(str, Enum):
 @dataclass
 class ZoneFeatures:
     """Derived features for a zone."""
-    
+
     last_motion_ts: Optional[datetime] = None
     motion_recent: bool = False
     ambient_dark: bool = False
     media_playing: bool = False
     quiet_hours: bool = False
     user_override: bool = False
-    
+
+    # Derived indices (0.0 .. 1.0)
+    stress_index: float = 0.0
+    comfort_index: float = 0.5
+    energy_level: float = 0.5
+
     # Raw sensor values for debugging
     motion_entities: Dict[str, bool] = field(default_factory=dict)
     illuminance_value: Optional[float] = None
@@ -66,6 +71,9 @@ class MoodResult:
                 "user_override": self.features.user_override,
                 "illuminance_value": self.features.illuminance_value,
                 "media_state": self.features.media_state,
+                "stress_index": round(self.features.stress_index, 3),
+                "comfort_index": round(self.features.comfort_index, 3),
+                "energy_level": round(self.features.energy_level, 3),
             }
         }
 
@@ -182,7 +190,43 @@ class MoodEngine:
         if override_entity in sensor_data:
             override_state = sensor_data[override_entity].get("state")
             features.user_override = override_state in ("on", "True", True, 1)
-        
+
+        # --- Derived indices ---
+
+        # Comfort index (0..1): high when appropriate light + media + not quiet hours
+        comfort = 0.5
+        if features.illuminance_value is not None:
+            # Optimal lux range ~100-400 for living areas
+            if 100 <= features.illuminance_value <= 400:
+                comfort += 0.2
+            elif features.illuminance_value < 20:
+                comfort -= 0.15
+        if features.media_playing:
+            comfort += 0.15
+        if features.quiet_hours:
+            comfort -= 0.1
+        features.comfort_index = max(0.0, min(1.0, comfort))
+
+        # Energy level (0..1): high during daytime with recent motion
+        energy = 0.5
+        if features.motion_recent:
+            energy += 0.25
+        if not features.ambient_dark:
+            energy += 0.15
+        if features.quiet_hours:
+            energy -= 0.3
+        features.energy_level = max(0.0, min(1.0, energy))
+
+        # Stress index (0..1): elevated when many sensors active + rapid changes
+        stress = 0.0
+        active_motion = sum(1 for v in features.motion_entities.values() if v)
+        total_motion = max(1, len(features.motion_entities))
+        if active_motion / total_motion > 0.7 and total_motion > 1:
+            stress += 0.3
+        if features.ambient_dark and features.motion_recent:
+            stress += 0.15  # unexpected activity in dark
+        features.stress_index = max(0.0, min(1.0, stress))
+
         return features
     
     def infer_mood(self, zone_name: str, features: ZoneFeatures) -> MoodResult:

@@ -204,15 +204,29 @@ class NotificationManager:
             # Mark as sent
             notification.sent = True
             
-            # TODO: Implement actual push notification sending
-            # For now, log the notification
             _LOGGER.info(
                 "Notification sent: [%s] %s - %s",
                 notification.priority.upper(),
                 notification.title,
                 notification.message,
             )
-            
+
+            # Send via webhook pusher if available
+            try:
+                from flask import current_app
+                services = current_app.config.get("COPILOT_SERVICES", {})
+                webhook = services.get("webhook_pusher")
+                if webhook and webhook.enabled:
+                    webhook.push_notification({
+                        "id": notification.id,
+                        "title": notification.title,
+                        "message": notification.message,
+                        "priority": notification.priority,
+                        "type": notification.notification_type,
+                    })
+            except Exception as e:
+                _LOGGER.debug("Webhook push failed (non-critical): %s", e)
+
             # If HA notify service is configured, send via HA
             if self._ha_notify_service and ha_hass:
                 try:

@@ -1,5 +1,48 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.7.0] - 2026-02-19
+
+### Bug Fixes & Production Readiness
+
+- **Brain Graph Race Conditions** — SQLite WAL mode, atomic queries, busy timeout
+  - `graph_store.py`: `_query_sqlite()` rewritten with single-cursor atomic reads
+  - WAL mode + `busy_timeout=5000ms` for concurrent read/write
+  - Fixes phantom reads between sub-queries in entity/zone/mood lookups
+- **Mood Engine** — Weighted scoring + derived feature indices
+  - `scoring.py`: 15 weighted event types (was: 6 unweighted), configurable threshold
+  - `engine.py`: New `stress_index`, `comfort_index`, `energy_level` (0..1) derivations
+- **Event Processor** — Rollback on partial failure + idempotency
+  - Only commits batch if at least one event succeeds
+  - Deduplication via event ID tracking (10k ring buffer)
+  - Thread-safe with `threading.Lock`
+- **Config Validation** — Bounds checking for all numeric parameters
+  - `_safe_int`/`_safe_float` now enforce upper bounds (was: only minimum)
+  - Brain Graph: `max_nodes` min=100 (was: 1), max=5000
+  - Schema builders: `vol.Range()` on 15+ int parameters (port, intervals, sizes)
+  - `validate_input()`: Now validates host, port (1-65535), and all critical bounds
+- **Brain Graph Sync** (HACS) — `set.pop()` crash fix, session null-guard
+  - `_processed_events`: Atomic `set()` reset (was: crash-prone `pop()` loop)
+  - `_send_node_update`/`_send_edge_update`: Guard against None session
+- **Cache Thread Safety** — `graph.py` no longer mutates shared cached dicts
+- **Unused import** — Removed `Request` class import from `rate_limit.py`
+
+### Stub Implementations (Production-Ready)
+
+- **Scene Pattern Extraction** — `bridge.py._extract_scene_patterns()` now extracts
+  co-activated entity patterns from `correlates_with`/`co_activated` edges
+- **Routine Pattern Extraction** — `bridge.py._extract_routine_patterns()` extracts
+  service→entity targeting patterns from `targets` edges
+- **Brain Graph SVG** — `/api/v1/graph/snapshot.svg` generates live circle-layout SVG
+  with color-coded nodes (entity/zone/service/state) and edge lines
+- **Notification Push** — `send_notification()` now sends via WebhookPusher fallback
+- **Scaffold Labels Removed** — app.py index route updated to production text
+
+### Cleanup
+
+- Removed 83 `.pyc` files from git tracking
+- Removed stale root test scripts (`test_capabilities.py`, `test_new_endpoints.py`)
+- Version: 3.6.0 → 3.7.0
+
 ## [3.6.0] - 2026-02-19
 
 ### Production Hardening

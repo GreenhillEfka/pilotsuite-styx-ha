@@ -292,20 +292,143 @@ class GraphCandidatesBridge:
         now_ms: int,
         include_context: bool
     ) -> List[CandidatePattern]:
-        """Extract multi-device scene patterns (lights, media, etc.)."""
-        # TODO: Implement multi-node pattern extraction for scenes
-        # For v0.1, return empty list
-        return []
+        """Extract multi-device scene patterns (co-activated entities)."""
+        patterns: Dict[str, CandidatePattern] = {}
+
+        all_edges = self.brain_service.store.get_edges()
+        # Co-occurrence edges indicate devices activated together
+        co_edges = [
+            e for e in all_edges
+            if e.edge_type in ("correlates_with", "co_activated", "triggers")
+        ]
+
+        for edge in co_edges:
+            effective_weight = edge.effective_weight(
+                now_ms, self.brain_service.edge_half_life_hours
+            )
+            if effective_weight < self.config.min_edge_weight:
+                continue
+
+            from_node = self.brain_service.store.get_node(edge.from_node)
+            to_node = self.brain_service.store.get_node(edge.to_node)
+            if not from_node or not to_node:
+                continue
+
+            # Only scene patterns: multi-domain device groups
+            from_parts = self._parse_node_id(edge.from_node)
+            to_parts = self._parse_node_id(edge.to_node)
+            if from_parts.get("kind") != "entity" or to_parts.get("kind") != "entity":
+                continue
+
+            pattern_id = self._generate_pattern_id(
+                "scene", edge.from_node, edge.to_node
+            )
+
+            graph_context = {}
+            if include_context:
+                graph_context = {
+                    "nodes": [
+                        {"id": from_node.id, "kind": from_node.kind, "label": from_node.label},
+                        {"id": to_node.id, "kind": to_node.kind, "label": to_node.label},
+                    ],
+                    "edges": [{"id": edge.id, "from": edge.from_node, "to": edge.to_node, "type": edge.edge_type}],
+                }
+
+            patterns[pattern_id] = CandidatePattern(
+                pattern_id=pattern_id,
+                pattern_type="scene",
+                antecedent={
+                    "entity": from_parts.get("id", ""),
+                    "domain": from_parts.get("domain"),
+                    "kind": "entity",
+                },
+                consequent={
+                    "entity": to_parts.get("id", ""),
+                    "domain": to_parts.get("domain"),
+                    "kind": "entity",
+                },
+                evidence={
+                    "confidence": min(1.0, effective_weight),
+                    "support": effective_weight,
+                    "lift": effective_weight,
+                    "count": int(effective_weight * 3),
+                },
+                graph_context=graph_context,
+                created_at_ms=now_ms,
+                source_edge_types=[edge.edge_type],
+            )
+
+        return list(patterns.values())
     
     def _extract_routine_patterns(
         self,
         now_ms: int,
         include_context: bool
     ) -> List[CandidatePattern]:
-        """Extract time-based routine patterns."""
-        # TODO: Implement time-based pattern extraction for routines
-        # For v0.1, return empty list
-        return []
+        """Extract time-based routine patterns from service call nodes."""
+        patterns: Dict[str, CandidatePattern] = {}
+
+        all_edges = self.brain_service.store.get_edges()
+        # Service→entity edges with "targets" type indicate intentional actions
+        service_edges = [e for e in all_edges if e.edge_type == "targets"]
+
+        for edge in service_edges:
+            effective_weight = edge.effective_weight(
+                now_ms, self.brain_service.edge_half_life_hours
+            )
+            if effective_weight < self.config.min_edge_weight:
+                continue
+
+            service_node = self.brain_service.store.get_node(edge.from_node)
+            entity_node = self.brain_service.store.get_node(edge.to_node)
+            if not service_node or not entity_node:
+                continue
+
+            # Only service→entity patterns
+            from_parts = self._parse_node_id(edge.from_node)
+            to_parts = self._parse_node_id(edge.to_node)
+            if from_parts.get("kind") != "service":
+                continue
+
+            pattern_id = self._generate_pattern_id(
+                "routine", edge.from_node, edge.to_node
+            )
+
+            graph_context = {}
+            if include_context:
+                graph_context = {
+                    "nodes": [
+                        {"id": service_node.id, "kind": service_node.kind, "label": service_node.label},
+                        {"id": entity_node.id, "kind": entity_node.kind, "label": entity_node.label},
+                    ],
+                    "edges": [{"id": edge.id, "from": edge.from_node, "to": edge.to_node, "type": edge.edge_type}],
+                }
+
+            patterns[pattern_id] = CandidatePattern(
+                pattern_id=pattern_id,
+                pattern_type="routine",
+                antecedent={
+                    "service": from_parts.get("service", "unknown"),
+                    "domain": from_parts.get("domain"),
+                    "kind": "service",
+                },
+                consequent={
+                    "entity": to_parts.get("id", ""),
+                    "domain": to_parts.get("domain"),
+                    "kind": "entity",
+                },
+                evidence={
+                    "confidence": min(1.0, effective_weight),
+                    "support": effective_weight,
+                    "lift": effective_weight,
+                    "count": int(effective_weight * 2),
+                },
+                graph_context=graph_context,
+                created_at_ms=now_ms,
+                source_edge_types=[edge.edge_type],
+            )
+
+        return list(patterns.values())
     
     def _parse_node_id(self, node_id: str) -> Dict[str, str]:
         """Parse a node ID into components."""
