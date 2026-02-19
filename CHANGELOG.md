@@ -1,5 +1,27 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.4.0] - 2026-02-19
+
+### Scene System + Styx Auto-Tagging + HomeKit Bridge
+
+- **Scene REST API** — `/api/v1/scenes/*` (8 Endpoints)
+  - `POST /create`: Zone-Snapshot als Szene speichern (via HA `scene.create`)
+  - `POST /<id>/apply`: Szene anwenden (HA scene.turn_on + manuelles Fallback)
+  - `DELETE /<id>`: Szene loeschen
+  - `GET /presets`: 8 Built-in Presets (Morgen, Abend, Film, Party, etc.)
+  - LLM-Kontext: Zeigt gespeicherte Szenen pro Zone
+- **HomeKit Bridge API** — `/api/v1/homekit/*` (3 Endpoints)
+  - `POST /toggle`: Zone zu HomeKit hinzufuegen/entfernen
+  - `GET /status`: Aktive Zonen + Entitaeten-Count
+  - Automatischer `homekit.reload` nach Aenderung (Pairing bleibt erhalten)
+  - LLM-Kontext: Zeigt HomeKit-aktive Zonen
+- **Styx Auto-Tagging** in conversation.py
+  - Jede Tool-Interaktion taggt beruehrte Entitaeten automatisch mit "Styx"
+  - `_auto_tag_styx_entities()`: Extrahiert entity_ids aus Tool-Calls
+- **LLM Tools**: `pilotsuite.save_scene` + `pilotsuite.apply_scene` (19 Tools total)
+- **Dashboard**: Szene-Karten (speichern/anwenden/loeschen), Presets, HomeKit-Button
+- Version: 3.3.0 -> 3.4.0
+
 ## [3.3.0] - 2026-02-19
 
 ### Presence Dashboard + Proactive Engine

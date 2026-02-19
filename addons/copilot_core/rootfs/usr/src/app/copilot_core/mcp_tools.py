@@ -488,6 +488,62 @@ HA_TOOLS = [
             "required": []
         }
     ),
+
+    MCPTool(
+        name="pilotsuite.save_scene",
+        description=(
+            "Save the current state of a habitus zone as a scene. Captures lights, "
+            "covers, climate, switches, and media states. Use when user says things "
+            "like 'save this as a scene', 'speichere die aktuelle Stimmung', "
+            "'Szene speichern', or 'merke dir diese Einstellung'."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "zone_id": {
+                    "type": "string",
+                    "description": "The habitus zone ID (e.g., 'zone:wohnzimmer')"
+                },
+                "zone_name": {
+                    "type": "string",
+                    "description": "Display name of the zone (e.g., 'Wohnzimmer')"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Optional name for the scene (e.g., 'Filmabend')"
+                },
+                "entity_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Entity IDs to capture (lights, switches, covers, climate, etc.)"
+                },
+            },
+            "required": ["zone_id", "entity_ids"]
+        }
+    ),
+
+    MCPTool(
+        name="pilotsuite.apply_scene",
+        description=(
+            "Apply a previously saved scene to restore entity states in a zone. "
+            "Use when user says 'apply the evening scene', 'Szene anwenden', "
+            "'stelle die Filmabend-Szene ein', or 'wende Szene X an'."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "scene_id": {
+                    "type": "string",
+                    "description": "The scene ID to apply"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Alternative: scene name to search for"
+                },
+            },
+            "required": []
+        }
+    ),
 ]
 
 
