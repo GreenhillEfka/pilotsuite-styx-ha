@@ -72,7 +72,19 @@
           "events_forwarder_additional_entities": "Core: additional entities to forward (comma-separated)",
           "pilotsuite_show_safety_backup_buttons": "UI: show Safety Backup buttons",
           "pilotsuite_show_dev_surface_buttons": "UI: show Dev Surface buttons",
-          "pilotsuite_show_graph_bridge_buttons": "UI: show Graph Bridge buttons"
+          "pilotsuite_show_graph_bridge_buttons": "UI: show Graph Bridge buttons",
+          "waste_enabled": "Waste: enable waste collection reminders",
+          "waste_entities": "Waste: sensor entities (csv, auto-detect if empty)",
+          "waste_tts_enabled": "Waste: enable TTS announcements",
+          "waste_tts_entity": "Waste: TTS media player entity",
+          "waste_reminder_evening_hour": "Waste: evening reminder hour (0-23)",
+          "waste_reminder_morning_hour": "Waste: morning reminder hour (0-23)",
+          "birthday_enabled": "Birthday: enable birthday reminders",
+          "birthday_calendar_entities": "Birthday: calendar entities (csv, auto-detect if empty)",
+          "birthday_lookahead_days": "Birthday: lookahead days",
+          "birthday_tts_enabled": "Birthday: enable TTS announcements",
+          "birthday_tts_entity": "Birthday: TTS media player entity",
+          "birthday_reminder_hour": "Birthday: morning reminder hour (0-23)"
         }
       },
       "habitus_zones": {

@@ -1,5 +1,26 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.2.0] - 2026-02-19
+
+### Müllabfuhr + Geburtstags-Erinnerungen
+
+- **Waste Reminder Module**: Optionales Modul für `waste_collection_schedule` Integration
+  - Auto-Discovery von Waste-Sensoren (`daysTo` Attribut)
+  - Abend-Erinnerung (Vorabend, konfigurierbare Uhrzeit)
+  - Morgen-Erinnerung (Tag der Abfuhr)
+  - TTS-Ansagen + Persistent Notifications
+  - LLM-Kontext-Injection (Styx weiß wann welcher Müll abgeholt wird)
+  - Forwarding an Core Addon
+- **Birthday Reminder Module**: Kalender-basierte Geburtstags-Erinnerungen
+  - Auto-Discovery von Geburtstags-Kalendern
+  - Morgen-TTS: "Heute hat [Name] Geburtstag!"
+  - 14-Tage Vorschau auf kommende Geburtstage
+  - Alters-Erkennung aus Event-Titel
+  - LLM-Kontext für Geburtstagsfragen
+- **Config Flow**: 12 neue Einstellungen (Waste + Birthday, jeweils Entities, TTS, Uhrzeiten)
+- **Translations**: EN + DE für alle neuen Config-Keys
+- Versions-Sync: manifest.json auf 3.2.0
+
 ## [3.0.0] - 2026-02-19
 
 ### Kollektive Intelligenz — Federated Learning + A/B Testing
