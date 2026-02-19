@@ -26,6 +26,14 @@ _LOGGER = logging.getLogger(__name__)
 # Create blueprint
 bp = Blueprint("search", __name__, url_prefix="/search")
 
+from copilot_core.api.security import validate_token as _validate_token
+
+
+@bp.before_request
+def _require_auth():
+    if not _validate_token(request):
+        return jsonify({"error": "unauthorized", "message": "Valid X-Auth-Token or Bearer token required"}), 401
+
 # Search result types
 RESULT_TYPE_ENTITY = "entity"
 RESULT_TYPE_AUTOMATION = "automation"

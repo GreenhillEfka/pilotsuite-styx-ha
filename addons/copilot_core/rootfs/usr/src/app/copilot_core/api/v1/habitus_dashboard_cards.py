@@ -40,6 +40,14 @@ def _get_habitus_service():
 
 bp = Blueprint("habitus_dashboard_cards", __name__, url_prefix="/habitus/dashboard_cards")
 
+from copilot_core.api.security import validate_token as _validate_token
+
+
+@bp.before_request
+def _require_auth():
+    if not _validate_token(request):
+        return jsonify({"error": "unauthorized", "message": "Valid X-Auth-Token or Bearer token required"}), 401
+
 
 @bp.get("")
 def get_dashboard_patterns():

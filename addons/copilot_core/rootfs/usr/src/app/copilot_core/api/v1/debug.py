@@ -5,6 +5,14 @@ from copilot_core.debug import get_debug, set_debug
 
 bp = Blueprint("debug", __name__, url_prefix="")
 
+from copilot_core.api.security import validate_token as _validate_token
+
+
+@bp.before_request
+def _require_auth():
+    if not _validate_token(request):
+        return jsonify({"error": "unauthorized", "message": "Valid X-Auth-Token or Bearer token required"}), 401
+
 
 @bp.route("/debug", methods=["GET"])
 def get_debug_status():
