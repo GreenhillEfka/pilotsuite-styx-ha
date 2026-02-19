@@ -1,116 +1,144 @@
-# PilotSuite — Styx
+# PilotSuite — Styx (Core Add-on)
 
 [![Release](https://img.shields.io/github/v/release/GreenhillEfka/Home-Assistant-Copilot)](https://github.com/GreenhillEfka/Home-Assistant-Copilot/releases)
+[![CI](https://github.com/GreenhillEfka/Home-Assistant-Copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/GreenhillEfka/Home-Assistant-Copilot/actions)
 
-**Styx** — die Verbindung beider Welten. Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. Lernt die Muster deines Zuhauses, schlaegt intelligente Automatisierungen vor — und handelt nur mit deiner Zustimmung. Alle Daten bleiben lokal.
+**Styx** — ein privacy-first, lokaler KI-Assistent fuer Home Assistant. Lernt die Muster deines Zuhauses, bewertet Stimmung und Kontext, schlaegt intelligente Automatisierungen vor — und handelt nur mit deiner Zustimmung.
 
-> Bewertet (Neuronen), buendelt Bedeutung (Moods), berechnet Relevanz (Synapsen), erzeugt Vorschlaege, erhaelt Freigaben, laesst Home Assistant ausfuehren.
+Dieses Repo ist das **PilotSuite Backend (Core Add-on)** — es laeuft als Home Assistant Add-on auf Port **8909** mit Flask + Waitress und bundled Ollama (LLM).
 
-## Architektur
-
-Dieses Repo ist das **PilotSuite Backend (Core Add-on)** -- es laeuft als Home Assistant Add-on auf Port **8909**.
-
-Die dazugehoerige **HACS-Integration** (Frontend, Sensoren, Dashboard Cards) ist ein separates Repo:
+Die dazugehoerige **HACS-Integration** (Sensoren, Dashboard Cards, Module):
 [PilotSuite HACS Integration](https://github.com/GreenhillEfka/ai-home-copilot-ha)
 
 ```
 Home Assistant
-+-- HACS Integration (ai_home_copilot)      <-- Frontend, 80+ Sensoren, 15+ Cards
++-- HACS Integration (ai_home_copilot)      <-- 94+ Sensoren, 28 Module, Dashboard
 |     HTTP REST API (Token-Auth)
 |     v
-+-- Core Add-on (copilot_core) Port 8909    <-- Backend, Brain, Habitus, Mood Engine
++-- Core Add-on (copilot_core) Port 8909    <-- Brain Graph, Habitus, Mood, LLM
+      + Ollama (bundled, lfm2.5-thinking)
 ```
 
 ## Installation
 
-### 1. Core Add-on installieren
+### Core Add-on
 
 1. Home Assistant → **Settings** → **Add-ons** → **Add-on Store**
-2. Menü (⋮) → **Repositories** → diese URL hinzufügen:
+2. Menue (⋮) → **Repositories** → URL hinzufuegen:
    ```
    https://github.com/GreenhillEfka/Home-Assistant-Copilot
    ```
 3. **PilotSuite Core** installieren und starten
-4. Das Add-on läuft auf Port **8909**
+4. Das Add-on laeuft auf Port **8909** mit bundled Ollama
 
-### 2. HACS Integration installieren
+### HACS Integration
 
-Siehe: [ai-home-copilot-ha](https://github.com/GreenhillEfka/ai-home-copilot-ha#installation)
+Siehe: [ai-home-copilot-ha Installation](https://github.com/GreenhillEfka/ai-home-copilot-ha#schnellstart)
 
 ## Features
 
-### Styx — Unified Dashboard
-Einheitliche Oberflaeche: Brain Graph (links) + Chat (rechts) + History Log auf einer Seite. Modul-Pipeline-Indikatoren, farbcodierte Neuronen nach HA-Domain, Vorschlagsleiste, Trend-Charts. 5-Seiten-Navigation: Styx, Habitus, Stimmung, Module, Einstellungen.
+### LLM (Ollama bundled)
 
-### LLM Provider Chain
-Ollama (lokal, Standard) mit automatischem Cloud-Fallback (OpenClaw, OpenAI). Tool-Calling mit 9 HA-Tools. Telegram Bot Integration.
+- Standard-Modell: `lfm2.5-thinking` (Liquid AI, 1.2B Parameter, 731MB)
+- Tool-Calling Modell: `qwen3:4b` (bei Bedarf)
+- OpenAI-kompatible API (`/v1/chat/completions`, `/v1/models`)
+- Telegram Bot Integration mit Server-side Tool Loop
 
-### Neuronales System (12+ Neuronen)
-Bewertet jeden Aspekt deines Zuhauses: Anwesenheit, Stimmung, Energie, Wetter, Netzwerk, Kameras, Kontext, Zustaende u.v.m.
+### Neural Pipeline
 
-### Habitus — Das Lernende Zuhause
-Pattern-Discovery-Engine: beobachtet Verhaltensmuster und schlaegt passende Automatisierungen vor. Confidence-Scoring, Feedback-Loop, zeitbasierte/trigger-basierte/sequenzielle/kontextuelle Muster.
+```
+HA Events → Event Ingest → Brain Graph → Habitus Miner → Candidates
+                              |               |
+                          Neurons          Patterns
+                              |               |
+                          Mood Engine    Vorschlaege → HA Repairs UI
+```
 
-### Brain Graph
-State-Tracking mit Nodes + Edges, exponential Decay, Snapshots, Pattern-Erkennung. Domain-farbcodierte Visualisierung.
+### 22 Backend-Services
 
-### Mood Engine
-Mood-Bewertung (Comfort, Joy, Frugality), Ranking und Kontext-Integration.
+| Service | Funktion |
+|---------|----------|
+| BrainGraphStore | State-Graph mit Nodes + Edges, Decay, Snapshots |
+| HabitusMiner | Association Rule Mining, Zone-basiert |
+| MoodService | 3D-Scoring (Comfort/Joy/Frugality), SQLite-Persistenz |
+| CandidateStore | Vorschlaege mit Governance-Workflow |
+| NeuronManager | 14 Bewertungs-Neuronen |
+| EventStore | Event-Persistenz und -Abfrage |
+| VectorStore | Bag-of-Words Embedding, Similarity Search |
+| KnowledgeGraph | Entity-Beziehungen |
+| TagRegistry | Entity-Tagging |
+| SearchIndex | Entity-Suche |
+| NotificationService | Push-System |
+| WeatherService | Wetter-Integration |
+| EnergyService | Energie-Neuron |
+| UserPreferenceStore | Per-User Praeferenzen |
+| HouseholdService | Familienkonfiguration |
+| CalendarService | Kalender-Integration |
+| CharacterService | Styx-Persoenlichkeit |
+| SystemHealthService | Health Checks (Zigbee, Z-Wave, Recorder) |
+| MediaZoneManager | Media-Zonen Verwaltung |
+| DevSurface | Debug/Diagnose Endpunkte |
+| MCPServer | 8 Skills fuer externe AI-Clients |
+| CollectiveIntelligence | Cross-Home Sharing (Phase 5) |
 
-### Multi-User Preference Learning (MUPL)
-Erkennt wer zu Hause ist, attributiert Aktionen, lernt individuelle Praeferenzen, loest Multi-User-Konflikte.
+### OpenAI-kompatible API
 
-### PilotSuite MCP Server
-8 Skills fuer externe AI-Clients (Claude Desktop, OpenClaw): Mood, Brain Graph, Habitus, Neurons, Preferences, Household, Memory, Energy.
+Kompatibel mit `extended_openai_conversation` (jekalmin) und dem OpenAI SDK.
+
+```
+base_url: http://<host>:8909/v1
+Authorization: Bearer <token>
+```
 
 ### Sicherheit
-Token-Auth, PII-Redaktion, Bounded Storage, Rate Limiting, Idempotency-Key Deduplication, Source Allowlisting.
 
-## API-Übersicht (Port 8909)
+- Token-Auth (Bearer / X-Auth-Token)
+- Circuit Breaker (HA Supervisor: 5 Fails/30s, Ollama: 3 Fails/60s)
+- Rate Limiting
+- SQLite WAL Mode + busy_timeout=5000
+- PII-Redaktion, bounded Storage
 
-| Modul | Endpoints | Beschreibung |
-|-------|-----------|-------------|
-| **Basis** | `/health`, `/version`, `/api/v1/status`, `/api/v1/capabilities` | System Info |
+## API-Uebersicht (Port 8909)
+
+| Bereich | Endpoints | Beschreibung |
+|---------|-----------|-------------|
+| **System** | `/health`, `/version`, `/api/v1/status` | Health, Version, Capabilities |
+| **Chat** | `/v1/chat/completions`, `/v1/models` | OpenAI-kompatibel |
+| **Brain Graph** | `/api/v1/graph/*` | State, Snapshot, Stats, Patterns |
+| **Habitus** | `/api/v1/habitus/*` | Status, Rules, Mine, Dashboard |
+| **Candidates** | `/api/v1/candidates/*` | CRUD, Stats, Cleanup |
+| **Mood** | `/api/v1/mood/*` | Mood Query, Update, History |
+| **Neurons** | `/api/v1/neurons/*` | Neuron State, Evaluation |
 | **Events** | `/api/v1/events` | Event Ingest + Query |
-| **Brain Graph** | `/api/v1/graph/*` | State, Snapshot, Stats, Prune, Patterns |
-| **Habitus** | `/api/v1/habitus/*` | Status, Rules, Mine, Dashboard Cards |
-| **Candidates** | `/api/v1/candidates/*` | CRUD + Stats + Cleanup |
-| **Mood** | `/api/v1/mood/*` | Mood Query + Update |
 | **Tags** | `/api/v1/tag-system/*` | Tags, Assignments |
-| **Neurons** | `/api/v1/neurons/*` | Neuron State |
-| **Search** | `/api/v1/search/*` | Entity Search + Index |
+| **Search** | `/api/v1/search/*` | Entity Search, Index |
 | **Knowledge Graph** | `/api/v1/kg/*` | Nodes, Edges, Query |
 | **Vector Store** | `/api/v1/vector/*` | Store, Search, Stats |
 | **Weather** | `/api/v1/weather/*` | Wetterdaten |
 | **Energy** | `/api/v1/energy/*` | Energiemonitoring |
 | **Notifications** | `/api/v1/notifications/*` | Push System |
-| **Performance** | `/api/v1/performance/*` | Cache, Pool, Metrics |
+| **Media Zones** | `/api/v1/media-zones/*` | Media-Zonen Verwaltung |
+| **Telegram** | `/telegram/webhook` | Telegram Bot |
+| **MCP** | `/mcp/*` | Model Context Protocol |
 
-37 API-Blueprints | 25 Module-Packages | 168 Python-Dateien | 521+ Tests
-
-## Die 4 Grundprinzipien
+## Grundprinzipien
 
 | Prinzip | Bedeutung |
 |---------|-----------|
-| **Local-first** | Alles läuft lokal, keine Cloud, kein externer API-Call |
-| **Privacy-first** | PII-Redaktion, bounded Storage, max 2KB Metadata/Node |
-| **Governance-first** | Vorschläge vor Aktionen, Human-in-the-Loop |
+| **Local-first** | Alles lokal, kein Cloud-API-Call |
+| **Privacy-first** | PII-Redaktion, bounded Storage, opt-in |
+| **Governance-first** | Vorschlaege vor Aktionen, Human-in-the-Loop |
 | **Safe Defaults** | Max 500 Nodes, 1500 Edges, opt-in Persistenz |
-
-## Updates
-
-- **Stable:** GitHub Releases/Tags (empfohlen)
-- **Dev:** opt-in Branch-Builds
-
-Keine stillen Updates. Updates werden als Governance-Events protokolliert.
 
 ## Dokumentation
 
-- **[VISION.md](VISION.md)** -- Single Source of Truth (Architektur, Roadmap, alle Details)
-- **[CHANGELOG.md](CHANGELOG.md)** -- Release-Historie
-- **[HANDBUCH.md](HANDBUCH.md)** -- Installations- und Benutzerhandbuch (deutsch)
-- **[PROJEKTSTRUKTUR.md](PROJEKTSTRUKTUR.md)** -- Moduluebersicht und Verzeichnisstruktur
-- **[CLAUDE.md](CLAUDE.md)** -- Projektkontext fuer KI-Assistenten
+| Dokument | Inhalt |
+|----------|--------|
+| [API_REFERENCE](docs/API_REFERENCE.md) | Alle Endpoints, Auth, Request/Response |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Services, Datenfluss, Persistenz |
+| [ROADMAP](docs/ROADMAP.md) | Phase 5-6, Zukunftsplaene |
+| [CHANGELOG](CHANGELOG.md) | Release-Historie |
+| [HACS Integration](https://github.com/GreenhillEfka/ai-home-copilot-ha) | Sensoren, Module, Dashboard |
 
 ## Lizenz
 
