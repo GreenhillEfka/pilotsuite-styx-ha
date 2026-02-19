@@ -1,5 +1,39 @@
 # Changelog - PilotSuite Core Add-on
 
+## [1.2.0] - 2026-02-19
+
+### Qualitaetsoffensive — Volle Transparenz, Maximale Resilienz
+
+#### Dashboard v3 — Kein Dummy-Code mehr
+- **Echte Modul-Health**: `fetchModuleHealth()` laedt Status aus 11 APIs parallel
+  (Brain Graph Stats, Habitus Health, Mood State, Neurons, Memory, Energy, Weather,
+  UniFi, Telegram, Capabilities) — alle Module zeigen echten Zustand (active/learning/off)
+- **Modul-Override mit Persistenz**: Nutzer-Toggles (active/learning/off) werden in
+  `localStorage` gespeichert und bei jedem Reload wiederhergestellt; Override-Indikator
+  sichtbar wenn Nutzer-Status von API-Status abweicht
+- **Echte Pipeline-Status**: Pipeline-Pills auf der Styx-Seite zeigen tatsaechlichen
+  Modul-Status mit Hover-Tooltip (Detail-Info aus API), nicht mehr hardcoded 'active'
+- **Neue Pipe-Klassen**: `pipe-error` (rot) und `pipe-unknown` (gedimmt) fuer Fehler-
+  und Unbekanntzustaende sichtbar in der Pipeline-Leiste
+- **XSS-Schutz**: `escapeHtml()` helper — alle API-Daten werden vor innerHTML-Rendering
+  escaped (Chat-Antworten, Vorschlaege, Zonen, Modell-Namen, SVG-Labels, alles)
+- **Resiliente Fehler-States**: Status-Pill zeigt "API offline" (rot) wenn Core nicht
+  erreichbar; LLM-Settings zeigt klare Fehlermeldung statt Loading-Spinner; alle Seiten
+  zeigen "Erneut versuchen" Button bei Ladefehler
+- **Kein Fake-Chart-Data**: Trend-Charts zeigen "Nicht genug Daten" Hinweis wenn weniger
+  als 2 echte Datenpunkte vorhanden — kein Sine-Wave-Dummy mehr
+- **Promise.allSettled ueberall**: Suggestion Inbox und Settings nutzen `allSettled`
+  statt `all` — ein fehlschlagender API-Aufruf bricht nicht alles ab
+- **MCP-Status echt**: MCP Server Status kommt aus `/api/v1/capabilities` (nicht mehr
+  immer-gruen hardcoded); Capabilities-Features werden in Settings angezeigt
+- **Hint-Consequent-Parsing**: Hints mit Format "X -> Y" werden korrekt in
+  Antecedent/Consequent aufgeteilt; nicht mehr immer leer
+- **loadPage() try-catch**: Alle Seiten-Loader sind in resilientem Wrapper —
+  unerwartete Fehler zeigen "Erneut versuchen" UI statt stiller Fehler
+- **Suggestion Inbox**: 3 Quellen (Habitus Rules, Brain Graph Candidates, Hints),
+  Accept/Reject mit Backend-Integration, Batch-Pipeline, Brain-Edge-Animation
+- **Dead Code entfernt**: Nutzloses `c.querySelector('.loading')||null` entfernt
+
 ## [1.1.0] - 2026-02-19
 
 ### Styx — Die Verbindung beider Welten

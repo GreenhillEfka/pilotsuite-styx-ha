@@ -1,5 +1,5 @@
 #!/bin/sh
-# PilotSuite Core v1.1.0 + Ollama startup script
+# PilotSuite Core v1.2.0 + Ollama startup script
 # Ollama is bundled in the addon for offline LLM support.
 # Models are persisted in /share/ (NOT /data/) to avoid bloating HA backups.
 #
@@ -10,7 +10,7 @@
 set -e
 
 echo "============================================"
-echo "  PilotSuite v1.1.0 -- Styx"
+echo "  PilotSuite v1.2.0 -- Styx"
 echo "  Die Verbindung beider Welten"
 echo "  Local AI for your Smart Home"
 echo "============================================"
