@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PilotSuite CoPilot</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--card:#1c2129;--border:#30363d;--text:#e6edf3;--dim:#8b949e;--accent:#6366f1;--accent2:#818cf8;--green:#3fb950;--yellow:#d29922;--red:#f85149;--blue:#58a6ff;--radius:14px;--shadow:0 2px 12px rgba(0,0,0,.4)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.header svg{width:32px;height:32px}
+.header h1{font-size:20px;font-weight:600;flex:1}
+.header .version{color:var(--dim);font-size:13px;background:var(--card);padding:4px 10px;border-radius:20px;border:1px solid var(--border)}
+.header .status-pill{display:flex;align-items:center;gap:6px;font-size:13px;padding:4px 12px;border-radius:20px;border:1px solid var(--border)}
+.header .status-pill .dot{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}
+.dot-green{background:var(--green)}.dot-yellow{background:var(--yellow)}.dot-red{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Nav */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:0;overflow-x:auto;padding:0 16px}
+.nav button{background:none;border:none;color:var(--dim);padding:12px 18px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.2s}
+.nav button:hover{color:var(--text)}.nav button.active{color:var(--accent2);border-bottom-color:var(--accent)}
+
+/* Layout */
+.page{display:none;padding:20px;max-width:1400px;margin:0 auto}.page.active{display:block}
+.grid{display:grid;gap:16px}.grid-2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .icon{font-size:18px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+
+/* Stat Cards */
+.stat{text-align:center;padding:16px}.stat .value{font-size:28px;font-weight:700;color:var(--accent2)}.stat .label{font-size:12px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+
+/* Gauge */
+.gauge-row{display:flex;gap:12px;margin:8px 0}.gauge-item{flex:1}
+.gauge-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
+.gauge-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.gauge-label{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}
+.gauge-label .val{color:var(--text);font-weight:500}
+
+/* Table */
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:8px 12px;color:var(--dim);font-weight:500;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.table td{padding:8px 12px;border-bottom:1px solid rgba(48,54,61,.5)}
+.table tr:hover td{background:rgba(99,102,241,.05)}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-green{background:rgba(63,185,80,.15);color:var(--green)}.badge-yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
+.badge-red{background:rgba(248,81,73,.15);color:var(--red)}.badge-blue{background:rgba(88,166,255,.15);color:var(--blue)}
+.badge-purple{background:rgba(99,102,241,.15);color:var(--accent2)}
+
+/* Pattern Card */
+.pattern{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin:8px 0;display:flex;align-items:center;gap:12px}
+.pattern .arrow{color:var(--accent2);font-size:18px;flex-shrink:0}
+.pattern .conf{font-size:12px;color:var(--dim);margin-left:auto;white-space:nowrap}
+
+/* Chat */
+.chat-container{display:flex;flex-direction:column;height:calc(100vh - 160px);max-height:600px}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.5;word-wrap:break-word}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px}
+.chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.chat-input input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;outline:none}
+.chat-input input:focus{border-color:var(--accent)}
+.chat-input button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-size:14px;font-weight:500}
+.chat-input button:hover{background:var(--accent2)}
+.chat-input button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Brain Graph SVG */
+.graph-container{position:relative;width:100%;aspect-ratio:16/10;background:var(--surface);border-radius:10px;overflow:hidden}
+.graph-container svg{width:100%;height:100%}
+.node circle{stroke:var(--border);stroke-width:1.5;cursor:pointer;transition:.2s}
+.node circle:hover{stroke:var(--accent2);stroke-width:2.5}
+.node text{fill:var(--dim);font-size:9px;pointer-events:none}
+.link{stroke:var(--border);stroke-opacity:.6}
+
+/* Preferences */
+.pref-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(48,54,61,.3)}
+.pref-key{font-weight:500;min-width:120px}.pref-val{color:var(--accent2)}
+.pref-conf{margin-left:auto;font-size:12px;color:var(--dim)}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--dim)}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Empty */
+.empty{text-align:center;padding:40px;color:var(--dim)}
+.empty .icon{font-size:40px;margin-bottom:12px;opacity:.5}
+
+/* Responsive */
+@media(max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr}.header h1{font-size:16px}}
+
+/* Tooltip */
+.tooltip{position:relative}.tooltip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);padding:6px 10px;border-radius:8px;font-size:12px;white-space:nowrap;z-index:10;box-shadow:var(--shadow)}
+
+/* Onboarding */
+.onboard{background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(129,140,248,.05));border:1px solid rgba(99,102,241,.3);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.onboard h2{color:var(--accent2);margin-bottom:8px;font-size:18px}.onboard p{color:var(--dim);line-height:1.6}
+.onboard .suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.onboard .suggestions button{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;transition:.2s}
+.onboard .suggestions button:hover{border-color:var(--accent);background:rgba(99,102,241,.1)}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+<svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="#6366f1" stroke-width="2"/><circle cx="16" cy="12" r="3" fill="#818cf8"/><path d="M10 22c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#818cf8" stroke-width="2" stroke-linecap="round"/><circle cx="8" cy="16" r="1.5" fill="#3fb950"/><circle cx="24" cy="16" r="1.5" fill="#3fb950"/><path d="M8 16L12 14M24 16L20 14" stroke="#30363d" stroke-width="1"/></svg>
+<h1>PilotSuite CoPilot</h1>
+<span class="status-pill" id="provider-status"><span class="dot dot-yellow" id="status-dot"></span><span id="status-text">Verbinde...</span></span>
+<span class="version" id="version-badge">v1.0.0</span>
+</div>
+
+<!-- Navigation -->
+<div class="nav" id="nav">
+<button class="active" data-page="overview">Uebersicht</button>
+<button data-page="brain">Brain Graph</button>
+<button data-page="habitus">Habitus</button>
+<button data-page="mood">Stimmung</button>
+<button data-page="chat">Chat</button>
+<button data-page="memory">Gedaechtnis</button>
+<button data-page="settings">Einstellungen</button>
+</div>
+
+<!-- Overview Page -->
+<div class="page active" id="page-overview">
+<div id="onboarding"></div>
+<div class="grid grid-3" id="stats-grid">
+<div class="card stat"><div class="value" id="stat-nodes">--</div><div class="label">Brain Graph Nodes</div></div>
+<div class="card stat"><div class="value" id="stat-edges">--</div><div class="label">Brain Graph Edges</div></div>
+<div class="card stat"><div class="value" id="stat-patterns">--</div><div class="label">Habitus Patterns</div></div>
+<div class="card stat"><div class="value" id="stat-neurons">--</div><div class="label">Aktive Neurons</div></div>
+<div class="card stat"><div class="value" id="stat-memory">--</div><div class="label">Erinnerungen</div></div>
+<div class="card stat"><div class="value" id="stat-prefs">--</div><div class="label">Praeferenzen</div></div>
+</div>
+<div class="grid grid-2" style="margin-top:16px">
+<div class="card">
+<h2><span class="icon">&#x1f9e0;</span> System Status</h2>
+<table class="table" id="system-table">
+<tr><td>LLM Provider</td><td id="sys-provider">--</td></tr>
+<tr><td>Modell</td><td id="sys-model">--</td></tr>
+<tr><td>Ollama</td><td id="sys-ollama">--</td></tr>
+<tr><td>Cloud Fallback</td><td id="sys-cloud">--</td></tr>
+<tr><td>Telegram Bot</td><td id="sys-telegram">--</td></tr>
+<tr><td>MCP Server</td><td id="sys-mcp">--</td></tr>
+<tr><td>Anfragen/Stunde</td><td id="sys-calls">--</td></tr>
+</table>
+</div>
+<div class="card">
+<h2><span class="icon">&#x1f3af;</span> Letzte Habitus-Muster</h2>
+<div id="recent-patterns"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+</div>
+</div>
+</div>
+
+<!-- Brain Graph Page -->
+<div class="page" id="page-brain">
+<div class="card" style="margin-bottom:16px">
+<div class="card-header"><h2><span class="icon">&#x1f9e0;</span> Brain Graph</h2><span class="badge badge-purple" id="graph-stats-badge">-- Nodes</span></div>
+<div class="graph-container" id="graph-canvas"><div class="loading"><div class="spinner"></div>Lade Brain Graph...</div></div>
+</div>
+<div class="grid grid-2">
+<div class="card">
+<h2>Top Entities</h2>
+<table class="table"><thead><tr><th>Entity</th><th>Score</th><th>Typ</th></tr></thead><tbody id="top-nodes"></tbody></table>
+</div>
+<div class="card">
+<h2>Staerkste Verbindungen</h2>
+<table class="table"><thead><tr><th>Von</th><th>Zu</th><th>Gewicht</th></tr></thead><tbody id="top-edges"></tbody></table>
+</div>
+</div>
+</div>
+
+<!-- Habitus Page -->
+<div class="page" id="page-habitus">
+<div class="card">
+<div class="card-header"><h2><span class="icon">&#x1f50d;</span> Verhaltens-Muster (Habitus Miner)</h2><span class="badge badge-blue" id="habitus-count">--</span></div>
+<div id="habitus-rules"><div class="loading"><div class="spinner"></div>Lade Regeln...</div></div>
+</div>
+</div>
+
+<!-- Mood Page -->
+<div class="page" id="page-mood">
+<div class="card" style="margin-bottom:16px">
+<h2><span class="icon">&#x1f3b5;</span> Stimmungs-Zonen</h2>
+<div id="mood-zones"><div class="loading"><div class="spinner"></div>Lade Stimmungsdaten...</div></div>
+</div>
+<div class="grid grid-3" id="mood-stats"></div>
+</div>
+
+<!-- Chat Page -->
+<div class="page" id="page-chat">
+<div class="card chat-container">
+<h2 style="padding:0 0 12px;border-bottom:1px solid var(--border)"><span class="icon">&#x1f4ac;</span> CoPilot Chat <span class="badge badge-purple" id="chat-model">--</span></h2>
+<div class="chat-messages" id="chat-messages">
+<div class="chat-msg assistant">Hallo! Ich bin dein PilotSuite CoPilot. Wie kann ich dir mit deinem Smart Home helfen?</div>
+</div>
+<div class="chat-input">
+<input type="text" id="chat-input" placeholder="Nachricht eingeben..." autocomplete="off">
+<button id="chat-send" onclick="sendChat()">Senden</button>
+</div>
+</div>
+</div>
+
+<!-- Memory Page -->
+<div class="page" id="page-memory">
+<div class="grid grid-2">
+<div class="card">
+<h2><span class="icon">&#x1f4da;</span> Gelernte Praeferenzen</h2>
+<div id="preferences-list"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+</div>
+<div class="card">
+<h2><span class="icon">&#x1f4ca;</span> Gedaechtnis-Statistiken</h2>
+<div id="memory-stats-detail"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+</div>
+</div>
+</div>
+
+<!-- Settings Page -->
+<div class="page" id="page-settings">
+<div class="grid grid-2">
+<div class="card">
+<h2><span class="icon">&#x2699;&#xfe0f;</span> LLM Konfiguration</h2>
+<table class="table" id="settings-llm"></table>
+</div>
+<div class="card">
+<h2><span class="icon">&#x1f4e6;</span> Installierte Modelle</h2>
+<div id="installed-models"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+</div>
+<div class="card">
+<h2><span class="icon">&#x1f916;</span> Empfohlene Modelle</h2>
+<div id="recommended-models"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+</div>
+<div class="card">
+<h2><span class="icon">&#x1f517;</span> API Endpoints</h2>
+<table class="table">
+<tr><td>Chat API</td><td><code>/v1/chat/completions</code></td></tr>
+<tr><td>Models API</td><td><code>/v1/models</code></td></tr>
+<tr><td>MCP Server</td><td><code>/mcp</code></td></tr>
+<tr><td>Brain Graph</td><td><code>/api/v1/graph/state</code></td></tr>
+<tr><td>Mood</td><td><code>/api/v1/mood/state</code></td></tr>
+<tr><td>Habitus</td><td><code>/api/v1/habitus/rules</code></td></tr>
+<tr><td>API Docs</td><td><a href="/api/v1/docs/" target="_blank">/api/v1/docs/</a></td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<script>
+// ============================================================
+// PilotSuite Dashboard JS
+// ============================================================
+const API = '';  // Same origin
+
+// Navigation
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    loadPage(btn.dataset.page);
+  });
+});
+
+async function api(path) {
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'className') el.className = v;
+    else if (k === 'onclick') el.onclick = v;
+    else el.setAttribute(k, v);
+  });
+  children.flat().forEach(c => {
+    if (c == null) return;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return el;
+}
+
+// ============================================================
+// Overview
+// ============================================================
+async function loadOverview() {
+  // Status
+  const status = await api('/chat/status');
+  if (status) {
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    if (status.available) { dot.className='dot dot-green'; txt.textContent='Online'; }
+    else { dot.className='dot dot-red'; txt.textContent='Offline'; }
+    document.getElementById('sys-provider').innerHTML = badge(status.active_provider || 'ollama', status.ollama_available ? 'green' : 'yellow');
+    document.getElementById('sys-model').textContent = status.model || '--';
+    document.getElementById('sys-ollama').innerHTML = status.ollama_available ? badge('Online','green') : badge('Offline','red');
+    document.getElementById('sys-cloud').innerHTML = status.cloud_configured ? badge('Konfiguriert','blue') : badge('Nicht konfiguriert','yellow');
+    document.getElementById('sys-calls').textContent = (status.calls_this_hour||0) + ' / ' + (status.max_calls_per_hour||60);
+    document.getElementById('sys-mcp').innerHTML = badge('Aktiv','green');
+    document.getElementById('chat-model').textContent = status.model || '--';
+  }
+  // Telegram
+  const tg = await api('/telegram/status');
+  document.getElementById('sys-telegram').innerHTML = tg && tg.enabled ? badge(tg.running?'Aktiv':'Gestoppt', tg.running?'green':'yellow') : badge('Nicht konfiguriert','yellow');
+
+  // Brain Graph
+  const bg = await api('/api/v1/graph/stats');
+  if (bg) {
+    document.getElementById('stat-nodes').textContent = bg.node_count || 0;
+    document.getElementById('stat-edges').textContent = bg.edge_count || 0;
+  }
+  // Habitus
+  const hab = await api('/api/v1/habitus/status');
+  document.getElementById('stat-patterns').textContent = hab ? (hab.rule_count || hab.pattern_count || 0) : 0;
+  // Neurons
+  const neurons = await api('/api/v1/neurons');
+  document.getElementById('stat-neurons').textContent = neurons ? (neurons.neurons||neurons.data||[]).length : 0;
+  // Memory
+  const mem = await api('/chat/memory');
+  if (mem && mem.stats) {
+    document.getElementById('stat-memory').textContent = mem.stats.total_messages || 0;
+    document.getElementById('stat-prefs').textContent = (mem.preferences||[]).length;
+  }
+  // Recent patterns
+  loadRecentPatterns();
+  // Onboarding
+  showOnboarding(status, bg, hab);
+}
+
+function showOnboarding(status, bg, hab) {
+  const el = document.getElementById('onboarding');
+  const totalData = (bg?.node_count||0) + (hab?.rule_count||hab?.pattern_count||0);
+  if (totalData > 10) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="onboard">
+      <h2>Willkommen bei PilotSuite!</h2>
+      <p>Dein Smart Home lernt ab jetzt mit. PilotSuite analysiert Geraete-Muster, erkennt Gewohnheiten und wird mit jeder Interaktion intelligenter. Hier ein paar Vorschlaege zum Start:</p>
+      <div class="suggestions">
+        <button onclick="navigateTo('chat')">Mit CoPilot chatten</button>
+        <button onclick="navigateTo('brain')">Brain Graph erkunden</button>
+        <button onclick="navigateTo('settings')">Modell auswaehlen</button>
+        <button onclick="window.open('/api/v1/docs/','_blank')">API Docs oeffnen</button>
+      </div>
+    </div>`;
+}
+
+function navigateTo(page) {
+  document.querySelectorAll('.nav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === page);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  loadPage(page);
+}
+
+function badge(text, color) { return `<span class="badge badge-${color}">${text}</span>`; }
+
+async function loadRecentPatterns() {
+  const data = await api('/api/v1/habitus/rules?limit=5');
+  const el = document.getElementById('recent-patterns');
+  const rules = data?.rules || data?.data || [];
+  if (!rules.length) { el.innerHTML = '<div class="empty"><div class="icon">&#x1f50d;</div>Noch keine Muster erkannt.<br>PilotSuite lernt automatisch aus deinen Geraete-Events.</div>'; return; }
+  el.innerHTML = '';
+  rules.slice(0, 5).forEach(r => {
+    const meta = r.metadata || r;
+    const ant = meta.antecedent?.full || meta.antecedent || '?';
+    const cons = meta.consequent?.full || meta.consequent || '?';
+    const conf = ((meta.confidence || 0) * 100).toFixed(0);
+    const div = h('div', {className:'pattern'},
+      h('span', null, ant), h('span', {className:'arrow'}, ' \u2192 '), h('span', null, cons),
+      h('span', {className:'conf'}, conf + '% Konfidenz'));
+    el.appendChild(div);
+  });
+}
+
+// ============================================================
+// Brain Graph
+// ============================================================
+async function loadBrainGraph() {
+  const data = await api('/api/v1/graph/state?limitNodes=80&limitEdges=200');
+  const container = document.getElementById('graph-canvas');
+  if (!data || !data.nodes || !data.nodes.length) {
+    container.innerHTML = '<div class="empty"><div class="icon">&#x1f9e0;</div>Brain Graph ist noch leer.<br>Events muessen zuerst von HA weitergeleitet werden.</div>';
+    return;
+  }
+  document.getElementById('graph-stats-badge').textContent = data.nodes.length + ' Nodes, ' + (data.edges||[]).length + ' Edges';
+  renderForceGraph(container, data.nodes, data.edges || []);
+  // Tables
+  const nodesBody = document.getElementById('top-nodes');
+  nodesBody.innerHTML = '';
+  data.nodes.sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 15).forEach(n => {
+    nodesBody.innerHTML += `<tr><td>${n.id||n.entity_id||''}</td><td>${(n.score||0).toFixed(2)}</td><td>${badge(n.kind||n.type||'?','blue')}</td></tr>`;
+  });
+  const edgesBody = document.getElementById('top-edges');
+  edgesBody.innerHTML = '';
+  (data.edges||[]).sort((a,b) => (b.weight||0) - (a.weight||0)).slice(0, 15).forEach(e => {
+    edgesBody.innerHTML += `<tr><td>${e.source||e.from||''}</td><td>${e.target||e.to||''}</td><td>${(e.weight||0).toFixed(3)}</td></tr>`;
+  });
+}
+
+function renderForceGraph(container, nodes, edges) {
+  const W = container.clientWidth, H = container.clientHeight || 400;
+  // Simple force-directed layout
+  const nodeMap = {};
+  nodes.forEach((n, i) => {
+    n.x = W/2 + (Math.random() - 0.5) * W * 0.6;
+    n.y = H/2 + (Math.random() - 0.5) * H * 0.6;
+    n.vx = 0; n.vy = 0;
+    nodeMap[n.id || n.entity_id] = n;
+  });
+  // Run simulation
+  for (let iter = 0; iter < 100; iter++) {
+    // Repulsion
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i+1; j < nodes.length; j++) {
+        let dx = nodes[j].x - nodes[i].x, dy = nodes[j].y - nodes[i].y;
+        let d = Math.sqrt(dx*dx + dy*dy) || 1;
+        let force = 800 / (d * d);
+        nodes[i].vx -= dx/d * force; nodes[i].vy -= dy/d * force;
+        nodes[j].vx += dx/d * force; nodes[j].vy += dy/d * force;
+      }
+    }
+    // Attraction
+    edges.forEach(e => {
+      const s = nodeMap[e.source||e.from], t = nodeMap[e.target||e.to];
+      if (!s || !t) return;
+      let dx = t.x - s.x, dy = t.y - s.y, d = Math.sqrt(dx*dx+dy*dy) || 1;
+      let force = (d - 80) * 0.01;
+      s.vx += dx/d*force; s.vy += dy/d*force;
+      t.vx -= dx/d*force; t.vy -= dy/d*force;
+    });
+    // Center gravity
+    nodes.forEach(n => {
+      n.vx += (W/2 - n.x) * 0.001; n.vy += (H/2 - n.y) * 0.001;
+      n.vx *= 0.85; n.vy *= 0.85;
+      n.x += n.vx; n.y += n.vy;
+      n.x = Math.max(20, Math.min(W-20, n.x));
+      n.y = Math.max(20, Math.min(H-20, n.y));
+    });
+  }
+  // Render SVG
+  const colors = {sensor:'#3fb950',light:'#f59e0b',switch:'#6366f1',binary_sensor:'#58a6ff',climate:'#f85149',media_player:'#d29922',automation:'#818cf8',default:'#8b949e'};
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  // Edges
+  edges.forEach(e => {
+    const s = nodeMap[e.source||e.from], t = nodeMap[e.target||e.to];
+    if (!s || !t) return;
+    const w = Math.max(0.5, Math.min(3, (e.weight||0.5) * 4));
+    svg += `<line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="#30363d" stroke-width="${w}" stroke-opacity="0.5"/>`;
+  });
+  // Nodes
+  nodes.forEach(n => {
+    const domain = (n.id||n.entity_id||'').split('.')[0];
+    const color = colors[domain] || colors.default;
+    const r = 4 + Math.min(8, (n.score||0.5) * 6);
+    const label = (n.id||n.entity_id||'').split('.').pop().replace(/_/g,' ').slice(0,15);
+    svg += `<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${color}" opacity="0.85"/>`;
+    svg += `<text x="${n.x}" y="${n.y + r + 10}" text-anchor="middle" fill="#8b949e" font-size="8">${label}</text>`;
+  });
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
+// ============================================================
+// Habitus
+// ============================================================
+async function loadHabitus() {
+  const data = await api('/api/v1/habitus/rules?limit=50');
+  const el = document.getElementById('habitus-rules');
+  const rules = data?.rules || data?.data || [];
+  document.getElementById('habitus-count').textContent = rules.length + ' Regeln';
+  if (!rules.length) { el.innerHTML = '<div class="empty"><div class="icon">&#x1f50d;</div>Noch keine Verhaltens-Muster.<br>PilotSuite braucht mehr Events um Muster zu erkennen.</div>'; return; }
+  el.innerHTML = '';
+  rules.forEach(r => {
+    const meta = r.metadata || r;
+    const ant = meta.antecedent?.full || meta.antecedent || '?';
+    const cons = meta.consequent?.full || meta.consequent || '?';
+    const conf = ((meta.confidence||0)*100).toFixed(0);
+    const supp = ((meta.support||0)*100).toFixed(1);
+    const lift = (meta.lift||0).toFixed(2);
+    const div = h('div', {className:'pattern'},
+      h('span', null, ant), h('span', {className:'arrow'}, ' \u2192 '), h('span', null, cons),
+      h('span', {className:'conf'}, `${conf}% Konf. | ${supp}% Supp. | Lift ${lift}`));
+    el.appendChild(div);
+  });
+}
+
+// ============================================================
+// Mood
+// ============================================================
+async function loadMood() {
+  const data = await api('/api/v1/mood/state');
+  const el = document.getElementById('mood-zones');
+  const statsEl = document.getElementById('mood-stats');
+  if (!data || !data.zones) { el.innerHTML = '<div class="empty"><div class="icon">&#x1f3b5;</div>Noch keine Stimmungsdaten.<br>Mood Engine benoetigt Events aus konfigurierten Zonen.</div>'; return; }
+  el.innerHTML = '';
+  const zones = Object.entries(data.zones || {});
+  if (!zones.length) { el.innerHTML = '<div class="empty">Keine Zonen konfiguriert.</div>'; return; }
+  zones.forEach(([name, z]) => {
+    const comfort = z.comfort || 0, joy = z.joy || 0, frugality = z.frugality || 0;
+    const div = h('div', {style:'margin-bottom:16px'},
+      h('h3', {style:'font-size:14px;margin-bottom:8px'}, name),
+      gaugeRow('Comfort', comfort, '#3fb950'),
+      gaugeRow('Joy', joy, '#f59e0b'),
+      gaugeRow('Frugality', frugality, '#6366f1'));
+    el.appendChild(div);
+  });
+  // Summary stats
+  if (data.summary) {
+    statsEl.innerHTML = `
+      <div class="card stat"><div class="value">${(data.summary.average_comfort||0).toFixed(1)}</div><div class="label">Avg. Comfort</div></div>
+      <div class="card stat"><div class="value">${(data.summary.average_joy||0).toFixed(1)}</div><div class="label">Avg. Joy</div></div>
+      <div class="card stat"><div class="value">${(data.summary.average_frugality||0).toFixed(1)}</div><div class="label">Avg. Frugality</div></div>`;
+  }
+}
+
+function gaugeRow(label, value, color) {
+  const pct = Math.max(0, Math.min(100, value * 100));
+  const div = document.createElement('div');
+  div.className = 'gauge-item';
+  div.innerHTML = `<div class="gauge-label"><span>${label}</span><span class="val">${pct.toFixed(0)}%</span></div><div class="gauge-bar"><div class="gauge-fill" style="width:${pct}%;background:${color}"></div></div>`;
+  return div;
+}
+
+// ============================================================
+// Chat
+// ============================================================
+const chatInput = document.getElementById('chat-input');
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) sendChat(); });
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const msgs = document.getElementById('chat-messages');
+  msgs.appendChild(h('div', {className:'chat-msg user'}, msg));
+  msgs.scrollTop = msgs.scrollHeight;
+  const sendBtn = document.getElementById('chat-send');
+  sendBtn.disabled = true;
+  const typing = h('div', {className:'chat-msg assistant', id:'typing'}, 'Denkt nach...');
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+  try {
+    const r = await fetch(API + '/v1/chat/completions', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model: '', messages:[{role:'user',content:msg}], stream:false})
+    });
+    const data = await r.json();
+    const reply = data?.choices?.[0]?.message?.content || data?.error?.message || 'Keine Antwort.';
+    typing.textContent = reply;
+    typing.removeAttribute('id');
+  } catch(e) {
+    typing.textContent = 'Fehler: ' + e.message;
+    typing.removeAttribute('id');
+  }
+  sendBtn.disabled = false;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ============================================================
+// Memory
+// ============================================================
+async function loadMemory() {
+  const data = await api('/chat/memory');
+  const prefsEl = document.getElementById('preferences-list');
+  const statsEl = document.getElementById('memory-stats-detail');
+  if (!data) { prefsEl.innerHTML = '<div class="empty">Gedaechtnis nicht verfuegbar.</div>'; return; }
+  // Preferences
+  const prefs = data.preferences || [];
+  if (!prefs.length) { prefsEl.innerHTML = '<div class="empty"><div class="icon">&#x1f4da;</div>Noch keine Praeferenzen gelernt.<br>Chatte mit CoPilot um Praeferenzen zu sammeln.</div>'; }
+  else {
+    prefsEl.innerHTML = '';
+    prefs.forEach(p => {
+      const div = h('div', {className:'pref-item'},
+        h('span', {className:'pref-key'}, p.key),
+        h('span', {className:'pref-val'}, p.value),
+        h('span', {className:'pref-conf'}, (p.confidence*100).toFixed(0) + '% (' + p.mentions + 'x)'));
+      prefsEl.appendChild(div);
+    });
+  }
+  // Stats
+  const s = data.stats || {};
+  statsEl.innerHTML = `<table class="table">
+    <tr><td>Gespeicherte Nachrichten</td><td><strong>${s.total_messages||0}</strong></td></tr>
+    <tr><td>Gelernte Praeferenzen</td><td><strong>${prefs.length}</strong></td></tr>
+    <tr><td>Themen erkannt</td><td><strong>${s.topics_count||s.unique_topics||0}</strong></td></tr>
+    <tr><td>Speicher</td><td>${s.db_size_mb ? s.db_size_mb.toFixed(1)+' MB' : '--'}</td></tr>
+  </table>`;
+}
+
+// ============================================================
+// Settings
+// ============================================================
+async function loadSettings() {
+  const status = await api('/chat/status');
+  const llmEl = document.getElementById('settings-llm');
+  if (status) {
+    llmEl.innerHTML = `
+      <tr><td>Aktiver Provider</td><td>${badge(status.active_provider||'--','purple')}</td></tr>
+      <tr><td>Modell</td><td><strong>${status.model||'--'}</strong></td></tr>
+      <tr><td>Ollama URL</td><td><code>${status.ollama_url||'--'}</code></td></tr>
+      <tr><td>Ollama Status</td><td>${status.ollama_available ? badge('Online','green') : badge('Offline','red')}</td></tr>
+      <tr><td>Cloud API</td><td>${status.cloud_configured ? badge('Konfiguriert','blue') : badge('Nicht konfiguriert','yellow')}</td></tr>
+      <tr><td>Cloud URL</td><td><code>${status.cloud_api_url||'--'}</code></td></tr>
+      <tr><td>Cloud Modell</td><td>${status.cloud_model||'--'}</td></tr>
+      <tr><td>Lokal bevorzugen</td><td>${status.prefer_local ? badge('Ja','green') : badge('Nein','yellow')}</td></tr>
+      <tr><td>Charakter</td><td>${(status.characters||[]).map(c=>badge(c,'blue')).join(' ')}</td></tr>`;
+  }
+  // Installed
+  const modelsEl = document.getElementById('installed-models');
+  const installed = status?.installed_models || [];
+  if (!installed.length) { modelsEl.innerHTML = '<div class="empty">Keine Ollama-Modelle installiert.</div>'; }
+  else {
+    modelsEl.innerHTML = '';
+    installed.forEach(m => {
+      modelsEl.appendChild(h('div', {className:'pattern'}, h('span', null, m), h('span', {className:'conf'}, m === status.model ? badge('Aktiv','green') : '')));
+    });
+  }
+  // Recommended
+  const rec = await api('/chat/models/recommended');
+  const recEl = document.getElementById('recommended-models');
+  if (rec && rec.models) {
+    recEl.innerHTML = '';
+    rec.models.forEach(m => {
+      const badges = [m.installed ? badge('Installiert','green') : badge(m.size_mb+'MB','yellow')];
+      if (m.active) badges.push(badge('Aktiv','purple'));
+      if (m.supports_tools) badges.push(badge('Tools','blue'));
+      const div = h('div', {className:'pattern', style:'flex-wrap:wrap'},
+        h('div', null, h('strong', null, m.name), h('br'), h('span', {style:'font-size:12px;color:var(--dim)'}, m.description)),
+        h('div', {className:'conf', style:'display:flex;gap:4px;flex-wrap:wrap'}, ...badges.map(b => { const s = document.createElement('span'); s.innerHTML = b; return s; })));
+      recEl.appendChild(div);
+    });
+  }
+}
+
+// ============================================================
+// Page loader
+// ============================================================
+const loaded = {};
+function loadPage(page) {
+  if (page === 'overview') loadOverview();
+  else if (page === 'brain') { if(!loaded.brain){loaded.brain=1;loadBrainGraph();} }
+  else if (page === 'habitus') loadHabitus();
+  else if (page === 'mood') loadMood();
+  else if (page === 'memory') loadMemory();
+  else if (page === 'settings') loadSettings();
+}
+
+// Initial load
+loadOverview();
+// Auto-refresh overview every 30s
+setInterval(() => { if (document.querySelector('.nav button.active')?.dataset.page === 'overview') loadOverview(); }, 30000);
+</script>
+</body>
+</html>

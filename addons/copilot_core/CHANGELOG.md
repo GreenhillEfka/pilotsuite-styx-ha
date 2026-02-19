@@ -1,3 +1,44 @@
+## 1.0.0 - 2026-02-19
+
+### PilotSuite v1.0.0 -- First Full Release
+
+The first complete, installable PilotSuite release. A local, privacy-first
+AI system that makes your Home Assistant smart home truly intelligent.
+
+### Highlights
+
+- **Web Dashboard**: Beautiful dark-themed ingress panel with live Brain Graph
+  visualization, Mood gauges, Habitus patterns, built-in Chat, and system overview.
+- **LLM Provider Chain**: Ollama (local, default) with automatic cloud fallback
+  (OpenClaw, OpenAI, or any OpenAI-compatible API).
+- **Tool-Calling**: 9 HA tools executable via LLM function calling
+  (call_service, get_states, get_history, scenes, events, calendar, weather).
+- **PilotSuite MCP Server**: `/mcp` endpoint exposing 8 PilotSuite skills
+  (mood, brain_graph, habitus, neurons, preferences, household, memory, energy)
+  for external AI clients (OpenClaw, Claude Desktop).
+- **Telegram Bot**: Long-polling bot forwarding messages through the full chat
+  pipeline with tool execution. Config: `telegram.enabled`, `telegram.token`.
+- **Obligatory Offline Model**: `qwen3:0.6b` (400MB) always pulled at install,
+  guaranteeing offline AI. `qwen3:4b` (2.5GB) as recommended default.
+- **Lifelong Learning**: ConversationMemory stores every interaction, extracts
+  preferences, and injects learned context into the LLM system prompt.
+- **6 Character Presets**: CoPilot, Butler, Energiemanager, Sicherheitswache,
+  Freundlicher Assistent, Minimal -- each with unique system prompts.
+
+### New Files
+- `llm_provider.py` -- Unified LLM provider with Ollama + Cloud fallback
+- `mcp_server.py` -- PilotSuite MCP Server (JSON-RPC 2.0)
+- `telegram/` -- Telegram bot module (bot.py, api.py)
+- `conversation_memory.py` -- SQLite lifelong learning store
+- `templates/dashboard.html` -- Web dashboard (HTML/CSS/JS)
+
+### Breaking Changes
+- Default model changed from `lfm2.5-thinking` to `qwen3:4b`
+- Default port changed from 8099 to 8909
+- Version jump from 0.9.9 to 1.0.0
+
+---
+
 ## 0.9.1-alpha.8 - 2026-02-18
 - **button_debug.py Modularisierung** (HA Integration)
   - Refactoring: 821 → 60 Zeilen Hauptdatei

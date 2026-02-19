@@ -8,14 +8,14 @@ registration to modular components (core_setup.py).
 import json
 import os
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_compress import Compress
 from waitress import serve
 
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "0.9.9")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "1.0.0")
 
 
 def _load_options_json(path: str = "/data/options.json") -> dict:
@@ -99,23 +99,13 @@ def _load_dev_log_cache() -> None:
 _load_dev_log_cache()
 
 
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+
+
 @app.get("/")
 def index():
-    return (
-        "PilotSuite Core v0.9.9\n"
-        "Endpoints: /health, /version, /api/v1/echo\n"
-        "OpenAI API: /v1/chat/completions, /v1/models (for extended_openai_conversation)\n"
-        "Chat: /chat/completions, /chat/status, /chat/characters, /chat/models/recommended\n"
-        "Tag System: /api/v1/tag-system/tags, /assignments (store)\n"
-        "Event Ingest: /api/v1/events (POST/GET), /api/v1/events/stats\n"
-        "Brain Graph: /api/v1/graph/state, /snapshot.svg, /stats, /prune, /patterns\n"
-        "Candidates: /api/v1/candidates (POST/GET), /{id} (GET/PUT), /stats, /cleanup\n"
-        "Habitus: /api/v1/habitus/mine, /patterns, /stats, /health\n"
-        "Mood: /api/v1/mood, /summary, /{zone_id}, /suppress-energy-saving, /relevance\n"
-        "Dev: /api/v1/dev/logs (POST/GET)\n"
-        "Pipeline: Events -> EventProcessor -> BrainGraph -> Habitus -> Candidates (real-time)\n"
-        "LLM: Ollama (bundled) with lfm2.5-thinking default model\n"
-    )
+    """Serve PilotSuite Dashboard (ingress panel)."""
+    return send_from_directory(TEMPLATE_DIR, 'dashboard.html')
 
 
 @app.get("/health")
