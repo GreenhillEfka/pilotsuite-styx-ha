@@ -1,7 +1,7 @@
 # PilotSuite — Projekt-Statusbericht & Roadmap
 
-> **Zentrale Projektanalyse** — Aktualisiert 2026-02-17 18:00
-> Core v0.9.1-alpha.8 | Integration v0.14.1-alpha.8
+> **Zentrale Projektanalyse** — Aktualisiert 2026-02-19
+> Core v3.8.0 | Integration v3.8.0
 > Gilt fuer beide Repos: Home-Assistant-Copilot (Core) + ai-home-copilot-ha (HACS)
 
 ---

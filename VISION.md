@@ -2,7 +2,7 @@
 
 > **Single Source of Truth** for the entire PilotSuite project.
 > Both repos (Core Add-on + HACS Integration) reference this document.
-> Last Updated: 2026-02-19 | Core v3.1.0 | Integration v3.0.0
+> Last Updated: 2026-02-19 | Core v3.8.0 | Integration v3.8.0
 
 ---
 
@@ -105,8 +105,8 @@ Akzeptiert -> aehnliche boosten | Modifiziert -> Parameter anpassen | Abgelehnt 
 
 | Repo | Rolle | Version | Port |
 |------|-------|---------|------|
-| **Home-Assistant-Copilot** | Core Add-on (Backend) | v3.0.0 | 8909 |
-| **ai-home-copilot-ha** | HACS Integration (Frontend) | v3.0.0 | - (verbindet sich zum Core) |
+| **Home-Assistant-Copilot** | Core Add-on (Backend) | v3.8.0 | 8909 |
+| **ai-home-copilot-ha** | HACS Integration (Frontend) | v3.8.0 | - (verbindet sich zum Core) |
 
 Warum zwei Repos: HACS-Anforderung (eigenstaendiges Repo), unabhaengige Skalierung, Headless-Betrieb moeglich, bekanntes Muster (ESPHome, Node-RED).
 
@@ -116,7 +116,7 @@ Warum zwei Repos: HACS-Anforderung (eigenstaendiges Repo), unabhaengige Skalieru
 +---------------------------------------------------------------+
 | Home Assistant                                                 |
 |  +----------------------------------------------------------+ |
-|  | HACS Integration v3.0.0                                   | |
+|  | HACS Integration v3.8.0                                   | |
 |  | 25 Core-Module | 80+ Sensoren | 20+ Dashboard Cards      | |
 |  | 3 Native Lovelace: styx-mood-card, styx-brain-card,       | |
 |  |                    styx-habitus-card                       | |
@@ -125,7 +125,7 @@ Warum zwei Repos: HACS-Anforderung (eigenstaendiges Repo), unabhaengige Skalieru
 |           REST API --+  +-- WebSocket (real-time)              |
 |                      v                                         |
 |  +----------------------------------------------------------+ |
-|  | Core Add-on v3.0.0 - Port 8909                            | |
+|  | Core Add-on v3.8.0 - Port 8909                            | |
 |  | Brain Graph | Habitus Miner | Mood Engine | Candidates    | |
 |  | Tag System  | Vector Store  | Knowledge G | Collective    | |
 |  | Neurons 14+ | Search API    | Weather API | Performance   | |
