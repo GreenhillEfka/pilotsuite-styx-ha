@@ -231,7 +231,10 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():
-            runtime.registry.register(name, cls)
+            try:
+                runtime.registry.register(name, cls)
+            except Exception:
+                _LOGGER.exception("Failed to register module '%s' — skipping", name)
     return runtime
 
 
@@ -241,29 +244,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await runtime.async_setup_entry(entry, modules=_MODULES)
     
     # Set up User Preference Module separately (not a CopilotModule)
-    from .user_preference_module import UserPreferenceModule
-    from .const import CONF_USER_PREFERENCE_ENABLED
-    
-    config = entry.options or entry.data
-    if config.get(CONF_USER_PREFERENCE_ENABLED, False):
-        user_pref_module = UserPreferenceModule(hass, entry)
-        await user_pref_module.async_setup()
-        
-        if DOMAIN not in hass.data:
-            hass.data[DOMAIN] = {}
-        if entry.entry_id not in hass.data[DOMAIN]:
-            hass.data[DOMAIN][entry.entry_id] = {}
-        hass.data[DOMAIN][entry.entry_id]["user_preference_module"] = user_pref_module
+    try:
+        from .user_preference_module import UserPreferenceModule
+        from .const import CONF_USER_PREFERENCE_ENABLED
+
+        config = entry.options or entry.data
+        if config.get(CONF_USER_PREFERENCE_ENABLED, False):
+            user_pref_module = UserPreferenceModule(hass, entry)
+            await user_pref_module.async_setup()
+
+            if DOMAIN not in hass.data:
+                hass.data[DOMAIN] = {}
+            if entry.entry_id not in hass.data[DOMAIN]:
+                hass.data[DOMAIN][entry.entry_id] = {}
+            hass.data[DOMAIN][entry.entry_id]["user_preference_module"] = user_pref_module
+    except Exception:
+        _LOGGER.exception("Failed to set up UserPreferenceModule")
     
     # Set up Multi-User Preference Learning Module (v0.8.0)
-    from .multi_user_preferences import MultiUserPreferenceModule, set_mupl_module
-    from .const import CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED
+    try:
+        from .multi_user_preferences import MultiUserPreferenceModule, set_mupl_module
+        from .const import CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED
 
-    if config.get(CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED):
-        mupl_module = MultiUserPreferenceModule(hass, entry)
-        await mupl_module.async_setup()
-        set_mupl_module(hass, entry.entry_id, mupl_module)
-        _LOGGER.info("Multi-User Preference Learning Module initialized")
+        config = entry.options or entry.data
+        if config.get(CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED):
+            mupl_module = MultiUserPreferenceModule(hass, entry)
+            await mupl_module.async_setup()
+            set_mupl_module(hass, entry.entry_id, mupl_module)
+            _LOGGER.info("Multi-User Preference Learning Module initialized")
+    except Exception:
+        _LOGGER.exception("Failed to set up MultiUserPreferenceModule")
 
     # Set up Zone Detector with Core addon forwarding (v3.1.0)
     try:

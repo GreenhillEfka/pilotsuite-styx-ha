@@ -1,5 +1,16 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.7.1] - 2026-02-19
+
+### Error Isolation — Modul-Setup
+
+- **`__init__.py`** — Alle Modul-Registrierungen in `_get_runtime` einzeln in `try/except`
+  - Ein defektes Modul crasht nicht mehr den kompletten Start
+- **`async_setup_entry`** — `UserPreferenceModule` und `MultiUserPreferenceModule`
+  Setup-Blöcke jeweils in `try/except` gekapselt
+  - Optionale Module können ausfallen ohne die Integration zu blockieren
+- Version: 3.7.0 → 3.7.1
+
 ## [3.7.0] - 2026-02-19
 
 ### Bug Fixes & Production Readiness
