@@ -1,5 +1,14 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.9.0] - 2026-02-19
+
+### Production-Ready Bug Sweep
+
+- **`mood/service.py` — prune logic fix** — The periodic DB cleanup used
+  `len(self._last_save_ts) % 100` (number of zones) instead of a global save counter.
+  Since zone count rarely changes, `_prune_old()` effectively never ran, causing
+  unbounded DB growth. Replaced with `_save_count` counter that increments on every save.
+
 ## [3.8.1] - 2026-02-19
 
 ### Startup Reliability Patch
