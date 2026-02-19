@@ -74,7 +74,19 @@
           "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
           "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
           "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
-          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons"
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons",
+          "enable_user_preferences": "Enable user preferences module",
+          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
+          "events_forwarder_include_media_players": "Core: include media players in forwarding",
+          "events_forwarder_additional_entities": "Core: additional entities to forward (csv)",
+          "user_preference_enabled": "Enable per-user preference tracking",
+          "tracked_users": "Tracked users (comma-separated person.entity_ids)",
+          "primary_user": "Primary user (person.entity_id)",
+          "user_learning_mode": "User learning mode (passive/active/hybrid)",
+          "mupl_enabled": "Enable Multi-User Preference Learning",
+          "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL min interactions before learning",
+          "mupl_retention_days": "MUPL data retention (days)"
         }
       },
       "habitus_zones": {
@@ -257,7 +269,22 @@
           "devlog_push_max_chars": "Dev: max chars per snippet",
           "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
           "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
-          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines"
+          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph→candidates buttons",
+          "enable_user_preferences": "Enable user preferences module",
+          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
+          "events_forwarder_include_media_players": "Core: include media players in forwarding",
+          "events_forwarder_additional_entities": "Core: additional entities to forward (csv)",
+          "user_preference_enabled": "Enable per-user preference tracking",
+          "tracked_users": "Tracked users (comma-separated person.entity_ids)",
+          "primary_user": "Primary user (person.entity_id)",
+          "user_learning_mode": "User learning mode (passive/active/hybrid)",
+          "mupl_enabled": "Enable Multi-User Preference Learning",
+          "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL min interactions before learning",
+          "mupl_retention_days": "MUPL data retention (days)"
         }
       },
       "habitus_zones": {

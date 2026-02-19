@@ -112,25 +112,35 @@ class ZoneDetector:
         self,
         hass: HomeAssistant,
         config_entry: ConfigEntry | None = None,
+        api_client: Any | None = None,
     ) -> None:
         """Initialize the zone detector."""
         self.hass = hass
         self.config_entry = config_entry
-        
+        self._api_client = api_client
+
         # Config
         self._enabled = True
         self._detection_interval = 30  # seconds
         self._zone_timeout = 300  # seconds (5 min) before switching zones
-        
+
         # Internal state
         self._zones: dict[str, ZoneConfig] = {}
         self._current_zones: dict[str, DetectedZone] = {}  # user_id -> current zone
         self._person_entities: list[str] = []
         self._device_entities: list[str] = []
         self._unsub_trackers: list[Any] = []
-        
+        self._zone_entry_callbacks: list[Any] = []
+
         # Load zone templates
         self._load_zone_templates()
+
+    def on_zone_entry(self, callback_fn) -> None:
+        """Register a callback for zone entry events.
+
+        Callback signature: callback_fn(person_id, zone_id, previous_zone_id)
+        """
+        self._zone_entry_callbacks.append(callback_fn)
         
     def _load_zone_templates(self) -> None:
         """Load zone templates into zone configurations."""
@@ -219,22 +229,61 @@ class ZoneDetector:
     async def _async_check_zones(self) -> None:
         """Check and update zones for all users."""
         current_time = datetime.now()
-        
+
         for person_entity in self._person_entities:
             state = self.hass.states.get(person_entity)
             if not state:
                 continue
-                
+
             user_id = person_entity
             user_zone = await self._detect_zone_for_user(user_id, state, current_time)
-            
+
             if user_zone:
+                previous = self._current_zones.get(user_id)
+                prev_zone_id = previous.zone_id if previous else None
+
+                # Detect zone transition
+                if prev_zone_id != user_zone.zone_id:
+                    _LOGGER.info(
+                        "Zone transition: %s  %s -> %s",
+                        user_id, prev_zone_id or "none", user_zone.zone_id,
+                    )
+                    await self._fire_zone_entry(user_id, user_zone.zone_id, prev_zone_id)
+
                 self._current_zones[user_id] = user_zone
                 _LOGGER.debug(
                     "User %s detected in zone %s (confidence: %.2f)",
                     user_id,
                     user_zone.zone_id,
                     user_zone.confidence,
+                )
+
+    async def _fire_zone_entry(
+        self, person_id: str, zone_id: str, previous_zone_id: str | None
+    ) -> None:
+        """Notify callbacks and Core addon about zone entry."""
+        # Fire registered callbacks
+        for cb in self._zone_entry_callbacks:
+            try:
+                cb(person_id, zone_id, previous_zone_id)
+            except Exception:
+                _LOGGER.debug("Zone entry callback error", exc_info=True)
+
+        # Forward to Core addon (proactive engine + musikwolke)
+        if self._api_client is not None:
+            try:
+                await self._api_client.async_post(
+                    "/api/v1/media/proactive/zone-entry",
+                    {
+                        "person_id": person_id,
+                        "zone_id": zone_id,
+                        "previous_zone_id": previous_zone_id,
+                    },
+                )
+            except Exception:
+                _LOGGER.debug(
+                    "Failed to forward zone-entry to Core addon for %s -> %s",
+                    person_id, zone_id,
                 )
                 
     async def _detect_zone_for_user(
