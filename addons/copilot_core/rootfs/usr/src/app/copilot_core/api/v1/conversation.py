@@ -451,6 +451,15 @@ def _get_user_context() -> str:
             except Exception:
                 pass
 
+        # Presence context (v3.3.0)
+        try:
+            from copilot_core.api.v1.presence import get_presence_context_for_llm
+            presence_ctx = get_presence_context_for_llm()
+            if presence_ctx:
+                context_parts.append(presence_ctx)
+        except Exception:
+            pass
+
     except Exception as exc:
         logger.debug("Could not load user context: %s", exc)
 

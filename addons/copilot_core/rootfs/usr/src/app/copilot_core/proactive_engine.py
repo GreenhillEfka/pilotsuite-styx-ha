@@ -42,16 +42,23 @@ class ProactiveContextEngine:
     """
 
     def __init__(self, media_zone_manager=None, mood_service=None,
-                 household_profile=None, conversation_memory=None):
+                 household_profile=None, conversation_memory=None,
+                 waste_service=None, birthday_service=None,
+                 habitus_service=None):
         self._media_mgr = media_zone_manager
         self._mood_svc = mood_service
         self._household = household_profile
         self._conv_memory = conversation_memory
+        self._waste_svc = waste_service
+        self._birthday_svc = birthday_service
+        self._habitus_svc = habitus_service
         self._lock = threading.Lock()
         # Track last suggestion time per (person, zone)
         self._cooldowns: Dict[str, float] = {}
         # Track dismissed suggestion types per person
         self._dismissed: Dict[str, set] = {}
+        # Cooldown for presence triggers per person (prevent rapid-fire)
+        self._presence_cooldowns: Dict[str, float] = {}
         _LOGGER.info("ProactiveContextEngine initialized")
 
     # ------------------------------------------------------------------
@@ -288,3 +295,290 @@ class ProactiveContextEngine:
     def reset_dismissals(self, person_id: str) -> None:
         """Reset all dismissals for a person."""
         self._dismissed.pop(person_id, None)
+
+    # ------------------------------------------------------------------
+    # Presence-based triggers  (v3.2.3)
+    # ------------------------------------------------------------------
+
+    # Cooldown between presence triggers for the same person (seconds)
+    PRESENCE_COOLDOWN_SECONDS = 300  # 5 min
+
+    def check_presence_triggers(
+        self, presence_data: dict
+    ) -> List[Dict[str, Any]]:
+        """Generate contextual suggestions from presence changes.
+
+        Parameters
+        ----------
+        presence_data : dict
+            Expected format::
+
+                {
+                    "persons_home": ["person.alice", "person.bob"],
+                    "persons_away": ["person.charlie"],
+                    "total_home": 2,
+                    "last_event": {
+                        "person_id": "person.alice",
+                        "event": "arrive",       # "arrive" | "leave"
+                        "timestamp": 1708345600,  # optional epoch
+                    }
+                }
+
+        Returns
+        -------
+        list[dict]
+            Each suggestion::
+
+                {
+                    "type": "greeting" | "eco_mode" | "pattern",
+                    "message": str,
+                    "priority": float,   # 0.0 .. 1.0
+                    "person": str | None
+                }
+        """
+        suggestions: List[Dict[str, Any]] = []
+        last_event = presence_data.get("last_event") or {}
+        person_id = last_event.get("person_id", "")
+        event_type = last_event.get("event", "")
+        total_home = presence_data.get("total_home", 0)
+
+        # --- Quiet-hours gate ------------------------------------------------
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        local_hour = (now.hour + int(os.environ.get("TZ_OFFSET", "1"))) % 24
+        if QUIET_START <= 23 and (local_hour >= QUIET_START or local_hour < QUIET_END):
+            return []
+
+        # --- Per-person cooldown ---------------------------------------------
+        if person_id:
+            with self._lock:
+                last_ts = self._presence_cooldowns.get(person_id, 0)
+                if time.time() - last_ts < self.PRESENCE_COOLDOWN_SECONDS:
+                    _LOGGER.debug(
+                        "Presence cooldown active for %s -- skipping",
+                        person_id,
+                    )
+                    return []
+                self._presence_cooldowns[person_id] = time.time()
+
+        # --- 1. Arrival Greeting ---------------------------------------------
+        if event_type == "arrive" and person_id:
+            greeting = self._build_arrival_greeting(person_id, local_hour)
+            if greeting:
+                suggestions.append(greeting)
+
+        # --- 2. All-Away / Eco-Mode ------------------------------------------
+        if event_type == "leave" and total_home == 0:
+            eco = self._build_eco_mode_suggestion(person_id)
+            if eco:
+                suggestions.append(eco)
+
+        # --- 3. Pattern-based suggestions ------------------------------------
+        pattern_suggestions = self._build_pattern_suggestions(presence_data)
+        suggestions.extend(pattern_suggestions)
+
+        # --- Filter dismissed types ------------------------------------------
+        if person_id:
+            person_dismissed = self._dismissed.get(person_id, set())
+            suggestions = [
+                s for s in suggestions
+                if s.get("type") not in person_dismissed
+            ]
+
+        return suggestions
+
+    # ------------------------------------------------------------------
+    # Presence helpers
+    # ------------------------------------------------------------------
+
+    def _build_arrival_greeting(
+        self, person_id: str, local_hour: int
+    ) -> Optional[Dict[str, Any]]:
+        """Build a personalised arrival greeting with household context.
+
+        Returns a suggestion dict or ``None`` if nothing useful to say.
+        """
+        # Resolve display name from household profile
+        name = person_id
+        if self._household:
+            try:
+                member = self._household.get_member(person_id)
+                if member:
+                    name = member.name
+            except Exception:
+                pass
+
+        # Gather contextual nuggets
+        context_parts: List[str] = []
+
+        # Waste collection today?
+        if self._waste_svc:
+            try:
+                status = self._waste_svc.get_status()
+                today_waste = status.get("today", [])
+                if today_waste:
+                    types_str = ", ".join(today_waste)
+                    context_parts.append(f"Heute ist Muellabfuhr ({types_str}).")
+            except Exception:
+                pass
+
+        # Birthday today?
+        if self._birthday_svc:
+            try:
+                bday_status = self._birthday_svc.get_status()
+                today_bdays = bday_status.get("today", [])
+                for bday in today_bdays:
+                    bday_name = bday.get("name", "jemand")
+                    context_parts.append(f"{bday_name} hat heute Geburtstag!")
+            except Exception:
+                pass
+
+        # Time-of-day flavour
+        if 6 <= local_hour <= 10:
+            greeting_prefix = "Guten Morgen"
+        elif 18 <= local_hour <= 22:
+            greeting_prefix = "Guten Abend"
+        else:
+            greeting_prefix = "Willkommen zuhause"
+
+        context_str = " ".join(context_parts) if context_parts else ""
+        if context_str:
+            message = f"{greeting_prefix}, {name}! {context_str}"
+        else:
+            message = f"{greeting_prefix}, {name}!"
+
+        return {
+            "type": "greeting",
+            "message": message,
+            "priority": 0.7,
+            "person": person_id,
+        }
+
+    def _build_eco_mode_suggestion(
+        self, last_person_id: str
+    ) -> Dict[str, Any]:
+        """Build an eco-mode suggestion when the last person leaves."""
+        return {
+            "type": "eco_mode",
+            "message": (
+                "Alle haben das Haus verlassen. "
+                "Soll ich den Sparmodus aktivieren?"
+            ),
+            "priority": 0.9,
+            "person": last_person_id or None,
+        }
+
+    def _build_pattern_suggestions(
+        self, presence_data: dict
+    ) -> List[Dict[str, Any]]:
+        """Check habitus miner rules and generate pattern-based suggestions.
+
+        Looks for rules whose antecedent matches a presence-related event
+        (e.g. ``person.alice:home``) and returns the consequent as a
+        suggested action.
+        """
+        suggestions: List[Dict[str, Any]] = []
+
+        if not self._habitus_svc:
+            return suggestions
+
+        last_event = presence_data.get("last_event") or {}
+        person_id = last_event.get("person_id", "")
+        event_type = last_event.get("event", "")
+
+        if not person_id or not event_type:
+            return suggestions
+
+        # Build the antecedent key that habitus_miner would have recorded
+        # for this presence transition (e.g. "person.alice:home")
+        transition = "home" if event_type == "arrive" else "not_home"
+        search_key = f"{person_id}:{transition}"
+
+        try:
+            # Try the HabitusMinerService (habitus_miner/) first -- it
+            # stores Rule objects with .A / .B keys.
+            rules = []
+            if hasattr(self._habitus_svc, "get_rules"):
+                rules = self._habitus_svc.get_rules(
+                    a_filter=search_key, limit=5
+                )
+            elif hasattr(self._habitus_svc, "list_recent_patterns"):
+                # Fallback: HabitusService (habitus/) stores patterns
+                # in candidate form.
+                patterns = self._habitus_svc.list_recent_patterns(limit=20)
+                for p in patterns:
+                    meta = p.get("metadata", {})
+                    antecedent = meta.get("antecedent", {}).get("full", "")
+                    if search_key.lower() in antecedent.lower():
+                        consequent = meta.get("consequent", {})
+                        evidence = p.get("evidence", {})
+                        confidence = 0.0
+                        if isinstance(evidence, dict):
+                            confidence = evidence.get("confidence", 0.0)
+                        suggestions.append({
+                            "type": "pattern",
+                            "message": (
+                                f"Erkanntes Muster: Wenn du {event_type == 'arrive' and 'ankommst' or 'gehst'}, "
+                                f"wird normalerweise {consequent.get('full', consequent.get('service', '?'))} "
+                                f"ausgefuehrt. Soll ich das uebernehmen?"
+                            ),
+                            "priority": round(min(1.0, confidence * 0.8), 2),
+                            "person": person_id,
+                        })
+                return suggestions
+
+            # Process Rule objects (from HabitusMinerService)
+            for rule in rules:
+                score = rule.score() if hasattr(rule, "score") else 0.5
+                suggestions.append({
+                    "type": "pattern",
+                    "message": (
+                        f"Erkanntes Muster: Nach deiner Ankunft wird oft "
+                        f"{rule.B} ausgefuehrt "
+                        f"(Konfidenz {rule.confidence:.0%}). "
+                        f"Soll ich das uebernehmen?"
+                    ),
+                    "priority": round(min(1.0, score), 2),
+                    "person": person_id,
+                })
+
+        except Exception as exc:
+            _LOGGER.warning("Pattern lookup for presence trigger failed: %s", exc)
+
+        return suggestions
+
+    # ------------------------------------------------------------------
+    # REST endpoint helper  (v3.2.3)
+    # ------------------------------------------------------------------
+
+    def build_presence_endpoint_response(
+        self, presence_data: dict
+    ) -> Dict[str, Any]:
+        """Convenience wrapper for REST endpoint integration.
+
+        Call this from a Flask route handler (e.g. in *presence.py*)::
+
+            @bp.post("/presence/trigger")
+            def presence_trigger():
+                data = request.get_json(silent=True) or {}
+                return jsonify(engine.build_presence_endpoint_response(data))
+
+        Returns a dict ready for ``jsonify()``.
+        """
+        try:
+            suggestions = self.check_presence_triggers(presence_data)
+            return {
+                "ok": True,
+                "total_home": presence_data.get("total_home", 0),
+                "last_event": presence_data.get("last_event"),
+                "suggestions": suggestions,
+                "suggestion_count": len(suggestions),
+            }
+        except Exception as exc:
+            _LOGGER.exception("Presence trigger processing failed")
+            return {
+                "ok": False,
+                "error": str(exc),
+                "suggestions": [],
+                "suggestion_count": 0,
+            }

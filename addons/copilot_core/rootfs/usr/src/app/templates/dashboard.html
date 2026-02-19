@@ -167,6 +167,20 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .sugg-group{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:6px 0}
 .sugg-group-hd{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600}
 .sugg-group-body{margin-top:8px;display:none}
+/* ============== PRESENCE ============== */
+.presence-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.presence-person{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;min-width:160px;flex:1}
+.presence-person.home{border-left:3px solid var(--green)}
+.presence-person.away{border-left:3px solid var(--dim);opacity:.6}
+.presence-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.presence-info{flex:1}
+.presence-name{font-size:13px;font-weight:600}
+.presence-detail{font-size:10px;color:var(--dim)}
+.cam-event{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.cam-event:last-child{border-bottom:none}
+.cam-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cam-dot.person{background:var(--green)}
+.cam-dot.motion{background:var(--yellow)}
 .sugg-group-body.open{display:block}
 .sugg-entity{font-size:11px;color:var(--dim);padding:2px 6px;background:var(--card);border-radius:4px;margin:2px;display:inline-block}
 .conf-bar{display:inline-block;height:6px;border-radius:3px;background:var(--accent);vertical-align:middle;margin-left:6px}
@@ -381,6 +395,17 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
   <h2><span class="ic">&#x1f4a1;</span> Entitäts-Zuordnungsvorschläge</h2>
   <p style="font-size:11px;color:var(--dim);margin-bottom:10px">Erkannte Entitätsgruppen nach Raumname — Vorschläge für Habitus-Zonen. Entitäten ohne Zone werden hier angezeigt.</p>
   <div id="haushalt-suggestions"><div class="loading"><div class="spinner"></div>Analysiere Entitäten...</div></div>
+</div>
+<!-- Presence Card: Wer ist zuhause? -->
+<div class="grid g2" style="margin-bottom:14px">
+  <div class="card">
+    <h2><span class="ic">&#x1f465;</span> Wer ist zuhause?</h2>
+    <div id="haushalt-presence"><div class="loading"><div class="spinner"></div>Lade Anwesenheit...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f4f9;</span> Kamera-Ereignisse</h2>
+    <div id="haushalt-camera-events"><div class="empty">Keine Kamera-Ereignisse</div></div>
+  </div>
 </div>
 <!-- Future Modules Placeholder -->
 <div class="card">
@@ -1087,6 +1112,71 @@ async function loadEntitySuggestions(targetId){
 function toggleSuggGroup(i){
   const b=$('sgb-'+i);if(b)b.classList.toggle('open');
 }
+
+// ==================================================
+// PRESENCE + CAMERA
+// ==================================================
+async function loadPresence(targetId){
+  const c=$(targetId||'haushalt-presence');
+  if(!c)return;
+  try{
+    const r=await api('/api/v1/presence/status');
+    if(!r?.ok){c.innerHTML='<div class="empty">Presence API nicht verfügbar</div>';return}
+    let html='<div class="presence-grid">';
+    const all=[...(r.persons_home||[]),...(r.persons_away||[])];
+    if(!all.length){c.innerHTML='<div class="empty">Keine Personen getrackt. Konfiguriere person.*-Entitäten in HA.</div>';return}
+    all.forEach(p=>{
+      const isHome=p.state&&p.state!=='not_home'&&p.state!=='unknown';
+      const cls=isHome?'home':'away';
+      const initials=(p.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const zone=p.zone||p.state||'?';
+      const since=p.since?_relTime(p.since):'';
+      html+=`<div class="presence-person ${cls}">
+        <div class="presence-avatar">${initials}</div>
+        <div class="presence-info">
+          <div class="presence-name">${escapeHtml(p.name||p.person_id||'?')}</div>
+          <div class="presence-detail">${isHome?escapeHtml(zone):'Unterwegs'}${since?' &middot; seit '+since:''}</div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+    if(r.total_home!==undefined){
+      html+=`<div style="margin-top:10px;font-size:11px;color:var(--dim)">${r.total_home} von ${r.total_tracked} Personen zuhause</div>`;
+    }
+    c.innerHTML=html;
+  }catch(e){c.innerHTML='<div class="empty">Presence nicht verfügbar</div>'}
+}
+async function loadCameraEvents(targetId){
+  const c=$(targetId||'haushalt-camera-events');
+  if(!c)return;
+  try{
+    const r=await api('/api/v1/presence/history?limit=15');
+    if(!r?.ok||!r.events||!r.events.length){c.innerHTML='<div class="empty">Keine kürzlichen Ereignisse</div>';return}
+    let html='';
+    r.events.slice(0,15).forEach(ev=>{
+      const t=ev.event_type||'?';
+      const dotCls=t==='arrived'?'person':t==='departed'?'motion':'person';
+      const icon=t==='arrived'?'&#x1f3e0;':t==='departed'?'&#x1f6b6;':'&#x1f504;';
+      const label=t==='arrived'?'angekommen':t==='departed'?'gegangen':'Zone gewechselt';
+      const ts=ev.timestamp?_relTime(ev.timestamp):'';
+      html+=`<div class="cam-event">
+        <span class="cam-dot ${dotCls}"></span>
+        <span style="font-size:12px">${icon} <strong>${escapeHtml(ev.person_name||'?')}</strong> ${label}</span>
+        ${ev.zone?`<span style="font-size:10px;color:var(--dim)">${escapeHtml(ev.zone)}</span>`:''}
+        <span style="margin-left:auto;font-size:10px;color:var(--dim)">${ts}</span>
+      </div>`;
+    });
+    c.innerHTML=html;
+  }catch(e){c.innerHTML='<div class="empty">Ereignisse nicht verfügbar</div>'}
+}
+function _relTime(ts){
+  const now=Date.now()/1000;
+  const diff=now-(typeof ts==='number'?ts:new Date(ts).getTime()/1000);
+  if(diff<60)return 'gerade eben';
+  if(diff<3600)return Math.floor(diff/60)+' Min';
+  if(diff<86400)return Math.floor(diff/3600)+' Std';
+  return Math.floor(diff/86400)+' Tage';
+}
 function copyZoneSuggestion(hint,zoneId){
   try{navigator.clipboard.writeText(zoneId);addHistory('Zone-ID kopiert: '+zoneId)}
   catch(e){addHistory('Zone-ID: '+zoneId)}
@@ -1096,7 +1186,7 @@ function copyZoneSuggestion(hint,zoneId){
 // HAUSHALT PAGE
 // ==================================================
 async function loadHaushalt(){
-  await Promise.allSettled([loadHaushaltData(), loadEntitySuggestions('haushalt-suggestions')]);
+  await Promise.allSettled([loadHaushaltData(), loadEntitySuggestions('haushalt-suggestions'), loadPresence('haushalt-presence'), loadCameraEvents('haushalt-camera-events')]);
 }
 async function loadHaushaltData(){
   try{
