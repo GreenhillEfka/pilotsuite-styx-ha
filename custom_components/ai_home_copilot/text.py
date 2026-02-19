@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     CONF_MEDIA_MUSIC_PLAYERS,
@@ -54,7 +58,14 @@ class _BaseConfigText(CopilotBaseEntity, TextEntity):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if not isinstance(data, dict):
+        _LOGGER.error("Entry data not available for %s, skipping text setup", entry.entry_id)
+        return
+    coordinator = data.get("coordinator")
+    if coordinator is None:
+        _LOGGER.error("Coordinator not available for %s, skipping text setup", entry.entry_id)
+        return
 
     async_add_entities(
         [

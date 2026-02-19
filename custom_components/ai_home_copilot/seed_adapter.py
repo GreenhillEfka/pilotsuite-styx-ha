@@ -297,7 +297,9 @@ async def async_setup_seed_adapter(hass: HomeAssistant, entry: ConfigEntry) -> N
         )
 
     unsub = async_track_state_change_event(hass, entity_ids, _handle)
-    hass.data[DOMAIN][entry.entry_id]["unsub_seed_adapter"] = unsub
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if isinstance(entry_data, dict):
+        entry_data["unsub_seed_adapter"] = unsub
 
     # Import current state once at startup
     for eid in entity_ids:

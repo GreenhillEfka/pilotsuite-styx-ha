@@ -1,10 +1,14 @@
 """Select platform for AI Home CoPilot integration."""
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
+
+_LOGGER = logging.getLogger(__name__)
 
 from .const import (
     DEBUG_LEVELS,
@@ -64,8 +68,14 @@ class DiagnosticLevelSelectEntity(CopilotBaseEntity, SelectEntity):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Set up select entities for the integration."""
-    data = hass.data[DOMAIN][entry.entry_id]
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if not isinstance(data, dict):
+        _LOGGER.error("Entry data not available for %s, skipping select setup", entry.entry_id)
+        return
     coordinator = data.get("coordinator")
+    if coordinator is None:
+        _LOGGER.error("Coordinator not available for %s, skipping select setup", entry.entry_id)
+        return
     
     entities = [
         DiagnosticLevelSelectEntity(coordinator, entry.entry_id),

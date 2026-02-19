@@ -37,8 +37,8 @@ async def async_setup_habitus_dashboard_cards_services(hass: HomeAssistant) -> N
             return {"error": "No config entry"}
 
         entry = entries[0]
-        data = hass.data[DOMAIN][entry.entry_id]
-        api = data.get("api")
+        data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        api = data.get("api") if isinstance(data, dict) else None
 
         if not api:
             _LOGGER.error("API client not available")

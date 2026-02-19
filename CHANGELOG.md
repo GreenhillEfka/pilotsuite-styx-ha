@@ -1,5 +1,25 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.9.0] - 2026-02-19
+
+### Production-Ready Bug Sweep
+
+- **CRITICAL: `sensor.py` — `data.version` AttributeError** — `CopilotVersionSensor` accessed
+  `self.coordinator.data.version` but data is a `dict`. Fixed to `.get("version", "unknown")`.
+  This crashed on every coordinator update.
+- **`text.py` — unsafe coordinator access** — `async_setup_entry` used double bracket access
+  `hass.data[DOMAIN][entry.entry_id]["coordinator"]`. Changed to safe `.get()` chain with
+  guarded early-return. Prevents `KeyError` during platform setup.
+- **`select.py` — unsafe `hass.data` access** — Same bracket-access pattern. Added safe
+  `.get()` chain + coordinator None guard + logging.
+- **`seed_adapter.py` — unsafe dict write** — Wrote to `hass.data[DOMAIN][entry.entry_id]`
+  without checking existence. Changed to safe `.get()` with isinstance guard.
+- **`habitus_dashboard_cards_service.py` — unsafe dict access** — Direct bracket access to
+  `hass.data[DOMAIN][entry.entry_id]`. Changed to safe `.get()` chain.
+- **`habitus_miner.py` — periodic task resource leak** — Two `async_track_time_interval()`
+  calls (cleanup + persistence) did not store unsubscribe functions. Tasks leaked on module
+  unload. Now stored in `module_data["listeners"]` for proper cleanup.
+
 ## [3.8.1] - 2026-02-19
 
 ### Startup Reliability Patch
