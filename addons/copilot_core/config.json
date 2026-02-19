@@ -87,6 +87,11 @@
       "ollama_model": "lfm2.5-thinking",
       "character": "copilot",
       "enabled": true
+    },
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "allowed_chat_ids": []
     }
   },
   "schema": {
@@ -154,6 +159,11 @@
       "ollama_model": "str?",
       "character": "list(copilot|butler|energy_manager|security_guard|friendly|minimal)?",
       "enabled": "bool?"
+    },
+    "telegram": {
+      "enabled": "bool?",
+      "token": "password?",
+      "allowed_chat_ids": "list?"
     }
   }
 }

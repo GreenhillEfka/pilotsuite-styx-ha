@@ -439,6 +439,7 @@ def _handle_chat_completions():
         model_override = data.get('model')
         temperature = data.get('temperature')
         max_tokens = data.get('max_tokens') or data.get('max_completion_tokens')
+        tools = data.get('tools')  # Client-specified tools (e.g. from extended_openai_conversation)
 
         # Extract last user message for logging
         user_message = ""
@@ -456,12 +457,19 @@ def _handle_chat_completions():
         _store_in_memory(user_message, role="user")
 
         response = _process_conversation(messages, model_override=model_override,
-                                         temperature=temperature, max_tokens=max_tokens)
+                                         temperature=temperature, max_tokens=max_tokens,
+                                         tools=tools)
 
-        # Store assistant response in memory
-        assistant_content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
-        if assistant_content:
-            _store_in_memory(assistant_content, role="assistant")
+        # Store assistant response in memory (only for text, not tool_calls)
+        choice = response.get("choices", [{}])[0]
+        if choice.get("finish_reason") != "tool_calls":
+            assistant_content = choice.get("message", {}).get("content", "")
+            if assistant_content:
+                _store_in_memory(assistant_content, role="assistant")
+
+        # If tool_calls response, return directly (no streaming)
+        if choice.get("finish_reason") == "tool_calls":
+            return jsonify(response)
 
         if stream:
             return _stream_response(response)
@@ -635,10 +643,12 @@ def _store_in_memory(content: str, role: str = "user"):
 
 
 def _process_conversation(messages: list, model_override: str = None,
-                          temperature: float = None, max_tokens: int = None) -> dict:
+                          temperature: float = None, max_tokens: int = None,
+                          tools: list = None) -> dict:
     """Process conversation through Ollama.
 
     Handles character selection, user context injection, and Ollama API calls.
+    When ``tools`` are provided, Ollama may return ``tool_calls`` instead of text.
     """
     ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
     ollama_model = model_override or os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
@@ -666,7 +676,13 @@ def _process_conversation(messages: list, model_override: str = None,
     for msg in messages:
         role = msg.get("role", "user")
         if role != "system":
-            ollama_messages.append({"role": role, "content": msg.get("content", "")})
+            # Preserve tool_calls and tool_call_id for multi-turn tool conversations
+            entry = {"role": role, "content": msg.get("content", "")}
+            if msg.get("tool_calls"):
+                entry["tool_calls"] = msg["tool_calls"]
+            if msg.get("tool_call_id"):
+                entry["tool_call_id"] = msg["tool_call_id"]
+            ollama_messages.append(entry)
 
     # Build Ollama request options
     ollama_options = {}
@@ -676,6 +692,9 @@ def _process_conversation(messages: list, model_override: str = None,
         ollama_options["num_predict"] = max_tokens
 
     response_content = ""
+    tool_calls_response = None
+    finish_reason = "stop"
+
     try:
         payload = {
             "model": ollama_model,
@@ -684,6 +703,8 @@ def _process_conversation(messages: list, model_override: str = None,
         }
         if ollama_options:
             payload["options"] = ollama_options
+        if tools:
+            payload["tools"] = tools
 
         resp = http_requests.post(
             f"{ollama_url}/api/chat",
@@ -692,7 +713,24 @@ def _process_conversation(messages: list, model_override: str = None,
         )
         if resp.status_code == 200:
             result = resp.json()
-            response_content = result.get("message", {}).get("content", "")
+            message = result.get("message", {})
+            response_content = message.get("content", "")
+
+            # Check for tool calls from Ollama
+            raw_tool_calls = message.get("tool_calls")
+            if raw_tool_calls:
+                finish_reason = "tool_calls"
+                tool_calls_response = []
+                for tc in raw_tool_calls:
+                    fn = tc.get("function", {})
+                    tool_calls_response.append({
+                        "id": f"call_{os.urandom(12).hex()}",
+                        "type": "function",
+                        "function": {
+                            "name": fn.get("name", ""),
+                            "arguments": json.dumps(fn.get("arguments", {})),
+                        },
+                    })
         else:
             logger.warning("Ollama returned %s: %s", resp.status_code, resp.text[:200])
             response_content = _fallback_response(ollama_url, ollama_model)
@@ -706,6 +744,10 @@ def _process_conversation(messages: list, model_override: str = None,
         logger.exception("Error calling Ollama")
         response_content = _fallback_response(ollama_url, ollama_model)
 
+    response_message = {"role": "assistant", "content": response_content}
+    if tool_calls_response:
+        response_message["tool_calls"] = tool_calls_response
+
     return {
         "id": f"chatcmpl-{os.urandom(12).hex()}",
         "object": "chat.completion",
@@ -713,8 +755,8 @@ def _process_conversation(messages: list, model_override: str = None,
         "model": ollama_model,
         "choices": [{
             "index": 0,
-            "message": {"role": "assistant", "content": response_content},
-            "finish_reason": "stop",
+            "message": response_message,
+            "finish_reason": finish_reason,
         }],
         "usage": {
             "prompt_tokens": sum(len(m.get("content", "")) for m in ollama_messages),
@@ -722,6 +764,158 @@ def _process_conversation(messages: list, model_override: str = None,
             "total_tokens": sum(len(m.get("content", "")) for m in ollama_messages) + len(response_content),
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Server-side tool execution (for Telegram / direct chat)
+# ---------------------------------------------------------------------------
+
+MAX_TOOL_ROUNDS = 5
+
+
+def _execute_ha_tool(name: str, arguments: dict) -> dict:
+    """Execute a Home Assistant tool via Supervisor REST API."""
+    ha_url = os.environ.get("SUPERVISOR_API", "http://supervisor/core/api")
+    ha_token = os.environ.get("SUPERVISOR_TOKEN", "")
+
+    if not ha_token:
+        return {"error": "No SUPERVISOR_TOKEN -- HA tools unavailable outside addon"}
+
+    headers = {"Authorization": f"Bearer {ha_token}", "Content-Type": "application/json"}
+
+    try:
+        if name == "ha.call_service":
+            domain = arguments.get("domain", "")
+            service = arguments.get("service", "")
+            data = arguments.get("service_data", {})
+            target = arguments.get("target")
+            if target:
+                data["target"] = target
+            resp = http_requests.post(
+                f"{ha_url}/services/{domain}/{service}", json=data,
+                headers=headers, timeout=10,
+            )
+            return {"success": resp.ok, "data": resp.json() if resp.ok else resp.text[:200]}
+
+        elif name == "ha.get_states":
+            entity_id = arguments.get("entity_id")
+            if entity_id:
+                resp = http_requests.get(f"{ha_url}/states/{entity_id}", headers=headers, timeout=10)
+                return resp.json() if resp.ok else {"error": resp.text[:200]}
+            resp = http_requests.get(f"{ha_url}/states", headers=headers, timeout=10)
+            states = resp.json() if resp.ok else []
+            domain_filter = arguments.get("domain")
+            if domain_filter:
+                states = [s for s in states if s.get("entity_id", "").startswith(f"{domain_filter}.")]
+            return {"states": [{"entity_id": s["entity_id"], "state": s["state"]} for s in states[:50]]}
+
+        elif name == "ha.get_history":
+            entity_ids = arguments.get("entity_ids", [])
+            start = arguments.get("start_time", "")
+            params = {"filter_entity_id": ",".join(entity_ids)}
+            if arguments.get("end_time"):
+                params["end_time"] = arguments["end_time"]
+            url = f"{ha_url}/history/period/{start}" if start else f"{ha_url}/history/period"
+            resp = http_requests.get(url, params=params, headers=headers, timeout=15)
+            return {"history": resp.json() if resp.ok else []}
+
+        elif name == "ha.activate_scene":
+            entity_id = arguments.get("entity_id", "")
+            resp = http_requests.post(
+                f"{ha_url}/services/scene/turn_on", json={"entity_id": entity_id},
+                headers=headers, timeout=10,
+            )
+            return {"success": resp.ok}
+
+        elif name == "ha.get_config":
+            resp = http_requests.get(f"{ha_url}/config", headers=headers, timeout=10)
+            return resp.json() if resp.ok else {"error": resp.text[:200]}
+
+        elif name == "ha.get_services":
+            resp = http_requests.get(f"{ha_url}/services", headers=headers, timeout=10)
+            services_list = resp.json() if resp.ok else []
+            domain_filter = arguments.get("domain")
+            if domain_filter:
+                services_list = [s for s in services_list if s.get("domain") == domain_filter]
+            return {"services": services_list}
+
+        elif name == "ha.fire_event":
+            event_type = arguments.get("event_type", "")
+            event_data = arguments.get("event_data", {})
+            resp = http_requests.post(
+                f"{ha_url}/events/{event_type}", json=event_data,
+                headers=headers, timeout=10,
+            )
+            return {"success": resp.ok}
+
+        elif name == "calendar.get_events":
+            calendar_id = arguments.get("calendar_id", "")
+            params = {}
+            if arguments.get("start_date_time"):
+                params["start"] = arguments["start_date_time"]
+            if arguments.get("end_date_time"):
+                params["end"] = arguments["end_date_time"]
+            resp = http_requests.get(
+                f"{ha_url}/calendars/{calendar_id}", params=params,
+                headers=headers, timeout=10,
+            )
+            return {"events": resp.json() if resp.ok else []}
+
+        elif name == "weather.get_forecast":
+            entity_id = arguments.get("entity_id", "")
+            forecast_type = arguments.get("type", "daily")
+            resp = http_requests.post(
+                f"{ha_url}/services/weather/get_forecasts",
+                json={"entity_id": entity_id, "type": forecast_type},
+                headers=headers, timeout=10,
+            )
+            return resp.json() if resp.ok else {"error": resp.text[:200]}
+
+        else:
+            return {"error": f"Unknown tool: {name}"}
+
+    except Exception as exc:
+        logger.warning("Tool execution failed (%s): %s", name, exc)
+        return {"error": str(exc)}
+
+
+def process_with_tool_execution(user_message: str) -> str:
+    """Process a message with server-side tool execution.
+
+    Used by Telegram bot and direct chat.  Handles the full tool-calling loop:
+    LLM -> tool_calls -> execute via HA REST API -> feed results -> repeat.
+    """
+    messages = [{"role": "user", "content": user_message}]
+    tools = _get_mcp_tools().get("functions", []) or None
+
+    for _ in range(MAX_TOOL_ROUNDS):
+        response = _process_conversation(messages, tools=tools)
+        choice = response.get("choices", [{}])[0]
+        msg = choice.get("message", {})
+
+        if choice.get("finish_reason") != "tool_calls" or not msg.get("tool_calls"):
+            return msg.get("content", "")
+
+        # Append assistant message (with tool_calls) to conversation
+        messages.append(msg)
+
+        # Execute each tool and append results
+        for tc in msg["tool_calls"]:
+            fn = tc.get("function", {})
+            tool_name = fn.get("name", "")
+            try:
+                tool_args = json.loads(fn.get("arguments", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                tool_args = {}
+
+            result = _execute_ha_tool(tool_name, tool_args)
+            messages.append({
+                "role": "tool",
+                "content": json.dumps(result, default=str),
+                "tool_call_id": tc.get("id", ""),
+            })
+
+    return msg.get("content", "") or "Maximale Tool-Runden erreicht."
 
 
 def _fallback_response(url: str, model: str) -> str:
