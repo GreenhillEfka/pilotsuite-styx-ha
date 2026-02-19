@@ -145,7 +145,7 @@ ai_home_copilot:
 
 ### 3.1 ReactBoard 404 Analyse
 
-**Problem:** ReactBoard unter `http://192.168.30.18:48099/__openclaw__/ReactBoard/` gibt 404 zurück.
+**Problem:** ReactBoard unter `http://<PRIVATE-IP>:48099/__openclaw__/ReactBoard/` gibt 404 zurück.
 
 **Ursachen:**
 1. **Nicht im Core Add-on implementiert** - ReactBoard ist ein externes OpenClaw-Feature
@@ -254,7 +254,7 @@ openclaw gateway status
 openclaw gateway start
 
 # 3. Prüfe ReactBoard URL
-# http://192.168.30.18:48099/__openclaw__/ReactBoard/
+# http://<PRIVATE-IP>:48099/__openclaw__/ReactBoard/
 ```
 
 ---

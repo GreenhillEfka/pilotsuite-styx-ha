@@ -40,7 +40,7 @@
 ## System Status (Stand 2026-02-15)
 
 ### Dashboard & Orchestrierung
-- **ReactBoard**: http://192.168.30.18:48099/__openclaw__/ReactBoard/ ✅
+- **ReactBoard**: http://<PRIVATE-IP>:48099/__openclaw__/ReactBoard/ ✅
 - **Release Script**: `/config/.openclaw/workspace/scripts/release_system.sh`
 - **Commands**: `status|sync|commit|push|release|dashboard|full`
 
@@ -118,7 +118,7 @@
   - `tags/` = Integration Layer (HabitusZone, API)
 - **Autopilot-Fehler in v0.4.25/v0.4.26** - mood/ und tagging/ fälschlich gelöscht
 - **🚨 2026-02-15 17:24: collective_intelligence/ (+1954 lines) GELÖSCHT!** Wiederhergestellt aus Commit 15fdc45. Pattern wiederholt sich! Working-Directory-Löschungen ohne Commit-Bezug sind gefährlich.
-- **Autopilot-Modell-Auswahl funktioniert**: qwen3-coder-next:cloud für Coding-Tasks via Remote-Ollama (http://192.168.31.84:11434)
+- **Autopilot-Modell-Auswahl funktioniert**: qwen3-coder-next:cloud für Coding-Tasks via Remote-Ollama (http://<OLLAMA-HOST>:11434)
 - **Debug Mode v0.8.0**: Kleiner Scope, sicher, hoher User-Value - gute Autopilot-Aufgabe
 - **Core Add-on API-Blueprint Pattern**: Blueprint in `copilot_core/api/v1/` erstellen und in `blueprint.py` registrieren
 - HA Pipeline Agent ist zur **Beobachtung**, nicht zum Schalten
@@ -265,7 +265,7 @@ State (objektiv) → Neuron (bewertet Aspekt) → Mood (aggregiert Bedeutung) �
 
 ## Ollama Models (Stand 2026-02-14 21:30)
 ### Server:
-- **Remote**: `http://192.168.31.84:11434` ✅ PRIMARY
+- **Remote**: `http://<OLLAMA-HOST>:11434` ✅ PRIMARY
 - **Lokal**: `http://localhost:11434` (Fallback)
 
 ### Hauptmodelle (Ollama Cloud):
@@ -295,23 +295,23 @@ qwen3-coder-next:cloud (Coding/Reasoning) → glm-5:cloud (Primary) → minimax-
 ### Spezial:
 - **Bilder**: kimi-k2.5:cloud (Vision-Modell)
 - **TTS**: OpenAI (bereits konfiguriert)
-- **Neue Modelle**: Per API pullen: `curl -X POST http://192.168.31.84:11434/api/pull -d '{"name": "modell:tag"}'`
+- **Neue Modelle**: Per API pullen: `curl -X POST http://<OLLAMA-HOST>:11434/api/pull -d '{"name": "modell:tag"}'`
 
 ### Konfiguration:
 - **CLI**: `./bin/openclaw-cli status|test|models`
 - **Config**: `config/models.sh`
-- **Env**: `OLLAMA_HOST=http://192.168.31.84:11434`
+- **Env**: `OLLAMA_HOST=http://<OLLAMA-HOST>:11434`
 
 ### Usage:
 ```bash
 # Status
-export OLLAMA_HOST="http://192.168.31.84:11434" && ./bin/openclaw-cli status
+export OLLAMA_HOST="http://<OLLAMA-HOST>:11434" && ./bin/openclaw-cli status
 
 # Test
 ./bin/openclaw-cli test
 
 # API call direkt
-curl -s "http://192.168.31.84:11434/api/generate" \
+curl -s "http://<OLLAMA-HOST>:11434/api/generate" \
   -d '{"model": "glm-5:cloud", "prompt": "Hi", "stream": false}'
 ```
 # Status check
@@ -330,11 +330,11 @@ curl http://localhost:11434/api/generate \
 ## Home Assistant Integration (2026-02-17)
 
 ### HA API Zugriff
-**Nabu Casa URL:** `https://js71lc792ufv9o245ysczlg2wj1mmgfu.ui.nabu.casa`
+**Nabu Casa URL:** `https://<REDACTED>.ui.nabu.casa`
 
 **Longlife Token:** (aus .openclaw/openclaw.json HOMEASSISTANT_TOKEN)
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhMjBjYmI1MWE3OTY0ODBmYmZlOGI0YzMxYTNjZTQ4MCIsImlhdCI6MTc3MDM5NzI0NCwiZXhwIjoyMDg1NzU3MjQ0fQ.GPoq80EzJU1pUhjiPTF2_1RYtpAn0rwifEro04JC6h8
+<REDACTED - HA Long-Lived Access Token>
 ```
 
 **Verfügbare Lichter:**

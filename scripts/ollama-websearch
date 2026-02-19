@@ -15,7 +15,7 @@ import urllib.request
 import urllib.error
 import time
 
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://192.168.31.84:11434")
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
 
 # kimi-k2.5 has tools + thinking + vision + native web search
@@ -164,7 +164,7 @@ def main():
         print("Usage: ollama-websearch \"your query\"", file=sys.stderr)
         print("", file=sys.stderr)
         print("Environment variables:", file=sys.stderr)
-        print("  OLLAMA_HOST        Ollama server (default: http://192.168.31.84:11434)", file=sys.stderr)
+        print("  OLLAMA_HOST        Ollama server (default: http://localhost:11434)", file=sys.stderr)
         print("  OLLAMA_API_KEY     API key for cloud models", file=sys.stderr)
         print("  OLLAMA_WEB_MODEL   Model to use (default: kimi-k2.5:cloud)", file=sys.stderr)
         print("  PERPLEXITY_API_KEY For actual web search", file=sys.stderr)

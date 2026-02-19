@@ -34,8 +34,8 @@ Jeder Agent kann nun HA steuern:
 
 ```bash
 # Beispiel: Deckenlicht ausschalten
-curl -X POST "https://js71lc792ufv9o245ysczlg2wj1mmgfu.ui.nabu.casa/api/services/light/turn_off" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+curl -X POST "https://<YOUR-INSTANCE>.ui.nabu.casa/api/services/light/turn_off" \
+  -H "Authorization: Bearer <YOUR-HA-TOKEN>" \
   -d '{"entity_id": "light.deckenlicht"}'
 ```
 

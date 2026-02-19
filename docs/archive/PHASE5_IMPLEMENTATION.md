@@ -167,7 +167,7 @@ await discovery.start()
 await discovery.publish()
 
 # Connect to other homes
-await sync.connect("home-2", host="192.168.1.100")
+await sync.connect("home-2", host="<PRIVATE-IP>")
 
 # Register entities
 registry.register("light.living_room", shared=True, home_id="home-1")

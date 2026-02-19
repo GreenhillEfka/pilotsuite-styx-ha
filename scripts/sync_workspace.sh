@@ -51,7 +51,7 @@ sync_repo "$REPO_CORE" "Core Add-on"
 
 # Check React Board
 echo "--- React Board ---"
-if curl -s -o /dev/null -w "%{http_code}" "http://192.168.30.18:48099/__openclaw__/ReactBoard/" | grep -q "200"; then
+if curl -s -o /dev/null -w "%{http_code}" "http://${REACTBOARD_HOST:-localhost}:48099/__openclaw__/ReactBoard/" | grep -q "200"; then
     echo "✅ React Board UP"
 else
     echo "⚠️ React Board not responding"
