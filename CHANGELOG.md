@@ -1,5 +1,13 @@
 # Changelog - PilotSuite Core Add-on
 
+## [3.8.1] - 2026-02-19
+
+### Startup Reliability Patch
+
+- **`mood/service.py` — `os.makedirs()` fix** — `_init_db()` now calls
+  `os.makedirs(os.path.dirname(db_path), exist_ok=True)` before `sqlite3.connect()`.
+  Prevents `FileNotFoundError` when `/data/` directory does not yet exist on first start.
+
 ## [3.8.0] - 2026-02-19
 
 ### Persistent State — Mood, Alerts & Mining Buffer
