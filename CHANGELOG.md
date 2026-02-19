@@ -1,5 +1,22 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.7.0] - 2026-02-19
+
+### Bug Fixes & Production Readiness
+
+- **Brain Graph Sync** — Race condition fixes
+  - `_processed_events.pop()` crash: replaced with atomic `set()` reset
+  - `_send_node_update`/`_send_edge_update`: Null-guard for `_session`
+- **Config Validation** — Bounds checking for all 15+ numeric parameters
+  - `config_schema_builders.py`: `vol.Range()` on port, intervals, sizes, queue params
+  - `validate_input()`: Validates host, port (1-65535), and critical bounds
+- **User Hints** — `accept_suggestion()` now creates HA automations via `automation.create`
+- **Active Learning** — `_learn_from_context()` records light brightness patterns
+  per user/zone/time_slot (was: stub that only logged)
+- **Habitus History** — `_fetch_ha_history()` fetches from HA Recorder
+  via `state_changes_during_period` (was: always returned `[]`)
+- Version: 3.6.0 → 3.7.0
+
 ## [3.6.0] - 2026-02-19
 
 ### Production Hardening

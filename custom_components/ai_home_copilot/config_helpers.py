@@ -43,5 +43,41 @@ def parse_csv(value: str) -> list[str]:
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> None:
-    """Validate config input. Light for MVP; coordinator marks unavailable on failures."""
-    return
+    """Validate config input: host, port, and critical numeric bounds."""
+    from homeassistant.exceptions import HomeAssistantError
+
+    host = data.get("host", "")
+    if host and not isinstance(host, str):
+        raise HomeAssistantError("host must be a string")
+
+    port = data.get("port")
+    if port is not None:
+        try:
+            port_int = int(port)
+        except (TypeError, ValueError):
+            raise HomeAssistantError("port must be an integer")
+        if not (1 <= port_int <= 65535):
+            raise HomeAssistantError(f"port must be 1-65535, got {port_int}")
+
+    # Validate critical numeric bounds
+    _bounds = {
+        "seed_max_offers_per_hour": (1, 100),
+        "seed_min_seconds_between_offers": (1, 3600),
+        "seed_max_offers_per_update": (1, 50),
+        "watchdog_interval_seconds": (30, 86400),
+        "events_forwarder_flush_interval_seconds": (1, 300),
+        "events_forwarder_max_batch": (1, 5000),
+        "events_forwarder_idempotency_ttl_seconds": (10, 86400),
+        "events_forwarder_persistent_queue_max_size": (10, 50000),
+        "mupl_min_interactions": (1, 10000),
+        "mupl_retention_days": (1, 3650),
+    }
+    for key, (lo, hi) in _bounds.items():
+        val = data.get(key)
+        if val is not None:
+            try:
+                val_int = int(val)
+            except (TypeError, ValueError):
+                continue
+            if not (lo <= val_int <= hi):
+                raise HomeAssistantError(f"{key} must be {lo}-{hi}, got {val_int}")

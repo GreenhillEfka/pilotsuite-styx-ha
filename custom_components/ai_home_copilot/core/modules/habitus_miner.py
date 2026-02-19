@@ -717,16 +717,55 @@ class HabitusMinerModule:
         domains: list[str] | None = None,
         exclude_domains: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """Fetch events from HA history (simplified for v0.1)."""
+        """Fetch state-change events from HA recorder history."""
         try:
-            # For v0.1, we return empty list - would need full history API integration
-            _LOGGER.info(
-                "History fetching not implemented in v0.1 - using event buffer only"
-            )
-            return []
+            from homeassistant.components.recorder import get_instance
+            from homeassistant.components.recorder.history import state_changes_during_period
+            from datetime import datetime, timezone, timedelta
 
+            end = datetime.now(timezone.utc)
+            start = end - timedelta(days=days_back)
+            target_domains = domains or [
+                "light", "switch", "climate", "media_player", "cover",
+                "binary_sensor", "person", "device_tracker",
+            ]
+
+            # Run in executor to avoid blocking the event loop
+            history = await get_instance(hass).async_add_executor_job(
+                state_changes_during_period,
+                hass,
+                start,
+                end,
+                None,  # entity_id filter (None = all)
+            )
+
+            events: list[dict[str, Any]] = []
+            exclude = set(exclude_domains or [])
+            for entity_id, states in history.items():
+                domain = entity_id.split(".")[0]
+                if domain not in target_domains or domain in exclude:
+                    continue
+                for state_obj in states:
+                    events.append({
+                        "entity_id": entity_id,
+                        "domain": domain,
+                        "kind": "state_changed",
+                        "new": {"state": state_obj.state},
+                        "timestamp": state_obj.last_changed.isoformat()
+                        if state_obj.last_changed else None,
+                    })
+
+            _LOGGER.info(
+                "Fetched %d history events from recorder (%d days back)",
+                len(events), days_back,
+            )
+            return events
+
+        except ImportError:
+            _LOGGER.info("Recorder not available; using event buffer only")
+            return []
         except Exception as e:
-            _LOGGER.error("Error fetching HA history: %s", e)
+            _LOGGER.warning("Error fetching HA history: %s; falling back to event buffer", e)
             return []
 
     # Public API for other modules

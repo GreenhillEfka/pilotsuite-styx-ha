@@ -408,21 +408,20 @@ class BrainGraphSync:
         """Handle HA state change events."""
         if not self._running:
             return
-            
+
         event_id = f"state_changed_{event.time_fired.timestamp()}_{event.data.get('entity_id', '')}"
         if event_id in self._processed_events:
             return
-            
-        # Add to processed events (with size limit)
+
+        # Add to processed events (with size limit, prune atomically)
         self._processed_events.add(event_id)
         if len(self._processed_events) > self._max_processed_events:
-            # Remove oldest 100 events
-            for _ in range(100):
-                self._processed_events.pop()
-        
+            # Atomic reset: keep only recent entries
+            self._processed_events = set()
+
         entity_id = event.data.get("entity_id")
         new_state = event.data.get("new_state")
-        
+
         if entity_id and new_state:
             await self._sync_entity_state(entity_id, new_state)
     
@@ -437,9 +436,8 @@ class BrainGraphSync:
             
         self._processed_events.add(event_id)
         if len(self._processed_events) > self._max_processed_events:
-            for _ in range(100):
-                self._processed_events.pop()
-        
+            self._processed_events = set()
+
         domain = event.data.get("domain")
         service = event.data.get("service")
         service_data = event.data.get("service_data", {})
@@ -481,6 +479,8 @@ class BrainGraphSync:
     
     async def _send_node_update(self, node_data: Dict[str, Any]):
         """Send a node update to Core Brain Graph."""
+        if not self._session or not self._running:
+            return
         try:
             async with self._session.post(
                 f"{self.core_url}/api/v1/graph/state",
@@ -497,6 +497,8 @@ class BrainGraphSync:
     
     async def _send_edge_update(self, edge_data: Dict[str, Any]):
         """Send an edge update to Core Brain Graph."""
+        if not self._session or not self._running:
+            return
         try:
             async with self._session.post(
                 f"{self.core_url}/api/v1/graph/state",
