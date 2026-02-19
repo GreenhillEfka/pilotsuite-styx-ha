@@ -83,6 +83,7 @@ class MoodService:
 
     def _init_db(self):
         """Create mood_snapshots table if it doesn't exist."""
+        os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
         with self._lock:
             conn = sqlite3.connect(self._db_path)
             try:
