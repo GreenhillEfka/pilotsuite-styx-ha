@@ -1,5 +1,16 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.2.3] - 2026-02-19
+
+### Bugfixes
+
+- **Fix: Sensor-Crashes bei None-Modul** — 5 Sensoren hatten fehlende None-Guards in `native_value`:
+  `WasteNextCollectionSensor`, `WasteTodayCountSensor`, `BirthdayTodayCountSensor`,
+  `BirthdayNextSensor`, `EntityTagsSensor` — geben jetzt 0/None zurück statt AttributeError
+- **Fix: Fehlende Translations** — `entity_tags`, `neurons`, `add_tag`, `edit_tag`, `delete_tag`
+  Menü-Einträge fehlten in `en.json` + `de.json` → HA zeigte Rohschlüssel statt lesbaren Text
+- Version: 3.2.2 → 3.2.3
+
 ## [3.2.2] - 2026-02-19
 
 ### Tags, Suggestions & Hauswirtschaft

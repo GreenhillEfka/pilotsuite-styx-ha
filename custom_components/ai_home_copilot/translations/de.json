@@ -244,7 +244,44 @@
         "menu_options": {
           "settings": "Einstellungen",
           "habitus_zones": "Habituszonen",
+          "entity_tags": "Entitäts-Tags",
+          "neurons": "Neuronen",
           "backup_restore": "Backup / Wiederherstellen"
+        }
+      },
+      "entity_tags": {
+        "title": "Entitäts-Tags",
+        "description": "Verwalte Entitäts-Tags — weise HA-Entitäten benutzerdefinierten Tags zu für gezieltes Monitoring und LLM-Kontext.",
+        "menu_options": {
+          "add_tag": "Tag hinzufügen",
+          "edit_tag": "Tag bearbeiten / Entitäten zuweisen",
+          "delete_tag": "Tag löschen",
+          "back": "Zurück"
+        }
+      },
+      "add_tag": {
+        "title": "Entitäts-Tag hinzufügen",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag-ID (Kleinbuchstaben, z.B. licht)",
+          "tag_name": "Tag-Name",
+          "tag_entities": "Zuzuweisende Entitäten",
+          "tag_color": "Farbe (Hex, z.B. #fbbf24)"
+        }
+      },
+      "edit_tag": {
+        "title": "Entitäts-Tag bearbeiten",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Zu bearbeitender Tag",
+          "tag_entities": "Zuzuweisende Entitäten"
+        }
+      },
+      "delete_tag": {
+        "title": "Entitäts-Tag löschen",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Zu löschender Tag"
         }
       },
       "settings": {

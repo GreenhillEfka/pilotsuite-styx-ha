@@ -244,7 +244,44 @@
         "menu_options": {
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
+          "entity_tags": "Entity tags",
+          "neurons": "Neurons",
           "backup_restore": "Backup / restore"
+        }
+      },
+      "entity_tags": {
+        "title": "Entity tags",
+        "description": "Manage entity tags — assign HA entities to custom tags for targeted monitoring and LLM context.",
+        "menu_options": {
+          "add_tag": "Add tag",
+          "edit_tag": "Edit tag / assign entities",
+          "delete_tag": "Delete tag",
+          "back": "Back"
+        }
+      },
+      "add_tag": {
+        "title": "Add entity tag",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag ID (lowercase slug, e.g. licht)",
+          "tag_name": "Tag name",
+          "tag_entities": "Entities to assign",
+          "tag_color": "Color (hex, e.g. #fbbf24)"
+        }
+      },
+      "edit_tag": {
+        "title": "Edit entity tag",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag to edit",
+          "tag_entities": "Entities to assign"
+        }
+      },
+      "delete_tag": {
+        "title": "Delete entity tag",
+        "description": "{hint}",
+        "data": {
+          "tag_id": "Tag to delete"
         }
       },
       "settings": {

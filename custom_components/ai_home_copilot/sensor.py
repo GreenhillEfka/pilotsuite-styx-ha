@@ -540,12 +540,16 @@ class WasteNextCollectionSensor(SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        if self._module is None:
+            return None
         state = self._module.get_state()
         nc = state.next_collection
         return nc.waste_type if nc else None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
         state = self._module.get_state()
         nc = state.next_collection
         return {
@@ -577,10 +581,14 @@ class WasteTodayCountSensor(SensorEntity):
 
     @property
     def native_value(self) -> int:
+        if self._module is None:
+            return 0
         return len(self._module.get_state().today_collections)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
         state = self._module.get_state()
         return {
             "today_types": [c.waste_type for c in state.today_collections],
@@ -609,10 +617,14 @@ class BirthdayTodayCountSensor(SensorEntity):
 
     @property
     def native_value(self) -> int:
+        if self._module is None:
+            return 0
         return len(self._module.get_state().today_birthdays)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
         state = self._module.get_state()
         today = state.today_birthdays
         upcoming = [b for b in state.upcoming_birthdays if b.days_until > 0]
@@ -639,6 +651,8 @@ class BirthdayNextSensor(SensorEntity):
 
     @property
     def native_value(self) -> str | None:
+        if self._module is None:
+            return None
         state = self._module.get_state()
         upcoming = sorted(state.upcoming_birthdays, key=lambda b: b.days_until)
         if upcoming:
@@ -647,6 +661,8 @@ class BirthdayNextSensor(SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        if self._module is None:
+            return {}
         state = self._module.get_state()
         upcoming = sorted(state.upcoming_birthdays, key=lambda b: b.days_until)
         if upcoming:
@@ -758,6 +774,8 @@ class EntityTagsSensor(SensorEntity):
 
     @property
     def native_value(self) -> int:
+        if self._module is None:
+            return 0
         return self._module.get_tag_count()
 
     @property
