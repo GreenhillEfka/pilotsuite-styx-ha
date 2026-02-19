@@ -15,7 +15,7 @@ from waitress import serve
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "1.1.0")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "1.2.0")
 
 
 def _load_options_json(path: str = "/data/options.json") -> dict:

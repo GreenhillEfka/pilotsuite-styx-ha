@@ -79,7 +79,9 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 .pipe:hover{border-color:var(--accent)}
 .pipe .pd{width:6px;height:6px;border-radius:50%}
 .pipe-active .pd{background:var(--green)}.pipe-learning .pd{background:var(--yellow);animation:pulse 1.5s infinite}.pipe-off .pd{background:var(--dim)}
+.pipe-error .pd{background:var(--red)}.pipe-unknown .pd{background:var(--dim);opacity:.4}
 .pipe span{color:var(--dim)}.pipe-active span{color:var(--green)}.pipe-learning span{color:var(--yellow)}
+.pipe-error span{color:var(--red)}.pipe-unknown span{color:var(--dim);opacity:.5}
 
 /* Chat panel */
 .chat-panel{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
@@ -348,7 +350,8 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 
 <script>
 // ==================================================
-// PilotSuite Dashboard — Styx v1.1.0
+// PilotSuite Dashboard — Styx v1.2.0
+// XSS-safe | Resilient | Real Module Health
 // ==================================================
 const API='';
 let currentModel='';
@@ -379,13 +382,71 @@ const MODULE_DEFS=[
 // State
 let chatHistory=[];
 let historyLog=[];
-let moduleStates={};
+let moduleStates=JSON.parse(localStorage.getItem('styx_module_states')||'{}');
+let _moduleHealth=null;
+let _healthTs=0;
 
 // -- Helpers --
 function $(id){return document.getElementById(id)}
+function escapeHtml(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 async function api(path){try{const r=await fetch(API+path);if(!r.ok)return null;return await r.json()}catch(e){return null}}
-function badge(t,c){return `<span class="b b-${c}">${t}</span>`}
+function badge(t,c){return`<span class="b b-${c}">${escapeHtml(t)}</span>`}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e}
+
+// -- Real Module Health (cached 30s) --
+async function fetchModuleHealth(){
+  const now=Date.now();
+  if(_moduleHealth&&(now-_healthTs)<30000)return _moduleHealth;
+  const settled=await Promise.allSettled([
+    api('/api/v1/graph/stats'),         // [0] brain_graph
+    api('/api/v1/habitus/health'),       // [1] habitus_miner
+    api('/api/v1/mood/state'),           // [2] mood_engine
+    api('/chat/status'),                 // [3] general + event_forwarder
+    api('/api/v1/neurons'),              // [4] neurons
+    api('/chat/memory'),                 // [5] conversation_memory
+    api('/api/v1/energy/health'),        // [6] energy_context
+    api('/api/v1/weather/health'),       // [7] weather_context
+    api('/api/v1/unifi/health'),         // [8] unifi_context
+    api('/telegram/status'),             // [9] telegram_bot
+    api('/api/v1/capabilities'),         // [10] mcp_server, kg, user_prefs
+  ]);
+  const v=r=>r.status==='fulfilled'?r.value:null;
+  const [gr,hr,mr,sr,nr,memr,er,wr,ur,tgr,capr]=settled.map(v);
+  const caps=capr?.capabilities||[];
+  const feats=capr?.features||{};
+  const neurons=(nr?.neurons||nr?.data||[]);
+  _moduleHealth={
+    brain_graph:  gr?.ok&&(gr?.stats?.nodes||gr?.nodes_total||0)>0?'active':gr?.ok?'learning':'off',
+    habitus_miner:hr?.status==='ok'?'active':hr?'learning':'off',
+    mood_engine:  mr?.zones&&Object.keys(mr.zones||{}).length>0?'active':mr?'learning':'off',
+    event_forwarder:sr?.available?'active':'off',
+    neurons:      neurons.length>0?'active':'learning',
+    knowledge_graph:caps.includes('knowledge_graph')||feats.knowledge_graph?'active':'learning',
+    conversation_memory:memr?.stats?.total_messages>0?'active':memr?'learning':'off',
+    media_context:caps.includes('voice_context')||caps.includes('media')?'active':'learning',
+    energy_context:er?.status==='ok'||er?.ok?'active':er?'learning':'off',
+    weather_context:wr?.status==='ok'||wr?.ok?'active':wr?'learning':'off',
+    unifi_context: ur?.status==='healthy'?'active':ur?.status==='degraded'?'learning':'off',
+    camera_context:caps.includes('camera')||caps.includes('events')?'learning':'off',
+    user_preferences:caps.includes('user_preferences')||feats.multi_user_learning?'active':'learning',
+    telegram_bot:  tgr?.running?'active':'off',
+    mcp_server:    capr?.ok?'active':'off',
+    _details:{
+      brain_graph: gr?.ok?`${gr?.stats?.nodes||gr?.nodes_total||0} Nodes, ${gr?.stats?.edges||gr?.edges_total||0} Edges`:'API offline',
+      habitus_miner:hr?.status==='ok'?`${hr?.rules_count||0} Regeln`:(hr?'Kein Output':'API offline'),
+      mood_engine:  mr?.zones?`${Object.keys(mr.zones).length} Zonen`:(mr?'Keine Zonen':'API offline'),
+      neurons:      neurons.length>0?`${neurons.length} Signale aktiv`:'Warte auf Events',
+      conversation_memory:memr?.stats?`${memr.stats.total_messages||0} Nachrichten`:'Leer',
+      energy_context:er?.status==='ok'?'Online':(er?'Degradiert':'Nicht konfiguriert'),
+      weather_context:wr?.status==='ok'?'Online':(wr?'Degradiert':'Nicht konfiguriert'),
+      unifi_context:ur?.status||'Nicht konfiguriert',
+      telegram_bot:tgr?.running?'Polling aktiv':'Nicht konfiguriert',
+      mcp_server:capr?.ok?'Aktiv':'Nicht erreichbar',
+    }
+  };
+  _healthTs=Date.now();
+  return _moduleHealth;
+}
 function addHistory(text){
   const now=new Date();const t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   historyLog.unshift({time:t,text});
@@ -415,43 +476,60 @@ function navigateTo(p){
 // STYX PAGE (Brain + Chat + History)
 // ==================================================
 async function loadStyx(){
-  // Load status
-  const status=await api('/chat/status');
-  if(status){
+  try{
+    // Load status
+    const status=await api('/chat/status');
     const dot=$('status-dot'),txt=$('status-text');
-    if(status.available){dot.className='dot dot-green';txt.textContent='Online'}
-    else{dot.className='dot dot-red';txt.textContent='Offline'}
-    currentModel=status.model||'';
-    $('chat-model').textContent=currentModel||'--';
-    $('ver-badge').textContent='v'+(status.version||'1.1.0');
-    // Set assistant name from status if available
-    const name=status.assistant_name||'Styx';
-    $('assistant-name').textContent=name;
-    $('app-title').textContent=name+' \u2014 PilotSuite';
-    document.title='PilotSuite \u2014 '+name;
+    if(status){
+      if(status.available){dot.className='dot dot-green';txt.textContent='Online'}
+      else{dot.className='dot dot-yellow';txt.textContent='Bereit'}
+      currentModel=status.model||'';
+      $('chat-model').textContent=escapeHtml(currentModel)||'--';
+      $('ver-badge').textContent='v'+(status.version||'1.2.0');
+      const name=status.assistant_name||'Styx';
+      $('assistant-name').textContent=escapeHtml(name);
+      $('app-title').textContent=escapeHtml(name)+' \u2014 PilotSuite';
+      document.title='PilotSuite \u2014 '+escapeHtml(name);
+    }else{
+      dot.className='dot dot-red';txt.textContent='API offline';
+      addHistory('\u26a0\ufe0f Core API nicht erreichbar');
+    }
+    // Load pipelines (real health)
+    loadPipelines();
+    // Load brain
+    loadBrainGraph();
+    // Load suggestion inbox
+    loadSuggestionInbox();
+    addHistory('Dashboard geladen');
+  }catch(e){
+    console.error('loadStyx error:',e);
+    const dot=$('status-dot'),txt=$('status-text');
+    if(dot)dot.className='dot dot-red';
+    if(txt)txt.textContent='Fehler';
   }
-  // Load pipelines
-  loadPipelines(status);
-  // Load brain
-  loadBrainGraph();
-  // Load suggestion inbox (candidates + rules + hints)
-  loadSuggestionInbox();
-  addHistory('Dashboard geladen');
 }
 
-function loadPipelines(status){
+async function loadPipelines(){
   const c=$('pipelines');if(!c)return;
-  const neuronData=status?.neurons_active||0;
-  const tgOk=status?.telegram_running||false;
-  c.innerHTML='';
-  MODULE_DEFS.forEach(m=>{
-    let st='active';
-    if(m.id==='telegram_bot'&&!tgOk)st='off';
-    moduleStates[m.id]=st;
-    const d=el('div','pipe pipe-'+st,`<span class="pd"></span><span>${m.name}</span>`);
-    d.onclick=()=>navigateTo('modules');
-    c.appendChild(d);
-  });
+  c.innerHTML='<div style="font-size:10px;color:var(--dim);padding:5px 0">Module pruefen...</div>';
+  try{
+    const health=await fetchModuleHealth();
+    c.innerHTML='';
+    MODULE_DEFS.forEach(m=>{
+      // User override from localStorage takes priority over detected health
+      const detected=health[m.id]||'unknown';
+      const userSt=moduleStates[m.id];
+      const st=userSt||detected;
+      if(!moduleStates[m.id])moduleStates[m.id]=detected;
+      const detail=health._details?.[m.id]||'';
+      const d=el('div','pipe pipe-'+st,`<span class="pd"></span><span>${escapeHtml(m.name)}</span>`);
+      if(detail)d.title=detail;
+      d.onclick=()=>navigateTo('modules');
+      c.appendChild(d);
+    });
+  }catch(e){
+    c.innerHTML='<div style="font-size:10px;color:var(--red);padding:5px 0">\u26a0\ufe0f Modul-Status nicht ladbar</div>';
+  }
 }
 
 // -- Brain Graph --
@@ -460,7 +538,6 @@ async function loadBrainGraph(){
   const data=await api('/api/v1/graph/state?limitNodes=120&limitEdges=300');
   const c=$('brain-canvas');
   if(!data||!data.nodes||!data.nodes.length){
-    c.querySelector('.loading')||null;
     const inner=c.querySelector('.loading');
     if(inner)inner.innerHTML='<div class="empty">Brain Graph ist noch leer.<br>Events von HA werden automatisch verarbeitet.</div>';
     return;
@@ -520,7 +597,7 @@ function renderBrain(container,nodes,edges){
     const domain=(n.id||n.entity_id||'').split('.')[0];
     const color=DOMAIN_COLORS[domain]||DOMAIN_COLORS.default;
     const r=4+Math.min(10,(n.score||.5)*7);
-    const label=(n.id||n.entity_id||'').split('.').pop().replace(/_/g,' ').slice(0,18);
+    const label=escapeHtml((n.id||n.entity_id||'').split('.').pop().replace(/_/g,' ').slice(0,18));
     svg+=`<circle cx="${n.x}" cy="${n.y}" r="${r}" fill="${color}" opacity=".8" filter="url(#glow)"/>`;
     if(r>6)svg+=`<text x="${n.x}" y="${n.y+r+10}" text-anchor="middle" fill="#6b7a8d" font-size="7.5" font-family="Inter,sans-serif">${label}</text>`;
   });
@@ -566,7 +643,8 @@ async function sendChat(){
     });
     const data=await r.json();
     const reply=data?.choices?.[0]?.message?.content||data?.error?.message||'Keine Antwort.';
-    typing.innerHTML=reply.replace(/\n/g,'<br>');
+    // XSS-safe: escape first, then convert newlines to <br>
+    typing.innerHTML=escapeHtml(reply).replace(/\n/g,'<br>');
     chatHistory.push({role:'assistant',content:reply});
     addHistory('Styx: '+reply.slice(0,40)+(reply.length>40?'...':''));
   }catch(e){typing.textContent='Fehler: '+e.message}
@@ -580,20 +658,25 @@ let dismissedSuggestions=JSON.parse(localStorage.getItem('styx_dismissed_sugg')|
 async function loadSuggestionInbox(){
   const list=$('sugg-list');
   if(!list)return;
-  // Fetch from multiple sources in parallel
-  const [rulesData,candidatesData,hintsData]=await Promise.all([
+  // Resilient: allSettled means one failing API doesn't block others
+  const settled=await Promise.allSettled([
     api('/api/v1/habitus/rules?limit=15'),
     api('/api/v1/candidates/graph_candidates?limit=10'),
     api('/api/v1/hints?status=pending')
   ]);
+  const [rulesRes,candidatesRes,hintsRes]=settled.map(r=>r.status==='fulfilled'?r.value:null);
+  const rulesData=rulesRes,candidatesData=candidatesRes,hintsData=hintsRes;
   suggestionItems=[];
   // 1. Pending hints (already in the system)
   const hints=hintsData?.hints||[];
   hints.forEach(h=>{
     if(dismissedSuggestions.includes(h.id))return;
+    // Parse consequent from text if present (format: "X -> Y")
+    let ant=h.text||h.title||'?',cons=h.consequent||h.then||'';
+    if(!cons&&ant.includes(' -> ')){const parts=ant.split(' -> ');ant=parts[0];cons=parts.slice(1).join(' -> ')}
     suggestionItems.push({
       id:h.id,type:'hint',status:h.status||'pending',
-      antecedent:h.text||h.title||'?',consequent:'',
+      antecedent:ant,consequent:cons,
       confidence:h.confidence||0,zone:h.zone||'',
       source:'hints',raw:h
     });
@@ -652,16 +735,19 @@ function renderSuggestionInbox(){
     // Source icon + color
     const srcIcon=s.source==='brain_graph'?'\u{1F9E0}':s.source==='habitus'?'\u{1F50D}':'\u{1F4A1}';
     const srcColor=s.source==='brain_graph'?'var(--accent)':s.source==='habitus'?'var(--cyan)':'var(--yellow)';
-    // Zone tag
-    const zoneTag=s.zone?`<span class="zone-tag">${s.zone}</span>`:'';
+    // Zone tag (escaped)
+    const zoneTag=s.zone?`<span class="zone-tag">${escapeHtml(s.zone)}</span>`:'';
     // Source tag
-    const srcTag=`<span class="zone-tag" style="background:${srcColor}15;color:${srcColor}">${s.source==='brain_graph'?'Graph':s.source==='habitus'?'Habitus':'Hint'}</span>`;
+    const srcLabel=s.source==='brain_graph'?'Graph':s.source==='habitus'?'Habitus':'Hint';
+    const srcTag=`<span class="zone-tag" style="background:${srcColor}15;color:${srcColor}">${srcLabel}</span>`;
     const confPct=s.type==='graph'?((s.confidence||0)*10).toFixed(0)+'w':((s.confidence||0)*100).toFixed(0)+'%';
+    const antEsc=escapeHtml(s.antecedent);
+    const consEsc=escapeHtml(s.consequent);
     item.innerHTML=`
       <input type="checkbox" class="sugg-check" data-idx="${i}" onchange="updateBatchBar()">
       <span style="font-size:14px;flex-shrink:0">${srcIcon}</span>
       <div class="sugg-body">
-        <div class="sugg-rule"><span>${s.antecedent}</span>${s.consequent?'<span class="arr">\u2192</span><span>'+s.consequent+'</span>':''}</div>
+        <div class="sugg-rule"><span>${antEsc}</span>${consEsc?'<span class="arr">\u2192</span><span>'+consEsc+'</span>':''}</div>
         <div class="sugg-zone">${srcTag}${zoneTag}</div>
       </div>
       <span class="sugg-conf">${confPct}</span>
@@ -787,8 +873,8 @@ async function loadHabitus(){
   c.innerHTML='';
   rules.forEach(r=>{
     const m=r.metadata||r;
-    const ant=m.antecedent?.full||m.antecedent||'?';
-    const cons=m.consequent?.full||m.consequent||'?';
+    const ant=escapeHtml(m.antecedent?.full||m.antecedent||'?');
+    const cons=escapeHtml(m.consequent?.full||m.consequent||'?');
     const conf=((m.confidence||0)*100).toFixed(0);
     const supp=((m.support||0)*100).toFixed(1);
     const lift=(m.lift||0).toFixed(2);
@@ -802,9 +888,9 @@ async function loadHabitus(){
     zc.innerHTML='';
     Object.entries(zones.zones).forEach(([id,z])=>{
       const card=el('div','zone-card',
-        `<h3><span style="color:var(--cyan)">&#x1f3e0;</span> ${z.name||id}</h3>
-        <p style="font-size:11px;color:var(--dim)">${z.description||'Zone: '+id}</p>
-        <div class="zone-entities">${(z.entities||[]).map(e=>`<span class="ze">${e}</span>`).join('')}</div>`);
+        `<h3><span style="color:var(--cyan)">&#x1f3e0;</span> ${escapeHtml(z.name||id)}</h3>
+        <p style="font-size:11px;color:var(--dim)">${escapeHtml(z.description||'Zone: '+id)}</p>
+        <div class="zone-entities">${(z.entities||[]).map(e=>`<span class="ze">${escapeHtml(e)}</span>`).join('')}</div>`);
       zc.appendChild(card);
     });
   }else{
@@ -847,7 +933,7 @@ async function loadMood(){
   zones.forEach(([name,z])=>{
     const comfort=z.comfort||0,joy=z.joy||0,frug=z.frugality||0;
     c.appendChild(el('div','',
-      `<h3 style="font-size:13px;margin:12px 0 6px;font-weight:600">${name}</h3>`+
+      `<h3 style="font-size:13px;margin:12px 0 6px;font-weight:600">${escapeHtml(name)}</h3>`+
       gaugeHTML('Comfort',comfort,'var(--green)')+gaugeHTML('Joy',joy,'var(--yellow)')+gaugeHTML('Frugality',frug,'var(--accent)')));
   });
   if(data.summary){
@@ -870,82 +956,107 @@ function gaugeHTML(label,val,color){
 // ==================================================
 async function loadModules(){
   const c=$('module-list');if(!c)return;
-  c.innerHTML='';
-  // Get neuron data
-  const neurons=await api('/api/v1/neurons');
-  const neuronList=neurons?.neurons||neurons?.data||[];
-  const status=await api('/chat/status');
-  const tgStatus=await api('/telegram/status');
-  MODULE_DEFS.forEach(m=>{
-    let st='active';let detail='';
-    if(m.id==='telegram_bot'){st=tgStatus?.running?'active':'off';detail=tgStatus?.running?'Polling aktiv':'Nicht konfiguriert'}
-    else if(m.id==='neurons'){detail=neuronList.length+' aktiv'}
-    else if(m.id==='conversation_memory'){detail=status?.memory_entries?status.memory_entries+' Eintraege':'Bereit'}
-    else{detail='Aktiv'}
-    const toggleCls=st==='active'?'on':st==='learning'?'learn':'off';
-    const card=el('div','mod-card',
-      `<div class="mod-icon" style="background:${m.color}20;color:${m.color}">${m.icon}</div>
-      <div class="mod-info"><h3>${m.name}</h3><p>${m.desc}</p><div style="margin-top:4px">${badge(detail,st==='active'?'g':st==='learning'?'y':'r')}</div></div>
-      <div class="mod-status"><button class="mod-toggle ${toggleCls}" data-mod="${m.id}" title="${st}"></button><span class="mod-st-label" style="font-size:9px;color:var(--dim)">${st}</span></div>`);
-    card.querySelector('.mod-toggle').addEventListener('click',function(){toggleModule(this,m.id)});
-    c.appendChild(card);
-  });
+  c.innerHTML='<div class="loading"><div class="spinner"></div>Lade Modul-Status...</div>';
+  try{
+    const health=await fetchModuleHealth();
+    c.innerHTML='';
+    MODULE_DEFS.forEach(m=>{
+      // Detected state from APIs
+      const detected=health[m.id]||'unknown';
+      const detail=health._details?.[m.id]||'Status unbekannt';
+      // User toggle override stored in localStorage
+      const st=moduleStates[m.id]||detected;
+      if(!moduleStates[m.id])moduleStates[m.id]=detected;
+      const toggleCls=st==='active'?'on':st==='learning'?'learn':'off';
+      const badgeCls=st==='active'?'g':st==='learning'?'y':st==='off'?'r':'b';
+      const card=el('div','mod-card',
+        `<div class="mod-icon" style="background:${m.color}20;color:${m.color}">${m.icon}</div>
+        <div class="mod-info"><h3>${escapeHtml(m.name)}</h3><p>${escapeHtml(m.desc)}</p>
+        <div style="margin-top:4px">${badge(detail,badgeCls)}</div></div>
+        <div class="mod-status">
+          <button class="mod-toggle ${toggleCls}" data-mod="${m.id}" title="${escapeHtml(st)}"></button>
+          <span class="mod-st-label" style="font-size:9px;color:var(--dim)">${escapeHtml(st)}</span>
+          ${detected!==st?`<span style="font-size:8px;color:var(--yellow)" title="Nutzer-Override aktiv">\u270f</span>`:''}
+        </div>`);
+      card.querySelector('.mod-toggle').addEventListener('click',function(){toggleModule(this,m.id)});
+      c.appendChild(card);
+    });
+  }catch(e){
+    c.innerHTML='<div class="empty">\u26a0\ufe0f Modul-Status konnte nicht geladen werden.<br>'+escapeHtml(e.message)+'</div>';
+  }
 }
 
-// -- Module Toggle --
+// -- Module Toggle (persists to localStorage, syncs pipeline) --
 function toggleModule(btn,modId){
   const states=['on','learn','off'];
   const labels=['active','learning','off'];
-  let idx=states.indexOf([...btn.classList].find(c=>states.includes(c)))||0;
+  const current=[...btn.classList].find(c=>states.includes(c))||'off';
+  let idx=states.indexOf(current);
   idx=(idx+1)%3;
   btn.className='mod-toggle '+states[idx];
   btn.title=labels[idx];
   const stLabel=btn.parentElement.querySelector('.mod-st-label');
   if(stLabel)stLabel.textContent=labels[idx];
+  // Show override indicator
+  const oi=btn.parentElement.querySelector('.override-indicator');
+  if(oi)oi.style.display='';
   moduleStates[modId]=labels[idx];
+  // Persist to localStorage
+  localStorage.setItem('styx_module_states',JSON.stringify(moduleStates));
+  // Invalidate health cache so next load re-evaluates
+  _moduleHealth=null;_healthTs=0;
   // Update pipeline indicator on Styx page
   const pipes=document.querySelectorAll('#pipelines .pipe');
   pipes.forEach(p=>{
-    const name=p.querySelector('span:last-child')?.textContent;
-    const def=MODULE_DEFS.find(m=>m.name===name);
-    if(def&&def.id===modId){
-      p.className='pipe pipe-'+labels[idx];
-    }
+    const span=p.querySelector('span:last-child');
+    const def=MODULE_DEFS.find(m=>m.name===span?.textContent);
+    if(def&&def.id===modId)p.className='pipe pipe-'+labels[idx];
   });
-  addHistory('Modul '+MODULE_DEFS.find(m=>m.id===modId)?.name+' → '+labels[idx]);
+  addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+labels[idx]);
 }
 
 // ==================================================
 // SETTINGS
 // ==================================================
 async function loadSettings(){
-  const status=await api('/chat/status');
+  // Load all in parallel, resilient
+  const settled=await Promise.allSettled([
+    api('/chat/status'),
+    api('/telegram/status'),
+    api('/chat/memory'),
+    api('/chat/models/recommended'),
+    api('/api/v1/capabilities'),
+  ]);
+  const [statusRes,tgRes,memRes,recRes,capsRes]=settled.map(r=>r.status==='fulfilled'?r.value:null);
+  const status=statusRes,tg=tgRes,mem=memRes,rec=recRes,caps=capsRes;
   if(status){
     $('set-llm').innerHTML=
       `<tr><td>Provider</td><td>${badge(status.active_provider||'--','p')}</td></tr>`+
-      `<tr><td>Modell</td><td><strong>${status.model||'--'}</strong></td></tr>`+
-      `<tr><td>Assistent</td><td><strong>${status.assistant_name||'Styx'}</strong></td></tr>`+
+      `<tr><td>Modell</td><td><strong>${escapeHtml(status.model||'--')}</strong></td></tr>`+
+      `<tr><td>Assistent</td><td><strong>${escapeHtml(status.assistant_name||'Styx')}</strong></td></tr>`+
       `<tr><td>Ollama</td><td>${status.ollama_available?badge('Online','g'):badge('Offline','r')}</td></tr>`+
       `<tr><td>Cloud API</td><td>${status.cloud_configured?badge('Konfiguriert','b'):badge('Nicht konfiguriert','y')}</td></tr>`+
       `<tr><td>Lokal bevorzugen</td><td>${status.prefer_local?badge('Ja','g'):badge('Nein','y')}</td></tr>`+
-      `<tr><td>Charakter</td><td>${status.character||'copilot'}</td></tr>`+
+      `<tr><td>Charakter</td><td>${escapeHtml(status.character||'copilot')}</td></tr>`+
       `<tr><td>Anfragen/h</td><td>${status.calls_this_hour||0} / ${status.max_calls_per_hour||60}</td></tr>`;
     // Models
     const models=status.installed_models||[];
     const mc=$('set-models');
     if(!models.length){mc.innerHTML='<div class="empty">Keine Modelle installiert</div>'}
-    else{mc.innerHTML='';models.forEach(m=>{mc.appendChild(el('div','pat',`<span>${m}</span><span class="meta">${m===status.model?badge('Aktiv','g'):''}</span>`))})}
-    // System
-    const tg=await api('/telegram/status');
+    else{mc.innerHTML='';models.forEach(m=>{mc.appendChild(el('div','pat',`<span>${escapeHtml(m)}</span><span class="meta">${m===status.model?badge('Aktiv','g'):''}</span>`))})}
+    // System (real MCP status from capabilities)
+    const mcpOk=caps?.ok===true;
     $('set-system').innerHTML=
-      `<tr><td>Version</td><td>${badge('v'+(status.version||'1.1.0'),'p')}</td></tr>`+
-      `<tr><td>Ollama URL</td><td><code>${status.ollama_url||'localhost:11434'}</code></td></tr>`+
-      `<tr><td>Cloud URL</td><td><code>${status.cloud_api_url||'--'}</code></td></tr>`+
+      `<tr><td>Version</td><td>${badge('v'+(status.version||'1.2.0'),'p')}</td></tr>`+
+      `<tr><td>Ollama URL</td><td><code>${escapeHtml(status.ollama_url||'localhost:11434')}</code></td></tr>`+
+      `<tr><td>Cloud URL</td><td><code>${escapeHtml(status.cloud_api_url||'--')}</code></td></tr>`+
       `<tr><td>Telegram</td><td>${tg?.running?badge('Aktiv','g'):badge('Aus','y')}</td></tr>`+
-      `<tr><td>MCP Server</td><td>${badge('Aktiv','g')}</td></tr>`;
+      `<tr><td>MCP Server</td><td>${mcpOk?badge('Aktiv','g'):badge('Offline','r')}</td></tr>`+
+      (caps?.capabilities?.length?`<tr><td>Features</td><td style="font-size:10px;color:var(--dim)">${escapeHtml(caps.capabilities.slice(0,5).join(', '))}${caps.capabilities.length>5?'…':''}</td></tr>`:'');
+  }else{
+    $('set-llm').innerHTML='<tr><td colspan="2" style="color:var(--red)">\u26a0\ufe0f Core API nicht erreichbar</td></tr>';
   }
   // Memory
-  const mem=await api('/chat/memory');
   const mc2=$('set-memory');
   if(mem&&mem.stats){
     mc2.innerHTML=`<table class="tbl">
@@ -954,21 +1065,20 @@ async function loadSettings(){
       <tr><td>Themen</td><td><strong>${mem.stats.topics_count||0}</strong></td></tr>
       <tr><td>Speicher</td><td>${mem.stats.db_size_mb?mem.stats.db_size_mb.toFixed(1)+' MB':'--'}</td></tr>
     </table>`;
-  }else{mc2.innerHTML='<div class="empty">Gedaechtnis nicht initialisiert</div>'}
+  }else{mc2.innerHTML='<div class="empty">Gedaechtnis nicht initialisiert oder API offline</div>'}
   // Recommended
-  const rec=await api('/chat/models/recommended');
   const rc=$('set-rec');
   if(rec&&rec.models){
     rc.innerHTML='';
     rec.models.forEach(m=>{
-      const badges=[m.installed?badge('Installiert','g'):badge(m.size_mb+'MB','y')];
-      if(m.active)badges.push(badge('Aktiv','p'));
-      if(m.supports_tools)badges.push(badge('Tools','b'));
+      const mbadges=[m.installed?badge('Installiert','g'):badge((m.size_mb||'?')+'MB','y')];
+      if(m.active)mbadges.push(badge('Aktiv','p'));
+      if(m.supports_tools)mbadges.push(badge('Tools','b'));
       rc.appendChild(el('div','pat',
-        `<div><strong>${m.name}</strong><br><span style="font-size:10px;color:var(--dim)">${m.description}</span></div>
-        <div class="meta">${badges.join(' ')}</div>`));
+        `<div><strong>${escapeHtml(m.name||'')}</strong><br><span style="font-size:10px;color:var(--dim)">${escapeHtml(m.description||'')}</span></div>
+        <div class="meta">${mbadges.join(' ')}</div>`));
     });
-  }
+  }else{rc.innerHTML='<div class="empty">Keine Empfehlungen verfuegbar</div>'}
 }
 
 // ==================================================
@@ -977,16 +1087,26 @@ async function loadSettings(){
 function drawTrend(canvasId,dataPoints,realData){
   const canvas=$(canvasId);if(!canvas||!canvas.getContext)return;
   const ctx=canvas.getContext('2d');
-  const W=canvas.parentElement.clientWidth;const H=120;
+  const W=Math.max(canvas.parentElement.clientWidth||200,100);const H=120;
   canvas.width=W;canvas.height=H;
   ctx.clearRect(0,0,W,H);
-  const pts=24;let data;
-  if(realData&&realData.length>=2){
-    // Use real data, resample to 24 points
-    data=[];for(let i=0;i<pts;i++){const idx=Math.floor(i*realData.length/pts);data.push(Math.max(0,Math.min(1,realData[idx])))}
-  }else{
-    // Fallback: generate from dataPoints seed
-    data=[];for(let i=0;i<pts;i++)data.push(Math.max(0,Math.min(1,(dataPoints/50)+Math.sin(i*.3)*.15+Math.random()*.1)));
+  if(!realData||realData.length<2){
+    // No fake data — show honest "insufficient data" message
+    ctx.fillStyle='#1e2a3a';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#1e2a3a';ctx.lineWidth=.5;
+    for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    ctx.fillStyle='#6b7a8d';ctx.font='11px Inter,sans-serif';ctx.textAlign='center';
+    ctx.fillText('Noch nicht genug Daten',W/2,H/2-8);
+    ctx.font='9px Inter,sans-serif';
+    ctx.fillText('Styx sammelt automatisch Verlaufsdaten',W/2,H/2+8);
+    ctx.textAlign='left';
+    return;
+  }
+  const pts=Math.min(realData.length,48);
+  const data=[];
+  for(let i=0;i<pts;i++){
+    const idx=Math.floor(i*realData.length/pts);
+    data.push(Math.max(0,Math.min(1,realData[idx])));
   }
   // Grid
   ctx.strokeStyle='#1e2a3a';ctx.lineWidth=.5;
@@ -1001,31 +1121,43 @@ function drawTrend(canvasId,dataPoints,realData){
   });
   ctx.stroke();
   // Fill area
-  const lastX=(pts-1)/(pts-1)*W;const lastY=H-data[pts-1]*H*.8-H*.1;
-  ctx.lineTo(lastX,H);ctx.lineTo(0,H);ctx.closePath();
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
   const fillGrad=ctx.createLinearGradient(0,0,0,H);
   fillGrad.addColorStop(0,'rgba(124,106,239,.15)');fillGrad.addColorStop(1,'rgba(124,106,239,0)');
   ctx.fillStyle=fillGrad;ctx.fill();
   // Labels
   ctx.fillStyle='#6b7a8d';ctx.font='9px Inter,sans-serif';
-  ctx.fillText('24h',4,H-4);ctx.fillText('jetzt',W-28,H-4);
+  ctx.fillText(pts+'pts',4,H-4);ctx.fillText('jetzt',W-28,H-4);
 }
 
 // ==================================================
-// PAGE LOADER
+// PAGE LOADER — Resilient wrapper
 // ==================================================
-const loaded={};
+const _loaders={styx:loadStyx,habitus:loadHabitus,mood:loadMood,modules:loadModules,settings:loadSettings};
 function loadPage(p){
-  if(p==='styx')loadStyx();
-  else if(p==='habitus')loadHabitus();
-  else if(p==='mood')loadMood();
-  else if(p==='modules')loadModules();
-  else if(p==='settings')loadSettings();
+  const fn=_loaders[p];
+  if(!fn)return;
+  fn().catch(e=>{
+    console.error('Page load error ['+p+']:',e);
+    const pg=$('page-'+p);
+    if(pg&&!pg.querySelector('.page-error')){
+      const err=el('div','card page-error',
+        `<p style="color:var(--red)">\u26a0\ufe0f Fehler beim Laden: ${escapeHtml(e.message)}</p>
+         <button onclick="loadPage('${escapeHtml(p)}')" style="margin-top:8px;padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer">Erneut versuchen</button>`);
+      err.style.margin='16px';
+      pg.insertBefore(err,pg.firstChild);
+    }
+  });
 }
 
-// Boot
-loadStyx();
-setInterval(()=>{if(document.querySelector('.nav button.active')?.dataset.page==='styx')loadStyx()},30000);
+// Boot — resilient startup
+loadStyx().catch(e=>console.error('Boot error:',e));
+// Auto-refresh Styx every 30s
+setInterval(()=>{
+  try{
+    if(document.querySelector('.nav button.active')?.dataset.page==='styx')loadStyx().catch(()=>{});
+  }catch(e){}
+},30000);
 </script>
 </body>
 </html>
