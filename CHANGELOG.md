@@ -1,5 +1,17 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.5.0] - 2026-02-19
+
+### RAG Pipeline + Kalender-Integration
+
+- **Calendar Module** — Integriert alle HA `calendar.*` Entities
+  - `core/modules/calendar_module.py`: Auto-Discovery, Event-Abruf, LLM-Kontext
+  - `async_get_events_today()`, `async_get_events_upcoming(days)` via HA calendar.get_events
+  - Sensor: `sensor.ai_home_copilot_calendar` — Kalender-Count + Liste
+  - LLM-Kontext: Zeigt heutige/morgige Termine automatisch
+- **Registrierung in __init__.py**: CalendarModule im CopilotRuntime
+- Version: 3.4.0 -> 3.5.0
+
 ## [3.4.0] - 2026-02-19
 
 ### Scene Module + Auto Styx Tagging + HomeKit Bridge

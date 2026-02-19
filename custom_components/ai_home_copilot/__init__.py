@@ -147,6 +147,7 @@ _MODULES = [
     "frigate_bridge",
     "scene_module",
     "homekit_bridge",
+    "calendar_module",
 ]
 
 
@@ -194,6 +195,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     from .core.modules.frigate_bridge import FrigateBridgeModule
     from .core.modules.scene_module import SceneModule
     from .core.modules.homekit_bridge import HomeKitBridgeModule
+    from .core.modules.calendar_module import CalendarModule
 
     _module_classes = {
         "legacy": LegacyModule,
@@ -225,6 +227,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "frigate_bridge": FrigateBridgeModule,
         "scene_module": SceneModule,
         "homekit_bridge": HomeKitBridgeModule,
+        "calendar_module": CalendarModule,
     }
     for name, cls in _module_classes.items():
         if name not in runtime.registry.names():
