@@ -1,11 +1,11 @@
-# PilotSuite — HACS Integration (v0.14.0-alpha.1)
+# PilotSuite — Styx (HACS Integration v1.1.0)
 
 [![Release](https://img.shields.io/github/v/release/GreenhillEfka/ai-home-copilot-ha)](https://github.com/GreenhillEfka/ai-home-copilot-ha/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 
-Home Assistant Custom Integration für **PilotSuite** (ehemals AI Home CoPilot) — privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
+Home Assistant Custom Integration fuer **PilotSuite — Styx**, die Verbindung beider Welten. Privacy-first, lokaler KI-Assistent der die Muster deines Zuhauses lernt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **22 Core-Module** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **80+ Sensoren**, **15+ Dashboard Cards** und **23 Core-Module** in Home Assistant bereit.
 
 ## Installation
 
@@ -23,20 +23,22 @@ Das **Core Add-on** muss installiert und gestartet sein:
    https://github.com/GreenhillEfka/ai-home-copilot-ha
    ```
    Typ: **Integration**
-4. **AI Home CoPilot** über HACS installieren
+4. **PilotSuite — Styx** ueber HACS installieren
 5. Home Assistant **neustarten**
 
 ### Setup
 
-1. **Settings** → **Devices & services** → **Add integration** → **AI Home CoPilot**
-2. Konfiguration ausfüllen:
+1. **Settings** → **Devices & services** → **Add integration** → **PilotSuite**
+2. **Zero Config** waehlen — Styx startet sofort mit Standardwerten
+3. Oder **Manuelle Konfiguration**:
 
 | Feld | Standard | Beschreibung |
 |------|----------|-------------|
+| Assistentenname | `Styx` | Name deines KI-Assistenten |
 | Host | `homeassistant.local` | HA Host LAN-IP/Hostname |
 | Port | `8909` | Core Add-on Port |
 | API Token | _(optional)_ | Token-Authentifizierung |
-| Test Light | _(optional)_ | Entity für Demo-Toggle |
+| Test Light | _(optional)_ | Entity fuer Demo-Toggle |
 
 Weitere Optionen (über Options-Flow konfigurierbar):
 - **Events Forwarder** — Batch-Größe, Flush-Intervall, Persistent Queue, Idempotency
@@ -55,7 +57,7 @@ HACS erstellt ein `update.*`-Entity für das Repository.
 
 ## Features
 
-### 22 Core-Module
+### 23 Core-Module
 
 | Modul | Funktion |
 |-------|----------|
@@ -70,7 +72,7 @@ HACS erstellt ein `update.*`-Entity für das Repository.
 | UniFiModule | Netzwerk-Überwachung |
 | MLContextModule | ML-Kontext und Features |
 | MUPLModule | Multi-User Preference Learning |
-| CharacterModule | CoPilot-Persönlichkeit |
+| CharacterModule | Styx-Persoenlichkeit |
 | ... | und weitere |
 
 ### 80+ Sensoren

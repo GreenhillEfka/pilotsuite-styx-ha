@@ -1,5 +1,16 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [1.1.0] - 2026-02-19
+
+### Styx — Die Verbindung beider Welten
+
+- **Styx Naming in Config Flow**: Zero Config creates "Styx — PilotSuite" entry,
+  manual setup includes `assistant_name` field (default: "Styx")
+- **Translations**: EN + DE updated with Styx setup titles and descriptions
+- **hacs.json**: Name updated to "PilotSuite — Styx"
+
+---
+
 ## [1.0.0] - 2026-02-19
 
 ### PilotSuite v1.0.0 -- First Full Release
