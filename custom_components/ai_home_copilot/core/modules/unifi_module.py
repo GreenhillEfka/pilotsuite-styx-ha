@@ -126,7 +126,7 @@ class UniFiModule:
         config = unifi_data["config"]
         self._thresholds = config.get("thresholds", self.DEFAULT_THRESHOLDS)
 
-        # Try to get the coordinator from unifi_context_module
+        # Try to get the coordinator from network_module
         self._coordinator = self._get_unifi_coordinator(ctx)
 
         if self._coordinator is None:
@@ -151,10 +151,10 @@ class UniFiModule:
         _LOGGER.info("UniFi module v0.2 initialized for entry %s", self._entry_id)
 
     def _get_unifi_coordinator(self, ctx: ModuleContext) -> "UnifiContextCoordinator | None":
-        """Get the UnifiContextCoordinator from unifi_context_module."""
+        """Get the UnifiContextCoordinator from network_module."""
         try:
             entry_data = ctx.hass.data[DOMAIN].get(ctx.entry.entry_id, {})
-            context_module = entry_data.get("unifi_context_module")
+            context_module = entry_data.get("network_module")
             if context_module and hasattr(context_module, "coordinator"):
                 return context_module.coordinator
         except Exception as e:
