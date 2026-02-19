@@ -1,5 +1,28 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.4.0] - 2026-02-19
+
+### Scene Module + Auto Styx Tagging + HomeKit Bridge
+
+- **Scene Module** — Speichert aktuelle Habituszonen-Zustaende als HA-Szenen
+  - `scene_store.py`: HA Storage CRUD mit ZoneScene Dataclass
+  - `core/modules/scene_module.py`: Capture, Apply, Delete, Presets, LLM-Kontext
+  - 8 Built-in Presets: Morgen, Tag, Abend, Nacht, Film, Party, Konzentration, Abwesend
+  - Sensor: `sensor.ai_home_copilot_zone_scenes` — Szenen-Count + Summary
+  - Translations (en/de) fuer Config Flow
+- **Auto Styx Tagging** — Jede Entitaet mit der Styx interagiert wird automatisch getaggt
+  - `entity_tags_module.py` v0.2.0: `async_auto_tag_styx()` Method
+  - STYX_TAG_ID "styx" mit lila Farbe + robot Icon
+  - `is_styx_entity()`, `get_styx_entities()` Abfragen
+  - LLM-Kontext zeigt Styx-getaggte Entitaeten + Anzahl
+- **HomeKit Bridge Module** — Exponiert Habituszonen-Entitaeten an Apple HomeKit
+  - `core/modules/homekit_bridge.py`: Zone Enable/Disable, Auto-Reload
+  - HA Storage Persistenz, `homekit.reload` Service (Pairing bleibt erhalten)
+  - Sensor: `sensor.ai_home_copilot_homekit_bridge` — Zonen/Entitaeten Count
+  - LLM-Kontext: Zeigt HomeKit-aktive Zonen
+- **Dashboard**: Szene-Speichern + HomeKit Button auf Habituszonen-Karten
+- Version: 3.3.0 -> 3.4.0
+
 ## [3.3.0] - 2026-02-19
 
 ### Personen-Tracking + Frigate-Integration
