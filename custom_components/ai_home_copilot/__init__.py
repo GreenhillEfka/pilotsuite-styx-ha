@@ -234,13 +234,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up Multi-User Preference Learning Module (v0.8.0)
     from .multi_user_preferences import MultiUserPreferenceModule, set_mupl_module
     from .const import CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED
-    
+
     if config.get(CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED):
         mupl_module = MultiUserPreferenceModule(hass, entry)
         await mupl_module.async_setup()
         set_mupl_module(hass, entry.entry_id, mupl_module)
         _LOGGER.info("Multi-User Preference Learning Module initialized")
-    
+
+    # Set up Zone Detector with Core addon forwarding (v3.1.0)
+    try:
+        from .zone_detector import ZoneDetector
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        coord = entry_store.get("coordinator") if isinstance(entry_store, dict) else None
+        api_client = getattr(coord, "api", None) if coord else None
+        zone_detector = ZoneDetector(hass, entry, api_client=api_client)
+        await zone_detector.async_setup()
+        if isinstance(entry_store, dict):
+            entry_store["zone_detector"] = zone_detector
+        _LOGGER.info("ZoneDetector initialized (proactive zone-entry forwarding active)")
+    except Exception:
+        _LOGGER.exception("Failed to set up ZoneDetector")
+
     return True
 
 
@@ -258,5 +272,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mupl_module = entry_data.get(_MUPL_MODULE_KEY)
     if mupl_module:
         await mupl_module.async_unload()
-    
+
+    # Unload Zone Detector (v3.1.0)
+    zone_detector = entry_data.get("zone_detector")
+    if zone_detector:
+        await zone_detector.async_unload()
+
     return await runtime.async_unload_entry(entry, modules=_MODULES)
