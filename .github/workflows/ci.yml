@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install flask flask-compress waitress requests pyyaml \
-            pydantic psutil python-ulid
+            pydantic psutil python-ulid numpy
 
       - name: Import smoke test (create_app)
         env:
@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install flask flask-compress waitress requests pyyaml \
-            pydantic psutil python-ulid pytest pytest-cov
+            pydantic psutil python-ulid numpy pytest pytest-cov
 
       - name: Run full test suite
         env:
