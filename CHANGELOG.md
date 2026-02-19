@@ -1,5 +1,50 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.0.0] - 2026-02-19
+
+### Kollektive Intelligenz — Federated Learning + A/B Testing
+
+- **Federated Learning Integration**: Cross-Home Pattern-Sharing Entities
+- **A/B Testing Support**: Experiment-Tracking fuer Automation-Varianten
+- **Pattern Library**: Kollektiv gelernte Muster sichtbar in Dashboard
+- **Versions-Sync**: manifest.json auf 3.0.0 synchronisiert mit Core
+
+## [2.2.0] - 2026-02-19
+
+### Praediktive Intelligenz — Ankunft + Energie
+
+- **Prediction Entities**: Arrival Forecast, Energy Optimization Sensors
+- **Energiepreis-Integration**: Tibber/aWATTar Sensor-Support
+- **Versions-Sync**: manifest.json auf 2.2.0
+
+## [2.1.0] - 2026-02-19
+
+### Erklaerbarkeit + Multi-User
+
+- **Explainability Entities**: "Warum?"-Sensor fuer Vorschlaege
+- **Multi-User Profile Entities**: Pro-Person Praeferenz-Sensoren
+- **Versions-Sync**: manifest.json auf 2.1.0
+
+## [2.0.0] - 2026-02-19
+
+### Native HA Integration — Lovelace Cards + Conversation Agent
+
+- **3 Native Lovelace Cards**:
+  - `styx-brain-card.js`: Brain Graph Visualisierung mit Force-Directed Layout
+  - `styx-mood-card.js`: Mood Circular Gauges (Comfort/Joy/Frugality)
+  - `styx-habitus-card.js`: Top-5 Pattern-Liste mit Confidence-Badges
+- **HA Conversation Agent**: `StyxConversationAgent` in `conversation.py`,
+  nativ in HA Assist Pipeline, Proxy zu Core `/v1/chat/completions`
+- **Versions-Sync**: manifest.json auf 2.0.0
+
+## [1.3.0] - 2026-02-19
+
+### Module Control — Echte Backend-Steuerung
+
+- **Versions-Sync**: manifest.json auf 1.3.0 synchronisiert mit Core v1.3.0
+- **Module Control**: Dashboard-Toggles steuern jetzt echtes Backend
+- **Automation Creator**: Akzeptierte Vorschlaege werden HA-Automationen
+
 ## [1.2.0] - 2026-02-19
 
 ### Qualitaetsoffensive — Stabile Integration fuer den Livetest
