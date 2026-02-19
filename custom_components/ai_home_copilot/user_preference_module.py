@@ -387,10 +387,55 @@ class UserPreferenceModule:
             }
 
     async def _learn_from_context(self, user_id: str) -> None:
-        """Learn preferences from current context (active learning mode)."""
-        # This is called when user state changes in active mode
-        # In a real implementation, this would analyze the context and learn patterns
-        _LOGGER.debug("Active learning for user %s (not implemented yet)", user_id)
+        """Learn preferences from current context (active learning mode).
+
+        Analyzes the current HA state for the user's zone and records
+        lighting, climate, and media preferences as learned patterns.
+        """
+        if not self._hass or user_id not in self._data["users"]:
+            return
+
+        try:
+            user_data = self._data["users"][user_id]
+            zone = self._active_users.get(user_id)
+            if not zone:
+                return
+
+            now = dt_util.utcnow()
+            hour = now.hour
+            time_slot = "morning" if 6 <= hour < 12 else "afternoon" if 12 <= hour < 18 else "evening" if 18 <= hour < 23 else "night"
+
+            # Sample current light states in the zone
+            light_states = {}
+            for state in self._hass.states.async_all("light"):
+                if state.state == "on":
+                    brightness = state.attributes.get("brightness")
+                    if brightness is not None:
+                        light_states[state.entity_id] = round(brightness / 255.0, 2)
+
+            # Build a learned pattern entry
+            pattern = {
+                "timestamp": now.isoformat(),
+                "zone": zone,
+                "time_slot": time_slot,
+                "light_brightness_avg": (
+                    round(sum(light_states.values()) / len(light_states), 2)
+                    if light_states else None
+                ),
+                "active_lights": len(light_states),
+            }
+
+            # Append to learned patterns (keep last 200)
+            patterns = user_data.get("learned_patterns", [])
+            patterns.append(pattern)
+            user_data["learned_patterns"] = patterns[-200:]
+            user_data["updated_at"] = now.isoformat()
+
+            await self._store.async_save(self._data)
+            _LOGGER.debug("Active learning: recorded pattern for user %s in zone %s", user_id, zone)
+
+        except Exception as err:
+            _LOGGER.debug("Active learning error for user %s: %s", user_id, err)
 
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of the module state."""

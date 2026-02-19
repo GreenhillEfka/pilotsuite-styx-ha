@@ -138,7 +138,7 @@ def build_network_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
     return {
         vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): str,
         vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
-        vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): int,
+        vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
         vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
         vol.Optional("_clear_token"): bool,
         vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): str,
@@ -177,15 +177,15 @@ def build_seed_schema(data: dict) -> dict:
         vol.Optional(
             CONF_SEED_MAX_OFFERS_PER_HOUR,
             default=data.get(CONF_SEED_MAX_OFFERS_PER_HOUR, DEFAULT_SEED_MAX_OFFERS_PER_HOUR),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
         vol.Optional(
             CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS,
             default=data.get(CONF_SEED_MIN_SECONDS_BETWEEN_OFFERS, DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
         vol.Optional(
             CONF_SEED_MAX_OFFERS_PER_UPDATE,
             default=data.get(CONF_SEED_MAX_OFFERS_PER_UPDATE, DEFAULT_SEED_MAX_OFFERS_PER_UPDATE),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=50)),
     }
 
 
@@ -199,7 +199,7 @@ def build_watchdog_schema(data: dict) -> dict:
         vol.Optional(
             CONF_WATCHDOG_INTERVAL_SECONDS,
             default=data.get(CONF_WATCHDOG_INTERVAL_SECONDS, DEFAULT_WATCHDOG_INTERVAL_SECONDS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=30, max=86400)),
         vol.Optional(
             CONF_ENABLE_USER_PREFERENCES,
             default=data.get(CONF_ENABLE_USER_PREFERENCES, DEFAULT_ENABLE_USER_PREFERENCES),
@@ -217,11 +217,11 @@ def build_forwarder_schema(data: dict) -> dict:
         vol.Optional(
             CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS,
             default=data.get(CONF_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS, DEFAULT_EVENTS_FORWARDER_FLUSH_INTERVAL_SECONDS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=300)),
         vol.Optional(
             CONF_EVENTS_FORWARDER_MAX_BATCH,
             default=data.get(CONF_EVENTS_FORWARDER_MAX_BATCH, DEFAULT_EVENTS_FORWARDER_MAX_BATCH),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=5000)),
         vol.Optional(
             CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE,
             default=data.get(CONF_EVENTS_FORWARDER_FORWARD_CALL_SERVICE, DEFAULT_EVENTS_FORWARDER_FORWARD_CALL_SERVICE),
@@ -229,7 +229,7 @@ def build_forwarder_schema(data: dict) -> dict:
         vol.Optional(
             CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS,
             default=data.get(CONF_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS, DEFAULT_EVENTS_FORWARDER_IDEMPOTENCY_TTL_SECONDS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=10, max=86400)),
         vol.Optional(
             CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED,
             default=data.get(CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED, DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_ENABLED),
@@ -237,11 +237,11 @@ def build_forwarder_schema(data: dict) -> dict:
         vol.Optional(
             CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE,
             default=data.get(CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE, DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_MAX_SIZE),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=10, max=50000)),
         vol.Optional(
             CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS,
             default=data.get(CONF_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS, DEFAULT_EVENTS_FORWARDER_PERSISTENT_QUEUE_FLUSH_INTERVAL_SECONDS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=300)),
         vol.Optional(
             CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES,
             default=data.get(CONF_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES, DEFAULT_EVENTS_FORWARDER_INCLUDE_HABITUS_ZONES),
@@ -285,11 +285,11 @@ def build_ha_errors_schema(data: dict) -> dict:
         vol.Optional(
             CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS,
             default=data.get(CONF_HA_ERRORS_DIGEST_INTERVAL_SECONDS, DEFAULT_HA_ERRORS_DIGEST_INTERVAL_SECONDS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=60, max=86400)),
         vol.Optional(
             CONF_HA_ERRORS_DIGEST_MAX_LINES,
             default=data.get(CONF_HA_ERRORS_DIGEST_MAX_LINES, DEFAULT_HA_ERRORS_DIGEST_MAX_LINES),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=10, max=5000)),
     }
 
 
@@ -303,7 +303,7 @@ def build_devlog_schema(data: dict) -> dict:
         vol.Optional(
             CONF_DEVLOG_PUSH_INTERVAL_SECONDS,
             default=data.get(CONF_DEVLOG_PUSH_INTERVAL_SECONDS, DEFAULT_DEVLOG_PUSH_INTERVAL_SECONDS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=10, max=86400)),
         vol.Optional(
             CONF_DEVLOG_PUSH_PATH,
             default=data.get(CONF_DEVLOG_PUSH_PATH, DEFAULT_DEVLOG_PUSH_PATH),
@@ -311,11 +311,11 @@ def build_devlog_schema(data: dict) -> dict:
         vol.Optional(
             CONF_DEVLOG_PUSH_MAX_LINES,
             default=data.get(CONF_DEVLOG_PUSH_MAX_LINES, DEFAULT_DEVLOG_PUSH_MAX_LINES),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=10, max=5000)),
         vol.Optional(
             CONF_DEVLOG_PUSH_MAX_CHARS,
             default=data.get(CONF_DEVLOG_PUSH_MAX_CHARS, DEFAULT_DEVLOG_PUSH_MAX_CHARS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=100, max=100000)),
     }
 
 
@@ -349,11 +349,11 @@ def build_user_prefs_schema(data: dict) -> dict:
         vol.Optional(
             CONF_MUPL_MIN_INTERACTIONS,
             default=data.get(CONF_MUPL_MIN_INTERACTIONS, DEFAULT_MUPL_MIN_INTERACTIONS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=10000)),
         vol.Optional(
             CONF_MUPL_RETENTION_DAYS,
             default=data.get(CONF_MUPL_RETENTION_DAYS, DEFAULT_MUPL_RETENTION_DAYS),
-        ): int,
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3650)),
     }
 
 

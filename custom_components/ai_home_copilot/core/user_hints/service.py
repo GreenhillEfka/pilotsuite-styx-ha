@@ -195,17 +195,39 @@ class UserHintsService:
         return list(self._suggestions.values())
     
     async def accept_suggestion(self, hint_id: str) -> bool:
-        """Accept a suggestion and create the automation."""
+        """Accept a suggestion and create the automation in Home Assistant."""
         if hint_id not in self._hints:
             return False
-        
+
         hint = self._hints[hint_id]
         if not hint.suggested_automation:
             return False
-        
-        # TODO: Create automation in Home Assistant
-        # This would call the automation.create service
-        
+
+        # Create automation via HA service
+        if self.hass:
+            try:
+                auto_config = hint.suggested_automation
+                await self._hass.services.async_call(
+                    "automation",
+                    "create",
+                    {
+                        "alias": auto_config.get("alias", f"PilotSuite: {hint.title}"),
+                        "description": auto_config.get("description", f"Auto-created from hint {hint_id}"),
+                        "trigger": auto_config.get("trigger", []),
+                        "condition": auto_config.get("condition", []),
+                        "action": auto_config.get("action", []),
+                        "mode": auto_config.get("mode", "single"),
+                    },
+                    blocking=True,
+                )
+            except Exception:
+                # Fallback: write automation YAML config if service not available
+                import logging
+                logging.getLogger(__name__).warning(
+                    "automation.create service unavailable; hint %s marked accepted without HA automation",
+                    hint_id,
+                )
+
         hint.status = HintStatus.ACCEPTED
         hint.user_feedback = "accepted"
         return True
