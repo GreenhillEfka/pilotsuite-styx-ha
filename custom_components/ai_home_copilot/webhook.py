@@ -115,7 +115,7 @@ async def async_register_webhook(hass: HomeAssistant, entry, coordinator) -> str
     webhook.async_register(
         hass,
         DOMAIN,
-        f"AI Home CoPilot webhook ({entry.entry_id})",
+        f"PilotSuite webhook ({entry.entry_id})",
         webhook_id,
         _handle,
     )

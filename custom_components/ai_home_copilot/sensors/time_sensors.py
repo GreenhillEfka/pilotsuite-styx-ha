@@ -1,4 +1,4 @@
-"""Time sensors for AI Home CoPilot Neurons.
+"""Time sensors for PilotSuite Neurons.
 
 Sensors:
 - TimeOfDaySensor: Time of day classification
@@ -32,7 +32,7 @@ NIGHT_START = time(22, 0)
 class TimeOfDaySensor(CoordinatorEntity, SensorEntity):
     """Sensor for time of day classification."""
     
-    _attr_name = "AI CoPilot Time of Day"
+    _attr_name = "PilotSuite Time of Day"
     _attr_unique_id = "ai_copilot_time_of_day"
     _attr_icon = "mdi:clock"
     _attr_should_poll = True
@@ -71,7 +71,7 @@ class TimeOfDaySensor(CoordinatorEntity, SensorEntity):
 class DayTypeSensor(CoordinatorEntity, SensorEntity):
     """Sensor for day type (weekday, weekend, holiday)."""
     
-    _attr_name = "AI CoPilot Day Type"
+    _attr_name = "PilotSuite Day Type"
     _attr_unique_id = "ai_copilot_day_type"
     _attr_icon = "mdi:calendar"
     _attr_should_poll = True
@@ -115,7 +115,7 @@ class DayTypeSensor(CoordinatorEntity, SensorEntity):
 class RoutineStabilitySensor(CoordinatorEntity, SensorEntity):
     """Sensor for routine stability detection."""
     
-    _attr_name = "AI CoPilot Routine Stability"
+    _attr_name = "PilotSuite Routine Stability"
     _attr_unique_id = "ai_copilot_routine_stability"
     _attr_icon = "mdi:scale-balance"
     _attr_should_poll = True

@@ -1,4 +1,4 @@
-"""Home Alerts Sensor Entities - AI Home CoPilot
+"""Home Alerts Sensor Entities - PilotSuite
 
 Provides sensor entities for home alerts and health score.
 """

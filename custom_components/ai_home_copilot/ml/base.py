@@ -1,4 +1,4 @@
-"""Base ML Model Interface for AI Home CoPilot."""
+"""Base ML Model Interface for PilotSuite."""
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 

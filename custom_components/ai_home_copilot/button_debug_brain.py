@@ -14,7 +14,7 @@ class CopilotPublishBrainGraphVizButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot publish brain graph viz"
+    _attr_name = "PilotSuite publish brain graph viz"
     _attr_unique_id = "ai_home_copilot_publish_brain_graph_viz"
     _attr_icon = "mdi:graph"
 
@@ -30,7 +30,7 @@ class CopilotPublishBrainGraphPanelButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot publish brain graph panel (Phase 5)"
+    _attr_name = "PilotSuite publish brain graph panel (Phase 5)"
     _attr_unique_id = "ai_home_copilot_publish_brain_graph_panel"
     _attr_icon = "mdi:graph"
 
@@ -46,7 +46,7 @@ class CopilotBrainGraphPanelVizButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot brain graph panel (v0.8)"
+    _attr_name = "PilotSuite brain graph panel (v0.8)"
     _attr_unique_id = "ai_home_copilot_brain_graph_panel"
     _attr_icon = "mdi:graph-outline"
 
@@ -62,7 +62,7 @@ class CopilotBrainDashboardSummaryButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot brain dashboard summary"
+    _attr_name = "PilotSuite brain dashboard summary"
     _attr_unique_id = "ai_home_copilot_brain_dashboard_summary"
     _attr_icon = "mdi:brain"
 
@@ -115,6 +115,6 @@ class CopilotBrainDashboardSummaryButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch brain dashboard summary: {str(err)}",
-                title="AI Home CoPilot Brain Dashboard",
+                title="PilotSuite Brain Dashboard",
                 notification_id="ai_home_copilot_brain_dashboard_error",
             )

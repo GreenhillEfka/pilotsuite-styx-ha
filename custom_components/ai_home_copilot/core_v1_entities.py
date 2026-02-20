@@ -17,7 +17,7 @@ class CoreApiV1StatusSensor(CopilotBaseEntity, SensorEntity):
     """Shows whether Core supports /api/v1 and exposes capabilities as attributes."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot core API v1"
+    _attr_name = "PilotSuite core API v1"
     _attr_unique_id = "ai_home_copilot_core_api_v1"
     _attr_icon = "mdi:api"
 

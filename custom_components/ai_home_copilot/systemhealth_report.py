@@ -146,7 +146,7 @@ async def async_generate_systemhealth_report(hass: HomeAssistant) -> str:
 
     # Compose report.
     lines: list[str] = []
-    lines.append("# AI Home CoPilot — SystemHealth report")
+    lines.append("# PilotSuite — SystemHealth report")
     lines.append("")
     lines.append(f"generated: {generated.isoformat()}")
     lines.append("")
@@ -206,7 +206,7 @@ async def async_generate_systemhealth_report(hass: HomeAssistant) -> str:
     persistent_notification.async_create(
         hass,
         f"Generated SystemHealth report:\n{out_path}",
-        title="AI Home CoPilot SystemHealth",
+        title="PilotSuite SystemHealth",
         notification_id="ai_home_copilot_systemhealth",
     )
 
@@ -230,7 +230,7 @@ async def async_publish_last_systemhealth_report(hass: HomeAssistant) -> str:
     persistent_notification.async_create(
         hass,
         f"Published SystemHealth report for download:\n{url}",
-        title="AI Home CoPilot SystemHealth",
+        title="PilotSuite SystemHealth",
         notification_id="ai_home_copilot_systemhealth",
     )
 

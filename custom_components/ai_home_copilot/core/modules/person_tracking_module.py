@@ -1,4 +1,4 @@
-"""Person Tracking Module for AI Home CoPilot.
+"""Person Tracking Module for PilotSuite.
 
 Tracks who is home and where they are using HA person.* and device_tracker.*
 entities. Provides presence state, arrival/departure history, and LLM context

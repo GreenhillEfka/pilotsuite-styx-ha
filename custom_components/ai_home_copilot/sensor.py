@@ -434,7 +434,7 @@ class ZoneOccupancySensor(SensorEntity):
         self._entry = entry
         self._user_pref_data = user_pref_data
         self._attr_unique_id = f"{entry.entry_id}_zone_occupancy"
-        self._attr_name = "CoPilot Zone Occupancy"
+        self._attr_name = "PilotSuite Zone Occupancy"
     
     @property
     def native_value(self) -> str:
@@ -463,7 +463,7 @@ class UserPresenceSensor(SensorEntity):
         self._entry = entry
         self._user_pref_data = user_pref_data
         self._attr_unique_id = f"{entry.entry_id}_user_presence"
-        self._attr_name = "CoPilot User Presence"
+        self._attr_name = "PilotSuite User Presence"
     
     @property
     def native_value(self) -> str:
@@ -504,7 +504,7 @@ class UserPreferenceSensor(SensorEntity):
         self._user_pref_data = user_pref_data
         self._user_id = user_id
         self._attr_unique_id = f"{entry.entry_id}_user_pref_{user_id}"
-        self._attr_name = f"CoPilot User {user_id}"
+        self._attr_name = f"PilotSuite User {user_id}"
     
     @property
     def native_value(self) -> str:
@@ -531,7 +531,7 @@ class SuggestionQueueSensor(SensorEntity):
         self._hass = hass
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_suggestion_queue"
-        self._attr_name = "CoPilot Suggestions"
+        self._attr_name = "PilotSuite Suggestions"
         self._queue_data: dict[str, Any] = {}
     
     @property
@@ -562,7 +562,7 @@ class WasteNextCollectionSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_waste_next_collection"
-        self._attr_name = "CoPilot Waste Next Collection"
+        self._attr_name = "PilotSuite Waste Next Collection"
 
     @property
     def native_value(self) -> str | None:
@@ -603,7 +603,7 @@ class WasteTodayCountSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_waste_today_count"
-        self._attr_name = "CoPilot Waste Today Count"
+        self._attr_name = "PilotSuite Waste Today Count"
 
     @property
     def native_value(self) -> int:
@@ -639,7 +639,7 @@ class BirthdayTodayCountSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_birthday_today_count"
-        self._attr_name = "CoPilot Birthday Today Count"
+        self._attr_name = "PilotSuite Birthday Today Count"
 
     @property
     def native_value(self) -> int:
@@ -673,7 +673,7 @@ class BirthdayNextSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_birthday_next"
-        self._attr_name = "CoPilot Birthday Next"
+        self._attr_name = "PilotSuite Birthday Next"
 
     @property
     def native_value(self) -> str | None:
@@ -717,7 +717,7 @@ class CharacterPresetSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_character_preset"
-        self._attr_name = "CoPilot Character Preset"
+        self._attr_name = "PilotSuite Character Preset"
 
     @property
     def native_value(self) -> str | None:
@@ -754,7 +754,7 @@ class NetworkHealthSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_network_health"
-        self._attr_name = "CoPilot Network Health"
+        self._attr_name = "PilotSuite Network Health"
 
     @property
     def native_value(self) -> str | None:
@@ -796,7 +796,7 @@ class EntityTagsSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_entity_tags"
-        self._attr_name = "CoPilot Entity Tags"
+        self._attr_name = "PilotSuite Entity Tags"
 
     @property
     def native_value(self) -> int:
@@ -832,7 +832,7 @@ class PersonsHomeSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_persons_home"
-        self._attr_name = "CoPilot Persons Home"
+        self._attr_name = "PilotSuite Persons Home"
 
     @property
     def native_value(self) -> int:
@@ -873,7 +873,7 @@ class FrigateCamerasSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_frigate_cameras"
-        self._attr_name = "CoPilot Frigate Cameras"
+        self._attr_name = "PilotSuite Frigate Cameras"
 
     @property
     def native_value(self) -> int:
@@ -914,7 +914,7 @@ class ZoneScenesSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_zone_scenes"
-        self._attr_name = "CoPilot Zone Scenes"
+        self._attr_name = "PilotSuite Zone Scenes"
 
     @property
     def native_value(self) -> int:
@@ -955,7 +955,7 @@ class HomeKitBridgeSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_homekit_bridge"
-        self._attr_name = "CoPilot HomeKit Bridge"
+        self._attr_name = "PilotSuite HomeKit Bridge"
 
     @property
     def native_value(self) -> int:
@@ -994,7 +994,7 @@ class CalendarSensor(SensorEntity):
         self._entry = entry
         self._module = module
         self._attr_unique_id = f"{entry.entry_id}_calendar"
-        self._attr_name = "CoPilot Calendar"
+        self._attr_name = "PilotSuite Calendar"
 
     @property
     def native_value(self) -> int:

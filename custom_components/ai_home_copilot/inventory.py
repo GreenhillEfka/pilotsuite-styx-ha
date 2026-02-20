@@ -155,7 +155,7 @@ async def async_generate_ha_overview(hass: HomeAssistant) -> Path:
     persistent_notification.async_create(
         hass,
         f"Generated Home Assistant overview report at: {out_path}",
-        title="AI Home CoPilot overview",
+        title="PilotSuite overview",
         notification_id="ai_home_copilot_overview",
     )
 

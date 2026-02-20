@@ -1,4 +1,4 @@
-"""Character Module - Personality presets for AI Home CoPilot.
+"""Character Module - Personality presets for PilotSuite.
 
 This module provides character/personality management as a CopilotModule,
 integrating with mood inference, suggestions, and voice interactions.

@@ -1,4 +1,4 @@
-"""Devlog and telemetry buttons for AI Home CoPilot."""
+"""Devlog and telemetry buttons for PilotSuite."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
@@ -13,7 +13,7 @@ from .devlog_push import async_push_devlog_test, async_push_latest_ai_copilot_er
 class CopilotDevLogTestPushButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot devlog push test"
+    _attr_name = "PilotSuite devlog push test"
     _attr_unique_id = "ai_home_copilot_devlog_push_test"
     _attr_icon = "mdi:bug-play"
 
@@ -29,7 +29,7 @@ class CopilotDevLogTestPushButton(CopilotBaseEntity, ButtonEntity):
 class CopilotDevLogPushLatestButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot devlog push latest"
+    _attr_name = "PilotSuite devlog push latest"
     _attr_unique_id = "ai_home_copilot_devlog_push_latest"
     _attr_icon = "mdi:bug-outline"
 
@@ -44,7 +44,7 @@ class CopilotDevLogPushLatestButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotDevLogsFetchButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot devlogs fetch"
+    _attr_name = "PilotSuite devlogs fetch"
     _attr_unique_id = "ai_home_copilot_devlogs_fetch"
     _attr_icon = "mdi:clipboard-text-search"
 
@@ -66,7 +66,7 @@ class CopilotDevLogsFetchButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch devlogs: {err}",
-                title="AI Home CoPilot DevLogs",
+                title="PilotSuite DevLogs",
                 notification_id="ai_home_copilot_devlogs",
             )
             return
@@ -100,7 +100,7 @@ class CopilotDevLogsFetchButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             msg,
-            title="AI Home CoPilot DevLogs (last 10)",
+            title="PilotSuite DevLogs (last 10)",
             notification_id="ai_home_copilot_devlogs",
         )
 

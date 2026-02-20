@@ -1,17 +1,13 @@
-"""Base Module Classes for AI Home CoPilot HA Integration.
+"""Base Module Classes for PilotSuite HA Integration.
 
 Defines the CopilotModule interface and ModuleContext for all integration modules.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-if TYPE_CHECKING:
-    from ....custom_components.ai_home_copilot import AIHomeCopilotConfigEntry
 
 
 @dataclass
@@ -36,7 +32,7 @@ class ModuleContext:
 
 
 class CopilotModule:
-    """Base class for all AI Home CoPilot modules.
+    """Base class for all PilotSuite modules.
     
     Modules should inherit from this class and implement the lifecycle methods.
     """

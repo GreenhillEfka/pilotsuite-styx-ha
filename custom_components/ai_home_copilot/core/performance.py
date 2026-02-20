@@ -1,4 +1,4 @@
-"""Performance utilities for AI Home CoPilot - Caching and Query Optimization."""
+"""Performance utilities for PilotSuite - Caching and Query Optimization."""
 import asyncio
 import time
 from collections import OrderedDict

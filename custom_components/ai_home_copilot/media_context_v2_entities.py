@@ -38,7 +38,7 @@ class ActiveModeSensor(_MediaContextV2Base, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_active_mode",
-            name="AI Home CoPilot media active mode",
+            name="PilotSuite media active mode",
             icon="mdi:television-play",
         )
 
@@ -66,7 +66,7 @@ class ActiveTargetSensor(_MediaContextV2Base, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_active_target",
-            name="AI Home CoPilot media active target",
+            name="PilotSuite media active target",
             icon="mdi:target",
         )
 
@@ -95,7 +95,7 @@ class ActiveZoneSensor(_MediaContextV2Base, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_active_zone",
-            name="AI Home CoPilot media active zone",
+            name="PilotSuite media active zone",
             icon="mdi:map-marker",
         )
 
@@ -122,7 +122,7 @@ class VolumeControlNumber(_MediaContextV2Base, NumberEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_volume",
-            name="AI Home CoPilot media volume",
+            name="PilotSuite media volume",
             icon="mdi:volume-high",
         )
         self._attr_native_min_value = 0.0
@@ -166,7 +166,7 @@ class VolumeUpButton(_MediaContextV2Base, ButtonEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_volume_up",
-            name="AI Home CoPilot media volume up",
+            name="PilotSuite media volume up",
             icon="mdi:volume-plus",
         )
 
@@ -194,7 +194,7 @@ class VolumeDownButton(_MediaContextV2Base, ButtonEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_volume_down", 
-            name="AI Home CoPilot media volume down",
+            name="PilotSuite media volume down",
             icon="mdi:volume-minus",
         )
 
@@ -222,7 +222,7 @@ class VolumeMuteButton(_MediaContextV2Base, ButtonEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_volume_mute",
-            name="AI Home CoPilot media volume mute",
+            name="PilotSuite media volume mute",
             icon="mdi:volume-mute",
         )
 
@@ -251,7 +251,7 @@ class ZoneSelectEntity(_MediaContextV2Base, SelectEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_zone_select",
-            name="AI Home CoPilot media zone select",
+            name="PilotSuite media zone select",
             icon="mdi:map-marker-multiple",
         )
 
@@ -303,7 +303,7 @@ class ManualTargetSelectEntity(_MediaContextV2Base, SelectEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_manual_target",
-            name="AI Home CoPilot media manual target",
+            name="PilotSuite media manual target",
             icon="mdi:target-account",
         )
 
@@ -354,7 +354,7 @@ class ClearOverridesButton(_MediaContextV2Base, ButtonEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_clear_overrides",
-            name="AI Home CoPilot media clear overrides",
+            name="PilotSuite media clear overrides",
             icon="mdi:restore",
         )
 
@@ -376,7 +376,7 @@ class ConfigValidationSensor(_MediaContextV2Base, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_config_validation",
-            name="AI Home CoPilot media config validation",
+            name="PilotSuite media config validation",
             icon="mdi:check-circle",
         )
 
@@ -435,7 +435,7 @@ class DebugInfoSensor(_MediaContextV2Base, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_media_debug_info",
-            name="AI Home CoPilot media debug info",
+            name="PilotSuite media debug info",
             icon="mdi:information",
         )
 

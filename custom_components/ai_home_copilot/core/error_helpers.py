@@ -1,4 +1,4 @@
-"""Enhanced error handling utilities for AI Home CoPilot.
+"""Enhanced error handling utilities for PilotSuite.
 
 Provides structured error capture with privacy-safe traceback logging and
 better error context for diagnostics.
@@ -84,7 +84,7 @@ def _sanitize_traceback(tb_lines: list[str]) -> list[str]:
         line = line.replace("/usr/lib/python", "[python]")
         line = line.replace("/home/", "[home]/")
         
-        # Keep only AI Home CoPilot frames and immediate neighbors
+        # Keep only PilotSuite frames and immediate neighbors
         if any(marker in line for marker in [
             "ai_home_copilot", "copilot_core", "custom_components",
             "File \"<", "Traceback", "Exception", "Error"
@@ -114,7 +114,7 @@ def _extract_traceback_summary(tb_lines: list[str]) -> str:
     if our_frames:
         return f"Last frame: {our_frames[-1]}"
     else:
-        return "Error outside AI Home CoPilot code"
+        return "Error outside PilotSuite code"
 
 
 def log_error_with_context(

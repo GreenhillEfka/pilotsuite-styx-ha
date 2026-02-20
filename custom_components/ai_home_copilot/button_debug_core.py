@@ -11,7 +11,7 @@ from .suggest import Candidate, async_offer_candidate
 
 class CopilotCoreCapabilitiesFetchButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot fetch core capabilities"
+    _attr_name = "PilotSuite fetch core capabilities"
     _attr_unique_id = "ai_home_copilot_fetch_core_capabilities"
     _attr_icon = "mdi:api"
 
@@ -28,7 +28,7 @@ class CopilotCoreCapabilitiesFetchButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch capabilities: {err}",
-                title="AI Home CoPilot Core capabilities",
+                title="PilotSuite Core capabilities",
                 notification_id="ai_home_copilot_core_capabilities",
             )
             return
@@ -51,14 +51,14 @@ class CopilotCoreCapabilitiesFetchButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "\n".join(msg),
-            title="AI Home CoPilot Core capabilities",
+            title="PilotSuite Core capabilities",
             notification_id="ai_home_copilot_core_capabilities",
         )
 
 
 class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot fetch core events"
+    _attr_name = "PilotSuite fetch core events"
     _attr_unique_id = "ai_home_copilot_fetch_core_events"
     _attr_icon = "mdi:clipboard-list-outline"
 
@@ -74,7 +74,7 @@ class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch core events: {err}",
-                title="AI Home CoPilot Core events",
+                title="PilotSuite Core events",
                 notification_id="ai_home_copilot_core_events",
             )
             return
@@ -122,14 +122,14 @@ class CopilotCoreEventsFetchButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             msg,
-            title="AI Home CoPilot Core events (last 20)",
+            title="PilotSuite Core events (last 20)",
             notification_id="ai_home_copilot_core_events",
         )
 
 
 class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot fetch core graph state"
+    _attr_name = "PilotSuite fetch core graph state"
     _attr_unique_id = "ai_home_copilot_fetch_core_graph_state"
     _attr_icon = "mdi:graph"
 
@@ -145,7 +145,7 @@ class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch core graph state: {err}",
-                title="AI Home CoPilot Core graph",
+                title="PilotSuite Core graph",
                 notification_id="ai_home_copilot_core_graph_state",
             )
             return
@@ -197,7 +197,7 @@ class CopilotCoreGraphStateFetchButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             msg,
-            title="AI Home CoPilot Core graph (state)",
+            title="PilotSuite Core graph (state)",
             notification_id="ai_home_copilot_core_graph_state",
         )
 
@@ -206,7 +206,7 @@ class CopilotCoreGraphCandidatesPreviewButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot preview graph candidates"
+    _attr_name = "PilotSuite preview graph candidates"
     _attr_unique_id = "ai_home_copilot_preview_graph_candidates"
     _attr_icon = "mdi:graph-outline"
 
@@ -222,7 +222,7 @@ class CopilotCoreGraphCandidatesPreviewButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch graph candidates: {err}",
-                title="AI Home CoPilot graph candidates",
+                title="PilotSuite graph candidates",
                 notification_id="ai_home_copilot_graph_candidates",
             )
             return
@@ -250,7 +250,7 @@ class CopilotCoreGraphCandidatesPreviewButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             msg,
-            title="AI Home CoPilot graph candidates (preview)",
+            title="PilotSuite graph candidates (preview)",
             notification_id="ai_home_copilot_graph_candidates",
         )
 
@@ -259,7 +259,7 @@ class CopilotCoreGraphCandidatesOfferButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot offer graph candidates"
+    _attr_name = "PilotSuite offer graph candidates"
     _attr_unique_id = "ai_home_copilot_offer_graph_candidates"
     _attr_icon = "mdi:lightbulb-auto-outline"
 
@@ -275,7 +275,7 @@ class CopilotCoreGraphCandidatesOfferButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to fetch graph candidates: {err}",
-                title="AI Home CoPilot graph candidates",
+                title="PilotSuite graph candidates",
                 notification_id="ai_home_copilot_graph_candidates_offer",
             )
             return
@@ -315,7 +315,7 @@ class CopilotCoreGraphCandidatesOfferButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             f"Offered {offered} graph candidates via Repairs.",
-            title="AI Home CoPilot graph candidates",
+            title="PilotSuite graph candidates",
             notification_id="ai_home_copilot_graph_candidates_offer",
         )
 
@@ -324,7 +324,7 @@ class CopilotPingCoreButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot ping core"
+    _attr_name = "PilotSuite ping core"
     _attr_unique_id = "ai_home_copilot_ping_core"
     _attr_icon = "mdi:access-point-network"
 
@@ -339,13 +339,13 @@ class CopilotPingCoreButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Core ping ok (duration_ms={dt}).",
-                title="AI Home CoPilot core ping",
+                title="PilotSuite core ping",
                 notification_id="ai_home_copilot_core_ping",
             )
         except Exception as err:  # noqa: BLE001
             persistent_notification.async_create(
                 self.hass,
                 f"Core ping failed: {err}",
-                title="AI Home CoPilot core ping",
+                title="PilotSuite core ping",
                 notification_id="ai_home_copilot_core_ping",
             )

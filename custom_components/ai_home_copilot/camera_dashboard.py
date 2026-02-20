@@ -1,5 +1,5 @@
 """
-Camera Dashboard Cards for AI Home CoPilot.
+Camera Dashboard Cards for PilotSuite.
 
 Provides dashboard cards for:
 - Camera Status Card
@@ -194,7 +194,7 @@ async def generate_camera_dashboard_yaml(
     if zone_state and zone_state.state.isdigit():
         zone_count = int(zone_state.state)
     
-    yaml_content = f"""title: AI Home CoPilot Kamera
+    yaml_content = f"""title: PilotSuite Kamera
 path: ai-home-copilot-camera
 icon: mdi:cctv
 
@@ -278,7 +278,7 @@ async def generate_camera_dashboard_v2_yaml(
     activity_count = get_sensor_count("sensor.ai_home_copilot_camera_activity_history")
     zone_count = get_sensor_count("sensor.ai_home_copilot_camera_zone_activity")
     
-    yaml_content = f"""title: AI Home CoPilot Kamera
+    yaml_content = f"""title: PilotSuite Kamera
 path: ai-home-copilot-camera
 icon: mdi:cctv
 

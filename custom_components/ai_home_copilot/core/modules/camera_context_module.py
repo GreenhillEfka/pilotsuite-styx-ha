@@ -1,5 +1,5 @@
 """
-Camera Context Module for AI Home CoPilot.
+Camera Context Module for PilotSuite.
 
 Integrates camera events with the Habitus neural system:
 - Camera Motion → Activity Neuron

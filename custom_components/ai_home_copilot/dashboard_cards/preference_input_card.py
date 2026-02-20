@@ -31,7 +31,7 @@ class PreferenceInputCard(Entity):
         self._entry_id = entry_id
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry_id)},
-            "name": "CoPilot Core",
+            "name": "PilotSuite Core",
             "manufacturer": "PilotSuite",
             "model": "Core Add-on",
         }

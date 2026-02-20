@@ -1,4 +1,4 @@
-"""Graph and brain-related buttons for AI Home CoPilot."""
+"""Graph and brain-related buttons for PilotSuite."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
@@ -16,7 +16,7 @@ class CopilotPublishBrainGraphVizButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot publish brain graph viz"
+    _attr_name = "PilotSuite publish brain graph viz"
     _attr_unique_id = "ai_home_copilot_publish_brain_graph_viz"
     _attr_icon = "mdi:graph"
 
@@ -35,7 +35,7 @@ class CopilotPublishBrainGraphPanelButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = True
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot publish brain graph panel"
+    _attr_name = "PilotSuite publish brain graph panel"
     _attr_unique_id = "ai_home_copilot_publish_brain_graph_panel"
     _attr_icon = "mdi:graph"
 

@@ -1,4 +1,4 @@
-"""Knowledge Graph Sync Module for AI Home CoPilot.
+"""Knowledge Graph Sync Module for PilotSuite.
 
 Synchronizes Home Assistant entities to the Core Add-on Knowledge Graph.
 Creates nodes for entities and relationships for:

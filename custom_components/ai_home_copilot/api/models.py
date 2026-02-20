@@ -1,4 +1,4 @@
-"""Pydantic models for API request/response validation in AI Home CoPilot.
+"""Pydantic models for API request/response validation in PilotSuite.
 
 This module provides type-safe models for validating API requests and responses
 between the HA integration and the Core Add-on.

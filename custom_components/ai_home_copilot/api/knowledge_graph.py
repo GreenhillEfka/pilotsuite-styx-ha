@@ -1,4 +1,4 @@
-"""Knowledge Graph API client for AI Home CoPilot.
+"""Knowledge Graph API client for PilotSuite.
 
 Provides async access to the Core Add-on Knowledge Graph endpoints.
 The Knowledge Graph captures relationships between entities, patterns,

@@ -1,4 +1,4 @@
-"""Media control buttons for AI Home CoPilot."""
+"""Media control buttons for PilotSuite."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity

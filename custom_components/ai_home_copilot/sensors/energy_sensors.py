@@ -1,4 +1,4 @@
-"""Energy sensor for AI Home CoPilot.
+"""Energy sensor for PilotSuite.
 
 Sensor:
 - EnergyProxySensor: Aggregated energy usage proxy with frugality scoring
@@ -59,7 +59,7 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
     - Frugality score for mood integration
     """
     
-    _attr_name: str = "AI CoPilot Energy Proxy"
+    _attr_name: str = "PilotSuite Energy Proxy"
     _attr_unique_id: str = "ai_copilot_energy_proxy"
     _attr_icon: str = "mdi:lightning-bolt"
     _attr_device_class = SensorDeviceClass.ENUM

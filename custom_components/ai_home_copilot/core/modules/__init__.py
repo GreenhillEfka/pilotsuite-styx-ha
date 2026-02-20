@@ -1,4 +1,4 @@
-"""Built-in modules for AI Home CoPilot.
+"""Built-in modules for PilotSuite.
 
 This package provides a modular runtime architecture:
 - legacy: Wraps the current integration behavior without changes

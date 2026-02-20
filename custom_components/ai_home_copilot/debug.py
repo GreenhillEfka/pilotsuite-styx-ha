@@ -109,7 +109,7 @@ async def async_setup_entry(
             context={"log_level": hass.data[DOMAIN]["debug_log_level"]},
         )
         
-        _LOGGER.info("AI Home CoPilot debug mode enabled")
+        _LOGGER.info("PilotSuite debug mode enabled")
         
         # Fire event
         hass.bus.async_fire(f"{DOMAIN}_debug_mode_changed", {
@@ -134,7 +134,7 @@ async def async_setup_entry(
         # Log to buffer
         _debug_buffer.add("Debug mode disabled", level="info")
         
-        _LOGGER.info("AI Home CoPilot debug mode disabled")
+        _LOGGER.info("PilotSuite debug mode disabled")
         
         # Fire event
         hass.bus.async_fire(f"{DOMAIN}_debug_mode_changed", {
@@ -151,7 +151,7 @@ async def async_setup_entry(
     async def async_clear_debug_buffer(call: ServiceCall) -> None:
         """Clear debug buffer."""
         _debug_buffer.clear()
-        _LOGGER.info("AI Home CoPilot debug buffer cleared")
+        _LOGGER.info("PilotSuite debug buffer cleared")
     
     # Register services
     hass.services.async_register(DOMAIN, "enable_debug", async_enable_debug)
@@ -161,9 +161,9 @@ async def async_setup_entry(
 
 
 class DebugModeSensor(SensorEntity):
-    """Debug mode sensor for AI Home CoPilot with enhanced attributes."""
+    """Debug mode sensor for PilotSuite with enhanced attributes."""
 
-    _attr_name = "AI Home CoPilot Debug Mode"
+    _attr_name = "PilotSuite Debug Mode"
     _attr_unique_id = f"{DOMAIN}_debug_mode_sensor"
     _attr_icon = "mdi:bug"
 
@@ -222,22 +222,22 @@ def log_debug(message: str, context: dict | None = None) -> None:
     Call this from other modules to add to the debug buffer.
     """
     _debug_buffer.add(message, level="debug", context=context)
-    _LOGGER.debug("[CoPilot Debug] %s", message)
+    _LOGGER.debug("[PilotSuite Debug] %s", message)
 
 
 def log_info(message: str, context: dict | None = None) -> None:
     """Log an info message to the debug buffer."""
     _debug_buffer.add(message, level="info", context=context)
-    _LOGGER.info("[CoPilot] %s", message)
+    _LOGGER.info("[PilotSuite] %s", message)
 
 
 def log_warning(message: str, context: dict | None = None) -> None:
     """Log a warning message to the debug buffer."""
     _debug_buffer.add(message, level="warning", context=context)
-    _LOGGER.warning("[CoPilot Warning] %s", message)
+    _LOGGER.warning("[PilotSuite Warning] %s", message)
 
 
 def log_error(message: str, context: dict | None = None) -> None:
     """Log an error message to the debug buffer."""
     _debug_buffer.add(message, level="error", context=context)
-    _LOGGER.error("[CoPilot Error] %s", message)
+    _LOGGER.error("[PilotSuite Error] %s", message)

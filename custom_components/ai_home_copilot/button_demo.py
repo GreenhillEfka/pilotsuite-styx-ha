@@ -1,4 +1,4 @@
-"""Demo and suggestion buttons for AI Home CoPilot."""
+"""Demo and suggestion buttons for PilotSuite."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity

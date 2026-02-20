@@ -10,7 +10,7 @@ class CopilotEnableDebug30mButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot enable debug for 30m"
+    _attr_name = "PilotSuite enable debug for 30m"
     _attr_unique_id = "ai_home_copilot_enable_debug_30m"
     _attr_icon = "mdi:bug"
 
@@ -28,7 +28,7 @@ class CopilotEnableDebug30mButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "Debug enabled for 30 minutes (auto-disable).",
-            title="AI Home CoPilot debug",
+            title="PilotSuite debug",
             notification_id="ai_home_copilot_debug",
         )
 
@@ -37,7 +37,7 @@ class CopilotDisableDebugButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot disable debug"
+    _attr_name = "PilotSuite disable debug"
     _attr_unique_id = "ai_home_copilot_disable_debug"
     _attr_icon = "mdi:bug-off"
 
@@ -55,7 +55,7 @@ class CopilotDisableDebugButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "Debug disabled.",
-            title="AI Home CoPilot debug",
+            title="PilotSuite debug",
             notification_id="ai_home_copilot_debug",
         )
 
@@ -64,7 +64,7 @@ class CopilotClearErrorDigestButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot clear error digest"
+    _attr_name = "PilotSuite clear error digest"
     _attr_unique_id = "ai_home_copilot_clear_error_digest"
     _attr_icon = "mdi:broom"
 
@@ -82,7 +82,7 @@ class CopilotClearErrorDigestButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "Error digest cleared.",
-            title="AI Home CoPilot dev surface",
+            title="PilotSuite dev surface",
             notification_id="ai_home_copilot_dev_surface",
         )
 
@@ -91,7 +91,7 @@ class CopilotClearAllLogsButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = None
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot clear all logs"
+    _attr_name = "PilotSuite clear all logs"
     _attr_unique_id = "ai_home_copilot_clear_all_logs"
     _attr_icon = "mdi:trash-can-outline"
 
@@ -109,6 +109,6 @@ class CopilotClearAllLogsButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "All logs cleared (devlog + error digest).",
-            title="AI Home CoPilot dev surface",
+            title="PilotSuite dev surface",
             notification_id="ai_home_copilot_dev_surface",
         )

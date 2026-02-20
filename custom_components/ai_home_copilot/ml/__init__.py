@@ -1,4 +1,4 @@
-"""ML Pattern Recognition Module for AI Home CoPilot."""
+"""ML Pattern Recognition Module for PilotSuite."""
 
 from . import patterns, training, inference
 

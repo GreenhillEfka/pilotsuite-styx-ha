@@ -1,4 +1,4 @@
-"""Voice Context Module - Speech Control and TTS for AI Home CoPilot.
+"""Voice Context Module - Speech Control and TTS for PilotSuite.
 
 Features:
 - Voice Command Parser: Parse voice commands into actions

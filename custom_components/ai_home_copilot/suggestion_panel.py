@@ -1,4 +1,4 @@
-"""Suggestion Panel - Dedicated UI for AI Home CoPilot suggestions.
+"""Suggestion Panel - Dedicated UI for PilotSuite suggestions.
 
 Provides a centralized view for all suggestions with:
 - Timeline view of pending suggestions

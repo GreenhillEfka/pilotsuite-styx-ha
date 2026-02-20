@@ -1,4 +1,4 @@
-"""Retry mechanisms and error recovery for AI Home CoPilot.
+"""Retry mechanisms and error recovery for PilotSuite.
 
 Provides:
 - Exponential backoff retry decorator

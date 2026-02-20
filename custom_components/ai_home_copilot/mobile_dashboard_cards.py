@@ -1,4 +1,4 @@
-"""Mobile Dashboard Cards for AI Home CoPilot.
+"""Mobile Dashboard Cards for PilotSuite.
 
 Provides responsive, mobile-optimized dashboard cards:
 - Quick Actions Card (compact actions for mobile)

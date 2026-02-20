@@ -1,4 +1,4 @@
-"""Copilot Character System - Personality presets for AI Home CoPilot.
+"""Copilot Character System - Personality presets for PilotSuite.
 
 DEPRECATED: This module has been moved to core/modules/character_module.py
 to follow the CopilotModule interface pattern.

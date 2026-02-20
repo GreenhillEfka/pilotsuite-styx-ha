@@ -191,6 +191,6 @@ async def async_show_update_rollback_report(hass: HomeAssistant) -> None:
     persistent_notification.async_create(
         hass,
         msg,
-        title="AI Home CoPilot — Update/Rollback report",
+        title="PilotSuite — Update/Rollback report",
         notification_id="ai_home_copilot_update_rollback_report",
     )

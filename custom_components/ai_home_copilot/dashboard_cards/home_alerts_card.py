@@ -1,4 +1,4 @@
-"""Home Alerts Dashboard Card - AI Home CoPilot
+"""Home Alerts Dashboard Card - PilotSuite
 
 Lovelace card for displaying home alerts and health score.
 

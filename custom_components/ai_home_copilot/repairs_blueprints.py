@@ -28,7 +28,7 @@ class BlueprintApplyPlan:
 
     risk: str = "medium"
     slug: str = "ai_home_copilot__a_to_b_safe"
-    automation_name: str = "AI Home CoPilot: A→B (safe)"
+    automation_name: str = "PilotSuite: A→B (safe)"
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -118,7 +118,7 @@ async def async_apply_plan(hass: HomeAssistant, plan: BlueprintApplyPlan) -> dic
     # Create automation via HA storage collection (best-effort; API may vary across HA versions).
     automation_item = {
         "alias": plan.automation_name,
-        "description": "Created by AI Home CoPilot via Repairs (governance-first)",
+        "description": "Created by PilotSuite via Repairs (governance-first)",
         "use_blueprint": {
             "path": plan.blueprint_path,
             "input": plan.blueprint_inputs,

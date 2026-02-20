@@ -1,4 +1,4 @@
-"""Quick Search Module - Entity, Automation, and Service Search for AI Home CoPilot.
+"""Quick Search Module - Entity, Automation, and Service Search for PilotSuite.
 
 Features:
 - Entity Search: Search all HA entities by name, state, domain

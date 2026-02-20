@@ -1,4 +1,4 @@
-"""OptionsFlowHandler for AI Home CoPilot config entry."""
+"""OptionsFlowHandler for PilotSuite config entry."""
 from __future__ import annotations
 
 import json

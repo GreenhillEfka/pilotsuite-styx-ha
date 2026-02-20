@@ -1,4 +1,4 @@
-"""Predictive Automation Sensor for AI Home CoPilot.
+"""Predictive Automation Sensor for PilotSuite.
 
 Shows ML-based automation suggestions from the habitus mining system.
 """
@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 class PredictiveAutomationSensor(SensorEntity):
     """Sensor showing ML-based automation suggestions."""
     
-    _attr_name = "AI CoPilot Predictive Automation"
+    _attr_name = "PilotSuite Predictive Automation"
     _attr_unique_id = "ai_copilot_predictive_automation"
     _attr_icon = "mdi:auto-mode"
     _attr_should_poll = False
@@ -64,7 +64,7 @@ class PredictiveAutomationSensor(SensorEntity):
 class PredictiveAutomationDetailsSensor(SensorEntity):
     """Sensor showing detailed automation suggestions."""
     
-    _attr_name = "AI CoPilot Predictive Automation Details"
+    _attr_name = "PilotSuite Predictive Automation Details"
     _attr_unique_id = "ai_copilot_predictive_automation_details"
     _attr_icon = "mdi:file-document-outline"
     _attr_should_poll = False

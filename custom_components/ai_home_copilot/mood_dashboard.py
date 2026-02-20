@@ -157,7 +157,7 @@ class MoodDashboardEntity(SensorEntity):
     def __init__(self, entry_id: str) -> None:
         self._entry_id = entry_id
         self._attr_unique_id = f"{entry_id}_mood_dashboard"
-        self._attr_name = "CoPilot Mood"
+        self._attr_name = "PilotSuite Mood"
         self._mood_score: MoodScore | None = None
         self._history = MoodHistory()
         self._top_factors: list[dict[str, Any]] = []
@@ -214,7 +214,7 @@ class MoodHistoryEntity(SensorEntity):
     def __init__(self, entry_id: str) -> None:
         self._entry_id = entry_id
         self._attr_unique_id = f"{entry_id}_mood_history"
-        self._attr_name = "CoPilot Mood History"
+        self._attr_name = "PilotSuite Mood History"
         self._history = MoodHistory()
 
     @property
@@ -245,7 +245,7 @@ class MoodExplanationEntity(SensorEntity):
     def __init__(self, entry_id: str) -> None:
         self._entry_id = entry_id
         self._attr_unique_id = f"{entry_id}_mood_explanation"
-        self._attr_name = "CoPilot Mood Explanation"
+        self._attr_name = "PilotSuite Mood Explanation"
         self._explanation: str = ""
         self._factors: list[dict[str, Any]] = []
 
@@ -318,7 +318,7 @@ def generate_mood_card_config(entry_id: str) -> dict[str, Any]:
             {
                 "type": "custom:mushroom-entity-card",
                 "entity": f"sensor.{entry_id}_copilot_mood",
-                "name": "CoPilot Mood",
+                "name": "PilotSuite Mood",
                 "icon_color": f"{{{{ state_attr('sensor.{entry_id}_copilot_mood', 'color') }}}}",
                 "primary_info": "name",
                 "secondary_info": "last-changed",
@@ -365,7 +365,7 @@ def generate_suggestion_queue_card(entry_id: str) -> dict[str, Any]:
     """
     return {
         "type": "custom:mushroom-template-card",
-        "primary": "CoPilot Vorschläge",
+        "primary": "PilotSuite Vorschläge",
         "secondary": f"{{{{ state_attr('sensor.{entry_id}_suggestion_queue', 'pending_count') }} ausstehend",
         "icon": "mdi:lightbulb-outline",
         "icon_color": "amber",

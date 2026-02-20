@@ -1,5 +1,5 @@
 """
-Brain Graph Sync Service for AI Home CoPilot.
+Brain Graph Sync Service for PilotSuite.
 
 Synchronizes Home Assistant entities/state with the Core Brain Graph module
 via the /api/v1/graph endpoints. This creates a real-time knowledge graph

@@ -1,4 +1,4 @@
-"""Activity sensors for AI Home CoPilot Neurons.
+"""Activity sensors for PilotSuite Neurons.
 
 Sensors:
 - ActivityLevelSensor: Overall activity level in the home
@@ -161,7 +161,7 @@ class ActivityLevelSensor(CoordinatorEntity, SensorEntity):
     This sensor just displays the result.
     """
     
-    _attr_name = "AI CoPilot Activity Level"
+    _attr_name = "PilotSuite Activity Level"
     _attr_unique_id = "ai_copilot_activity_level"
     _attr_icon = "mdi:run"
     _attr_should_poll = False  # Using coordinator
@@ -191,7 +191,7 @@ class ActivityStillnessSensor(CoordinatorEntity, SensorEntity):
     Uses Add-on Neuron API for activity evaluation.
     """
     
-    _attr_name = "AI CoPilot Activity Stillness"
+    _attr_name = "PilotSuite Activity Stillness"
     _attr_unique_id = "ai_copilot_activity_stillness"
     _attr_icon = "mdi:meditation"
     _attr_should_poll = False  # Using coordinator

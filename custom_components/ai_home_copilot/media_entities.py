@@ -43,7 +43,7 @@ class MusicActiveBinarySensor(_MediaBase, BinarySensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_music_active",
-            name="AI Home CoPilot music active",
+            name="PilotSuite music active",
             icon="mdi:music",
         )
 
@@ -57,7 +57,7 @@ class TvActiveBinarySensor(_MediaBase, BinarySensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_tv_active",
-            name="AI Home CoPilot TV active",
+            name="PilotSuite TV active",
             icon="mdi:television",
         )
 
@@ -71,7 +71,7 @@ class MusicNowPlayingSensor(_MediaBase, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_music_now_playing",
-            name="AI Home CoPilot music now playing",
+            name="PilotSuite music now playing",
             icon="mdi:music-note",
         )
 
@@ -85,7 +85,7 @@ class MusicPrimaryAreaSensor(_MediaBase, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_music_primary_area",
-            name="AI Home CoPilot music primary area",
+            name="PilotSuite music primary area",
             icon="mdi:map-marker",
         )
 
@@ -99,7 +99,7 @@ class TvPrimaryAreaSensor(_MediaBase, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_tv_primary_area",
-            name="AI Home CoPilot TV primary area",
+            name="PilotSuite TV primary area",
             icon="mdi:map-marker",
         )
 
@@ -113,7 +113,7 @@ class TvSourceSensor(_MediaBase, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_tv_source",
-            name="AI Home CoPilot TV source",
+            name="PilotSuite TV source",
             icon="mdi:video-input-hdmi",
         )
 
@@ -127,7 +127,7 @@ class MusicActiveCountSensor(_MediaBase, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_music_active_count",
-            name="AI Home CoPilot music active count",
+            name="PilotSuite music active count",
             icon="mdi:counter",
         )
 
@@ -141,7 +141,7 @@ class TvActiveCountSensor(_MediaBase, SensorEntity):
         super().__init__(
             coordinator,
             unique_id="ai_home_copilot_tv_active_count",
-            name="AI Home CoPilot TV active count",
+            name="PilotSuite TV active count",
             icon="mdi:counter",
         )
 
