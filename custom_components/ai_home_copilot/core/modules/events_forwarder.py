@@ -221,7 +221,9 @@ class _ForwarderState:
     last_error_ts: float | None = None
 
     # concurrency guard (avoid overlapping flush tasks)
-    flushing: bool = False
+    # Set at runtime to an asyncio.Lock(); dataclass default must be a bool
+    # because asyncio.Lock() cannot be created before an event loop exists.
+    flush_lock: Any = None
 
     # Rate limiting: token bucket algorithm
     rate_limit_tokens: float = 10.0
@@ -334,7 +336,7 @@ class EventsForwarderModule:
             )
             return
 
-        st = _ForwarderState(queue=[], seen_until={})
+        st = _ForwarderState(queue=[], seen_until={}, flush_lock=asyncio.Lock())
         data["events_forwarder_state"] = st
 
         flush_interval = int(
@@ -694,167 +696,154 @@ class EventsForwarderModule:
                 _LOGGER.debug("Events forwarder call_service handler failed: %s", e)
 
         async def _flush_now() -> None:
-            # Avoid overlapping flush tasks; keep queue semantics predictable.
-            if st.flushing:
-                return
-            st.flushing = True
-            try:
+            # Use asyncio.Lock to avoid overlapping flush tasks.
+            if st.flush_lock is None:
+                st.flush_lock = asyncio.Lock()
+            if st.flush_lock.locked():
+                return  # another flush is in progress, skip
+            async with st.flush_lock:
+                try:
+                    # Cancel pending timer if any
+                    if callable(st.unsub_timer):
+                        st.unsub_timer()
+                    st.unsub_timer = None
 
-                # Cancel pending timer if any
-                if callable(st.unsub_timer):
-                    st.unsub_timer()
-                st.unsub_timer = None
+                    # Check rate limit before proceeding
+                    if not _rate_limit_consume(st, cost=1.0):
+                        delay = 1.0 / st.rate_limit_refill_rate
+                        st.unsub_timer = async_call_later(hass, delay, _flush_timer)
+                        data["events_forwarder_last"] = {
+                            "sent": 0,
+                            "time": _now_iso(),
+                            "status": "rate_limited",
+                        }
+                        return
 
-                # Check rate limit before proceeding
-                if not _rate_limit_consume(st, cost=1.0):
-                    # Rate limited - schedule retry with delay
-                    delay = 1.0 / st.rate_limit_refill_rate
-                    st.unsub_timer = async_call_later(hass, delay, _flush_timer)
+                    # Apply exponential backoff if needed
+                    backoff_delay = _get_backoff_delay(st)
+                    if backoff_delay > 0:
+                        _LOGGER.debug("Events forwarder: backing off %.1fs (level %d)", backoff_delay, st.backoff_level)
+                        await asyncio.sleep(backoff_delay)
+
+                    if st.queue is None:
+                        st.queue = []
+
+                    if not st.queue:
+                        data["events_forwarder_queue_len"] = 0
+                        data["events_forwarder_persistent_queue_len"] = 0
+                        _reset_backoff(st)
+                        return
+
+                    # Take up to max_batch items, keep remainder.
+                    items = list(st.queue[:max_batch])
+                    remain = list(st.queue[max_batch:])
+                    st.queue = remain
+
+                    data["events_forwarder_queue_len"] = len(st.queue)
+                    data["events_forwarder_persistent_queue_len"] = len(st.queue)
+                    _persist_mark_dirty()
+
                     data["events_forwarder_last"] = {
                         "sent": 0,
                         "time": _now_iso(),
-                        "status": "rate_limited",
+                        "status": "sending",
                     }
-                    return
 
-                # Apply exponential backoff if needed
-                backoff_delay = _get_backoff_delay(st)
-                if backoff_delay > 0:
-                    _LOGGER.debug("Events forwarder: backing off %.1fs (level %d)", backoff_delay, st.backoff_level)
-                    await asyncio.sleep(backoff_delay)
+                    payload = {"items": items}
+                    try:
+                        await api.async_post("/api/v1/events", payload)
 
-                if st.queue is None:
-                    st.queue = []
+                        st.sent_total += len(items)
+                        st.error_streak = 0
+                        st.last_success_ts = time.time()
+                        st.first_error_ts = None
+                        _reset_backoff(st)
 
-                if not st.queue:
-                    data["events_forwarder_queue_len"] = 0
-                    data["events_forwarder_persistent_queue_len"] = 0
-                    _reset_backoff(st)
-                    return
+                        data["events_forwarder_last"] = {
+                            "sent": len(items),
+                            "time": _now_iso(),
+                            "status": "sent",
+                        }
+                        data["events_forwarder_sent_total"] = st.sent_total
+                        data["events_forwarder_error_streak"] = st.error_streak
+                        data["events_forwarder_last_success_at"] = data["events_forwarder_last"]["time"]
+                        data["events_forwarder_last_success_ts"] = st.last_success_ts
+                        data["events_forwarder_rate_limit_tokens"] = st.rate_limit_tokens
 
-            except Exception as err:
-                _LOGGER.error("Events forwarder flush failed: %s", err)
-                data["events_forwarder_last"] = {
-                    "sent": 0,
-                    "time": _now_iso(),
-                    "status": "error",
-                    "error": str(err),
-                }
-                st.error_total += 1
-                st.error_streak += 1
-                st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
-                now_ts = time.time()
-                st.last_error_ts = now_ts
-                if st.first_error_ts is None:
-                    st.first_error_ts = now_ts
-                _persist_mark_dirty()
-                return
-            finally:
-                # Ensure flushing flag is always cleared so queue never deadlocks
-                st.flushing = False
+                        _persist_mark_dirty()
 
-            # Re-acquire flushing lock for the POST phase
-            st.flushing = True
-            # Take up to max_batch items, keep remainder.
-            items = list(st.queue[:max_batch])
-            remain = list(st.queue[max_batch:])
-            st.queue = remain
+                    except asyncio.CancelledError:
+                        data["events_forwarder_last"] = {
+                            "sent": 0,
+                            "time": _now_iso(),
+                            "status": "cancelled",
+                        }
+                        st.queue = items + (st.queue or [])
+                        data["events_forwarder_queue_len"] = len(st.queue)
+                        data["events_forwarder_persistent_queue_len"] = len(st.queue)
+                        _persist_mark_dirty()
+                        return
 
-            data["events_forwarder_queue_len"] = len(st.queue)
-            data["events_forwarder_persistent_queue_len"] = len(st.queue)
+                    except Exception as err:  # noqa: BLE001
+                        st.error_total += 1
+                        st.error_streak += 1
+                        st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
+                        now_ts = time.time()
+                        st.last_error_ts = now_ts
+                        if st.first_error_ts is None:
+                            st.first_error_ts = now_ts
 
-            _persist_mark_dirty()
+                        data["events_forwarder_last"] = {
+                            "sent": 0,
+                            "time": _now_iso(),
+                            "status": "error",
+                            "error": str(err),
+                        }
+                        data["events_forwarder_error_total"] = st.error_total
+                        data["events_forwarder_error_streak"] = st.error_streak
+                        data["events_forwarder_last_error_at"] = data["events_forwarder_last"]["time"]
+                        data["events_forwarder_last_error_ts"] = st.last_error_ts
+                        data["events_forwarder_backoff_level"] = st.backoff_level
 
-            data["events_forwarder_last"] = {
-                "sent": 0,
-                "time": _now_iso(),
-                "status": "sending",
-            }
+                        _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s (backoff level %d)", err, st.backoff_level)
 
-            payload = {"items": items}
-            try:
-                await api.async_post("/api/v1/events", payload)
+                        # Re-queue items (front), keep order.
+                        st.queue = items + (st.queue or [])
 
-                st.sent_total += len(items)
-                st.error_streak = 0
-                st.last_success_ts = time.time()
-                st.first_error_ts = None
+                        # Enforce bounds after re-queue.
+                        if st.persistent_max_size > 0:
+                            overflow = len(st.queue) - st.persistent_max_size
+                            if overflow > 0:
+                                del st.queue[:overflow]
+                                st.dropped_total += overflow
+                                data["events_forwarder_dropped_total"] = st.dropped_total
 
-                # Reset backoff after successful send
-                _reset_backoff(st)
+                        data["events_forwarder_queue_len"] = len(st.queue)
+                        data["events_forwarder_persistent_queue_len"] = len(st.queue)
 
-                # store last stats for diagnostics
-                data["events_forwarder_last"] = {
-                    "sent": len(items),
-                    "time": _now_iso(),
-                    "status": "sent",
-                }
-                data["events_forwarder_sent_total"] = st.sent_total
-                data["events_forwarder_error_streak"] = st.error_streak
-                data["events_forwarder_last_success_at"] = data["events_forwarder_last"]["time"]
-                data["events_forwarder_last_success_ts"] = st.last_success_ts
-                data["events_forwarder_rate_limit_tokens"] = st.rate_limit_tokens
+                        # Schedule retry with backoff
+                        retry_delay = _get_backoff_delay(st)
+                        if retry_delay > 0:
+                            st.unsub_timer = async_call_later(hass, retry_delay, _flush_timer)
 
-                _persist_mark_dirty()
-            except asyncio.CancelledError:
-                # Cancellation should not happen during normal runtime; record it for debugging.
-                data["events_forwarder_last"] = {
-                    "sent": 0,
-                    "time": _now_iso(),
-                    "status": "cancelled",
-                }
-                # Re-queue: put items back at the front.
-                st.queue = items + (st.queue or [])
-                data["events_forwarder_queue_len"] = len(st.queue)
-                data["events_forwarder_persistent_queue_len"] = len(st.queue)
-                _persist_mark_dirty()
-                return
-            except Exception as err:  # noqa: BLE001
-                st.error_total += 1
-                st.error_streak += 1
-                st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
-                now_ts = time.time()
-                st.last_error_ts = now_ts
-                if st.first_error_ts is None:
-                    st.first_error_ts = now_ts
+                        _persist_mark_dirty()
 
-                data["events_forwarder_last"] = {
-                    "sent": 0,
-                    "time": _now_iso(),
-                    "status": "error",
-                    "error": str(err),
-                }
-                data["events_forwarder_error_total"] = st.error_total
-                data["events_forwarder_error_streak"] = st.error_streak
-                data["events_forwarder_last_error_at"] = data["events_forwarder_last"]["time"]
-                data["events_forwarder_last_error_ts"] = st.last_error_ts
-                data["events_forwarder_backoff_level"] = st.backoff_level
-
-                _LOGGER.warning("Events forwarder failed to POST /api/v1/events: %s (backoff level %d)", err, st.backoff_level)
-
-                # Re-queue items (front), keep order.
-                st.queue = items + (st.queue or [])
-
-                # Enforce bounds after re-queue.
-                if st.persistent_max_size > 0:
-                    overflow = len(st.queue) - st.persistent_max_size
-                    if overflow > 0:
-                        del st.queue[:overflow]
-                        st.dropped_total += overflow
-                        data["events_forwarder_dropped_total"] = st.dropped_total
-
-                data["events_forwarder_queue_len"] = len(st.queue)
-                data["events_forwarder_persistent_queue_len"] = len(st.queue)
-
-                # Schedule retry with backoff
-                retry_delay = _get_backoff_delay(st)
-                if retry_delay > 0:
-                    st.unsub_timer = async_call_later(hass, retry_delay, _flush_timer)
-
-                _persist_mark_dirty()
-
-            finally:
-                st.flushing = False
+                except Exception as err:
+                    _LOGGER.error("Events forwarder flush failed: %s", err)
+                    data["events_forwarder_last"] = {
+                        "sent": 0,
+                        "time": _now_iso(),
+                        "status": "error",
+                        "error": str(err),
+                    }
+                    st.error_total += 1
+                    st.error_streak += 1
+                    st.backoff_level = min(st.backoff_level + 1, st.backoff_max_level)
+                    now_ts = time.time()
+                    st.last_error_ts = now_ts
+                    if st.first_error_ts is None:
+                        st.first_error_ts = now_ts
+                    _persist_mark_dirty()
 
         def _flush_timer(_now) -> None:
             # callback from async_call_later (sync context)
