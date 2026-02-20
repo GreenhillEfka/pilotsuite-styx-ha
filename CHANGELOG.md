@@ -1,5 +1,14 @@
 # Changelog - PilotSuite Core Add-on
 
+## [4.3.0] - 2026-02-20
+
+### MUPL Role Sync + Delegation API
+
+- **api/v1/user_preferences.py** — Neue Endpoints: `GET /user/<id>/role` (Rolle abfragen), `GET /user/roles` (alle Rollen), `POST /user/<id>/device/<id>` (Device-Nutzung registrieren), `GET /user/<id>/access/<id>` (RBAC-Prüfung), `POST /user/<id>/delegate` (Gerätezugriff delegieren), `DELETE /user/<id>/delegate` (Delegation widerrufen), `GET /user/delegations` (aktive Delegationen auflisten)
+- **neurons/mupl.py** — Fehlenden `Any`-Typ-Import hinzugefügt
+- **storage/user_preferences.py** — Generische `_load_extra`/`_save_extra` Methoden für Delegation-Persistenz (JSON-basiert)
+- **config.json** — Version auf 4.3.0
+
 ## [4.2.0] - 2026-02-20
 
 ### Brain Graph Scheduled Pruning
