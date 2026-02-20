@@ -1,5 +1,12 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.1.0] - 2026-02-20
+
+### Race Conditions + Stability
+
+- **events_forwarder.py** — `asyncio.Lock` ersetzt boolean `flushing` Flag; eliminiert Two-Phase-Flush Race Condition (flushing=False → re-acquire Pattern); Lock wird nie deadlocken
+- **manifest.json** + **entity.py** Version auf 4.1.0 synchronisiert
+
 ## [4.0.1] - 2026-02-20
 
 ### Patch — Version-Fix, Branding-Cleanup, Add-on Store Fix
