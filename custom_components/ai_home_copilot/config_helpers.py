@@ -1,7 +1,14 @@
 """Helpers and constants for config flow modules."""
 from __future__ import annotations
 
+import asyncio
+import logging
+
+import aiohttp
+
 from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 # Entity roles for zone configuration
 ZONE_ENTITY_ROLES = {
@@ -81,3 +88,26 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
                 continue
             if not (lo <= val_int <= hi):
                 raise HomeAssistantError(f"{key} must be {lo}-{hi}, got {val_int}")
+
+    # Test connectivity to Core Add-on (skip for zero-config with empty token)
+    token = data.get("token", "")
+    if host and port:
+        from homeassistant.helpers.aiohttp_client import async_get_clientsession
+        session = async_get_clientsession(hass)
+        url = f"http://{host}:{int(port)}/api/v1/status"
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        try:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status >= 500:
+                    raise HomeAssistantError(
+                        f"Core Add-on returned server error ({resp.status})"
+                    )
+                _LOGGER.debug("Core Add-on reachable at %s:%s (status=%s)", host, port, resp.status)
+        except asyncio.TimeoutError:
+            raise HomeAssistantError(
+                f"Core Add-on at {host}:{port} did not respond (timeout)"
+            )
+        except aiohttp.ClientError as err:
+            raise HomeAssistantError(
+                f"Cannot reach Core Add-on at {host}:{port}: {err}"
+            )

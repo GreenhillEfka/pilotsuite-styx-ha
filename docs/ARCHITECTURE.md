@@ -277,7 +277,7 @@ class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
     def device_info(self):
         return {
             "identifiers": {("ai_home_copilot", f"{self._host}:{self._port}")},
-            "name": "AI Home CoPilot Core",
+            "name": "PilotSuite Core",
             "manufacturer": "Custom",
             "model": "MVP Core",
         }
@@ -893,4 +893,4 @@ custom_components/ai_home_copilot/
 
 ---
 
-*Dieses Dokument beschreibt die Architektur der PilotSuite HACS Integration (Repository `ai-home-copilot-ha`). Das Core Add-on (Repository `Home-Assistant-Copilot`) wird separat dokumentiert.*
+*Dieses Dokument beschreibt die Architektur der PilotSuite HACS Integration (Repository `pilotsuite-styx-ha`). Das Core Add-on (Repository `pilotsuite-styx-core`) wird separat dokumentiert.*

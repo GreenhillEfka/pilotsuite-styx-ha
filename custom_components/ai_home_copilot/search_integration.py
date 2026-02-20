@@ -1,4 +1,4 @@
-"""Quick Search Integration for AI Home CoPilot.
+"""Quick Search Integration for PilotSuite.
 
 Provides HA entity search capabilities:
 - Search entities, automations, scripts, scenes, services

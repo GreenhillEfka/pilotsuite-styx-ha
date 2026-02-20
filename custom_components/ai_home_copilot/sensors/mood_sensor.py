@@ -22,37 +22,49 @@ _LOGGER = logging.getLogger(__name__)
 
 class MoodSensor(CoordinatorEntity, SensorEntity):
     """Sensor showing the current mood from the neural system."""
-    
+
     _attr_name = "PilotSuite Mood"
-    _attr_unique_id = "ai_copilot_mood"
+    _attr_unique_id = "ai_home_copilot_mood"
     _attr_icon = "mdi:robot-happy"
     _attr_should_poll = False
-    
+
     def __init__(self, coordinator: CopilotDataUpdateCoordinator) -> None:
         """Initialize the mood sensor."""
         super().__init__(coordinator)
         self._attr_native_value = "unknown"
-    
+
     @property
     def native_value(self) -> str:
         """Return the current mood."""
         if not self.coordinator.data:
             return "unknown"
-        
+
         # Get mood from coordinator data
         mood_data = self.coordinator.data.get("mood", {})
         return mood_data.get("mood", "unknown")
-    
+
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return additional attributes."""
+        """Return additional attributes (including emotions for Lovelace card)."""
         if not self.coordinator.data:
             return {}
-        
+
         mood_data = self.coordinator.data.get("mood", {})
+
+        # Build emotions list for ha-copilot-mood-card
+        emotions = mood_data.get("emotions", [])
+        if not emotions and mood_data.get("contributing_neurons"):
+            emotions = [
+                {"name": n.get("name", "unknown"), "value": n.get("value", 0.0)}
+                for n in mood_data.get("contributing_neurons", [])
+                if isinstance(n, dict)
+            ]
+
         return {
             "confidence": mood_data.get("confidence", 0.0),
+            "emotions": emotions,
             "zone": mood_data.get("zone", "unknown"),
+            "last_updated": mood_data.get("last_update"),
             "last_update": mood_data.get("last_update"),
             "contributing_neurons": mood_data.get("contributing_neurons", []),
         }
@@ -66,7 +78,7 @@ class MoodConfidenceSensor(CoordinatorEntity, SensorEntity):
     """Sensor showing the confidence level of the current mood."""
     
     _attr_name = "PilotSuite Mood Confidence"
-    _attr_unique_id = "ai_copilot_mood_confidence"
+    _attr_unique_id = "ai_home_copilot_mood_confidence"
     _attr_icon = "mdi:gauge"
     _attr_native_unit_of_measurement = "%"
     _attr_should_poll = False
@@ -104,47 +116,65 @@ class MoodConfidenceSensor(CoordinatorEntity, SensorEntity):
 
 
 class NeuronActivitySensor(CoordinatorEntity, SensorEntity):
-    """Sensor showing active neurons count."""
-    
-    _attr_name = "PilotSuite Active Neurons"
-    _attr_unique_id = "ai_copilot_active_neurons"
+    """Sensor showing active neurons count and activity grid for Lovelace card."""
+
+    _attr_name = "PilotSuite Neuron Activity"
+    _attr_unique_id = "ai_home_copilot_neuron_activity"
     _attr_icon = "mdi:brain"
     _attr_should_poll = False
-    
+
     def __init__(self, coordinator: CopilotDataUpdateCoordinator) -> None:
         """Initialize the neuron activity sensor."""
         super().__init__(coordinator)
         self._attr_native_value = 0
-    
+        self._history: list[dict] = []
+
     @property
     def native_value(self) -> int:
         """Return the count of active neurons."""
         if not self.coordinator.data:
             return 0
-        
+
         neurons = self.coordinator.data.get("neurons", {})
         active_count = sum(
             1 for n in neurons.values()
             if isinstance(n, dict) and n.get("active", False)
         )
         return active_count
-    
+
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return neuron details."""
+        """Return neuron details (including activity grid for Lovelace card)."""
         if not self.coordinator.data:
             return {}
-        
+
         neurons = self.coordinator.data.get("neurons", {})
-        active_neurons = [
-            {"name": name, "value": n.get("value", 0), "confidence": n.get("confidence", 0)}
+
+        # Build activity list for ha-copilot-neurons-card
+        activity = [
+            {
+                "name": name,
+                "active": bool(n.get("active", False)),
+                "value": n.get("value", 0),
+                "confidence": n.get("confidence", 0),
+            }
             for name, n in neurons.items()
-            if isinstance(n, dict) and n.get("active", False)
+            if isinstance(n, dict)
         ]
-        
+
+        active_neurons = [a for a in activity if a["active"]]
+
+        # Maintain rolling history for the chart
+        current_active = len(active_neurons)
+        self._history.append({"value": current_active})
+        if len(self._history) > 24:
+            self._history = self._history[-24:]
+
         return {
+            "activity": activity,
             "active_neurons": active_neurons,
             "total_neurons": len(neurons),
+            "history": list(self._history),
         }
     
     def _handle_coordinator_update(self) -> None:

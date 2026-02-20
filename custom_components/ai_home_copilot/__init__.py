@@ -292,6 +292,53 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to set up ZoneDetector")
 
+    # Register PilotSuite conversation agent (v3.10.0)
+    try:
+        from .conversation import async_setup_conversation
+        await async_setup_conversation(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to set up conversation agent")
+
+    # Register Lovelace card resources from Core Add-on (v3.11.0)
+    try:
+        from .lovelace_resources import async_register_card_resources
+        await async_register_card_resources(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to register Lovelace card resources")
+
+    # Auto-generate PilotSuite dashboard on first setup (v3.11.0)
+    try:
+        from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_store, dict) and not entry_store.get("_dashboard_generated"):
+            await async_generate_pilotsuite_dashboard(hass, entry)
+            entry_store["_dashboard_generated"] = True
+            _LOGGER.info("PilotSuite dashboard auto-generated on first setup")
+    except Exception:
+        _LOGGER.exception("Failed to auto-generate PilotSuite dashboard")
+
+    # Show onboarding notification on first setup (v3.12.0)
+    try:
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_store, dict) and not entry_store.get("_onboarding_shown"):
+            from homeassistant.components.persistent_notification import async_create
+            async_create(
+                hass,
+                title="PilotSuite ready",
+                message=(
+                    "Your local AI assistant **Styx** is set up and running.\n\n"
+                    "**Quick start:**\n"
+                    "- Open **Settings > Voice assistants** and select **PilotSuite** as your conversation agent\n"
+                    "- Use the PilotSuite dashboard for Mood, Neurons, and Habitus cards\n"
+                    "- Configure Habitus zones via **Settings > Integrations > PilotSuite > Configure**\n\n"
+                    "All processing runs locally on your Home Assistant — no cloud required."
+                ),
+                notification_id=f"pilotsuite_onboarding_{entry.entry_id}",
+            )
+            entry_store["_onboarding_shown"] = True
+    except Exception:
+        _LOGGER.debug("Onboarding notification skipped: %s", exc_info=True)
+
     return True
 
 
@@ -314,5 +361,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     zone_detector = entry_data.get("zone_detector")
     if zone_detector:
         await zone_detector.async_unload()
+
+    # Unregister conversation agent (v3.10.0)
+    try:
+        from .conversation import async_unload_conversation
+        await async_unload_conversation(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to unload conversation agent")
 
     return await runtime.async_unload_entry(entry, modules=_MODULES)

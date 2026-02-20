@@ -1,5 +1,5 @@
 blueprint:
-  name: "AI Home CoPilot: A → B (safe)"
+  name: "PilotSuite: A → B (safe)"
   description: >
     Safe A→B automation: triggers on a local entity state change and performs a
     constrained local action on a selected target (no webhooks, no external calls).

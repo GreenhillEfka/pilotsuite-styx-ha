@@ -6,7 +6,7 @@
 
 ## Projektueberblick
 
-**PilotSuite** (ehemals AI Home CoPilot) ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
+**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
 
 Das Projekt verfolgt einen **Privacy-first, Local-first** Ansatz: alle Daten bleiben lokal, keine Cloud-Abhaengigkeit, Human-in-the-Loop Governance.
 
@@ -119,10 +119,11 @@ custom_components/ai_home_copilot/
 
 ## Wo kommen wir her
 
-### Version v3.9.1 -- HA Conformity Release
+### Version v4.0.0 -- Official Release
 
+- Repository umbenannt: `ai-home-copilot-ha` → `pilotsuite-styx-ha`
 - 30 Module vollstaendig implementiert und registriert
-- 94+ Sensoren, 15+ Dashboard Cards
+- 110+ Entities (80+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
 - DeviceInfo Dataclass (HA Best Practice)
 - PilotSuite Branding durchgaengig
 - HA 2024.1.0+ Mindestversion
@@ -135,7 +136,7 @@ custom_components/ai_home_copilot/
 - **media_context.py** — Module-level `warnings.warn()` entfernt
 - **config_flow.py** — "OpenClaw Gateway" → "PilotSuite Core Add-on"
 - **manifest.json** — `homeassistant` Mindestversion hinzugefuegt
-- **Branding** — 30+ Referenzen "AI Home CoPilot" → "PilotSuite"
+- **Branding** — Komplett auf PilotSuite Styx vereinheitlicht
 - **Dead Code** — 8 tote Dateien, 1700+ Zeilen entfernt
 
 ---

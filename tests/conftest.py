@@ -1,4 +1,4 @@
-"""Root pytest configuration for AI Home CoPilot tests.
+"""Root pytest configuration for PilotSuite tests.
 
 Test Categories:
 - Unit tests: Don't import HA integration, mock everything

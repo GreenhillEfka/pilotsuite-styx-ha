@@ -1,6 +1,9 @@
 """ML Training Pipeline - On-device training for pattern models."""
 
+import logging
 import time
+
+_LOGGER = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import pickle
@@ -254,7 +257,7 @@ class TrainingPipeline:
             with open(path, "wb") as f:
                 pickle.dump(self.training_data[model_name], f)
         except Exception as e:
-            print(f"Failed to save training data for {model_name}: {e}")
+            _LOGGER.error("Failed to save training data for %s: %s", model_name, e)
             
     def _save_model(self, model_name: str) -> None:
         """Save model to disk."""
@@ -275,7 +278,7 @@ class TrainingPipeline:
                     "metrics": self.model_metrics[model_name],
                 }, f)
         except Exception as e:
-            print(f"Failed to save model {model_name}: {e}")
+            _LOGGER.error("Failed to save model %s: %s", model_name, e)
             
     def load_model(self, model_name: str) -> Optional[Any]:
         """Load a trained model from disk."""
@@ -291,7 +294,7 @@ class TrainingPipeline:
             return model
             
         except Exception as e:
-            print(f"Failed to load model {model_name}: {e}")
+            _LOGGER.error("Failed to load model %s: %s", model_name, e)
             return None
             
     def get_training_status(self) -> Dict[str, Any]:

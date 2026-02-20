@@ -116,7 +116,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
 
     cfg = entry.data | entry.options
 
-    zones = await async_get_zones(hass, entry.entry_id)
+    zones = await async_get_zones_v2(hass, entry.entry_id)
     has_zones = len(zones) > 0
 
     music_players = cfg.get(CONF_MEDIA_MUSIC_PLAYERS, DEFAULT_MEDIA_MUSIC_PLAYERS)
@@ -279,6 +279,28 @@ Dieses Dashboard wird von **PilotSuite** generiert (governance-first).
 
     views.append(_view("PilotSuite", "copilot", "mdi:robot-outline", "\n\n".join([intro, grid])))
 
+    # Mood + Neurons view (Lovelace custom cards from Core Add-on)
+    mood_card = (
+        "      - type: custom:ha-copilot-mood-card\n"
+        "        entity: sensor.ai_home_copilot_mood\n"
+        "        title: Stimmung\n"
+        "        show_emotions: 5\n"
+    )
+    neurons_card = (
+        "      - type: custom:ha-copilot-neurons-card\n"
+        "        entity: sensor.ai_home_copilot_neuron_activity\n"
+        "        title: Neuronen\n"
+    )
+    mood_neurons_grid = _grid_card([mood_card, neurons_card], columns=2)
+    views.append(
+        _view(
+            "Stimmung & Neuronen",
+            "copilot-mood-neurons",
+            "mdi:head-heart-outline",
+            mood_neurons_grid,
+        )
+    )
+
     # Core view
     views.append(
         _view(
@@ -313,12 +335,44 @@ Wenn `/api/v1/events` leer bleibt:
         )
 
     if has_zones:
+        habitus_custom_card = (
+            "      - type: custom:ha-copilot-habitus-card\n"
+            "        entity: sensor.ai_home_copilot_habitus_zones\n"
+            "        title: Habitus-Zonen\n"
+        )
+        habitus_buttons = _entities_card("Habitus-Steuerung", habitus_entities)
+
+        # HomeKit QR codes per zone
+        homekit_cards: list[str] = []
+        for z in zones:
+            if z.current_state == "disabled":
+                continue
+            zone_slug = z.zone_id.replace(":", "_").replace(" ", "_")
+            qr_url = f"{core_base}/api/v1/homekit/qr/{z.zone_id}.svg"
+            homekit_card = _markdown_card(
+                f"HomeKit — {z.name} by Styx",
+                f"![QR]({qr_url})\n\n"
+                f"**Zone:** {z.name}\n"
+                f"**Entities:** {len(z.entity_ids) if z.entity_ids else 0}\n\n"
+                f"Scanne den QR-Code mit der Apple Home App,\n"
+                f"um **{z.name}** zu deinem Zuhause hinzuzufügen.",
+            )
+            homekit_cards.append(homekit_card)
+
+        homekit_section = ""
+        if homekit_cards:
+            homekit_section = _grid_card(homekit_cards, columns=2)
+
+        habitus_content = [habitus_custom_card, habitus_buttons]
+        if homekit_section:
+            habitus_content.append(homekit_section)
+
         views.append(
             _view(
                 "Habitus",
                 "copilot-habitus",
                 "mdi:layers-outline",
-                _entities_card("Habitus-Zonen", habitus_entities),
+                "\n\n".join(habitus_content),
             )
         )
 

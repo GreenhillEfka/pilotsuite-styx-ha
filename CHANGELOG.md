@@ -1,5 +1,106 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.0.0] - 2026-02-20
+
+### Official Release — Repository Rename + Feature-Complete
+
+**Repository umbenannt:** `ai-home-copilot-ha` → `pilotsuite-styx-ha`
+Alle internen URLs, Dokumentation und Konfigurationsdateien aktualisiert.
+GitHub leitet alte URLs automatisch weiter (301 Redirect).
+
+#### Warum v4.0.0?
+
+Dies ist der erste offizielle Release von PilotSuite Styx als feature-complete Produkt.
+Alle Komponenten sind synchron auf v4.0.0:
+
+| Komponente | Repo | Version |
+|-----------|------|---------|
+| **Core Add-on** | `pilotsuite-styx-core` | 4.0.0 |
+| **HACS Integration** | `pilotsuite-styx-ha` | 4.0.0 |
+| **Adapter** | `pilotsuite-styx-core` (Unterverzeichnis) | 4.0.0 |
+
+#### Feature-Ueberblick (Cumulative seit v0.14.x)
+
+**30 Coordinator-Module**
+- `events_forwarder` — Event Bridge zum Core Add-on (Quality Metrics, Queue)
+- `brain_graph_sync` — Brain Graph Synchronisation (WebSocket + REST Fallback)
+- `habitus_miner` — Pattern Mining aus Nutzerverhalten (Persistence, Cleanup)
+- `mood` + `mood_context` — Mood Tracking + Context-Injection
+- `energy_context` — Energieverbrauch pro Zone
+- `weather_context` — Wetter-Einfluss auf Vorschlaege
+- `network` (UniFi) — Netzwerk-Health, Client-Tracking
+- `camera_context` — Kamera-Integration (Frigate Bridge)
+- `ml_context` — ML Pattern Recognition
+- `voice_context` — Sprach-Interaktions-Tracking
+- `home_alerts` — Benachrichtigungen (Persistenz via HA Storage)
+- `character_module` — Charakter-Presets fuer Styx
+- `waste_reminder` — Muellabfuhr-Erinnerungen (TTS + Notifications)
+- `birthday_reminder` — Geburtstags-Erinnerungen (14-Tage Vorschau)
+- `entity_tags` — Manuelles Tag-System (Registry, Assignment, Sync)
+- `person_tracking` — Anwesenheit (Presence Map, History)
+- `frigate_bridge` — NVR-Integration (Person/Motion Detection)
+- `scene_module` — Szenen (Capture, Apply, Presets)
+- `homekit_bridge` — Apple HomeKit Expose
+- `calendar_module` — HA Kalender-Integration
+- `media_zones` — Musikwolke + Player-Zonen
+- `candidate_poller` — Brain Graph Kandidaten
+- `dev_surface` — Debug-Interface
+- `performance_scaling` — Auto-Scaling
+- `knowledge_graph_sync` — Knowledge Graph Sync
+- `ops_runbook` — Operational Runbooks
+- `quick_search` — Schnellsuche
+- `legacy` — Abwaertskompatibilitaet
+- `unifi_module` — UniFi-spezifische Features
+
+**110+ HA Entities**
+- 80+ Sensoren (Version, Status, Mood, Habitus, Energy, Network, Predictions, ...)
+- 22+ Buttons (Debug, Forwarder, Brain Graph, Mood, Tags, ...)
+- Numbers, Selects, Text-Entities, Binary Sensors
+
+**30+ HA Services**
+- Tag Registry (upsert, assign, confirm, sync, pull)
+- Media Context v2 (suggest zones, apply, clear)
+- Event Forwarder (start, stop, stats)
+- Ops Runbook (preflight, smoke test, execute, checklist)
+- Debug (enable, disable, clear errors, ping)
+- Habitus Mining (mine, get rules, reset, configure)
+- Multi-User Preferences (learn, priority, delete, export, detect, mood)
+- Candidate Poller, UniFi, Energy, Anomaly, Habit Learning, Predictive, HomeKit
+
+**Config Flow**
+- Zero Config: Ein-Klick Installation mit Auto-Discovery
+- Quick Start Wizard: 7-Schritt Konfiguration
+- Manual Setup: Volle Kontrolle ueber alle Parameter
+- Options Flow: Nachtraegliche Anpassung aller Einstellungen
+- Entity Tags Management im Config Flow
+
+**Dashboard Cards (22+ Typen)**
+- Uebersicht, Brain Graph, Habitus Zonen, Mood, Energy
+- Presence, Muellabfuhr, Geburtstage, Kalender
+- Media Zonen, HomeKit, Szenen, Suggestions
+- Mobile-Responsive, Dark Mode, Interactive Filters
+
+**HA Conversation Agent**
+- `StyxConversationAgent`: Nativ in HA Assist Pipeline
+- Proxy zu Core `/v1/chat/completions`
+- DE + EN Unterstuetzung
+
+**3 Native Lovelace Cards**
+- `styx-brain-card.js`: Brain Graph Force-Directed Layout
+- `styx-mood-card.js`: Mood Circular Gauges
+- `styx-habitus-card.js`: Pattern Liste mit Confidence Badges
+
+**Translations**
+- Deutsch (de.json) — 23KB, vollstaendig
+- English (en.json) — 22KB, vollstaendig
+
+#### Aenderungen in v4.0.0
+
+- **Repository Rename**: `ai-home-copilot-ha` → `pilotsuite-styx-ha`
+- **Alle URLs aktualisiert**: manifest.json, openapi.yaml, Docs, README
+- **Cross-Referenzen**: `Home-Assistant-Copilot` → `pilotsuite-styx-core` in allen Docs
+- **manifest.json**: `homeassistant: "2024.1.0"` Minimum-Version hinzugefuegt
+
 ## [3.9.1] - 2026-02-20
 
 ### HA Conformity & Cleanup Release
@@ -24,7 +125,7 @@
   - setup_wizard.py entry title
   - services_setup.py docstring
 - **Core Add-on** — config.json version bump 3.9.0 → 3.9.1, port description updated
-- **Adapter** — manifest.json name "AI Home CoPilot (Adapter)" → "PilotSuite (Adapter)", version 3.9.1
+- **Adapter** — manifest.json name updated to "PilotSuite (Adapter)", version 3.9.1
 
 ## [3.9.0] - 2026-02-20
 

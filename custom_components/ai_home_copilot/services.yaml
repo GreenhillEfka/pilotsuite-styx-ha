@@ -1,4 +1,4 @@
-# AI Home CoPilot – Service Definitions
+# PilotSuite – Service Definitions
 # Auto-discovered by HA Developer Tools → Services
 
 # ─── Tag Registry ────────────────────────────────────────────────────────────
@@ -488,7 +488,7 @@ set_debug:
 
 enable_debug:
   name: Enable Debug Mode
-  description: Enable debug mode for AI Home CoPilot with optional log level.
+  description: Enable debug mode for PilotSuite with optional log level.
   fields:
     log_level:
       name: Log Level
@@ -505,7 +505,7 @@ enable_debug:
 
 toggle_debug:
   name: Toggle Debug Mode
-  description: Toggle debug mode on/off for AI Home CoPilot.
+  description: Toggle debug mode on/off for PilotSuite.
 
 clear_debug_buffer:
   name: Clear Debug Buffer
@@ -641,6 +641,38 @@ habit_learning_predict:
       name: Start Device
       description: "Optional: Startgerät für Sequenz-Vorhersage."
       example: "light.kitchen"
+      selector:
+        text:
+
+# ─── HomeKit Bridge (per-zone) ──────────────────────────────────────────────
+
+homekit_enable_zone:
+  name: HomeKit – Enable Zone
+  description: Aktiviert HomeKit für eine Habitus-Zone (exponiert Entities an Apple Home).
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID der Habitus-Zone.
+      required: true
+      example: "zone:wohnzimmer"
+      selector:
+        text:
+    zone_name:
+      name: Zone Name
+      description: Anzeigename der Zone in Apple Home.
+      example: "Wohnzimmer by Styx"
+      selector:
+        text:
+
+homekit_disable_zone:
+  name: HomeKit – Disable Zone
+  description: Deaktiviert HomeKit für eine Habitus-Zone.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID der Habitus-Zone.
+      required: true
+      example: "zone:wohnzimmer"
       selector:
         text:
 

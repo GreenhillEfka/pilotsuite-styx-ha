@@ -1,6 +1,9 @@
 """ML Inference Engine - Real-time pattern inference for smart home."""
 
+import logging
 import time
+
+_LOGGER = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import pickle
@@ -82,7 +85,7 @@ class InferenceEngine:
                 with open(hash_path, "r") as f:
                     expected_hash = f.read().strip()
                 if current_hash != expected_hash:
-                    print(f"Security: Model {model_name} hash mismatch!")
+                    _LOGGER.warning("Security: Model %s hash mismatch!", model_name)
                     return False
             
             with open(path, "rb") as f:
@@ -97,7 +100,7 @@ class InferenceEngine:
             return True
             
         except Exception as e:
-            print(f"Failed to load model {model_name}: {e}")
+            _LOGGER.error("Failed to load model %s: %s", model_name, e)
             return False
             
     def predict(

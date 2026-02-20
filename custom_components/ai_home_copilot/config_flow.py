@@ -86,13 +86,32 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_zero_config(self, user_input: dict | None = None) -> FlowResult:
-        """Zero Config - instant start with Styx defaults. No questions asked."""
+        """Zero Config - instant start with Styx defaults.
+
+        Tries Core connectivity first; if unreachable, creates the entry
+        anyway (governance-first: the user can reconfigure later) but
+        logs a clear warning so it shows up in the system log.
+        """
         config = {
             CONF_HOST: DEFAULT_HOST,
             CONF_PORT: DEFAULT_PORT,
             CONF_TOKEN: "",
             "assistant_name": "Styx",
         }
+
+        # Best-effort connectivity check (non-blocking)
+        try:
+            await validate_input(self.hass, config)
+            _LOGGER.info("Zero-config: Core reachable at %s:%s", DEFAULT_HOST, DEFAULT_PORT)
+        except Exception:
+            _LOGGER.warning(
+                "Zero-config: Core Add-on not reachable at %s:%s — "
+                "integration will start anyway. Reconfigure via "
+                "Settings > Integrations > PilotSuite > Configure",
+                DEFAULT_HOST,
+                DEFAULT_PORT,
+            )
+
         title = "Styx — PilotSuite"
         return self.async_create_entry(title=title, data=config)
 

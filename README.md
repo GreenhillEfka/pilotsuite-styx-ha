@@ -1,12 +1,12 @@
 # PilotSuite — Styx (HACS Integration)
 
-[![Release](https://img.shields.io/github/v/release/GreenhillEfka/ai-home-copilot-ha)](https://github.com/GreenhillEfka/ai-home-copilot-ha/releases)
+[![Release](https://img.shields.io/github/v/release/GreenhillEfka/pilotsuite-styx-ha)](https://github.com/GreenhillEfka/pilotsuite-styx-ha/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
-[![CI](https://github.com/GreenhillEfka/ai-home-copilot-ha/actions/workflows/ci.yml/badge.svg)](https://github.com/GreenhillEfka/ai-home-copilot-ha/actions)
+[![CI](https://github.com/GreenhillEfka/pilotsuite-styx-ha/actions/workflows/ci.yml/badge.svg)](https://github.com/GreenhillEfka/pilotsuite-styx-ha/actions)
 
 Home Assistant Custom Integration fuer **PilotSuite — Styx**, einen privacy-first, lokalen KI-Assistenten der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlaegt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **94+ Sensoren**, **30 Module** und **Dashboard Cards** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt **94+ Sensoren**, **30 Module** und **Dashboard Cards** in Home Assistant bereit.
 
 > **v3.9.1** — HA-Conformity Release. `DeviceInfo`-Dataclass, PilotSuite-Branding, HA 2024.1.0+ Kompatibilitaet.
 
@@ -15,13 +15,13 @@ Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/Greenh
 ### Voraussetzung
 
 Das **Core Add-on** muss installiert und gestartet sein:
-[Home-Assistant-Copilot](https://github.com/GreenhillEfka/Home-Assistant-Copilot#installation)
+[pilotsuite-styx-core](https://github.com/GreenhillEfka/pilotsuite-styx-core#installation)
 
 ### HACS Installation
 
 1. [HACS](https://hacs.xyz) oeffnen
 2. **Integrations** → Menue (⋮) → **Custom repositories**
-3. URL eingeben: `https://github.com/GreenhillEfka/ai-home-copilot-ha` — Typ: **Integration**
+3. URL eingeben: `https://github.com/GreenhillEfka/pilotsuite-styx-ha` — Typ: **Integration**
 4. **PilotSuite** installieren und Home Assistant **neustarten**
 
 ### Setup
@@ -144,7 +144,7 @@ Verwaltung ueber **Settings → Integrations → PilotSuite → Configure → Ha
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Systemdesign, Datenfluss, Entity-Struktur |
 | [DEVELOPER_GUIDE](docs/DEVELOPER_GUIDE.md) | CI, Tests, Release-Prozess, Beitragen |
 | [CHANGELOG](CHANGELOG.md) | Release-Historie |
-| [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) | Backend, API, Brain Graph, Mood Engine |
+| [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) | Backend, API, Brain Graph, Mood Engine |
 
 ## Lizenz
 

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a problem in the AI Home CoPilot HA integration
+description: Report a problem in the PilotSuite HA integration
 labels: [bug]
 body:
   - type: markdown

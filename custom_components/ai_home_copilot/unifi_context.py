@@ -1,4 +1,4 @@
-"""UniFi Context: Network monitoring context for AI Home CoPilot.
+"""UniFi Context: Network monitoring context for PilotSuite.
 
 Provides:
 - UniFi snapshot coordinator (WAN status, clients, roaming events)

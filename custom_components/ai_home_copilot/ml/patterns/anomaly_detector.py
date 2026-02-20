@@ -1,6 +1,9 @@
 """Anomaly Detection Module - Identifies unusual activity patterns."""
 
+import logging
 import time
+
+_LOGGER = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Tuple, Any
 from collections import deque
 import numpy as np
@@ -171,7 +174,7 @@ class AnomalyDetector:
         except Exception as e:
             # Fallback to simple threshold-based detection
             self._is_fitted = False
-            print(f"ML model fitting failed, using fallback mode: {e}")
+            _LOGGER.warning("ML model fitting failed, using fallback mode: %s", e)
     
     def get_anomaly_summary(self, hours: int = 24) -> Dict[str, Any]:
         """

@@ -25,6 +25,7 @@ from .media_context_v2_entities import (
     DebugInfoSensor,
 )
 from .habitus_zones_entities_v2 import (
+    HabitusZonesSensor,
     HabitusZonesV2CountSensor,
     HabitusZonesV2StatesSensor,
     HabitusZonesV2HealthSensor,
@@ -143,7 +144,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     entities = [
         CopilotVersionSensor(coordinator),
         CoreApiV1StatusSensor(coordinator, entry),
-        # v2 Sensors
+        # Habitus Zones
+        HabitusZonesSensor(coordinator, entry),
         HabitusZonesV2CountSensor(coordinator, entry),
         HabitusZonesV2StatesSensor(coordinator, entry),
         HabitusZonesV2HealthSensor(coordinator, entry),
@@ -388,6 +390,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if homekit_mod is not None:
         entities.append(HomeKitBridgeSensor(hass, entry, homekit_mod))
 
+    # HomeKit per-zone toggle + QR entities (v4.0.0)
+    from .homekit_entities import async_create_homekit_entities
+    await async_create_homekit_entities(hass, entry, coordinator, async_add_entities)
+
     # Calendar Module sensor (v3.5.0)
     from .core.modules.calendar_module import get_calendar_module
     cal_mod = get_calendar_module(hass, entry.entry_id)
@@ -413,7 +419,7 @@ async def _discover_camera_entities_for_sensors(hass: HomeAssistant) -> list[tup
 
 class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):
     _attr_name = "Version"
-    _attr_unique_id = "version"
+    _attr_unique_id = "ai_home_copilot_version"
     _attr_icon = "mdi:tag"
 
     @property
