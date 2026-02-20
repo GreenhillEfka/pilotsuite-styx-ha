@@ -1,5 +1,13 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.2.0] - 2026-02-20
+
+### History Backfill
+
+- **history_backfill.py** — Neues Modul: Beim ersten Start werden letzte 24h aus dem HA Recorder geladen und als Events an Core gesendet; Brain Graph lernt sofort aus bestehender History; einmalig, Completion wird in HA Storage gespeichert
+- **__init__.py** — History Backfill Modul registriert (nach events_forwarder)
+- **manifest.json** + **entity.py** Version auf 4.2.0 synchronisiert
+
 ## [4.1.0] - 2026-02-20
 
 ### Race Conditions + Stability
