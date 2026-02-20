@@ -253,8 +253,8 @@ class HabitusMinerModule:
         try:
             # Try to import from zones store
             try:
-                from ...habitus_zones_store import async_get_zones
-                zones = await async_get_zones(hass, entry.entry_id)
+                from ...habitus_zones_store_v2 import async_get_zones_v2
+                zones = await async_get_zones_v2(hass, entry.entry_id)
 
                 module_data = hass.data[DOMAIN][entry.entry_id]["habitus_miner"]
                 zone_affinity: dict[str, str] = {}

@@ -218,7 +218,18 @@ mock_ha_const.STATE_OFF = "off"
 mock_ha_helpers.aiohttp_client = MagicMock()
 mock_ha_helpers.aiohttp_client.async_get_clientsession = MagicMock(return_value=MagicMock())
 mock_ha_helpers.storage = MagicMock()
-mock_ha_helpers.storage.Store = MagicMock
+
+
+class _MockStore:
+    """Mock Store that accepts any args (avoids MagicMock spec= pitfall)."""
+
+    def __init__(self, *args, **kwargs):
+        self._data = {}
+        self.async_load = AsyncMock(return_value=None)
+        self.async_save = AsyncMock()
+
+
+mock_ha_helpers.storage.Store = _MockStore
 mock_ha_helpers.update_coordinator = SubscriptableMagicMock()
 mock_ha_helpers.update_coordinator.DataUpdateCoordinator = SubscriptableMagicMock
 mock_ha_helpers.update_coordinator.CoordinatorEntity = MockCoordinatorEntity

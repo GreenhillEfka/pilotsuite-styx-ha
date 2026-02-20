@@ -121,18 +121,18 @@ class TestHabitusMinerModule:
 
     @pytest.mark.asyncio
     async def test_zone_affinity_initialization(self, module, mock_ctx):
-        """Test zone affinity is initialized from zones store."""
+        """Test zone affinity is initialized from zones store v2."""
         mock_ctx.hass.services.has_service = MagicMock(return_value=False)
-        
-        # Mock zones store - patch at the source module where async_get_zones is defined
-        with patch('ai_home_copilot.habitus_zones_store.async_get_zones', new_callable=AsyncMock) as mock_zones:
+
+        # Mock zones store v2 - patch where async_get_zones_v2 is defined
+        with patch('ai_home_copilot.habitus_zones_store_v2.async_get_zones_v2', new_callable=AsyncMock) as mock_zones:
             mock_zone = MagicMock()
             mock_zone.zone_id = "zone:wohnzimmer"
             mock_zone.entity_ids = ["light.wohnzimmer", "sensor.temp"]
             mock_zones.return_value = [mock_zone]
-            
+
             await module.async_setup_entry(mock_ctx)
-            
+
             # Zone affinity should be populated
             module_data = mock_ctx.hass.data[DOMAIN][mock_ctx.entry.entry_id]["habitus_miner"]
             assert "light.wohnzimmer" in module_data["zone_affinity"]
