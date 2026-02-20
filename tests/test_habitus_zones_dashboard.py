@@ -8,16 +8,16 @@ class TestHabitusZonesDashboardConfigFlow:
     """Test suite for Habitus Zones Dashboard UI features."""
 
     def test_strings_json_valid(self):
-        """Verify strings.json is valid JSON."""
+        """Verify strings.json is valid JSON with dashboard steps in options flow."""
         with open("custom_components/ai_home_copilot/strings.json", "r") as f:
             data = json.load(f)
-        assert "config" in data
-        assert "step" in data["config"]
-        # Verify new dashboard steps exist
-        assert "generate_dashboard" in data["config"]["step"]
-        assert "publish_dashboard" in data["config"]["step"]
+        assert "options" in data
+        assert "step" in data["options"]
+        # Dashboard steps are in options flow (post-setup configuration)
+        assert "generate_dashboard" in data["options"]["step"]
+        assert "publish_dashboard" in data["options"]["step"]
         # Verify menu_options include dashboard actions
-        habitus_zones = data["config"]["step"]["habitus_zones"]
+        habitus_zones = data["options"]["step"]["habitus_zones"]
         menu_opts = habitus_zones.get("menu_options", {})
         assert "generate_dashboard" in menu_opts
         assert "publish_dashboard" in menu_opts
@@ -58,8 +58,8 @@ class TestHabitusZonesDashboardErrors:
         """Verify error keys are defined in strings.json."""
         with open("custom_components/ai_home_copilot/strings.json", "r") as f:
             data = json.load(f)
-        # Error keys are under config.error, not top-level error
-        errors = data.get("config", {}).get("error", {})
+        # Dashboard error keys are under options.error (options flow)
+        errors = data.get("options", {}).get("error", {})
         assert "generation_failed" in errors
         assert "publish_failed" in errors
         assert "no_dashboard_generated" in errors

@@ -293,6 +293,12 @@ mock_ha_components.persistent_notification = MagicMock()
 # INJECT ALL MOCKS INTO sys.modules
 # ============================================================================
 
+# External HA dependencies — voluptuous is installed as a real package
+# (needed for schema validation tests), so we don't mock it.
+# aiohttp is mocked since it's only used for HTTP calls in tests.
+if 'aiohttp' not in sys.modules:
+    sys.modules['aiohttp'] = MagicMock()
+
 # Core modules
 sys.modules['homeassistant'] = mock_ha
 sys.modules['homeassistant.core'] = mock_ha_core
