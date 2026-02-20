@@ -1,13 +1,13 @@
 # PilotSuite - Benutzerhandbuch
 
-> **Version:** Integration v0.13.4 + Core Add-on v0.8.7
-> **Letzte Aktualisierung:** 2026-02-16
+> **Version:** Integration v4.0.0 + Core Add-on v4.0.0
+> **Letzte Aktualisierung:** 2026-02-20
 
 ---
 
 ## Inhaltsverzeichnis
 
-1. [Was ist PilotSuite?](#was-ist-ai-home-copilot)
+1. [Was ist PilotSuite?](#was-ist-pilotsuite)
 2. [Systemvoraussetzungen](#systemvoraussetzungen)
 3. [Installation Core Add-on](#installation-core-add-on)
 4. [Installation HACS Integration](#installation-hacs-integration)
@@ -360,7 +360,7 @@ Diagnosebericht-Erstellung fuer Fehlerbehebung.
 ### Beispiel: Zone Context Card
 
 ```yaml
-type: custom:ai-home-copilot-zone-context
+type: custom:pilotsuite-zone-context
 title: Wohnzimmer
 zone: wohnzimmer
 show_roles:
@@ -372,7 +372,7 @@ show_roles:
 ### Beispiel: Brain Graph Card
 
 ```yaml
-type: custom:ai-home-copilot-brain-graph
+type: custom:pilotsuite-brain-graph
 title: Home Neural Network
 center: zone.wohnzimmer
 hops: 2

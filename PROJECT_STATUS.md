@@ -25,7 +25,7 @@
 
 PilotSuite (ehemals AI Home CoPilot) ist ein **einzigartiges Open-Source-Projekt** — es gibt kein vergleichbares System, das Pattern Learning, Privacy-First, Governance und Multi-User-Support in einer lokalen HA-Integration vereint.
 
-**Status Alpha Release:** Das System befindet sich in der Alpha-Phase (v0.9.1-alpha.3 / v0.14.1-alpha.3). Alle kritischen Fixes wurden adressiert (Token-Auth, Port-Fix, Error-Isolation, Zone-Integration), Mood Engine API implementiert, HabitusZone Integration aktiviert.
+**Status v4.0.0 Release:** Das System hat mit v4.0.0 den ersten stabilen Release erreicht. Repo-Umbenennung zu PilotSuite, PilotSuite-Branding durchgaengig, qwen3:4b als Standard-Modell, alle kritischen Fixes adressiert.
 
 | Metrik | Core Add-on | HACS Integration |
 |--------|-------------|------------------|
@@ -153,8 +153,8 @@ PilotSuite (ehemals AI Home CoPilot) ist ein **einzigartiges Open-Source-Projekt
 
 | Feature | Status | Kompatibilität |
 |---------|--------|----------------|
-| HACS Integration | ✅ | v0.14.1-alpha.3 |
-| Add-on Manifest | ✅ | v0.9.1-alpha.3 |
+| HACS Integration | ✅ | v4.0.0 |
+| Add-on Manifest | ✅ | v4.0.0 |
 | Config Flow | ✅ | OptionsFlow implementiert |
 | Entity Registry | ✅ | eindeutige unique_ids |
 | Services | ✅ | mood_orchestrate_zone, mood_orchestrate_all |

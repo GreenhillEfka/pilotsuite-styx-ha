@@ -195,7 +195,7 @@ async def generate_camera_dashboard_yaml(
         zone_count = int(zone_state.state)
     
     yaml_content = f"""title: PilotSuite Kamera
-path: ai-home-copilot-camera
+path: pilotsuite-camera
 icon: mdi:cctv
 
 cards:
@@ -279,7 +279,7 @@ async def generate_camera_dashboard_v2_yaml(
     zone_count = get_sensor_count("sensor.ai_home_copilot_camera_zone_activity")
     
     yaml_content = f"""title: PilotSuite Kamera
-path: ai-home-copilot-camera
+path: pilotsuite-camera
 icon: mdi:cctv
 
 cards:
