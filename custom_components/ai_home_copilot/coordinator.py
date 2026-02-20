@@ -1,10 +1,10 @@
-"""HA Integration for AI Home CoPilot - Coordinator with Neural System."""
+"""PilotSuite — Coordinator with Neural System."""
 from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 from dataclasses import dataclass, field
 
 from homeassistant.core import HomeAssistant, callback
@@ -26,14 +26,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class CopilotApiClient:
-    """Client for Copilot Core API with neural system support."""
+    """Client for PilotSuite Core API with neural system support."""
     
     def __init__(self, session, base_url: str, token: str):
         self._session = session
         self._base_url = base_url.rstrip("/")
         self._token = token
     
-    async def async_get_status(self) -> Dict[str, Any]:
+    async def async_get_status(self) -> dict[str, Any]:
         """Get basic status."""
         url = f"{self._base_url}/api/v1/status"
         headers = {"Authorization": f"Bearer {self._token}"}
@@ -43,7 +43,7 @@ class CopilotApiClient:
                 raise CopilotApiError(f"API error: {resp.status}")
             return await resp.json()
     
-    async def async_get_mood(self) -> Dict[str, Any]:
+    async def async_get_mood(self) -> dict[str, Any]:
         """Get current mood from neural system."""
         url = f"{self._base_url}/api/v1/neurons/mood"
         headers = {"Authorization": f"Bearer {self._token}"}
@@ -59,7 +59,7 @@ class CopilotApiClient:
             _LOGGER.debug("Mood API not available: %s", e)
         return {"mood": "unknown", "confidence": 0.0}
     
-    async def async_get_neurons(self) -> Dict[str, Any]:
+    async def async_get_neurons(self) -> dict[str, Any]:
         """Get all neuron states."""
         url = f"{self._base_url}/api/v1/neurons"
         headers = {"Authorization": f"Bearer {self._token}"}
@@ -74,7 +74,7 @@ class CopilotApiClient:
             _LOGGER.debug("Neurons API not available: %s", e)
         return {"neurons": {}}
     
-    async def async_evaluate_neurons(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def async_evaluate_neurons(self, context: dict[str, Any]) -> dict[str, Any]:
         """Evaluate neural pipeline with HA states."""
         url = f"{self._base_url}/api/v1/neurons/evaluate"
         headers = {"Authorization": f"Bearer {self._token}"}
@@ -98,7 +98,6 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator with neural system integration."""
     
     def __init__(self, hass: HomeAssistant, config: dict):
-        self._hass = hass
         self._config = config
         session = async_get_clientsession(hass)
         
@@ -110,8 +109,8 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         self.api = CopilotApiClient(session, base_url, token)
         
         # Camera state management
-        self.camera_state: Dict[str, CameraState] = {}
-        self.camera_privacy: Dict[str, CameraPrivacySettings] = {}
+        self.camera_state: dict[str, CameraState] = {}
+        self.camera_privacy: dict[str, CameraPrivacySettings] = {}
         
         # Hybrid mode: 120s fallback polling (real-time via webhook push)
         super().__init__(
@@ -121,7 +120,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=120),
         )
     
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
         try:
             # Get basic status
@@ -150,14 +149,14 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 "sequences": habit_data.get("sequences", []),
             }
         except Exception as err:
-            _LOGGER.error("Error fetching Copilot data: %s", err)
+            _LOGGER.error("Error fetching PilotSuite data: %s", err)
             raise UpdateFailed(str(err)) from err
     
-    async def _get_habit_learning_data(self) -> Dict[str, Any]:
+    async def _get_habit_learning_data(self) -> dict[str, Any]:
         """Get habit learning data from ML context."""
         try:
             # Try to get ML context from hass.data
-            entry_data = self._hass.data.get("ai_home_copilot", {})
+            entry_data = self.hass.data.get("ai_home_copilot", {})
             
             for entry_id, data in entry_data.items():
                 ml_context = data.get("ml_context")
@@ -212,16 +211,16 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         }
     
     @callback
-    def async_get_mood(self) -> Dict[str, Any]:
+    def async_get_mood(self) -> dict[str, Any]:
         """Get cached mood data."""
         return self.data.get("mood", {}) if self.data else {}
     
     @callback
-    def async_get_neurons(self) -> Dict[str, Any]:
+    def async_get_neurons(self) -> dict[str, Any]:
         """Get cached neuron states."""
         return self.data.get("neurons", {}) if self.data else {}
     
-    async def async_evaluate_with_states(self) -> Dict[str, Any]:
+    async def async_evaluate_with_states(self) -> dict[str, Any]:
         """Evaluate neural pipeline with current HA states."""
         # Build context from HA states
         context = {
@@ -238,10 +237,10 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
             "weather.", "light.", "media_player."
         ]
         
-        for entity_id in self._hass.states.async_entity_ids():
+        for entity_id in self.hass.states.async_entity_ids():
             for pattern in entity_patterns:
                 if entity_id.startswith(pattern):
-                    state = self._hass.states.get(entity_id)
+                    state = self.hass.states.get(entity_id)
                     if state:
                         context["states"][entity_id] = {
                             "state": state.state,
@@ -264,7 +263,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         """Register a camera and return its state."""
         if camera_id not in self.camera_state:
             self.camera_state[camera_id] = CameraState(retention_hours=retention_hours)
-            self.camera_privacy[camera_id] = CameraPrivacySettings(self._hass, camera_id)
+            self.camera_privacy[camera_id] = CameraPrivacySettings(self.hass, camera_id)
             _LOGGER.info("Registered camera: %s (%s)", camera_name, camera_id)
         else:
             # Update retention

@@ -1,5 +1,31 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [3.9.1] - 2026-02-20
+
+### HA Conformity & Cleanup Release
+
+- **entity.py** — device_info now uses `DeviceInfo` dataclass (HA best practice)
+  - `manufacturer`: "Custom" → "PilotSuite"
+  - `model`: "MVP Core" → "HACS Integration"
+  - `sw_version`: now reports current version (3.9.1)
+- **coordinator.py** — removed redundant `_hass` attribute (already inherited from `DataUpdateCoordinator`)
+  - Fixed: `Dict` → `dict` (Python 3.11+ built-in generics)
+- **config_flow.py** — fixed "OpenClaw Gateway" → "PilotSuite Core Add-on" in manual setup
+- **media_context.py** — removed module-level `warnings.warn()` that fired on every import
+  - Cleaned docstring, kept as base class for media_context_v2
+- **manifest.json** — added `homeassistant: "2024.1.0"` minimum version
+- **Branding** — 30+ references updated from "AI Home CoPilot" → "PilotSuite":
+  - camera_entities.py manufacturer fields (4x)
+  - button_debug_ha_errors.py button name
+  - ha_errors_digest.py notification titles (4x)
+  - pilotsuite_dashboard.py titles and headers (4x)
+  - config_wizard_steps.py entry title
+  - debug.py device_info
+  - setup_wizard.py entry title
+  - services_setup.py docstring
+- **Core Add-on** — config.json version bump 3.9.0 → 3.9.1, port description updated
+- **Adapter** — manifest.json name "AI Home CoPilot (Adapter)" → "PilotSuite (Adapter)", version 3.9.1
+
 ## [3.9.0] - 2026-02-20
 
 ### Full Consolidation — Alles in einer Version

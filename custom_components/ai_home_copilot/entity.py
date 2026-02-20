@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 if TYPE_CHECKING:
     from .coordinator import CopilotDataUpdateCoordinator
+
+VERSION = "3.9.1"
 
 
 class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
@@ -17,10 +20,11 @@ class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
         self._port = coordinator._config.get("port")
 
     @property
-    def device_info(self):
-        return {
-            "identifiers": {("ai_home_copilot", f"{self._host}:{self._port}")},
-            "name": "AI Home CoPilot Core",
-            "manufacturer": "Custom",
-            "model": "MVP Core",
-        }
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={("ai_home_copilot", f"{self._host}:{self._port}")},
+            name="PilotSuite",
+            manufacturer="PilotSuite",
+            model="HACS Integration",
+            sw_version=VERSION,
+        )

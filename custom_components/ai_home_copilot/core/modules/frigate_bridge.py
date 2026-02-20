@@ -68,10 +68,9 @@ class FrigateBridgeModule(CopilotModule):
     Forwards detected persons to PersonTrackingModule and CameraContextModule.
     """
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
-        super().__init__(hass, entry_id)
-        self._hass = hass
-        self._entry_id = entry_id
+    def __init__(self) -> None:
+        self._hass: HomeAssistant | None = None
+        self._entry_id: str | None = None
         self._frigate_cameras: dict[str, FrigateCameraInfo] = {}
         self._recent_detections: deque[DetectionEvent] = deque(maxlen=200)
         self._listeners: list[Any] = []

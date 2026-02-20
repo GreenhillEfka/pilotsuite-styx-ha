@@ -172,9 +172,9 @@ class DebugModeSensor(SensorEntity):
         self.hass = hass
         self._attr_device_info = {
             "identifiers": {(DOMAIN, "ai_home_copilot")},
-            "name": "AI Home CoPilot",
-            "manufacturer": "AI Home",
-            "model": "Copilot Core",
+            "name": "PilotSuite",
+            "manufacturer": "PilotSuite",
+            "model": "HACS Integration",
         }
 
     @property

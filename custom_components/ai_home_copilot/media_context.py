@@ -1,27 +1,13 @@
-"""
-Media Context v1 - DEPRECATED
-=============================
-This module is DEPRECATED. Please use media_context_v2 instead.
+"""Media Context — base coordinator for media player tracking.
 
-Migration notes:
-- v2 provides enhanced media detection and better state management
-- Use media_context_v2_setup.py for new implementations
-- This module will be removed in a future release
-
-To migrate:
-    # Old (v1):
-    from .media_context import MediaContextCoordinator
-
-    # New (v2):
-    from .media_context_v2 import MediaContextV2Coordinator
-    # Setup via:
-    from .media_context_v2_setup import async_setup_media_context_v2
+Provides MediaContextCoordinator and MediaContextData used by
+media_context_v2 as foundation. Prefer media_context_v2 for
+zone-aware media tracking in new code.
 """
 
 from __future__ import annotations
 
 import logging
-import warnings
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,14 +19,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-# Issue deprecation warning
-warnings.warn(
-    "media_context is DEPRECATED. Use media_context_v2 instead. "
-    "This module will be removed in a future release.",
-    DeprecationWarning,
-    stacklevel=2
-)
 
 
 @dataclass(frozen=True, slots=True)

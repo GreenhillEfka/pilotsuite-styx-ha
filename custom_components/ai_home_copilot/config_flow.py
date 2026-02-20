@@ -1,4 +1,4 @@
-"""Config flow for AI Home CoPilot integration.
+"""Config flow for PilotSuite integration.
 
 This is the thin coordinator module. Heavy logic lives in:
 - config_helpers.py         - CSV utils, constants
@@ -136,7 +136,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=schema,
             errors=errors,
             description_placeholders={
-                "description": "Enter your OpenClaw Gateway connection details."
+                "description": "Enter your PilotSuite Core Add-on connection details."
             },
         )
 

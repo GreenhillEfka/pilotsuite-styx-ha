@@ -1,7 +1,6 @@
-"""Centralised service registration for AI Home CoPilot.
+"""Centralised service registration for PilotSuite.
 
-Extracted from __init__.py (v0.5.3) to keep async_setup() lean.
-Pure refactor – no behaviour change.
+Extracted from __init__.py to keep async_setup() lean.
 """
 from __future__ import annotations
 

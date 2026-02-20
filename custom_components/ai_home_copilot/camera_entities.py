@@ -1,5 +1,5 @@
 """
-Camera Entities for AI Home CoPilot.
+Camera Entities for PilotSuite.
 
 Provides specialized camera entities for Habitus:
 - motion_detection_camera: Motion detection events
@@ -124,7 +124,7 @@ class MotionDetectionCamera(CopilotBaseEntity, BinarySensorEntity):
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"motion_camera_{camera_id}")},
             "name": f"Motion {camera_name}",
-            "manufacturer": "AI Home CoPilot",
+            "manufacturer": "PilotSuite",
             "model": "Habitus Motion Camera",
         }
         
@@ -176,7 +176,7 @@ class PresenceCamera(CopilotBaseEntity, BinarySensorEntity):
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"presence_camera_{camera_id}")},
             "name": f"Presence {camera_name}",
-            "manufacturer": "AI Home CoPilot",
+            "manufacturer": "PilotSuite",
             "model": "Habitus Presence Camera",
         }
         
@@ -231,7 +231,7 @@ class ActivityCamera(CopilotBaseEntity, SensorEntity):
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"activity_camera_{camera_id}")},
             "name": f"Activity {camera_name}",
-            "manufacturer": "AI Home CoPilot",
+            "manufacturer": "PilotSuite",
             "model": "Habitus Activity Camera",
         }
         
@@ -287,7 +287,7 @@ class ZoneCamera(CopilotBaseEntity, SensorEntity):
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"zone_camera_{camera_id}")},
             "name": f"Zone Monitor {camera_name}",
-            "manufacturer": "AI Home CoPilot",
+            "manufacturer": "PilotSuite",
             "model": "Habitus Zone Camera",
         }
         

@@ -218,7 +218,18 @@ mock_ha_const.STATE_OFF = "off"
 mock_ha_helpers.aiohttp_client = MagicMock()
 mock_ha_helpers.aiohttp_client.async_get_clientsession = MagicMock(return_value=MagicMock())
 mock_ha_helpers.storage = MagicMock()
-mock_ha_helpers.storage.Store = MagicMock
+
+
+class _MockStore:
+    """Mock Store that accepts any args (avoids MagicMock spec= pitfall)."""
+
+    def __init__(self, *args, **kwargs):
+        self._data = {}
+        self.async_load = AsyncMock(return_value=None)
+        self.async_save = AsyncMock()
+
+
+mock_ha_helpers.storage.Store = _MockStore
 mock_ha_helpers.update_coordinator = SubscriptableMagicMock()
 mock_ha_helpers.update_coordinator.DataUpdateCoordinator = SubscriptableMagicMock
 mock_ha_helpers.update_coordinator.CoordinatorEntity = MockCoordinatorEntity
@@ -292,6 +303,12 @@ mock_ha_components.persistent_notification = MagicMock()
 # ============================================================================
 # INJECT ALL MOCKS INTO sys.modules
 # ============================================================================
+
+# External HA dependencies — voluptuous is installed as a real package
+# (needed for schema validation tests), so we don't mock it.
+# aiohttp is mocked since it's only used for HTTP calls in tests.
+if 'aiohttp' not in sys.modules:
+    sys.modules['aiohttp'] = MagicMock()
 
 # Core modules
 sys.modules['homeassistant'] = mock_ha

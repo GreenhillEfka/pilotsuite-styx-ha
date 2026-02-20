@@ -259,14 +259,14 @@ async def async_fetch_ha_errors_digest(
     try:
         lines = await hass.async_add_executor_job(_tail_file_sync, _LOG_PATH, max_lines)
     except FileNotFoundError:
-        return ("AI Home CoPilot HA errors", f"Log file not found: {_LOG_PATH}")
+        return ("PilotSuite HA errors", f"Log file not found: {_LOG_PATH}")
     except Exception as err:  # noqa: BLE001
-        return ("AI Home CoPilot HA errors", f"Failed to read HA log: {err}")
+        return ("PilotSuite HA errors", f"Failed to read HA log: {err}")
 
     hits = _filter_relevant(lines)
     if not hits:
         return (
-            "AI Home CoPilot HA errors",
+            "PilotSuite HA errors",
             f"Keine passenden Fehler/Warnungen in den letzten {max_lines} Log-Zeilen gefunden.",
         )
 
@@ -286,7 +286,7 @@ async def async_fetch_ha_errors_digest(
     text = summary + text
     
     text = _sanitize(text, max_chars=8000)
-    return ("AI Home CoPilot HA errors (digest)", text)
+    return ("PilotSuite HA errors (digest)", text)
 
 
 async def async_show_ha_errors_digest(hass: HomeAssistant, entry: ConfigEntry) -> None:

@@ -4,15 +4,25 @@ import pytest
 import time
 import sys
 import os
-import numpy as np
 from pathlib import Path
 import importlib.util
 
-# All tests in this module require HA installation
-pytestmark = pytest.mark.integration
+try:
+    import numpy as np
+    import sklearn  # noqa: F401
+    HAS_ML_DEPS = True
+except ImportError:
+    HAS_ML_DEPS = False
+    np = None
 
-# Use absolute path
-PROJECT_ROOT = Path("/config/.openclaw/workspace/ai_home_copilot_hacs_repo")
+# All tests in this module require HA installation + ML deps
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(not HAS_ML_DEPS, reason="ML dependencies (numpy, sklearn) not installed"),
+]
+
+# Use project root relative to this test file
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def load_module_from_file(module_name, file_path):
