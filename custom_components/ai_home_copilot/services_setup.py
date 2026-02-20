@@ -715,6 +715,366 @@ def _register_camera_context_services(hass: HomeAssistant) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Debug services (set_debug, disable_debug, clear_error_digest)
+# ---------------------------------------------------------------------------
+
+def _register_debug_services(hass: HomeAssistant) -> None:
+    """Register debug-related services.
+
+    Note: enable_debug, disable_debug, toggle_debug, clear_debug_buffer
+    are registered by debug.py during async_setup_entry.
+    Here we add set_debug (convenience wrapper) and clear_error_digest.
+    """
+
+    if not hass.services.has_service(DOMAIN, "set_debug"):
+
+        async def _handle_set_debug(call: ServiceCall) -> None:
+            enabled = call.data.get("enabled", False)
+            target = "enable_debug" if enabled else "disable_debug"
+            if hass.services.has_service(DOMAIN, target):
+                await hass.services.async_call(DOMAIN, target, {})
+            else:
+                domain_data = hass.data.setdefault(DOMAIN, {})
+                domain_data["debug_mode"] = enabled
+                _LOGGER.info("Debug mode set to %s (fallback)", enabled)
+
+        hass.services.async_register(
+            DOMAIN,
+            "set_debug",
+            _handle_set_debug,
+            schema=vol.Schema({vol.Required("enabled"): bool}),
+        )
+
+    # disable_debug is registered by debug.py — only add fallback
+    # if it hasn't been registered yet (pre-setup race).
+
+    if not hass.services.has_service(DOMAIN, "clear_error_digest"):
+
+        async def _handle_clear_error_digest(_: ServiceCall) -> None:
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if not isinstance(entry_data, dict):
+                    continue
+                digest = entry_data.get("error_digest")
+                if digest and hasattr(digest, "clear"):
+                    digest.clear()
+            _LOGGER.info("Error digest cleared")
+
+        hass.services.async_register(
+            DOMAIN, "clear_error_digest", _handle_clear_error_digest
+        )
+
+
+# ---------------------------------------------------------------------------
+# UniFi services
+# ---------------------------------------------------------------------------
+
+def _register_unifi_services(hass: HomeAssistant) -> None:
+    """Register UniFi network diagnostic services."""
+
+    if not hass.services.has_service(DOMAIN, "ai_home_copilot_unifi_run_diagnostics"):
+
+        async def _handle_unifi_diagnostics(_: ServiceCall) -> None:
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if not isinstance(entry_data, dict):
+                    continue
+                runtime = entry_data.get("runtime")
+                if runtime and hasattr(runtime, "registry"):
+                    mod = runtime.registry.get("network")
+                    if mod and hasattr(mod, "run_diagnostics"):
+                        result = await mod.run_diagnostics()
+                        hass.bus.async_fire(
+                            f"{DOMAIN}_unifi_diagnostics",
+                            {"entry_id": entry_id, "result": result},
+                        )
+                        return
+            _LOGGER.warning("UniFi module not available for diagnostics")
+
+        hass.services.async_register(
+            DOMAIN, "ai_home_copilot_unifi_run_diagnostics", _handle_unifi_diagnostics
+        )
+
+    if not hass.services.has_service(DOMAIN, "ai_home_copilot_unifi_get_report"):
+
+        async def _handle_unifi_report(_: ServiceCall) -> None:
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if not isinstance(entry_data, dict):
+                    continue
+                runtime = entry_data.get("runtime")
+                if runtime and hasattr(runtime, "registry"):
+                    mod = runtime.registry.get("network")
+                    if mod and hasattr(mod, "get_report"):
+                        report = await mod.get_report()
+                        hass.bus.async_fire(
+                            f"{DOMAIN}_unifi_report",
+                            {"entry_id": entry_id, "report": report},
+                        )
+                        return
+            _LOGGER.warning("UniFi module not available for report")
+
+        hass.services.async_register(
+            DOMAIN, "ai_home_copilot_unifi_get_report", _handle_unifi_report
+        )
+
+
+# ---------------------------------------------------------------------------
+# Predictive Automation service
+# ---------------------------------------------------------------------------
+
+def _register_predictive_services(hass: HomeAssistant) -> None:
+    """Register predictive automation services."""
+
+    if not hass.services.has_service(DOMAIN, "predictive_automation_suggest_automation"):
+
+        async def _handle_suggest_automation(call: ServiceCall) -> None:
+            pattern = call.data.get("pattern", "")
+            confidence = call.data.get("confidence", 0.5)
+            zone = call.data.get("zone")
+
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if not isinstance(entry_data, dict):
+                    continue
+                coordinator = entry_data.get("coordinator")
+                if not coordinator:
+                    continue
+
+                # Build suggestion from pattern
+                suggestion = {
+                    "pattern": pattern,
+                    "confidence": confidence,
+                    "zone": zone,
+                    "source": "user_service_call",
+                }
+
+                hass.bus.async_fire(
+                    f"{DOMAIN}_predictive_suggestion",
+                    {"entry_id": entry_id, "suggestion": suggestion},
+                )
+                _LOGGER.info("Predictive automation suggestion: %s (conf=%.2f)", pattern, confidence)
+                return
+
+        hass.services.async_register(
+            DOMAIN,
+            "predictive_automation_suggest_automation",
+            _handle_suggest_automation,
+            schema=vol.Schema({
+                vol.Required("pattern"): str,
+                vol.Optional("confidence"): vol.Coerce(float),
+                vol.Optional("zone"): str,
+            }),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Anomaly Alert services
+# ---------------------------------------------------------------------------
+
+def _register_anomaly_services(hass: HomeAssistant) -> None:
+    """Register anomaly detection services."""
+
+    if not hass.services.has_service(DOMAIN, "anomaly_alert_check_and_alert"):
+
+        async def _handle_check_anomaly(call: ServiceCall) -> None:
+            device_id = call.data.get("device_id", "")
+            threshold = call.data.get("threshold", 0.7)
+
+            state = hass.states.get(device_id)
+            if state is None:
+                _LOGGER.warning("Anomaly check: entity %s not found", device_id)
+                return
+
+            # Basic anomaly detection: check if value is unusually high/low
+            try:
+                value = float(state.state)
+            except (ValueError, TypeError):
+                _LOGGER.debug("Entity %s has non-numeric state, skipping anomaly check", device_id)
+                return
+
+            hass.bus.async_fire(
+                f"{DOMAIN}_anomaly_check",
+                {
+                    "device_id": device_id,
+                    "value": value,
+                    "threshold": threshold,
+                    "state": state.state,
+                    "attributes": dict(state.attributes),
+                },
+            )
+
+        hass.services.async_register(
+            DOMAIN,
+            "anomaly_alert_check_and_alert",
+            _handle_check_anomaly,
+            schema=vol.Schema({
+                vol.Required("device_id"): str,
+                vol.Optional("threshold"): vol.Coerce(float),
+            }),
+        )
+
+    if not hass.services.has_service(DOMAIN, "anomaly_alert_clear_history"):
+
+        async def _handle_clear_anomaly(_: ServiceCall) -> None:
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if not isinstance(entry_data, dict):
+                    continue
+                anomaly_store = entry_data.get("anomaly_history")
+                if anomaly_store and hasattr(anomaly_store, "clear"):
+                    anomaly_store.clear()
+            _LOGGER.info("Anomaly history cleared")
+
+        hass.services.async_register(
+            DOMAIN, "anomaly_alert_clear_history", _handle_clear_anomaly
+        )
+
+
+# ---------------------------------------------------------------------------
+# Energy Insights service
+# ---------------------------------------------------------------------------
+
+def _register_energy_services(hass: HomeAssistant) -> None:
+    """Register energy insights services."""
+
+    if not hass.services.has_service(DOMAIN, "energy_insights_get"):
+
+        async def _handle_energy_insights(call: ServiceCall) -> None:
+            device_id = call.data.get("device_id")
+            hours = call.data.get("hours", 24)
+
+            insights = {
+                "device_id": device_id,
+                "hours": hours,
+                "recommendations": [],
+            }
+
+            # Collect energy data from HA
+            energy_entities = [
+                s for s in hass.states.async_entity_ids("sensor")
+                if "energy" in s.lower() or "power" in s.lower()
+            ]
+
+            if device_id:
+                energy_entities = [e for e in energy_entities if device_id in e]
+
+            for eid in energy_entities[:20]:
+                state = hass.states.get(eid)
+                if state and state.state not in ("unknown", "unavailable"):
+                    try:
+                        val = float(state.state)
+                        insights["recommendations"].append({
+                            "entity": eid,
+                            "value": val,
+                            "unit": state.attributes.get("unit_of_measurement", ""),
+                        })
+                    except (ValueError, TypeError):
+                        pass
+
+            hass.bus.async_fire(
+                f"{DOMAIN}_energy_insights",
+                insights,
+            )
+
+        hass.services.async_register(
+            DOMAIN,
+            "energy_insights_get",
+            _handle_energy_insights,
+            schema=vol.Schema({
+                vol.Optional("device_id"): str,
+                vol.Optional("hours"): int,
+            }),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Habit Learning services
+# ---------------------------------------------------------------------------
+
+def _register_habit_learning_services(hass: HomeAssistant) -> None:
+    """Register habit learning services."""
+
+    if not hass.services.has_service(DOMAIN, "habit_learning_learn"):
+
+        async def _handle_learn(call: ServiceCall) -> None:
+            device_id = call.data.get("device_id", "")
+            event_type = call.data.get("event_type", "")
+            device_chain = call.data.get("device_chain")
+
+            import time
+            event = {
+                "device_id": device_id,
+                "event_type": event_type,
+                "timestamp": time.time(),
+                "device_chain": device_chain,
+            }
+
+            # Store in hass.data for the habit learning module
+            domain_data = hass.data.setdefault(DOMAIN, {})
+            habit_buffer = domain_data.setdefault("_habit_learning_buffer", [])
+            habit_buffer.append(event)
+
+            # Trim buffer
+            max_size = 1000
+            if len(habit_buffer) > max_size:
+                del habit_buffer[:len(habit_buffer) - max_size]
+
+            hass.bus.async_fire(
+                f"{DOMAIN}_habit_learned",
+                event,
+            )
+            _LOGGER.debug("Habit learned: %s %s", device_id, event_type)
+
+        hass.services.async_register(
+            DOMAIN,
+            "habit_learning_learn",
+            _handle_learn,
+            schema=vol.Schema({
+                vol.Required("device_id"): str,
+                vol.Required("event_type"): str,
+                vol.Optional("device_chain"): list,
+            }),
+        )
+
+    if not hass.services.has_service(DOMAIN, "habit_learning_predict"):
+
+        async def _handle_predict(call: ServiceCall) -> None:
+            device_id = call.data.get("device_id", "")
+            event_type = call.data.get("event_type", "")
+            start_device = call.data.get("start_device")
+
+            # Simple frequency-based prediction from buffer
+            domain_data = hass.data.get(DOMAIN, {})
+            buffer = domain_data.get("_habit_learning_buffer", [])
+
+            matching = [
+                e for e in buffer
+                if e.get("device_id") == device_id and e.get("event_type") == event_type
+            ]
+
+            prediction = {
+                "device_id": device_id,
+                "event_type": event_type,
+                "confidence": min(len(matching) / max(len(buffer), 1), 1.0) if buffer else 0.0,
+                "occurrences": len(matching),
+                "total_events": len(buffer),
+                "start_device": start_device,
+            }
+
+            hass.bus.async_fire(
+                f"{DOMAIN}_habit_prediction",
+                prediction,
+            )
+
+        hass.services.async_register(
+            DOMAIN,
+            "habit_learning_predict",
+            _handle_predict,
+            schema=vol.Schema({
+                vol.Required("device_id"): str,
+                vol.Required("event_type"): str,
+                vol.Optional("start_device"): str,
+            }),
+        )
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -727,3 +1087,9 @@ def async_register_all_services(hass: HomeAssistant) -> None:
     _register_habitus_dashboard_cards_services(hass)
     _register_mupl_services(hass)
     _register_camera_context_services(hass)
+    _register_debug_services(hass)
+    _register_unifi_services(hass)
+    _register_predictive_services(hass)
+    _register_anomaly_services(hass)
+    _register_energy_services(hass)
+    _register_habit_learning_services(hass)

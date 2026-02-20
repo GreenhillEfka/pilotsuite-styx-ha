@@ -120,8 +120,8 @@ class HabitusZonesV2CountSensor(CopilotBaseEntity, SensorEntity):
     """Count of configured zones v2."""
 
     _attr_has_entity_name = False
-    _attr_name = "PilotSuite habitus zones v2 count"
-    _attr_unique_id = "ai_home_copilot_habitus_zones_v2_count"
+    _attr_name = "PilotSuite habitus zones count"
+    _attr_unique_id = "ai_home_copilot_habitus_zones_count"
     _attr_icon = "mdi:counter"
 
     def __init__(self, coordinator, entry: ConfigEntry):
@@ -160,6 +160,98 @@ class HabitusZonesV2CountSensor(CopilotBaseEntity, SensorEntity):
     @property
     def native_value(self) -> int | None:
         return self._count
+
+
+class HabitusZonesSensor(CopilotBaseEntity, SensorEntity):
+    """Main habitus zones sensor for the Lovelace ha-copilot-habitus-card.
+
+    Provides zone list, active zone, settings, mood per zone,
+    and recent behaviors as attributes.
+    """
+
+    _attr_has_entity_name = False
+    _attr_name = "PilotSuite Habitus Zones"
+    _attr_unique_id = "ai_home_copilot_habitus_zones"
+    _attr_icon = "mdi:layers-outline"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+        self._unsub = None
+        self._unsub_state = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._unsub = async_dispatcher_connect(
+            self.hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, self._on_update
+        )
+        self._unsub_state = async_dispatcher_connect(
+            self.hass, SIGNAL_HABITUS_ZONE_STATE_CHANGED, self._on_state_change
+        )
+        await self._refresh()
+
+    async def async_will_remove_from_hass(self) -> None:
+        if callable(self._unsub):
+            self._unsub()
+        if callable(self._unsub_state):
+            self._unsub_state()
+        self._unsub = None
+        self._unsub_state = None
+        await super().async_will_remove_from_hass()
+
+    async def _refresh(self) -> None:
+        zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+        active_zones = [z for z in zones if z.current_state == "active"]
+
+        zone_list = []
+        for z in zones:
+            zone_entry: dict = {
+                "id": z.zone_id,
+                "name": z.name,
+                "active": z.current_state == "active",
+                "type": z.zone_type,
+                "entity_count": len(z.entity_ids),
+                "description": f"{z.zone_type.capitalize()} — {len(z.entity_ids)} entities",
+            }
+            if z.floor:
+                zone_entry["floor"] = z.floor
+            if z.priority:
+                zone_entry["priority"] = z.priority
+            if z.tags:
+                zone_entry["tags"] = list(z.tags)
+            # Settings (derived from zone metadata/type)
+            zone_entry["settings"] = {
+                "ambience": (z.metadata or {}).get("ambience", "Normal"),
+                "activity": (z.metadata or {}).get("activity", "Idle" if z.current_state == "idle" else "Active"),
+                "optimization": (z.metadata or {}).get("optimization", "Balanced"),
+            }
+            # Mood per zone (from metadata if tracked)
+            if z.metadata and z.metadata.get("mood"):
+                zone_entry["mood"] = z.metadata["mood"]
+            zone_list.append(zone_entry)
+
+        self._attr_native_value = f"{len(active_zones)}/{len(zones)} active"
+        self._attr_extra_state_attributes = {
+            "zones": zone_list,
+            "behaviors": [],  # populated by event listener
+            "zones_total": len(zones),
+            "zones_active": len(active_zones),
+        }
+        self.async_write_ha_state()
+
+    def _on_update(self, entry_id: str) -> None:
+        if entry_id != self._entry.entry_id:
+            return
+        self.hass.loop.call_soon_threadsafe(
+            lambda: self.hass.async_create_task(self._refresh())
+        )
+
+    def _on_state_change(self, data: dict) -> None:
+        if data.get("entry_id") != self._entry.entry_id:
+            return
+        self.hass.loop.call_soon_threadsafe(
+            lambda: self.hass.async_create_task(self._refresh())
+        )
 
 
 class HabitusZonesV2ValidateButton(CopilotBaseEntity, ButtonEntity):
