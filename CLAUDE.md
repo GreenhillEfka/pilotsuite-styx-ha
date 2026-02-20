@@ -119,50 +119,28 @@ custom_components/ai_home_copilot/
 
 ## Wo kommen wir her
 
-### Version v0.13.5 -- Feature-Complete
+### Version v3.9.1 -- HA Conformity Release
 
-- 22+ Module vollstaendig implementiert und registriert
-- 80+ Sensoren, 15+ Dashboard Cards
-- Events Forwarder mit Batching, Rate Limiting, PII-Redaktion, Persistent Queue
-- Habitus Miner mit Zone-Management und Pattern-Discovery
-- Brain Graph Sync mit D3.js interaktiver Visualisierung
-- Mood Context Integration mit Suggestion-Suppression
-- Multi-User Preference Learning (MUPL) mit Action Attribution
-- Camera Context, Energy, Weather, UniFi Module
-- Home Alerts mit Severity Levels und Health Score
-- Cross-Home Sync und Collective Intelligence (Phase 5)
+- 30 Module vollstaendig implementiert und registriert
+- 94+ Sensoren, 15+ Dashboard Cards
+- DeviceInfo Dataclass (HA Best Practice)
+- PilotSuite Branding durchgaengig
+- HA 2024.1.0+ Mindestversion
+- 338 Tests (HACS) + 566 Tests (Core) alle gruen
 
-### Bekannte Probleme (aus PROJECT_STATUS.md)
+### Wichtige Fixes in v3.9.x
 
-- Doppelte Entity Unique-IDs in Button-Modulen (teilweise behoben)
-- Fehlende Error-Isolation im Modul-System
-- Race Condition in Events Forwarder (flushing Flag)
-- Background Tasks nicht supervised
-
-### Neue Features (v0.14.0-alpha.1)
-
-- **Household/Altersgruppen-Modul**: Familienkonfiguration, Bettzeit-Empfehlungen
-- **Webhook Push Integration**: Echtzeit-Updates vom Core
-- **Zone Aggregation Pattern**: Aggregierte Zonen-Daten
-- **PilotSuite Umbenennung**: Display-Namen aktualisiert (Domain bleibt)
+- **entity.py** — DeviceInfo statt dict, sw_version gemeldet
+- **coordinator.py** — `_hass` Bug (shadowed inherited `self.hass`)
+- **media_context.py** — Module-level `warnings.warn()` entfernt
+- **config_flow.py** — "OpenClaw Gateway" → "PilotSuite Core Add-on"
+- **manifest.json** — `homeassistant` Mindestversion hinzugefuegt
+- **Branding** — 30+ Referenzen "AI Home CoPilot" → "PilotSuite"
+- **Dead Code** — 8 tote Dateien, 1700+ Zeilen entfernt
 
 ---
 
 ## Naechste Schritte
-
-### Alpha Testing (aktuell)
-
-- Funktionale Tests aller 22+ Module
-- Entity-ID Audit (keine Duplikate)
-- Config Flow End-to-End Test
-- Dashboard Cards Validierung
-
-### Bugfixes (Prioritaet)
-
-- Error-Isolation in `runtime.py` (try/except um Modul-Setup)
-- Events Forwarder Race Condition (try/finally)
-- Sensor unique_id Coverage Audit
-- Button-Module Konsolidierung
 
 ### Performance
 
@@ -183,6 +161,7 @@ custom_components/ai_home_copilot/
 
 - Aenderungen am DOMAIN-String `ai_home_copilot` sind NICHT erlaubt
 - Neue Entities muessen `CopilotBaseEntity` als Basisklasse verwenden
+- `device_info` muss `DeviceInfo` Dataclass verwenden (nicht dict)
 - Neue Module muessen das `CopilotModule`-Interface implementieren
 - Alle unique_ids muessen global eindeutig sein (Prefix `ai_home_copilot_`)
 - Tests liegen in `/tests/` und verwenden pytest

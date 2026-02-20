@@ -6,7 +6,9 @@
 
 Home Assistant Custom Integration fuer **PilotSuite — Styx**, einen privacy-first, lokalen KI-Assistenten der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlaegt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **94+ Sensoren**, **28 Module** und **Dashboard Cards** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt **94+ Sensoren**, **30 Module** und **Dashboard Cards** in Home Assistant bereit.
+
+> **v3.9.1** — HA-Conformity Release. `DeviceInfo`-Dataclass, PilotSuite-Branding, HA 2024.1.0+ Kompatibilitaet.
 
 ## Schnellstart
 
@@ -29,7 +31,7 @@ Das **Core Add-on** muss installiert und gestartet sein:
 
 Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port/Token manuell).
 
-## 28 Module
+## 30 Module
 
 | Modul | Funktion |
 |-------|----------|
@@ -37,9 +39,9 @@ Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port
 | HabitusMiner | Pattern-Discovery, Zone-Management, Association Rules |
 | CandidatePoller | Vorschlaege vom Core abholen (5min Intervall) |
 | BrainGraphSync | Brain Graph Synchronisation mit Core |
-| MoodContextModule | Mood-Integration (Comfort/Joy/Frugality) |
+| MoodModule | Mood-Sensoren (Comfort/Joy/Frugality) |
+| MoodContextModule | Mood-Integration und Kontext |
 | MediaContextModule | Media-Player Tracking (Musik, TV, Zonen) |
-| MediaContextV2 | Erweiterte Media-Zonen mit automatischer Area-Erkennung |
 | EnergyContextModule | Energiemonitoring (PV, Grid, Kosten) |
 | WeatherContextModule | Wetter-Integration und Vorhersage |
 | UniFiModule | Netzwerk-Ueberwachung (Geraete, Clients) |
@@ -49,18 +51,20 @@ Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port
 | HomeAlertsModule | Kritische Zustandsueberwachung |
 | VoiceContext | Sprachsteuerungs-Kontext |
 | KnowledgeGraphSync | Knowledge Graph Synchronisation |
-| HouseholdModule | Familienkonfiguration und Altersgruppen |
-| NeuronsModule | 14 Bewertungs-Neuronen |
-| HabitusZonesV2 | Habituszonen-Verwaltung und Dashboard |
-| SeedAdapterModule | Suggestion-Seed Pipeline |
-| CalendarModule | Kalender-Integration |
-| WasteModule | Abfuhr-Erinnerungen (TTS) |
-| BirthdayModule | Geburtstags-Erinnerungen (TTS) |
-| HAErrorsDigest | HA-Fehler Benachrichtigungen |
-| DevlogPush | Log-Snippets an Core |
-| EventsForwarderPersistent | Crash-sichere Event-Queue |
-| Watchdog | Fallback-Polling |
-| SafetyBackup | Konfigurations-Snapshots |
+| CameraContextModule | Frigate/Kamera-Integration mit Privacy |
+| CalendarModule | Kalender-Integration und Kontext |
+| WasteReminderModule | Abfuhr-Erinnerungen (TTS) |
+| BirthdayReminderModule | Geburtstags-Erinnerungen (TTS) |
+| EntityTagsModule | Entity-Tag-System fuer Kategorisierung |
+| PersonTrackingModule | Personen-Tracking und Praesenz |
+| FrigateBridgeModule | Frigate NVR Bridge |
+| SceneModule | Szenen-Verwaltung und Empfehlungen |
+| HomeKitBridgeModule | HomeKit-Bridge Integration |
+| QuickSearchModule | Schnellsuche ueber Entitaeten |
+| DevSurfaceModule | Debug- und Diagnose-Buttons |
+| PerformanceScalingModule | Performance-Monitoring |
+| OpsRunbookModule | Preflight-Checks und Smoke-Tests |
+| LegacyModule | Rueckwaertskompatibilitaet |
 
 ## 94+ Sensoren
 
@@ -121,7 +125,7 @@ Dazu: Mood-Gauges (Comfort/Joy/Frugality), Habitus-Patterns, Chat-Interface und 
 
 ## Habituszonen
 
-Habituszonen sind unabhaengig von HA Areas — sie definieren kuratierte Raeume mit Motion/Praesenz + Licht + optionalen Sensoren. CoPilot lernt zonenspezifische Muster und schlaegt passende Automatisierungen vor.
+Habituszonen sind unabhaengig von HA Areas — sie definieren kuratierte Raeume mit Motion/Praesenz + Licht + optionalen Sensoren. PilotSuite lernt zonenspezifische Muster und schlaegt passende Automatisierungen vor.
 
 Verwaltung ueber **Settings → Integrations → PilotSuite → Configure → Habitus zones**.
 

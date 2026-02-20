@@ -247,5 +247,5 @@ def build_final_config(wizard_data: dict) -> tuple[dict, str]:
         CONF_WATCHDOG_ENABLED: DEFAULT_WATCHDOG_ENABLED,
         CONF_EVENTS_FORWARDER_ENABLED: DEFAULT_EVENTS_FORWARDER_ENABLED,
     }
-    title = "AI Home CoPilot (Quick Start)" if wizard_data.get("quick_start") else "AI Home CoPilot"
+    title = "PilotSuite (Quick Start)" if wizard_data.get("quick_start") else "PilotSuite"
     return final_config, title

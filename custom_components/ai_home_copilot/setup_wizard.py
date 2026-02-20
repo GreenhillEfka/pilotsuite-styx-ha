@@ -459,7 +459,7 @@ class AiHomeCopilotSetupWizard(config_entries.FlowHandler):
         }
         
         return self.async_create_entry(
-            title="AI Home CoPilot",
+            title="PilotSuite",
             data=final_config,
         )
 

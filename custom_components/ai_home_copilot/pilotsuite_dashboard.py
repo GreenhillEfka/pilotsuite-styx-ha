@@ -255,7 +255,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     intro = _markdown_card(
         "Übersicht",
         f"""
-Dieses Dashboard wird von **AI Home CoPilot** generiert (governance-first).
+Dieses Dashboard wird von **PilotSuite** generiert (governance-first).
 
 **Quicklinks (Core):**
 - Health: [{core_base}/health]({core_base}/health)
@@ -336,11 +336,11 @@ Wenn `/api/v1/events` leer bleibt:
     ts = now.strftime("%Y%m%d_%H%M%S")
 
     content = (
-        "# Generiert von AI Home CoPilot (PilotSuite)\n"
+        "# Generiert von PilotSuite\n"
         "# Governance-first: Diese Datei wird NICHT automatisch in Lovelace importiert.\n"
         "# In deiner YAML-Dashboard-Konfig referenzierst du die stabile `pilotsuite_dashboard_latest.yaml`.\n"
         "# Daher reicht in der Regel: **Generate** drücken + Dashboard neu laden.\n\n"
-        "title: AI Home CoPilot — PilotSuite\n"
+        "title: PilotSuite\n"
         "views:\n"
         + "\n".join(views)
     )
@@ -363,7 +363,7 @@ Wenn `/api/v1/events` leer bleibt:
             f"Latest (stabil):\n{latest_path}\n\n"
             "Hinweis: In der Regel reicht **Generate** + Browser-Reload (das Dashboard referenziert die latest-Datei)."
         ),
-        title="AI Home CoPilot PilotSuite",
+        title="PilotSuite Dashboard",
         notification_id="ai_home_copilot_pilotsuite_dashboard",
     )
 
@@ -400,7 +400,7 @@ async def async_publish_last_pilotsuite_dashboard(hass: HomeAssistant) -> str:
     persistent_notification.async_create(
         hass,
         f"PilotSuite dashboard published (stable). Open: {url}",
-        title="AI Home CoPilot PilotSuite dashboard download",
+        title="PilotSuite Dashboard Download",
         notification_id="ai_home_copilot_pilotsuite_dashboard_download",
     )
 
