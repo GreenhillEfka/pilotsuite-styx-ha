@@ -131,7 +131,9 @@ def init_services(hass=None, config: dict = None):
             ),
             node_half_life_hours=_safe_float(bg_config.get("node_half_life_hours", 24.0), 24.0, 0.1, 8760.0),
             edge_half_life_hours=_safe_float(bg_config.get("edge_half_life_hours", 12.0), 12.0, 0.1, 8760.0),
+            prune_interval_minutes=_safe_int(bg_config.get("prune_interval_minutes", 60), 60, 1, 1440),
         )
+        brain_graph_service.start_scheduled_pruning()
         services["brain_graph_service"] = brain_graph_service
         services["graph_renderer"] = GraphRenderer()
         init_brain_graph_api(brain_graph_service, services["graph_renderer"])

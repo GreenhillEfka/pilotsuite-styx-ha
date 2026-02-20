@@ -1,5 +1,13 @@
 # Changelog - PilotSuite Core Add-on
 
+## [4.2.0] - 2026-02-20
+
+### Brain Graph Scheduled Pruning
+
+- **brain_graph/service.py** — Daemon-Thread für zeitbasiertes Pruning; konfigurierbar via `prune_interval_minutes` (Standard: 60 Min); automatischer Start beim Service-Init; Prune-Statistiken in `get_stats()` sichtbar
+- **core_setup.py** — `prune_interval_minutes` aus Brain-Graph-Config gelesen; `start_scheduled_pruning()` beim Init aufgerufen
+- **config.json** — Version auf 4.2.0
+
 ## [4.1.0] - 2026-02-20
 
 ### Race Conditions + Stability

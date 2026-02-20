@@ -2,6 +2,7 @@
 Brain Graph service providing high-level graph operations.
 """
 
+import logging
 import threading
 import time
 from typing import Dict, List, Optional, Any, Tuple, Iterable
@@ -9,6 +10,8 @@ from typing import Dict, List, Optional, Any, Tuple, Iterable
 from .model import GraphNode, GraphEdge, NodeKind, EdgeType
 from .store import BrainGraphStore
 from ..performance import brain_graph_cache
+
+logger = logging.getLogger(__name__)
 
 # Alias for backwards compatibility
 GraphStore = BrainGraphStore
@@ -23,26 +26,78 @@ class BrainGraphService:
     """High-level service for brain graph operations."""
     
     def __init__(
-        self, 
+        self,
         store: Optional[GraphStore] = None,
         node_half_life_hours: float = 24.0,
-        edge_half_life_hours: float = 12.0
+        edge_half_life_hours: float = 12.0,
+        prune_interval_minutes: int = 60,
     ):
         self.store = store or GraphStore()
         self.node_half_life_hours = node_half_life_hours
         self.edge_half_life_hours = edge_half_life_hours
-        
+
         # Batch processing support for performance
         self._batch_mode = False
         self._batch_size = 0
         self._pending_invalidations = 0
-        
+
         # Pruning counter for deterministic cleanup
         self._operation_count = 0
         self._prune_interval = 100  # Prune every N operations
 
         # Thread-safety: protects _batch_mode, _pending_invalidations, _operation_count
         self._lock = threading.Lock()
+
+        # Scheduled pruning: daemon thread that runs prune_graph at fixed intervals
+        self._prune_interval_seconds = max(60, prune_interval_minutes * 60)
+        self._prune_stop = threading.Event()
+        self._prune_thread: Optional[threading.Thread] = None
+        self._last_prune_stats: Optional[Dict[str, Any]] = None
+
+    # --- Scheduled Pruning -------------------------------------------------
+
+    def start_scheduled_pruning(self) -> None:
+        """Start background daemon thread for periodic graph pruning."""
+        if self._prune_thread is not None and self._prune_thread.is_alive():
+            return
+        self._prune_stop.clear()
+        self._prune_thread = threading.Thread(
+            target=self._prune_loop,
+            name="brain-graph-pruner",
+            daemon=True,
+        )
+        self._prune_thread.start()
+        logger.info(
+            "Brain graph scheduled pruning started (every %d min)",
+            self._prune_interval_seconds // 60,
+        )
+
+    def stop_scheduled_pruning(self) -> None:
+        """Signal the pruning thread to stop."""
+        self._prune_stop.set()
+        if self._prune_thread is not None:
+            self._prune_thread.join(timeout=5)
+            self._prune_thread = None
+
+    def _prune_loop(self) -> None:
+        """Background loop: sleep then prune, repeat until stopped."""
+        while not self._prune_stop.wait(timeout=self._prune_interval_seconds):
+            try:
+                stats = self.store.prune_graph()
+                self._last_prune_stats = {
+                    **stats,
+                    "pruned_at": time.time(),
+                    "scheduled": True,
+                }
+                removed = stats.get("nodes_removed", 0) + stats.get("edges_removed", 0)
+                if removed > 0:
+                    _invalidate_graph_cache()
+                    logger.info("Scheduled prune: removed %d nodes, %d edges",
+                                stats.get("nodes_removed", 0), stats.get("edges_removed", 0))
+                else:
+                    logger.debug("Scheduled prune: nothing to remove")
+            except Exception:
+                logger.exception("Scheduled prune failed")
     
     def begin_batch(self, size: int = 50):
         """Start batch processing mode - delays cache invalidation until commit."""
@@ -308,16 +363,20 @@ class BrainGraphService:
     def get_stats(self) -> Dict[str, Any]:
         """Get current graph statistics."""
         store_stats = self.store.get_stats()
-        
-        return {
+
+        result = {
             **store_stats,
             "config": {
                 "node_half_life_hours": self.node_half_life_hours,
                 "edge_half_life_hours": self.edge_half_life_hours,
                 "node_min_score": self.store.node_min_score,
                 "edge_min_weight": self.store.edge_min_weight,
-            }
+                "prune_interval_minutes": self._prune_interval_seconds // 60,
+            },
         }
+        if self._last_prune_stats is not None:
+            result["last_prune"] = self._last_prune_stats
+        return result
     
     def export_state(
         self,
