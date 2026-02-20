@@ -139,7 +139,7 @@ def _get_mcp_tools():
                 "tools": [t.to_dict() for t in HA_TOOLS],
                 "functions": get_openai_functions(),
             }
-        except Exception:
+        except (ImportError, ModuleNotFoundError):
             logger.warning("MCP tools not available -- conversation will work without function calling")
             _mcp_tools = {"tools": [], "functions": []}
         return _mcp_tools
@@ -695,7 +695,7 @@ def _handle_chat_completions():
 
     except Exception as exc:
         logger.exception("Error in chat completions")
-        return jsonify({"error": {"message": str(exc), "type": "server_error"}}), 500
+        return jsonify({"error": {"message": "Internal server error", "type": "server_error"}}), 500
 
 
 # ---------------------------------------------------------------------------

@@ -294,7 +294,7 @@ def mcp_endpoint():
 
     except Exception as exc:
         logger.exception("MCP endpoint error")
-        return _jsonrpc_error(None, -32603, str(exc))
+        return _jsonrpc_error(None, -32603, "Internal server error")
 
 
 def _jsonrpc_result(req_id, result):

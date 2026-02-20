@@ -72,7 +72,7 @@ class EmbeddingConfig:
     dimension: int = EMBEDDING_DIM
     use_ollama: bool = False
     ollama_model: str = "nomic-embed-text"
-    ollama_url: str = "http://localhost:11434"
+    ollama_url: str = os.environ.get("OLLAMA_URL", "http://localhost:11434")
     cache_embeddings: bool = True
     cache_max_size: int = 1000
     
