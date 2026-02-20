@@ -1,4 +1,4 @@
-# AI Home CoPilot User Guide
+# PilotSuite User Guide
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@
 
 ## Overview
 
-AI Home CoPilot is a Home Assistant integration that helps you:
+PilotSuite is a Home Assistant integration that helps you:
 - **Observe patterns** in your home automation
 - **Discover automation opportunities** through A→B rule mining
 - **Get explainable suggestions** with evidence and confidence scores
@@ -49,18 +49,18 @@ AI Home CoPilot is a Home Assistant integration that helps you:
 
 **via HACS:**
 1. HACS → Integrations → Custom repositories
-2. Add: `https://github.com/GreenhillEfka/ai-home-copilot-ha`
-3. Install "AI Home CoPilot"
+2. Add: `https://github.com/GreenhillEfka/pilotsuite-styx-ha`
+3. Install "PilotSuite"
 4. Restart Home Assistant
 
 **or via Add-on:**
 1. Settings → Add-ons → Add-on Store → Repositories
-2. Add: `https://github.com/GreenhillEfka/Home-Assistant-Copilot`
-3. Install "AI Home CoPilot Core (MVP)"
+2. Add: `https://github.com/GreenhillEfka/pilotsuite-styx-core`
+3. Install "PilotSuite Core (MVP)"
 
 ### 2. Configure Integration
 
-Settings → Devices & services → Add integration → AI Home CoPilot
+Settings → Devices & services → Add integration → PilotSuite
 
 **Config fields:**
 - **Host**: `homeassistant.local` (or your HA IP)
@@ -81,7 +81,7 @@ The integration needs 24-48 hours of data to discover patterns.
 ### 5. Review Suggestions
 
 After enough data is collected:
-1. Go to Settings → Device & Services → AI Home CoPilot
+1. Go to Settings → Device & Services → PilotSuite
 2. Check "Repairs" for automation suggestions
 3. Review evidence and confidence scores
 4. Click "Fix" to create automation
@@ -97,29 +97,29 @@ After enough data is collected:
    
 2. **Add Repository**
    - HACS → Integrations → ⋮ → Custom repositories
-   - URL: `https://github.com/GreenhillEfka/ai-home-copilot-ha`
+   - URL: `https://github.com/GreenhillEfka/pilotsuite-styx-ha`
    - Type: Integration
    - Click "Add"
    
 3. **Install**
-   - Search for "AI Home CoPilot"
+   - Search for "PilotSuite"
    - Click "Download"
    - Restart Home Assistant
 
 4. **Configure**
    - Settings → Devices & services → Add integration
-   - Select "AI Home CoPilot"
+   - Select "PilotSuite"
    - Fill in configuration
 
 ### Method 2: Home Assistant Add-on
 
 1. **Add Repository**
    - Settings → Add-ons → Add-on Store → ⋁ → Repositories
-   - URL: `https://github.com/GreenhillEfka/Home-Assistant-Copilot`
+   - URL: `https://github.com/GreenhillEfka/pilotsuite-styx-core`
    - Click "Add"
    
 2. **Install Add-on**
-   - Find "AI Home CoPilot Core (MVP)"
+   - Find "PilotSuite Core (MVP)"
    - Click to open
    - Review configuration (optional)
    - Click "Install"
@@ -132,7 +132,7 @@ After enough data is collected:
 
 ```bash
 # Copy to custom components
-cp -r ai-home-copilot-ha/custom_components/ai_home_copilot \
+cp -r pilotsuite-styx-ha/custom_components/ai_home_copilot \
     /config/custom_components/
 
 # Restart Home Assistant
@@ -194,7 +194,7 @@ ai_home_copilot:
 
 **Core online:**
 ```
-Settings → Devices & services → AI Home CoPilot
+Settings → Devices & services → PilotSuite
 → binary_sensor.ai_home_copilot_online
 ```
 
@@ -212,7 +212,7 @@ sensor.ai_home_copilot_pipeline_health
 
 **Via Repairs:**
 1. Settings → System → Repairs
-2. Find AI Home CoPilot
+2. Find PilotSuite
 3. Click to view details
 4. Review evidence and confidence
 5. Click "Fix" to create
@@ -538,9 +538,9 @@ entity: sensor.ai_home_copilot_mood
 
 ### Documentation
 
-- **Integration**: `ai-home-copilot-ha/docs/`
-- **Core**: `Home-Assistant-Copilot/docs/`
-- **OpenAPI**: `Home-Assistant-Copilot/docs/openapi.yaml`
+- **Integration**: `pilotsuite-styx-ha/docs/`
+- **Core**: `pilotsuite-styx-core/docs/`
+- **OpenAPI**: `pilotsuite-styx-core/docs/openapi.yaml`
 
 ### Community
 

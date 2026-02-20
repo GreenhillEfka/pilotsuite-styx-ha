@@ -1,6 +1,6 @@
-# PILOTSUITE_VISION.md - AI Home CoPilot Vision & Architecture
+# PILOTSUITE_VISION.md - PilotSuite Vision & Architecture
 
-> **Project:** AI Home CoPilot (AI Home Copilot)  
+> **Project:** PilotSuite (AI Home Copilot)  
 > **Version:** 0.12.1 (HA Integration) + 0.7.0 (Core Add-on)  
 > **Status:** Active Development
 
@@ -8,7 +8,7 @@
 
 ## 🎯 Vision
 
-AI Home CoPilot is a privacy-first, local AI assistant for Home Assistant that learns your home's patterns and suggests intelligent automations. It transforms raw entity data into actionable insights while keeping all data on-premises.
+PilotSuite is a privacy-first, local AI assistant for Home Assistant that learns your home's patterns and suggests intelligent automations. It transforms raw entity data into actionable insights while keeping all data on-premises.
 
 **Core Principles:**
 - **Local-first** — No cloud dependency, all processing happens locally
@@ -22,7 +22,7 @@ AI Home CoPilot is a privacy-first, local AI assistant for Home Assistant that l
 
 ### Two-Project Model
 
-AI Home CoPilot consists of two separate but tightly integrated projects:
+PilotSuite consists of two separate but tightly integrated projects:
 
 | Project | Version | Purpose |
 |---------|---------|---------|
@@ -319,7 +319,7 @@ The Brain Graph is the central knowledge representation for entity/zone/device r
 1. **Install Core Add-on:** Install via Home Assistant Add-on Store
 2. **Install HA Integration:** Install via HACS
 3. **Configure:** Set up authentication token
-4. **Enjoy:** Let AI Home CoPilot learn your home
+4. **Enjoy:** Let PilotSuite learn your home
 
 **Default Port:** 8909  
 **Health Check:** `http://<HA_IP>:8909/health`

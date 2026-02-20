@@ -6,7 +6,7 @@
 
 ## Projektueberblick
 
-**PilotSuite** (ehemals AI Home CoPilot) ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
+**PilotSuite** (ehemals PilotSuite) ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
 
 Das Projekt verfolgt einen **Privacy-first, Local-first** Ansatz: alle Daten bleiben lokal, keine Cloud-Abhaengigkeit, Human-in-the-Loop Governance.
 
@@ -135,7 +135,7 @@ custom_components/ai_home_copilot/
 - **media_context.py** — Module-level `warnings.warn()` entfernt
 - **config_flow.py** — "OpenClaw Gateway" → "PilotSuite Core Add-on"
 - **manifest.json** — `homeassistant` Mindestversion hinzugefuegt
-- **Branding** — 30+ Referenzen "AI Home CoPilot" → "PilotSuite"
+- **Branding** — 30+ Referenzen "PilotSuite" → "PilotSuite"
 - **Dead Code** — 8 tote Dateien, 1700+ Zeilen entfernt
 
 ---

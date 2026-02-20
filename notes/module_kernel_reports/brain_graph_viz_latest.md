@@ -7,7 +7,7 @@ Minimal but visible “first neurons” visualization for the next HA integratio
 
 ## What was implemented
 ### 1) New HA Button entity (diagnostic, disabled-by-default)
-- Entity name: **`AI Home CoPilot publish brain graph viz`**
+- Entity name: **`PilotSuite publish brain graph viz`**
 - Category: `diagnostic`
 - Entity registry enabled by default: `False`
 
@@ -47,9 +47,9 @@ Behavior on press:
 
 ## How to test (manual)
 1. In Home Assistant, reload/restart the integration (or restart HA).
-2. Go to **Settings → Devices & services → AI Home CoPilot → Entities**.
+2. Go to **Settings → Devices & services → PilotSuite → Entities**.
 3. Find and **enable** the (disabled-by-default) button entity:
-   - `AI Home CoPilot publish brain graph viz`
+   - `PilotSuite publish brain graph viz`
 4. Press the button.
 5. Open the generated page:
    - `http(s)://<your-ha>/local/ai_home_copilot/brain_graph_latest.html`

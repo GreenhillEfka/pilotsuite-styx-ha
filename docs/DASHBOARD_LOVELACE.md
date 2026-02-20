@@ -1,6 +1,6 @@
 # Lovelace dashboard view (recommended)
 
-Goal: show everything needed to operate AI Home CoPilot in one place.
+Goal: show everything needed to operate PilotSuite in one place.
 
 ## What to add
 Create a new dashboard (or a new view tab) and add an **Entities** card with:
@@ -18,7 +18,7 @@ Optional (recommended): add the HACS update entity for this repository (name var
 ## YAML example
 ```yaml
 type: entities
-title: AI Home CoPilot
+title: PilotSuite
 show_header_toggle: false
 entities:
   - entity: binary_sensor.ai_home_copilot_online

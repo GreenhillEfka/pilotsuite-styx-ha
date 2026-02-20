@@ -2,7 +2,7 @@
 
 > Version 3.8.1 | Letzte Aktualisierung: Februar 2026
 
-Dieses Handbuch beschreibt die vollstaendige Einrichtung und Nutzung der PilotSuite HACS Integration fuer Home Assistant. Die Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/Home-Assistant-Copilot) (Port 8909) und stellt 94+ Sensoren, 28 Module und Dashboard Cards in Home Assistant bereit.
+Dieses Handbuch beschreibt die vollstaendige Einrichtung und Nutzung der PilotSuite HACS Integration fuer Home Assistant. Die Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt 94+ Sensoren, 28 Module und Dashboard Cards in Home Assistant bereit.
 
 **Voraussetzung:** Das Core Add-on muss installiert und gestartet sein, bevor die Integration konfiguriert wird.
 
@@ -30,7 +30,7 @@ Dieses Handbuch beschreibt die vollstaendige Einrichtung und Nutzung der PilotSu
 
 1. [HACS](https://hacs.xyz) oeffnen
 2. **Integrations** -- Menue -- **Custom repositories**
-3. URL eingeben: `https://github.com/GreenhillEfka/ai-home-copilot-ha` -- Typ: **Integration**
+3. URL eingeben: `https://github.com/GreenhillEfka/pilotsuite-styx-ha` -- Typ: **Integration**
 4. **PilotSuite** installieren und Home Assistant **neustarten**
 
 ### Drei Setup-Pfade

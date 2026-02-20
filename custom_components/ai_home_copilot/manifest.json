@@ -4,10 +4,11 @@
   "codeowners": ["@GreenhillEfka"],
   "config_flow": true,
   "dependencies": ["conversation", "history", "http", "recorder", "tag", "webhook"],
-  "documentation": "https://github.com/GreenhillEfka/ai-home-copilot-ha#readme",
+  "documentation": "https://github.com/GreenhillEfka/pilotsuite-styx-ha#readme",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/GreenhillEfka/ai-home-copilot-ha/issues",
+  "issue_tracker": "https://github.com/GreenhillEfka/pilotsuite-styx-ha/issues",
   "requirements": [],
-  "version": "4.0.0"
+  "version": "4.0.0",
+  "homeassistant": "2024.1.0"
 }

@@ -1,4 +1,4 @@
-"""Knowledge Graph sensors for AI Home CoPilot.
+"""Knowledge Graph sensors for PilotSuite.
 
 Provides sensors to monitor Knowledge Graph state:
 - Node count

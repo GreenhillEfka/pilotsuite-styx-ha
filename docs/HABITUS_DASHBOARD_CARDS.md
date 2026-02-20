@@ -111,7 +111,7 @@ cards:
 ## Komplettes Dashboard-Beispiel
 
 ```yaml
-title: AI Home CoPilot - Habitus
+title: PilotSuite - Habitus
 views:
   - title: Habitus Zonen
     icon: mdi:home-circle

@@ -1,4 +1,4 @@
-"""Energy Context: Energy monitoring context for AI Home CoPilot.
+"""Energy Context: Energy monitoring context for PilotSuite.
 
 Provides:
 - Energy snapshot coordinator (consumption, production, anomalies)

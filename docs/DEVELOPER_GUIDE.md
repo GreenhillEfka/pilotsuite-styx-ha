@@ -17,8 +17,8 @@
 
 ```bash
 # Repo klonen
-git clone https://github.com/<org>/ai-home-copilot-ha.git
-cd ai-home-copilot-ha
+git clone https://github.com/<org>/pilotsuite-styx-ha.git
+cd pilotsuite-styx-ha
 
 # Virtuelle Umgebung erstellen
 python3.11 -m venv venv
@@ -34,7 +34,7 @@ pip install bandit
 ### Verzeichnisstruktur
 
 ```
-ai-home-copilot-ha/
+pilotsuite-styx-ha/
 +-- custom_components/ai_home_copilot/
 |   +-- __init__.py              # Integration Setup
 |   +-- coordinator.py           # DataUpdateCoordinator + API Client

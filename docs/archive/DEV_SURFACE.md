@@ -30,6 +30,6 @@ See: `docs/DEVLOGS.md`
 
 ### 3) Home Assistant Diagnostics (download)
 This integration provides a HA-native diagnostics download (sanitized).
-- Settings → Devices & services → AI Home CoPilot → … → **Download diagnostics**
+- Settings → Devices & services → PilotSuite → … → **Download diagnostics**
 
 Diagnostics must never include tokens.

@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: AI Home CoPilot HA Integration Services
+  title: PilotSuite HA Integration Services
   description: |
-    Home Assistant Services for AI Home CoPilot Integration.
+    Home Assistant Services for PilotSuite Integration.
     
     These services are called via `hass.services.async_call()` or from HA automations/scripts.
     
@@ -26,8 +26,8 @@ info:
     ```
   version: 0.8.1
   contact:
-    name: AI Home CoPilot
-    url: https://github.com/GreenhillEfka/ai-home-copilot-ha
+    name: PilotSuite
+    url: https://github.com/GreenhillEfka/pilotsuite-styx-ha
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT

@@ -1,4 +1,4 @@
-# AI Home CoPilot - Implementation Roadmap v1.0
+# PilotSuite - Implementation Roadmap v1.0
 
 ## Priorisierung nach Triple Agent Review
 

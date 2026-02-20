@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AI Home CoPilot will be documented in this file.
+All notable changes to PilotSuite will be documented in this file.
 
 ## [0.9.6] - 2026-02-16
 
@@ -154,7 +154,7 @@ All notable changes to AI Home CoPilot will be documented in this file.
 ## [0.8.15] - 2026-02-15
 
 ### Added
-- **Suggestion Panel** (`suggestion_panel.py`): Dedicated UI for AI Home CoPilot suggestions
+- **Suggestion Panel** (`suggestion_panel.py`): Dedicated UI for PilotSuite suggestions
   - Timeline view of pending suggestions
   - Accept/Reject/Snooze actions via service calls
   - Confidence indicator and "Why?" explanations

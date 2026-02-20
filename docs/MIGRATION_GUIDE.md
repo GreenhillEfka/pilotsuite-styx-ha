@@ -1,4 +1,4 @@
-# Migration Guide - AI Home CoPilot
+# Migration Guide - PilotSuite
 
 ## v0.12 → v0.13
 

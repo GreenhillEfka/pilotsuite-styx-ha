@@ -1,4 +1,4 @@
-# Missing Features Analysis - AI Home CoPilot HA Integration
+# Missing Features Analysis - PilotSuite HA Integration
 
 ## Summary
 This document lists the features identified as missing and the implementations added.

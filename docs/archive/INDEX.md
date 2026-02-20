@@ -1,4 +1,4 @@
-# AI Home CoPilot - HA Integration
+# PilotSuite - HA Integration
 
 ## Quick Links
 - **README.md** - Installation & Configuration

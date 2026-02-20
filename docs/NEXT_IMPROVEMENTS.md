@@ -1,4 +1,4 @@
-# AI Home CoPilot - Next Improvements
+# PilotSuite - Next Improvements
 
 **Generated:** 2026-02-16  
 **Analysis Scope:** Architecture, Code Quality, Missing Features  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-AI Home CoPilot is a sophisticated Home Assistant integration with a dual architecture (HA Integration + Core Add-on) that provides neural-based automation suggestions. The project has evolved rapidly with extensive feature additions (v0.12.x), but this growth has introduced technical debt that needs addressing.
+PilotSuite is a sophisticated Home Assistant integration with a dual architecture (HA Integration + Core Add-on) that provides neural-based automation suggestions. The project has evolved rapidly with extensive feature additions (v0.12.x), but this growth has introduced technical debt that needs addressing.
 
 ### Key Findings
 
@@ -379,7 +379,7 @@ Blueprint Import/Create
 
 ## Conclusion
 
-AI Home CoPilot is a feature-rich integration with solid architecture. The main areas for improvement are:
+PilotSuite is a feature-rich integration with solid architecture. The main areas for improvement are:
 
 1. **Testing** - Fix the 24 failing tests to establish reliable CI/CD
 2. **Cleanup** - Remove legacy v1 files and complete TODOs

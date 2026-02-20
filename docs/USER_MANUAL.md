@@ -1,4 +1,4 @@
-# AI Home CoPilot - Benutzerhandbuch
+# PilotSuite - Benutzerhandbuch
 
 > **Version:** Integration v0.13.4 + Core Add-on v0.8.7
 > **Letzte Aktualisierung:** 2026-02-16
@@ -7,7 +7,7 @@
 
 ## Inhaltsverzeichnis
 
-1. [Was ist AI Home CoPilot?](#was-ist-ai-home-copilot)
+1. [Was ist PilotSuite?](#was-ist-ai-home-copilot)
 2. [Systemvoraussetzungen](#systemvoraussetzungen)
 3. [Installation Core Add-on](#installation-core-add-on)
 4. [Installation HACS Integration](#installation-hacs-integration)
@@ -20,7 +20,7 @@
 
 ---
 
-## Was ist AI Home CoPilot?
+## Was ist PilotSuite?
 
 Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. CoPilot lernt die Muster deines Zuhauses und schlaegt intelligente Automatisierungen vor. Alle Daten bleiben lokal - kein Cloud-Dependency. Der Mensch entscheidet immer.
 
@@ -61,7 +61,7 @@ Home Assistant
 
 1. **Home Assistant** -> **Einstellungen** -> **Add-ons**
 2. **Add-on Store** (drei Punkte) -> **Repositories**
-3. Repository-URL eingeben: `https://github.com/GreenhillEfka/Home-Assistant-Copilot`
+3. Repository-URL eingeben: `https://github.com/GreenhillEfka/pilotsuite-styx-core`
 
 ### Schritt 2: Add-on installieren
 
@@ -110,13 +110,13 @@ curl http://homeassistant.local:8099/version
 ### Schritt 1: Via HACS installieren
 
 1. **HACS** oeffnen -> **Integrationen**
-2. Nach **AI Home CoPilot** suchen
+2. Nach **PilotSuite** suchen
 3. **Herunterladen** klicken
 
 ### Schritt 2: Integration konfigurieren
 
 1. **Einstellungen** -> **Geraete & Dienste** -> **Integration hinzufuegen**
-2. Nach **AI Home CoPilot** suchen
+2. Nach **PilotSuite** suchen
 3. Konfigurieren:
    - **Core URL:** `http://homeassistant.local:8099`
    - **Auth Token:** (gleiches Token wie im Core Add-on)
@@ -131,7 +131,7 @@ Nach dem Neustart erscheinen 80+ Entitaeten unter `ai_home_copilot.*`.
 
 ### Wichtige Einstellungen
 
-Nach der Installation in **Einstellungen** -> **Geraete & Dienste** -> **AI Home CoPilot** -> **Konfigurieren**:
+Nach der Installation in **Einstellungen** -> **Geraete & Dienste** -> **PilotSuite** -> **Konfigurieren**:
 
 | Bereich | Einstellung | Empfehlung |
 |---------|------------|------------|

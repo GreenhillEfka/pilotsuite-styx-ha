@@ -1,4 +1,4 @@
-# AI Home CoPilot - Deep Research Report
+# PilotSuite - Deep Research Report
 **Date:** 2026-02-16  
 **Source:** Perplexity-style Deep Research (Web Search / Community Knowledge)
 
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-This report presents findings from research into five key areas for the AI Home CoPilot project: neural network/mood-based automation, presence detection algorithms, energy management optimization, knowledge graph visualization, and multi-user preference learning. The research draws from recent papers (2024-2026), open-source implementations, and Home Assistant community patterns.
+This report presents findings from research into five key areas for the PilotSuite project: neural network/mood-based automation, presence detection algorithms, energy management optimization, knowledge graph visualization, and multi-user preference learning. The research draws from recent papers (2024-2026), open-source implementations, and Home Assistant community patterns.
 
 **Key Takeaways:**
 - Home Assistant's AI capabilities are rapidly evolving with LLMs and local processing
@@ -367,4 +367,4 @@ Phase 3 (Month 5-6):
 
 ---
 
-*Report generated for AI Home CoPilot project - 2026-02-16*
+*Report generated for PilotSuite project - 2026-02-16*

@@ -2,29 +2,29 @@
 
 Alle Feature-Branches sind in `main` konsolidiert (v3.9.1). Diese Anleitung dokumentiert was geloescht werden kann.
 
-## HACS Integration (ai-home-copilot-ha)
+## HACS Integration (pilotsuite-styx-ha)
 
 ### Branches loeschen (alle obsolet — Code auf main)
 
 ```bash
 # Obsolete Feature-Branches
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/development
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/dev-habitus-dashboard-cards
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/dev/autopilot-2026-02-15
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/dev/mupl-phase2-v0.8.1
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/dev/openapi-spec-v0.8.2
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/dev/vector-store-v0.8.3
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/dev/tag-registry-v0.1
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/wip/phase4-ml-patterns
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/wip/module-forwarder_quality/20260208-172947
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/wip/module-unifi_module/20260209-2149
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/wip/module-unifi_module/20260215-0135
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/backup/pre-merge-20260216
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/backup/2026-02-19
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/development
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/dev-habitus-dashboard-cards
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/dev/autopilot-2026-02-15
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/dev/mupl-phase2-v0.8.1
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/dev/openapi-spec-v0.8.2
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/dev/vector-store-v0.8.3
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/dev/tag-registry-v0.1
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/wip/phase4-ml-patterns
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/wip/module-forwarder_quality/20260208-172947
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/wip/module-unifi_module/20260209-2149
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/wip/module-unifi_module/20260215-0135
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/backup/pre-merge-20260216
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/backup/2026-02-19
 
 # Merged Work-Branches
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/claude/research-repos-scope-4e3L6
-gh api -X DELETE repos/GreenhillEfka/ai-home-copilot-ha/git/refs/heads/claude/consolidate-repos-overview-bnGGO
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/claude/research-repos-scope-4e3L6
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-ha/git/refs/heads/claude/consolidate-repos-overview-bnGGO
 ```
 
 ### Garbage Tags loeschen
@@ -41,26 +41,26 @@ git push origin --delete v--dry-run
 
 ---
 
-## Core Add-on (Home-Assistant-Copilot)
+## Core Add-on (pilotsuite-styx-core)
 
 ### Branches loeschen (alle obsolet — Code auf main)
 
 ```bash
 # Legacy master (alte Autopilot-History, keine shared history mit main)
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/master
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/master
 
 # Obsolete Feature-Branches
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/dev
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/dev-habitus-dashboard-cards
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/wip/phase5-collective-intelligence
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/wip/phase5-cross-home
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/release/v0.4.1
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/backup/pre-merge-20260216
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/backup/2026-02-19
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/dev
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/dev-habitus-dashboard-cards
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/wip/phase5-collective-intelligence
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/wip/phase5-cross-home
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/release/v0.4.1
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/backup/pre-merge-20260216
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/backup/2026-02-19
 
 # Merged Work-Branches
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/claude/research-repos-scope-4e3L6
-gh api -X DELETE repos/GreenhillEfka/Home-Assistant-Copilot/git/refs/heads/claude/consolidate-repos-overview-bnGGO
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/claude/research-repos-scope-4e3L6
+gh api -X DELETE repos/GreenhillEfka/pilotsuite-styx-core/git/refs/heads/claude/consolidate-repos-overview-bnGGO
 ```
 
 ### Garbage Tags loeschen

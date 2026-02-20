@@ -1,7 +1,7 @@
 # HABITUS_PHILOSOPHY.md - The Learned Home
 
 > **Version:** 0.12.1 (HA Integration) + 0.7.0 (Core Add-on)  
-> **Concept:** AI Home CoPilot learns your home's patterns to suggest intelligent automations
+> **Concept:** PilotSuite learns your home's patterns to suggest intelligent automations
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### What is Habitus?
 
-**Habitus** (Latin for "condition" or "state") is AI Home CoPilot's pattern discovery engine. It observes your home's behavior over time and learns recurring patterns to suggest helpful automations.
+**Habitus** (Latin for "condition" or "state") is PilotSuite's pattern discovery engine. It observes your home's behavior over time and learns recurring patterns to suggest helpful automations.
 
 ### Core Philosophy
 
@@ -46,7 +46,7 @@ Habitus uses **confidence scores** to indicate pattern reliability:
 
 ### How Tags and Zones Work Together
 
-Tags and Zones form the foundation of AI Home CoPilot's spatial-semantic understanding:
+Tags and Zones form the foundation of PilotSuite's spatial-semantic understanding:
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -165,7 +165,7 @@ query:
 
 ## 💡 Entity Suggestion Workflow
 
-### How AI Home CoPilot Suggests Entities
+### How PilotSuite Suggests Entities
 
 The suggestion system transforms raw data into actionable recommendations:
 
@@ -256,7 +256,7 @@ Users can filter suggestions by:
 
 ### The Feedback Loop
 
-AI Home CoPilot learns from user responses:
+PilotSuite learns from user responses:
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -308,7 +308,7 @@ AI Home CoPilot learns from user responses:
 
 > "The best automation is one you never have to think about."
 
-AI Home CoPilot aims to reach a point where:
+PilotSuite aims to reach a point where:
 - Your home anticipates your needs
 - Suggestions become seamless
 - Privacy is never compromised
@@ -324,5 +324,5 @@ AI Home CoPilot aims to reach a point where:
 
 ---
 
-*Concept: AI Home CoPilot — Your Home, Learned Locally*  
+*Concept: PilotSuite — Your Home, Learned Locally*  
 *Last Updated: 2026-02-16*

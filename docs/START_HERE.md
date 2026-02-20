@@ -1,4 +1,4 @@
-# Start here — AI Home CoPilot (HA Integration)
+# Start here — PilotSuite (HA Integration)
 
 This is the Home Assistant **custom integration** (`ai_home_copilot`).
 

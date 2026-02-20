@@ -1,4 +1,4 @@
-# AI Home CoPilot – Service Definitions
+# PilotSuite – Service Definitions
 # Auto-discovered by HA Developer Tools → Services
 
 # ─── Tag Registry ────────────────────────────────────────────────────────────
@@ -488,7 +488,7 @@ set_debug:
 
 enable_debug:
   name: Enable Debug Mode
-  description: Enable debug mode for AI Home CoPilot with optional log level.
+  description: Enable debug mode for PilotSuite with optional log level.
   fields:
     log_level:
       name: Log Level
@@ -505,7 +505,7 @@ enable_debug:
 
 toggle_debug:
   name: Toggle Debug Mode
-  description: Toggle debug mode on/off for AI Home CoPilot.
+  description: Toggle debug mode on/off for PilotSuite.
 
 clear_debug_buffer:
   name: Clear Debug Buffer

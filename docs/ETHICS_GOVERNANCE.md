@@ -1,4 +1,4 @@
-# AI Home CoPilot — Ethics & Governance
+# PilotSuite — Ethics & Governance
 
 This project adds a *meaning layer* on top of Home Assistant to help users understand patterns, receive suggestions, and (optionally) execute actions.
 

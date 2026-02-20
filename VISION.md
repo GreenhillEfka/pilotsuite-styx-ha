@@ -1,17 +1,20 @@
-# AI Home CoPilot - Unified Vision & Architecture
+# PilotSuite Styx - Unified Vision & Architecture
 
-> **Single Source of Truth** for the entire AI Home CoPilot project.
+> **Single Source of Truth** for the entire PilotSuite Styx project.
 > Both repos (Core Add-on + HACS Integration) reference this document.
-> Last Updated: 2026-02-16 | Core v0.8.7 | Integration v0.13.4
+> Last Updated: 2026-02-20 | Core v4.0.0 | Integration v4.0.0
+> Repos: `pilotsuite-styx-core` (Core Add-on) + `pilotsuite-styx-ha` (HACS Integration)
 
 ---
 
-## 1. Was ist AI Home CoPilot?
+## 1. Was ist PilotSuite Styx?
 
-Ein **privacy-first, lokaler KI-Assistent** für Home Assistant, der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlägt. Alle Daten bleiben lokal. Kein Cloud-Dependency. Der Mensch entscheidet immer.
+Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant, der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlaegt. Alle Daten bleiben lokal. Kein Cloud-Dependency. Der Mensch entscheidet immer.
+
+**Styx** ist die Identitaet des Systems — ein eigenstaendiger Charakter mit Persoenlichkeit, der das Zuhause respektvoll begleitet.
 
 **In einem Satz:**
-> Erklärendes, begrenztes, dialogisches Entscheidungssystem - bewertet (Neuronen), bündelt Bedeutung (Moods), berechnet Relevanz (Synapsen), erzeugt Vorschläge, erhält Freigaben, lässt Home Assistant ausführen.
+> Erklaerend, begrenzt, dialogisch — bewertet (Neuronen), buendelt Bedeutung (Moods), berechnet Relevanz (Synapsen), erzeugt Vorschlaege, erhaelt Freigaben, laesst Home Assistant ausfuehren.
 
 ---
 
@@ -115,8 +118,8 @@ Vorschlag angezeigt → User Feedback → Lernen
 
 | Repo | Rolle | Version | Port |
 |------|-------|---------|------|
-| **Home-Assistant-Copilot** | Core Add-on (Backend) | v0.8.7 | 8099 |
-| **ai-home-copilot-ha** | HACS Integration (Frontend) | v0.13.4 | - (verbindet sich zum Core) |
+| **pilotsuite-styx-core** | Core Add-on (Backend) | v0.8.7 | 8099 |
+| **pilotsuite-styx-ha** | HACS Integration (Frontend) | v0.13.4 | - (verbindet sich zum Core) |
 
 ### Systemarchitektur
 

@@ -1,4 +1,4 @@
-# AI Home CoPilot Installation Guide
+# PilotSuite Installation Guide
 
 ## Prerequisites
 
@@ -18,19 +18,19 @@
    - Open HACS → Integrations
    - Click the three dots menu (⋮)
    - Select "Custom repositories"
-   - Add repository URL: `https://github.com/GreenhillEfka/ai-home-copilot-ha`
+   - Add repository URL: `https://github.com/GreenhillEfka/pilotsuite-styx-ha`
    - Select type: **Integration**
    - Click "Add"
 
 3. **Install Integration**
-   - In HACS → Integrations, search for "AI Home CoPilot"
+   - In HACS → Integrations, search for "PilotSuite"
    - Click "Download" or "Install"
    - Restart Home Assistant
 
 4. **Configure Integration**
    - Go to Settings → Devices & services
    - Click "Add integration"
-   - Select "AI Home CoPilot"
+   - Select "PilotSuite"
    - Configure:
      - **Host**: `homeassistant.local` or your HA IP
      - **Port**: `8909` (default)
@@ -48,11 +48,11 @@
    - Click Add-on Store
    - Click the three dots menu (⋮)
    - Select "Repositories"
-   - Add repository URL: `https://github.com/GreenhillEfka/Home-Assistant-Copilot`
+   - Add repository URL: `https://github.com/GreenhillEfka/pilotsuite-styx-core`
    - Click "Add"
 
 2. **Install Add-on**
-   - Find "AI Home CoPilot Core (MVP)"
+   - Find "PilotSuite Core (MVP)"
    - Click to open
    - Review configuration options
    - Click "Install"
@@ -83,10 +83,10 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/GreenhillEfka/ai-home-copilot-ha.git
+git clone https://github.com/GreenhillEfka/pilotsuite-styx-ha.git
 
 # Copy to custom components
-cp -r ai-home-copilot-ha/custom_components/ai_home_copilot \
+cp -r pilotsuite-styx-ha/custom_components/ai_home_copilot \
     /config/custom_components/
 
 # Restart Home Assistant
@@ -96,10 +96,10 @@ cp -r ai-home-copilot-ha/custom_components/ai_home_copilot \
 
 ```bash
 # Clone repository
-git clone https://github.com/GreenhillEfka/Home-Assistant-Copilot.git
+git clone https://github.com/GreenhillEfka/pilotsuite-styx-core.git
 
 # Build Docker image
-cd Home-Assistant-Copilot/addons/copilot_core
+cd pilotsuite-styx-core/addons/copilot_core
 docker build -t copilot-core .
 
 # Run container
@@ -198,7 +198,7 @@ curl http://homeassistant.local:8909/health
 
 ### HACS
 
-1. HACS → Integrations → AI Home CoPilot
+1. HACS → Integrations → PilotSuite
 2. Click version dropdown
 3. Select previous version
 4. Click "Download"
@@ -216,7 +216,7 @@ curl http://homeassistant.local:8909/health
 ### HACS
 
 1. HACS → Integrations
-2. Find AI Home CoPilot
+2. Find PilotSuite
 3. Click three dots → Remove
 4. Restart Home Assistant
 

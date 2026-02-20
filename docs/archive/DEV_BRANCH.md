@@ -1,4 +1,4 @@
-# Dev Branch Policy (ai-home-copilot-ha)
+# Dev Branch Policy (pilotsuite-styx-ha)
 
 Ziel: Du sollst jederzeit sehen können, woran gerade gearbeitet wird – **ohne** dass Releases/Tags dauernd erzeugt werden.
 

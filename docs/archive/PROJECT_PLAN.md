@@ -1,4 +1,4 @@
-# AI Home CoPilot - Project Plan (Canvas + Kanban)
+# PilotSuite - Project Plan (Canvas + Kanban)
 
 ## 0) Project Canvas (1 page)
 **Mission**

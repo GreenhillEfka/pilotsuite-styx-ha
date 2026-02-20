@@ -1,4 +1,4 @@
-# AI Home CoPilot - Module Inventory
+# PilotSuite - Module Inventory
 
 ## Übersicht
 

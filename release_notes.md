@@ -1,6 +1,6 @@
 ## 🌐 UniFi Context Module
 
-Network monitoring context for AI Home CoPilot — connects Core Add-on UniFi Neuron to HA Integration.
+Network monitoring context for PilotSuite — connects Core Add-on UniFi Neuron to HA Integration.
 
 ### What's New
 - **6 new sensor entities** for network monitoring

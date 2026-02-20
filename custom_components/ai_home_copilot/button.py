@@ -1,4 +1,4 @@
-"""AI Home CoPilot Buttons (wrapper for backward compatibility)."""
+"""PilotSuite Buttons (wrapper for backward compatibility)."""
 from __future__ import annotations
 
 import logging

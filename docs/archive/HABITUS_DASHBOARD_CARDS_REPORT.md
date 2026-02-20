@@ -2,7 +2,7 @@
 
 ## Zusammenfassung
 
-Die Habitus Dashboard Cards für AI Home CoPilot wurden erfolgreich implementiert. Diese visuellen Karten ermöglichen die Darstellung von Habitus-Zonen im Home Assistant Lovelace Dashboard.
+Die Habitus Dashboard Cards für PilotSuite wurden erfolgreich implementiert. Diese visuellen Karten ermöglichen die Darstellung von Habitus-Zonen im Home Assistant Lovelace Dashboard.
 
 ---
 
@@ -50,7 +50,7 @@ Die Habitus Dashboard Cards für AI Home CoPilot wurden erfolgreich implementier
 ### Komplettes Dashboard-Beispiel
 
 ```yaml
-title: AI Home CoPilot - Habitus
+title: PilotSuite - Habitus
 views:
   - title: Habitus Zonen
     icon: mdi:home-circle

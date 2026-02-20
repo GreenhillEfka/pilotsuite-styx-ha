@@ -1,19 +1,19 @@
-# AI Home CoPilot — DeepSeek-R1 Ollama Scope & Anweisungen
+# PilotSuite — DeepSeek-R1 Ollama Scope & Anweisungen
 
 > Dieses Dokument definiert den Scope und die Anweisungen für das lokale
 > DeepSeek-R1 Modell (Ollama), das als offline LLM-Backend für den
-> AI Home CoPilot dient.
+> PilotSuite dient.
 
 ---
 
 ## 1) Projektkontext
 
-Das AI Home CoPilot Projekt besteht aus **zwei Repositories**:
+Das PilotSuite Projekt besteht aus **zwei Repositories**:
 
 | Repo | Zweck | Version |
 |------|-------|---------|
-| `ai-home-copilot-ha` | Home Assistant Custom Integration (Frontend/Adapter) | 0.3.2 |
-| `Home-Assistant-Copilot` | Copilot-Core Add-on (Backend/Intelligence) | 0.2.7 |
+| `pilotsuite-styx-ha` | Home Assistant Custom Integration (Frontend/Adapter) | 0.3.2 |
+| `pilotsuite-styx-core` | Copilot-Core Add-on (Backend/Intelligence) | 0.2.7 |
 
 **Architektur-Überblick:**
 ```
@@ -229,7 +229,7 @@ GET  /api/v1/llm/status        # LLM-Verfügbarkeit prüfen
 
 ### System-Prompt (Basis)
 ```
-Du bist der AI Home CoPilot — ein lokaler, privacy-first Assistent für
+Du bist der PilotSuite — ein lokaler, privacy-first Assistent für
 Home Assistant Automatisierung. Du analysierst Muster und bewertest
 Automatisierungsvorschläge.
 

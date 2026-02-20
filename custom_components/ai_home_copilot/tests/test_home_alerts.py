@@ -1,4 +1,4 @@
-"""Tests for Home Alerts Module - AI Home CoPilot
+"""Tests for Home Alerts Module - PilotSuite
 
 Tests alert generation for:
 - Battery warnings
