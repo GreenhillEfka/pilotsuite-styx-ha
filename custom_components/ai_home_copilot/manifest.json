@@ -9,5 +9,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/GreenhillEfka/ai-home-copilot-ha/issues",
   "requirements": [],
-  "version": "3.10.0"
+  "version": "3.11.0"
 }

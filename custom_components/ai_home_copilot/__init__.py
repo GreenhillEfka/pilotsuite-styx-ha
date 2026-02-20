@@ -299,6 +299,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to set up conversation agent")
 
+    # Register Lovelace card resources from Core Add-on (v3.11.0)
+    try:
+        from .lovelace_resources import async_register_card_resources
+        await async_register_card_resources(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to register Lovelace card resources")
+
+    # Auto-generate PilotSuite dashboard on first setup (v3.11.0)
+    try:
+        from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_store, dict) and not entry_store.get("_dashboard_generated"):
+            await async_generate_pilotsuite_dashboard(hass, entry)
+            entry_store["_dashboard_generated"] = True
+            _LOGGER.info("PilotSuite dashboard auto-generated on first setup")
+    except Exception:
+        _LOGGER.exception("Failed to auto-generate PilotSuite dashboard")
+
     return True
 
 
