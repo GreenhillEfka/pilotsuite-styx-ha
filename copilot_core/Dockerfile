@@ -33,7 +33,7 @@ RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" 
 
 # Persist Ollama models in /share/ (NOT /data/) to avoid bloating HA backups
 # /share/ is persistent, shared between addons, and can be excluded from backups
-ENV OLLAMA_MODELS=/share/ai_home_copilot/ollama/models
+ENV OLLAMA_MODELS=/share/pilotsuite/ollama/models
 
 WORKDIR /usr/src/app
 COPY rootfs/usr/src/app /usr/src/app

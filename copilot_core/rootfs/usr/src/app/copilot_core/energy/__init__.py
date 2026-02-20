@@ -1,4 +1,4 @@
-"""Energy Neuron for Home Assistant Copilot Core.
+"""Energy Neuron for PilotSuite Core.
 
 Provides energy monitoring, anomaly detection, and load shifting opportunities.
 """

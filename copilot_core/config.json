@@ -2,7 +2,7 @@
   "name": "PilotSuite Core",
   "slug": "copilot_core",
   "description": "MVP Core Service for PilotSuite with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "url": "https://github.com/GreenhillEfka/pilotsuite-styx-core",
   "arch": [
     "amd64",

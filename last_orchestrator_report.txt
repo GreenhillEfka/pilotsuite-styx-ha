@@ -1,52 +1,30 @@
 🎯 PILOTSUITE ORCHESTRATOR
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📅 2026-02-17 15:55
+📅 2026-02-20
 
 📁 REPOS
-├─ HA Integration: v0.14.0 ✅
-│  └─ Clean, synced (no new commits)
-├─ Core Add-on: v0.9.0-alpha.1 ✅
-│  └─ Clean, synced (no new commits)
+├─ HA Integration: v4.0.1 ✅
+│  └─ Clean, synced (pilotsuite-styx-ha)
+├─ Core Add-on: v4.0.1 ✅
+│  └─ Clean, synced (pilotsuite-styx-core)
 
 🔍 QUALITY GATE
-├─ Syntax: ✅ Keine Fehler (py_compile)
-├─ Manifest: ✅ Synced (v0.14.0 / v0.9.0-alpha.1)
-└─ Changelog: ⚠️ Letzter Eintrag 2026-02-16 (Core v0.9.0-alpha.1)
+├─ Syntax: ✅ Keine Fehler
+├─ Manifest: ✅ Synced (v4.0.1 / v4.0.1)
+├─ Branding: ✅ PilotSuite durchgaengig
+└─ Changelog: ✅ v4.0.1 (2026-02-20)
 
-📚 DEEP RESEARCH
-├─ Topic: "Latest HA AI patterns & Local-first architecture"
-├─ Relevanz: ⭐⭐⭐⭐⭐ (5/5)
-├─ Key Finding:
-│  - HA Core 2026.x nutzt zunehmend lokale KI (Whisper/Piper, Ollama)
-│  - Local-first + Governance ist CoPilots USP (keine Konkurrenz)
-│  - CoPilot Lücken: Kein echtes ML, LLM-Integration fehlt
-│  - Security-Bug (Token-Auth) wurde identifiziert in PROJEKT_STATUS.md
-└─ Full Report: notes/research/research_2026-02-17.md
-
-🔗 STRUKTUR
-├─ Dependencies: ✅ Konsistent
-├─ API Sync: ✅ OK (Flask Blueprints mit /api/v1/*)
-└─ Docs: ⚠️ PROJECT_STATUS.md enthält kritische Bug-Liste
+📚 STATUS
+├─ v4.0.0 Release: ✅ Published (2026-02-20)
+├─ v4.0.1 Patch: ✅ Version-Fixes, Branding-Cleanup
+├─ HACS Display: ✅ Fixed (entity.py VERSION = 4.0.1)
+├─ Add-on Store: ✅ Repository structure valid
+└─ SDK Packages: ✅ Renamed to pilotsuite-*
 
 💡 EMPFEHLUNGEN
-├─ 🔴 P0: Token-Auth Fix (Core security.py + app.py)
-│  └─ Status: In PROJEKT_STATUS.md dokumentiert, aber noch nicht umgesetzt
-├─ 🟡 P1: LLM-Integration evaluieren (Ollama + Brain Graph)
-│  └─ Impact: Hoch (konkurrenzfähig zu HA 2026.x)
-├─ 🟡 P1: Button-Module konsolidieren (button_debug.py: 821 Zeilen, 44 functions)
-│  └─ Impact: Medium (Code-Qualität, Wartbarkeit)
-├─ 🟢 P2: CHANGELOG.md aktualisieren (Core v0.9.0-alpha.1)
-│  └─ Impact: Low (Dokumentation)
-├─ 🟢 P2: README.md Core Sync mit HACS (PilotSuite Umbenennung)
-│  └─ Impact: Low (Dokumentation)
+├─ 🟡 P1.2: Race Conditions Fix (Events Forwarder Thread-safety)
+├─ 🟡 P1.3: Extended User Roles (MUPL)
+├─ 🟡 P1.4: Enhanced Delegation Workflows
+└─ 🟢 P1.5: API Documentation (OpenAPI Spec)
 
-⚠️ KRITISCHE FINDINGS
-1. Token-Auth-Bug in Core (security.py) laut PROJECT_STATUS.md
-   - require_token() übergibt Klasse statt Instanz → Auth-Bypass
-   - Status: dokumentiert, aber nicht in manifest.json vermerkt
-2. button_debug.py ist unübersichtlich (821 Zeilen)
-   - 44 functions in einer Datei → Refactoring nötig
-3. Kein echtes ML-Training (nur Association Rules)
-   - Impact: CoPilot wird von HA Core 2026.x überholt
-
-⏭️ NEXT: P0 Token-Auth Fix priorisieren → v1.0 Release blocker
+⏭️ NEXT: P1.2 Race Conditions Fix → v1.0 Release path

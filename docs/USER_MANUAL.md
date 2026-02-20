@@ -1,7 +1,7 @@
 # USER_MANUAL.md - PilotSuite User Guide
 
-> **Version:** 0.12.1 (HA Integration) + 0.7.0 (Core Add-on)  
-> **Last Updated:** 2026-02-16
+> **Version:** 4.0.0 (HA Integration) + 4.0.0 (Core Add-on)
+> **Last Updated:** 2026-02-20
 
 ---
 
@@ -37,11 +37,11 @@
 
 1. Open **Home Assistant** → **Settings** → **Add-ons**
 2. Click **Add-on Store** (three dots) → **Repositories**
-3. Add: `https://github.com/ai-home-copilot/copilot-core-addon`
+3. Add: `https://github.com/GreenhillEfka/pilotsuite-styx-core`
 
-### Step 2: Install Copilot Core
+### Step 2: Install PilotSuite Core
 
-1. Find **Copilot Core** in the add-on store
+1. Find **PilotSuite Core** in the add-on store
 2. Click **Install**
 3. Wait for installation to complete
 
@@ -341,7 +341,7 @@ PilotSuite provides Lovelace cards for visualization.
 3. Paste card YAML:
 
 ```yaml
-type: custom:ai-home-copilot-zone-context
+type: custom:pilotsuite-zone-context
 title: Living Room
 zone: living_room
 ```
@@ -350,7 +350,7 @@ zone: living_room
 
 #### Zone Context Card
 ```yaml
-type: custom:ai-home-copilot-zone-context
+type: custom:pilotsuite-zone-context
 title: Zone Overview
 zone: wohnzimmer
 show_roles:
@@ -361,7 +361,7 @@ show_roles:
 
 #### Brain Graph Card
 ```yaml
-type: custom:ai-home-copilot-brain-graph
+type: custom:pilotsuite-brain-graph
 title: Home Neural Network
 center: zone.wohnzimmer
 hops: 2
@@ -423,10 +423,10 @@ docker logs copilot_core
 
 | Resource | Link |
 |----------|------|
-| GitHub Issues | https://github.com/ai-home-copilot/issues |
-| Documentation | https://docs.ai-home-copilot.dev |
-| Discord | https://discord.gg/ai-home-copilot |
+| GitHub Issues | https://github.com/GreenhillEfka/pilotsuite-styx-core/issues |
+| Documentation | https://github.com/GreenhillEfka/pilotsuite-styx-core#readme |
+| Discord | https://github.com/GreenhillEfka/pilotsuite-styx-core/discussions |
 
 ---
 
-*Last Updated: 2026-02-16*
+*Last Updated: 2026-02-20*

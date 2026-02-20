@@ -62,7 +62,7 @@ class VoiceContextProvider:
           - platform: state
             entity_id: sensor.ai_copilot_mood
         action:
-          - service: ai_home_copilot.update_voice_context
+          - service: pilotsuite.update_voice_context
     ```
     """
     

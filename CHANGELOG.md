@@ -1,5 +1,19 @@
 # Changelog - PilotSuite Core Add-on
 
+## [4.0.1] - 2026-02-20
+
+### Patch — Version-Fix, Branding-Cleanup, Add-on Store Fix
+
+- **config.json version** auf 4.0.1 aktualisiert
+- **start_dual.sh** Version-Banner von v3.11.0 auf v4.0.0 aktualisiert
+- **Dockerfile + start scripts** Ollama Model-Pfad `ai_home_copilot` → `pilotsuite`
+- **SDK Packages** umbenannt: `ai-home-copilot-client` → `pilotsuite-client`, `ai-home-copilot-sdk-python` → `pilotsuite-sdk-python`
+- **voice_context.py** Service-Name aktualisiert
+- **energy/__init__.py** Docstring-Branding auf PilotSuite
+- **docs/USER_MANUAL.md** Alle URLs, Version-Header und Card-Types aktualisiert
+- **docs/RELEASE_DEPLOYMENT_GUIDE.md** Alte Referenzen bereinigt
+- **last_orchestrator_report.txt** Auf v4.0.1 aktualisiert
+
 ## [4.0.0] - 2026-02-20
 
 ### Official Release — Repository Rename + Feature-Complete

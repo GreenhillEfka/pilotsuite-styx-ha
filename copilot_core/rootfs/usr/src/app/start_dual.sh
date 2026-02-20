@@ -1,5 +1,5 @@
 #!/bin/sh
-# PilotSuite Core v3.11.0 + Ollama startup script
+# PilotSuite Core v4.0.0 + Ollama startup script
 # Ollama is bundled in the addon for offline LLM support.
 # Models are persisted in /share/ (NOT /data/) to avoid bloating HA backups.
 #
@@ -10,7 +10,7 @@
 set -e
 
 echo "============================================"
-echo "  PilotSuite v3.11.0 -- Styx"
+echo "  PilotSuite v4.0.0 -- Styx"
 echo "  Die Verbindung beider Welten"
 echo "  Local AI for your Smart Home"
 echo "============================================"
@@ -68,7 +68,7 @@ FALLBACK_MODEL="qwen3:0.6b"
 MODEL=${OLLAMA_MODEL:-qwen3:4b}
 
 # Ensure model persistence directory exists
-export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/ai_home_copilot/ollama/models}
+export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/pilotsuite/ollama/models}
 mkdir -p "$OLLAMA_MODELS"
 
 echo "Configuration: model=$MODEL, ollama_url=${OLLAMA_URL:-http://localhost:11434}"

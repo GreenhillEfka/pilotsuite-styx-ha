@@ -36,7 +36,7 @@ Permission denied (publickey)
 
 ```bash
 # 1. SSH Key generieren (falls nicht vorhanden)
-ssh-keygen -t ed25519 -C "autopilot@ai-home-copilot"
+ssh-keygen -t ed25519 -C "autopilot@pilotsuite"
 
 # 2. Public Key zu GitHub hinzufügen
 cat ~/.ssh/id_ed25519.pub

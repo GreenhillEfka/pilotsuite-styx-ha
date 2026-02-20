@@ -1,5 +1,5 @@
 {
-  "name": "ai-home-copilot-client",
+  "name": "pilotsuite-client",
   "version": "0.5.1",
   "description": "TypeScript client for PilotSuite Core API",
   "main": "dist/index.js",

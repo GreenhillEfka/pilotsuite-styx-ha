@@ -7,7 +7,7 @@ set -e
 echo "Starting PilotSuite Core..."
 
 # Ensure model persistence
-export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/ai_home_copilot/ollama/models}
+export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/pilotsuite/ollama/models}
 mkdir -p "$OLLAMA_MODELS"
 
 FALLBACK_MODEL="qwen3:0.6b"
