@@ -305,8 +305,7 @@ User Spracheingabe -> HA Assist (STT -> Intent -> Conversation Agent)
 | Option | Default | Beschreibung |
 |--------|---------|--------------|
 | `ollama_url` | `http://localhost:11434` | Ollama Server URL |
-| `ollama_model` | `lfm2.5-thinking:latest` | Modell fuer Konversation |
-| `tool_model` | `qwen3:4b` | Modell fuer Tool-Calling (lfm2.5 unterstuetzt kein Tool-Calling) |
+| `ollama_model` | `qwen3:4b` | Standard-Modell (Konversation + Tool-Calling) |
 
 ---
 

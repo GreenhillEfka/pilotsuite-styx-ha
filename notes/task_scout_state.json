@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "maxConcurrent": 2,
-  "runningLabelsPrefix": "profi-",
-  "spawned": [
-    "tag_system_v0_1_min_impl"
-  ],
-  "lastRun": "2026-02-11T12:55:00+01:00"
-}
