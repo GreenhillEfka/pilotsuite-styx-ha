@@ -1,6 +1,22 @@
 # CHANGELOG - PilotSuite HA Integration
 
-## [3.9.0] - 2026-02-19
+## [3.9.0] - 2026-02-20
+
+### Full Consolidation — Alles in einer Version
+
+- **Branch-Konsolidierung** — Alle Arbeit aus 15 Remote-Branches zusammengeführt:
+  - `development` (v0.4.0–v0.7.5 Feature-History)
+  - `dev/autopilot-2026-02-15` (ML, CI/CD, Knowledge Graph, Neural System, D3.js Brain Graph)
+  - `dev/openapi-spec-v0.8.2` (OpenAPI Spec, LazyHistoryLoader)
+  - `dev/vector-store-v0.8.3` (Vector Store Client)
+  - `dev/mupl-phase2-v0.8.1` (Multi-User Preference Learning)
+  - `wip/phase4-ml-patterns` (ML Pattern Recognition)
+  - `wip/module-unifi_module` (Module Architecture Fixes)
+  - `backup/pre-merge-20260216`, `backup/2026-02-19` (Docs, Reports, Archive)
+  - `claude/research-repos-scope-4e3L6` (DeepSeek-R1 Audit)
+- **79 Dateien konsolidiert** — Button-Module, Docs, Archive, Reports, Notes, OpenAPI Spec
+- **Version vereinheitlicht** — manifest.json auf 3.9.0 (beide Repos synchron)
+- **Nichts verloren** — Jede einzigartige Datei aus jedem Branch wurde eingesammelt
 
 ### Production-Ready Bug Sweep
 
