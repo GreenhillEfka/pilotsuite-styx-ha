@@ -19,7 +19,7 @@ from waitress import serve
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "3.9.1")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "3.11.0")
 
 _main_logger = _logging.getLogger(__name__)
 
@@ -217,12 +217,27 @@ _load_dev_log_cache()
 
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 
 
 @app.get("/")
 def index():
     """Serve PilotSuite Dashboard (ingress panel)."""
     return send_from_directory(TEMPLATE_DIR, 'dashboard.html')
+
+
+@app.get("/api/v1/cards/<path:filename>")
+def serve_card(filename):
+    """Serve Lovelace custom card JavaScript files.
+
+    These are loaded as Lovelace resources by the HACS integration:
+      /api/v1/cards/pilotsuite-cards.js
+    """
+    cards_dir = os.path.join(STATIC_DIR, 'cards')
+    response = send_from_directory(cards_dir, filename)
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
 
 
 @app.get("/health")

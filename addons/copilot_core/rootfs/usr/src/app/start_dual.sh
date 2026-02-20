@@ -1,5 +1,5 @@
 #!/bin/sh
-# PilotSuite Core v3.10.0 + Ollama startup script
+# PilotSuite Core v3.11.0 + Ollama startup script
 # Ollama is bundled in the addon for offline LLM support.
 # Models are persisted in /share/ (NOT /data/) to avoid bloating HA backups.
 #
@@ -10,10 +10,56 @@
 set -e
 
 echo "============================================"
-echo "  PilotSuite v3.10.0 -- Styx"
+echo "  PilotSuite v3.11.0 -- Styx"
 echo "  Die Verbindung beider Welten"
 echo "  Local AI for your Smart Home"
 echo "============================================"
+
+# ---------------------------------------------------------------------------
+# Bridge: Read /data/options.json and export env vars
+# This ensures addon configuration from HA UI reaches both the shell script
+# (for Ollama model selection) and Python (via core_setup.py).
+# ---------------------------------------------------------------------------
+OPTIONS_FILE="/data/options.json"
+if [ -f "$OPTIONS_FILE" ]; then
+    echo "Loading addon configuration from $OPTIONS_FILE..."
+
+    # Extract conversation settings via Python (jq not available on Alpine base)
+    eval "$(python3 -c "
+import json, os
+try:
+    with open('$OPTIONS_FILE') as f:
+        opts = json.load(f)
+    conv = opts.get('conversation', {})
+    pairs = {
+        'OLLAMA_URL': conv.get('ollama_url', ''),
+        'OLLAMA_MODEL': conv.get('ollama_model', ''),
+        'CLOUD_API_URL': conv.get('cloud_api_url', ''),
+        'CLOUD_API_KEY': conv.get('cloud_api_key', ''),
+        'CLOUD_MODEL': conv.get('cloud_model', ''),
+        'PREFER_LOCAL': str(conv.get('prefer_local', True)).lower(),
+        'CONVERSATION_ENABLED': str(conv.get('enabled', True)).lower(),
+        'ASSISTANT_NAME': conv.get('assistant_name', ''),
+        'CONVERSATION_CHARACTER': conv.get('character', ''),
+    }
+    # Log level
+    ll = opts.get('log_level', '')
+    if ll:
+        pairs['LOG_LEVEL'] = ll
+    # Auth token
+    at = opts.get('auth_token', '')
+    if at:
+        pairs['AUTH_TOKEN'] = at
+
+    for k, v in pairs.items():
+        if v:
+            print(f'export {k}=\"{v}\"')
+except Exception as e:
+    print(f'echo \"WARNING: Could not parse {chr(36)}OPTIONS_FILE: {e}\"', flush=True)
+" 2>/dev/null)" || echo "WARNING: Config bridge failed, using defaults"
+else
+    echo "No $OPTIONS_FILE found (development mode), using env defaults"
+fi
 
 # Obligatory minimum model (always available, 400MB)
 FALLBACK_MODEL="qwen3:0.6b"
@@ -24,6 +70,8 @@ MODEL=${OLLAMA_MODEL:-qwen3:4b}
 # Ensure model persistence directory exists
 export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/ai_home_copilot/ollama/models}
 mkdir -p "$OLLAMA_MODELS"
+
+echo "Configuration: model=$MODEL, ollama_url=${OLLAMA_URL:-http://localhost:11434}"
 
 # Check if Ollama is installed
 if ! command -v ollama >/dev/null 2>&1; then
@@ -71,7 +119,6 @@ fi
 pull_model() {
     TARGET_MODEL="$1"
     LABEL="$2"
-    # ollama pull is idempotent: already-present models return immediately
     echo "Ensuring $LABEL model $TARGET_MODEL is available..."
     if ollama pull "$TARGET_MODEL" 2>&1; then
         echo "$LABEL model $TARGET_MODEL ready"
