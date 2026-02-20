@@ -22,8 +22,8 @@
         }
       },
       "init": {
-        "title": "AI Home CoPilot options",
-        "description": "Configure AI Home CoPilot.",
+        "title": "PilotSuite options",
+        "description": "Configure PilotSuite.",
         "menu_options": {
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
@@ -31,8 +31,8 @@
         }
       },
       "settings": {
-        "title": "AI Home CoPilot settings",
-        "description": "Configure AI Home CoPilot.",
+        "title": "PilotSuite settings",
+        "description": "Configure PilotSuite.",
         "data": {
           "webhook_url": "Webhook URL (copy into Copilot-Core)",
           "host": "Host",
@@ -221,8 +221,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "AI Home CoPilot options",
-        "description": "Configure AI Home CoPilot.",
+        "title": "PilotSuite options",
+        "description": "Configure PilotSuite.",
         "menu_options": {
           "settings": "Settings",
           "habitus_zones": "Habitus zones",
@@ -267,8 +267,8 @@
         }
       },
       "settings": {
-        "title": "AI Home CoPilot settings",
-        "description": "Configure AI Home CoPilot.",
+        "title": "PilotSuite settings",
+        "description": "Configure PilotSuite.",
         "data": {
           "webhook_url": "Webhook URL (copy into Copilot-Core)",
           "host": "Host",
@@ -419,7 +419,7 @@
       },
       "neurons": {
         "title": "Neural System Configuration",
-        "description": "Configure context, state, and mood neurons for the AI Home CoPilot neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
+        "description": "Configure context, state, and mood neurons for the PilotSuite neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
         "data": {
           "neuron_enabled": "Enable Neural System",
           "neuron_evaluation_interval": "Evaluation Interval (seconds)",

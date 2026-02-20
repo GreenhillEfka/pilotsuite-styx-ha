@@ -317,6 +317,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to auto-generate PilotSuite dashboard")
 
+    # Show onboarding notification on first setup (v3.12.0)
+    try:
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_store, dict) and not entry_store.get("_onboarding_shown"):
+            from homeassistant.components.persistent_notification import async_create
+            async_create(
+                hass,
+                title="PilotSuite ready",
+                message=(
+                    "Your local AI assistant **Styx** is set up and running.\n\n"
+                    "**Quick start:**\n"
+                    "- Open **Settings > Voice assistants** and select **PilotSuite** as your conversation agent\n"
+                    "- Use the PilotSuite dashboard for Mood, Neurons, and Habitus cards\n"
+                    "- Configure Habitus zones via **Settings > Integrations > PilotSuite > Configure**\n\n"
+                    "All processing runs locally on your Home Assistant — no cloud required."
+                ),
+                notification_id=f"pilotsuite_onboarding_{entry.entry_id}",
+            )
+            entry_store["_onboarding_shown"] = True
+    except Exception:
+        _LOGGER.debug("Onboarding notification skipped: %s", exc_info=True)
+
     return True
 
 

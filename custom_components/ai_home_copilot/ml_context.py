@@ -1,6 +1,9 @@
 """ML Context Module - Provides ML context to neurons."""
 
+import logging
 import time
+
+_LOGGER = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 from datetime import datetime
@@ -97,7 +100,7 @@ class MLContext:
             return True
             
         except Exception as e:
-            print(f"Failed to initialize ML context: {e}")
+            _LOGGER.error("Failed to initialize ML context: %s", e)
             return False
             
     def register_device(

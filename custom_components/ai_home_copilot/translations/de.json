@@ -22,8 +22,8 @@
         }
       },
       "init": {
-        "title": "AI Home CoPilot Optionen",
-        "description": "Konfiguriere AI Home CoPilot.",
+        "title": "PilotSuite Optionen",
+        "description": "Konfiguriere PilotSuite.",
         "menu_options": {
           "settings": "Einstellungen",
           "habitus_zones": "Habituszonen",
@@ -31,8 +31,8 @@
         }
       },
       "settings": {
-        "title": "AI Home CoPilot Einstellungen",
-        "description": "Konfiguriere AI Home CoPilot.",
+        "title": "PilotSuite Einstellungen",
+        "description": "Konfiguriere PilotSuite.",
         "data": {
           "webhook_url": "Webhook-URL (in Copilot-Core eintragen)",
           "host": "Host",
@@ -221,8 +221,8 @@
   "options": {
     "step": {
       "init": {
-        "title": "AI Home CoPilot Optionen",
-        "description": "Konfiguriere AI Home CoPilot.",
+        "title": "PilotSuite Optionen",
+        "description": "Konfiguriere PilotSuite.",
         "menu_options": {
           "settings": "Einstellungen",
           "habitus_zones": "Habituszonen",
@@ -267,8 +267,8 @@
         }
       },
       "settings": {
-        "title": "AI Home CoPilot Einstellungen",
-        "description": "Konfiguriere AI Home CoPilot.",
+        "title": "PilotSuite Einstellungen",
+        "description": "Konfiguriere PilotSuite.",
         "data": {
           "webhook_url": "Webhook-URL (in Copilot-Core eintragen)",
           "host": "Host",
@@ -419,7 +419,7 @@
       },
       "neurons": {
         "title": "Neuronensystem Konfiguration",
-        "description": "Konfiguriere Kontext-, Zustands- und Stimmungsneuronen fuer das AI Home CoPilot Neuronensystem. Hier zugewiesene Entitaeten werden fuer Mustererkennung und Stimmungsbewertung genutzt.",
+        "description": "Konfiguriere Kontext-, Zustands- und Stimmungsneuronen fuer das PilotSuite Neuronensystem. Hier zugewiesene Entitaeten werden fuer Mustererkennung und Stimmungsbewertung genutzt.",
         "data": {
           "neuron_enabled": "Neuronensystem aktivieren",
           "neuron_evaluation_interval": "Auswertungsintervall (Sekunden)",
