@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 
 class MoodContextModule:
-    """Async mood context tracker from Core API."""
-    
+    """Async mood context tracker from Core API with local persistence."""
+
     def __init__(self, hass: HomeAssistant, core_api_base_url: str, api_token: str):
         """Initialize mood context module.
-        
+
         Args:
             hass: Home Assistant instance
             core_api_base_url: Base URL of Core API (e.g., http://localhost:8909)
@@ -37,20 +37,32 @@ class MoodContextModule:
         self.hass = hass
         self.core_api_base_url = core_api_base_url
         self.api_token = api_token
-        
+
         self._zone_moods: Dict[str, Dict[str, Any]] = {}
         self._last_update: Optional[datetime] = None
         self._update_task: Optional[asyncio.Task] = None
         self._polling_interval_seconds = 30  # Update every 30s
         self._enabled = True
-        
-        logger.info(f"MoodContextModule initialized (Core: {core_api_base_url})")
-    
+        self._using_cache = False  # True when serving from HA local cache
+
+        logger.info("MoodContextModule initialized (Core: %s)", core_api_base_url)
+
     async def async_start(self) -> None:
-        """Start polling Core mood API."""
+        """Start polling Core mood API. Pre-loads from local cache first."""
         if self._update_task:
             return
-        
+
+        # Pre-load from HA persistent cache so mood context is available immediately
+        try:
+            from ...mood_store import async_load_moods
+            cached = await async_load_moods(self.hass)
+            if cached:
+                self._zone_moods = cached
+                self._using_cache = True
+                logger.info("MoodContextModule: Pre-loaded %d zones from HA cache", len(cached))
+        except Exception:
+            logger.debug("MoodContextModule: No cached moods available", exc_info=True)
+
         logger.info("MoodContextModule: Starting polling")
         self._update_task = asyncio.create_task(self._polling_loop())
     
@@ -101,30 +113,38 @@ class MoodContextModule:
                 await asyncio.sleep(backoff)
     
     async def _fetch_moods(self) -> None:
-        """Fetch mood data from Core API."""
+        """Fetch mood data from Core API and persist to HA cache."""
         try:
             session = async_get_clientsession(self.hass)
             url = f"{self.core_api_base_url}/api/v1/mood"
             headers = {"Authorization": f"Bearer {self.api_token}"}
-            
+
             async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status != 200:
-                    logger.warning(f"Core mood API returned {resp.status}")
+                    logger.warning("Core mood API returned %s", resp.status)
                     return
-                
+
                 data = await resp.json()
                 moods = data.get("moods", {})
-                
-                # Update local cache
+
+                # Update in-memory cache
                 self._zone_moods = moods
                 self._last_update = datetime.now()
-                
-                logger.debug(f"Updated moods for {len(moods)} zones")
-        
+                self._using_cache = False
+
+                # Persist to HA local storage for restart resilience
+                try:
+                    from ...mood_store import async_save_moods
+                    await async_save_moods(self.hass, moods)
+                except Exception:
+                    logger.debug("Failed to persist moods to HA cache", exc_info=True)
+
+                logger.debug("Updated moods for %d zones", len(moods))
+
         except asyncio.TimeoutError:
-            logger.warning("Core mood API timeout")
+            logger.warning("Core mood API timeout — using cached moods")
         except Exception as e:
-            logger.error(f"Error fetching moods: {e}")
+            logger.error("Error fetching moods: %s", e)
     
     def get_zone_mood(self, zone_id: str) -> Optional[Dict[str, Any]]:
         """Get mood snapshot for a specific zone."""

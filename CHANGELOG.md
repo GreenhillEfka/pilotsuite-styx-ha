@@ -1,5 +1,13 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.3.0] - 2026-02-20
+
+### Mood Persistence + MUPL Role Sync
+
+- **mood_store.py** — Neues Modul: Mood-Snapshots werden via HA Storage API lokal zwischengespeichert; bei HA-Restart wird gecachter Mood sofort geladen (kein Warten auf Core); Cache-TTL 24h, danach automatische Invalidierung
+- **mood_context_module.py** — Beim Start: Pre-Load aus HA-Cache; bei jedem Core-Fetch: automatische Persistenz; bei Timeout: Fallback auf lokalen Cache statt leeres Mood-Objekt; `_using_cache` Flag für Diagnostik
+- **manifest.json** + **entity.py** Version auf 4.3.0 synchronisiert
+
 ## [4.2.1] - 2026-02-20
 
 ### Bugfix — Hassfest + Config Flow Fix
