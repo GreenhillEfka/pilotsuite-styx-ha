@@ -18,7 +18,7 @@ info:
     
     ## Idempotency
     Event endpoints support `Idempotency-Key` header for deduplication.
-  version: 0.9.1-alpha.6
+  version: 4.2.0
   contact:
     name: PilotSuite
     url: https://github.com/GreenhillEfka/pilotsuite-styx-core
@@ -27,9 +27,9 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: http://homeassistant.local:8123/api/copilot
-    description: Home Assistant Core Add-on
-  - url: http://localhost:48099
+  - url: http://homeassistant.local:8909
+    description: PilotSuite Core Add-on (default port)
+  - url: http://localhost:8909
     description: Development server
 
 tags:
