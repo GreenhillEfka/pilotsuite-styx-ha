@@ -1,4 +1,4 @@
-"""Birthday Reminder Module - AI Home CoPilot
+"""Birthday Reminder Module - PilotSuite
 
 Scans HA calendar entities for birthday events and provides:
 - Daily morning TTS announcements for today's birthdays

@@ -277,7 +277,7 @@ Dieses Dashboard wird von **PilotSuite** generiert (governance-first).
 
     grid = _grid_card(grid_cards, columns=2)
 
-    views.append(_view("CoPilot", "copilot", "mdi:robot-outline", "\n\n".join([intro, grid])))
+    views.append(_view("PilotSuite", "copilot", "mdi:robot-outline", "\n\n".join([intro, grid])))
 
     # Core view
     views.append(

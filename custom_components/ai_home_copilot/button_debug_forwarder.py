@@ -9,7 +9,7 @@ from .entity import CopilotBaseEntity
 
 class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot forwarder status"
+    _attr_name = "PilotSuite forwarder status"
     _attr_unique_id = "ai_home_copilot_forwarder_status"
     _attr_icon = "mdi:transit-connection-variant"
 
@@ -72,6 +72,6 @@ class CopilotForwarderStatusButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             msg,
-            title="AI Home CoPilot forwarder status",
+            title="PilotSuite forwarder status",
             notification_id="ai_home_copilot_forwarder_status",
         )

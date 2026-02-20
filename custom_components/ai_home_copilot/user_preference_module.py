@@ -1,4 +1,4 @@
-"""User Preference Module v0.1 - Multi-user preference learning for AI Home CoPilot.
+"""User Preference Module v0.1 - Multi-user preference learning for PilotSuite.
 
 Implements user recognition via person.* entities and preference storage.
 """

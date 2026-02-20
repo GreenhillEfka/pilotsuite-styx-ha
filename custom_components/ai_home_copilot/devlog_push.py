@@ -133,7 +133,7 @@ async def async_push_devlog_test(hass: HomeAssistant, entry: ConfigEntry, *, api
         "kind": "devlog_test",
         "when": _now_iso(),
         "source": {"type": "homeassistant", "entry_id": entry.entry_id},
-        "text": "AI Home CoPilot devlog test message (sanitized pipeline check).",
+        "text": "PilotSuite devlog test message (sanitized pipeline check).",
     }
 
     await api.async_post(path, payload)

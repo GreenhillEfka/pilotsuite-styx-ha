@@ -1,4 +1,4 @@
-"""Anomaly Alert Sensor for AI Home CoPilot.
+"""Anomaly Alert Sensor for PilotSuite.
 
 Shows real-time anomaly detection status from the ML anomaly detector.
 """
@@ -22,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 class AnomalyAlertSensor(SensorEntity):
     """Sensor showing current anomaly detection status."""
     
-    _attr_name = "AI CoPilot Anomaly Alert"
+    _attr_name = "PilotSuite Anomaly Alert"
     _attr_unique_id = "ai_copilot_anomaly_alert"
     _attr_icon = "mdi:alert-octagon"
     _attr_should_poll = False
@@ -74,7 +74,7 @@ class AnomalyAlertSensor(SensorEntity):
 class AlertHistorySensor(SensorEntity):
     """Sensor showing recent alert history."""
     
-    _attr_name = "AI CoPilot Alert History"
+    _attr_name = "PilotSuite Alert History"
     _attr_unique_id = "ai_copilot_alert_history"
     _attr_icon = "mdi:history"
     _attr_should_poll = False

@@ -16,7 +16,7 @@ class CopilotUpdateRollbackReportButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot update/rollback report"
+    _attr_name = "PilotSuite update/rollback report"
     _attr_unique_id = "ai_home_copilot_update_rollback_report"
     _attr_icon = "mdi:update"
 

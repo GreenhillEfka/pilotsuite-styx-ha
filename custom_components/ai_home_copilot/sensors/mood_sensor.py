@@ -1,4 +1,4 @@
-"""Mood sensor entities for AI Home CoPilot.
+"""Mood sensor entities for PilotSuite.
 
 Exposes the neural system's mood state to Home Assistant for visibility
 and automation purposes.
@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 class MoodSensor(CoordinatorEntity, SensorEntity):
     """Sensor showing the current mood from the neural system."""
     
-    _attr_name = "AI CoPilot Mood"
+    _attr_name = "PilotSuite Mood"
     _attr_unique_id = "ai_copilot_mood"
     _attr_icon = "mdi:robot-happy"
     _attr_should_poll = False
@@ -65,7 +65,7 @@ class MoodSensor(CoordinatorEntity, SensorEntity):
 class MoodConfidenceSensor(CoordinatorEntity, SensorEntity):
     """Sensor showing the confidence level of the current mood."""
     
-    _attr_name = "AI CoPilot Mood Confidence"
+    _attr_name = "PilotSuite Mood Confidence"
     _attr_unique_id = "ai_copilot_mood_confidence"
     _attr_icon = "mdi:gauge"
     _attr_native_unit_of_measurement = "%"
@@ -106,7 +106,7 @@ class MoodConfidenceSensor(CoordinatorEntity, SensorEntity):
 class NeuronActivitySensor(CoordinatorEntity, SensorEntity):
     """Sensor showing active neurons count."""
     
-    _attr_name = "AI CoPilot Active Neurons"
+    _attr_name = "PilotSuite Active Neurons"
     _attr_unique_id = "ai_copilot_active_neurons"
     _attr_icon = "mdi:brain"
     _attr_should_poll = False

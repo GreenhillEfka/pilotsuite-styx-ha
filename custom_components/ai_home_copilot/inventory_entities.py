@@ -14,7 +14,7 @@ class CopilotInventoryLastRunSensor(CopilotBaseEntity, SensorEntity):
     """Diagnostic sensor: timestamp of last inventory generation."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot inventory last run"
+    _attr_name = "PilotSuite inventory last run"
     _attr_unique_id = "ai_home_copilot_inventory_last_run"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_device_class = SensorDeviceClass.TIMESTAMP

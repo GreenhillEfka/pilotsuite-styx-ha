@@ -266,7 +266,7 @@ async def async_generate_and_publish_inventory(hass: HomeAssistant) -> dict[str,
         return _redact_text(a.name) if a else _redact_text(area_id)
 
     md_lines: list[str] = []
-    md_lines.append(f"# AI Home CoPilot Inventory (generated {ts_local})")
+    md_lines.append(f"# PilotSuite Inventory (generated {ts_local})")
     md_lines.append("")
     md_lines.append("## Totals")
     md_lines.append(f"- Areas: **{len(inv_areas)}**")
@@ -325,7 +325,7 @@ async def async_generate_and_publish_inventory(hass: HomeAssistant) -> dict[str,
             f"- JSON: {url_json}\n"
             "\nPrivacy: bounded export (no attributes blobs)."
         ),
-        title="AI Home CoPilot inventory",
+        title="PilotSuite inventory",
         notification_id="ai_home_copilot_inventory",
     )
 

@@ -1,4 +1,4 @@
-"""N3 Specification Event Forwarder for AI Home CoPilot.
+"""N3 Specification Event Forwarder for PilotSuite.
 
 Implements the privacy-first envelope format per N3 Worker specification:
 - Stable schema with version field for Core evolution
@@ -135,7 +135,7 @@ class N3EventForwarder:
 
     async def async_start(self):
         """Start the N3 event forwarder."""
-        _LOGGER.info("Starting AI Home CoPilot N3 Event Forwarder")
+        _LOGGER.info("Starting PilotSuite N3 Event Forwarder")
         
         # Load persistent queue
         await self._load_persistent_state()
@@ -162,7 +162,7 @@ class N3EventForwarder:
 
     async def async_stop(self):
         """Stop the N3 event forwarder."""
-        _LOGGER.info("Stopping AI Home CoPilot N3 Event Forwarder")
+        _LOGGER.info("Stopping PilotSuite N3 Event Forwarder")
         
         # Stop event listeners
         if self._unsub_state_listener:

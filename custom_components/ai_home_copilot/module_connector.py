@@ -7,7 +7,7 @@ Implementiert:
 4. Notifications → Mood Alerts: Notification patterns → mood alerts
 
 Diese Verbindungen ermöglichen die Kommunikation zwischen den verschiedenen
-Modulen und Neuronen des AI Home CoPilot Systems.
+Modulen und Neuronen des PilotSuite Systems.
 """
 from __future__ import annotations
 

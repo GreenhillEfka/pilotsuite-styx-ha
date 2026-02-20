@@ -442,7 +442,7 @@ class CalendarContextEntity(Entity):
         self._entry_id = entry_id
         self._module = module
         self._attr_unique_id = f"{entry_id}_calendar_context"
-        self._attr_name = "CoPilot Calendar Context"
+        self._attr_name = "PilotSuite Calendar Context"
     
     @property
     def native_value(self) -> str:

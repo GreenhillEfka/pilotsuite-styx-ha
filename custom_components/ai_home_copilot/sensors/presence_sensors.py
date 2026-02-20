@@ -1,4 +1,4 @@
-"""Presence sensors for AI Home CoPilot Neurons.
+"""Presence sensors for PilotSuite Neurons.
 
 Sensors:
 - PresenceRoomSensor: Primary room with presence
@@ -173,7 +173,7 @@ class PresenceRoomSensor(CoordinatorEntity, SensorEntity):
     This sensor just displays the result.
     """
     
-    _attr_name: str = "AI CoPilot Presence Room"
+    _attr_name: str = "PilotSuite Presence Room"
     _attr_unique_id: str = "ai_copilot_presence_room"
     _attr_icon: str = "mdi:door"
     _attr_should_poll: bool = False  # Using coordinator
@@ -221,7 +221,7 @@ class PresencePersonSensor(CoordinatorEntity, SensorEntity):
     Uses Add-on Neuron API for person counting.
     """
     
-    _attr_name: str = "AI CoPilot Presence Person"
+    _attr_name: str = "PilotSuite Presence Person"
     _attr_unique_id: str = "ai_copilot_presence_person"
     _attr_icon: str = "mdi:account-group"
     _attr_native_unit_of_measurement: str = "persons"

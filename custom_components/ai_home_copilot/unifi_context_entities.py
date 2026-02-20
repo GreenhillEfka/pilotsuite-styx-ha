@@ -1,4 +1,4 @@
-"""UniFi Context Entities for AI Home CoPilot.
+"""UniFi Context Entities for PilotSuite.
 
 Exposes network data as Home Assistant entities:
 - sensor.ai_home_copilot_unifi_clients_online
@@ -28,7 +28,7 @@ class UnifiClientsOnlineSensor(CoordinatorEntity[UnifiContextCoordinator], Entit
     def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_unifi_clients_online"
-        self._attr_name = "AI Home CoPilot UniFi Clients Online"
+        self._attr_name = "PilotSuite UniFi Clients Online"
         self.entity_id = f"sensor.{self._attr_unique_id}"
         self._attr_icon = "mdi:devices"
 
@@ -49,7 +49,7 @@ class UnifiWanLatencySensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
     def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_unifi_wan_latency"
-        self._attr_name = "AI Home CoPilot UniFi WAN Latency"
+        self._attr_name = "PilotSuite UniFi WAN Latency"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -69,7 +69,7 @@ class UnifiPacketLossSensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
     def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_unifi_packet_loss"
-        self._attr_name = "AI Home CoPilot UniFi Packet Loss"
+        self._attr_name = "PilotSuite UniFi Packet Loss"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -89,7 +89,7 @@ class UnifiWanOnlineBinarySensor(CoordinatorEntity[UnifiContextCoordinator], Ent
     def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_unifi_wan_online"
-        self._attr_name = "AI Home CoPilot UniFi WAN Online"
+        self._attr_name = "PilotSuite UniFi WAN Online"
         self.entity_id = f"binary_sensor.{self._attr_unique_id}"
 
     @property
@@ -109,7 +109,7 @@ class UnifiRoamingActivityBinarySensor(CoordinatorEntity[UnifiContextCoordinator
     def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_unifi_roaming"
-        self._attr_name = "AI Home CoPilot UniFi Roaming Activity"
+        self._attr_name = "PilotSuite UniFi Roaming Activity"
         self.entity_id = f"binary_sensor.{self._attr_unique_id}"
 
     @property
@@ -133,7 +133,7 @@ class UnifiUptimeSensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
     def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_unifi_wan_uptime"
-        self._attr_name = "AI Home CoPilot UniFi WAN Uptime"
+        self._attr_name = "PilotSuite UniFi WAN Uptime"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property

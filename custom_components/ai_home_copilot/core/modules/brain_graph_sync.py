@@ -1,5 +1,5 @@
 """
-Brain Graph Sync Module for AI Home CoPilot Runtime.
+Brain Graph Sync Module for PilotSuite Runtime.
 
 Manages syncing HA state and relationships to Core Brain Graph module
 via the /api/v1/graph endpoints. Creates a real-time knowledge graph

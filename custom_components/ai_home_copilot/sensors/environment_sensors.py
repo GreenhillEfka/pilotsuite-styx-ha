@@ -1,4 +1,4 @@
-"""Environment sensors for AI Home CoPilot Neurons.
+"""Environment sensors for PilotSuite Neurons.
 
 Sensors:
 - LightLevelSensor: Ambient light level
@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 class LightLevelSensor(CoordinatorEntity, SensorEntity):
     """Sensor for ambient light level."""
     
-    _attr_name = "AI CoPilot Light Level"
+    _attr_name = "PilotSuite Light Level"
     _attr_unique_id = "ai_copilot_light_level"
     _attr_icon = "mdi:brightness-6"
     _attr_native_unit_of_measurement = "lx"
@@ -81,7 +81,7 @@ class LightLevelSensor(CoordinatorEntity, SensorEntity):
 class NoiseLevelSensor(CoordinatorEntity, SensorEntity):
     """Sensor for ambient noise level."""
     
-    _attr_name = "AI CoPilot Noise Level"
+    _attr_name = "PilotSuite Noise Level"
     _attr_unique_id = "ai_copilot_noise_level"
     _attr_icon = "mdi:volume-high"
     _attr_should_poll = True
@@ -128,7 +128,7 @@ class NoiseLevelSensor(CoordinatorEntity, SensorEntity):
 class WeatherContextSensor(CoordinatorEntity, SensorEntity):
     """Sensor for weather context."""
     
-    _attr_name = "AI CoPilot Weather Context"
+    _attr_name = "PilotSuite Weather Context"
     _attr_unique_id = "ai_copilot_weather_context"
     _attr_icon = "mdi:weather-partly-cloudy"
     _attr_should_poll = True

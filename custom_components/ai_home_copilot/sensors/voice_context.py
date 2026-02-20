@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 class VoiceContextSensor(CoordinatorEntity, SensorEntity):
     """Sensor exposing voice context from neural system."""
     
-    _attr_name = "AI CoPilot Voice Context"
+    _attr_name = "PilotSuite Voice Context"
     _attr_unique_id = "ai_copilot_voice_context"
     _attr_icon = "mdi:microphone-message"
     _attr_should_poll = False
@@ -174,7 +174,7 @@ class VoiceContextSensor(CoordinatorEntity, SensorEntity):
 class VoicePromptSensor(CoordinatorEntity, SensorEntity):
     """Sensor providing a ready-to-use voice prompt for HA Assist."""
     
-    _attr_name = "AI CoPilot Voice Prompt"
+    _attr_name = "PilotSuite Voice Prompt"
     _attr_unique_id = "ai_copilot_voice_prompt"
     _attr_icon = "mdi:text-to-speech"
     _attr_should_poll = False

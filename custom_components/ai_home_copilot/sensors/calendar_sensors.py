@@ -1,4 +1,4 @@
-"""Calendar sensor for AI Home CoPilot Neurons.
+"""Calendar sensor for PilotSuite Neurons.
 
 Sensor:
 - CalendarLoadSensor: Calendar load (busyness) estimation
@@ -29,7 +29,7 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
     - Module Connector for calendar.load Neuron
     """
     
-    _attr_name = "AI CoPilot Calendar Load"
+    _attr_name = "PilotSuite Calendar Load"
     _attr_unique_id = "ai_copilot_calendar_load"
     _attr_icon = "mdi:calendar-clock"
     _attr_should_poll = True

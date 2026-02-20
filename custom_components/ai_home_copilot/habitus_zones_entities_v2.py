@@ -34,7 +34,7 @@ class HabitusZonesV2JsonText(CopilotBaseEntity, TextEntity):
 
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot habitus zones v2 (bulk editor)"
+    _attr_name = "PilotSuite habitus zones v2 (bulk editor)"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_json"
     _attr_icon = "mdi:layers-outline"
     _attr_mode = "text"  # multiline
@@ -102,7 +102,7 @@ class HabitusZonesV2JsonText(CopilotBaseEntity, TextEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Invalid Habitus zones v2 YAML/JSON: {err}",
-                title="AI Home CoPilot Habitus zones v2",
+                title="PilotSuite Habitus zones v2",
                 notification_id="ai_home_copilot_habitus_zones_v2",
             )
             return
@@ -110,7 +110,7 @@ class HabitusZonesV2JsonText(CopilotBaseEntity, TextEntity):
         persistent_notification.async_create(
             self.hass,
             f"Saved {len(zones)} Habitus zones v2.",
-            title="AI Home CoPilot Habitus zones v2",
+            title="PilotSuite Habitus zones v2",
             notification_id="ai_home_copilot_habitus_zones_v2",
         )
         await self._reload_value()
@@ -120,7 +120,7 @@ class HabitusZonesV2CountSensor(CopilotBaseEntity, SensorEntity):
     """Count of configured zones v2."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot habitus zones v2 count"
+    _attr_name = "PilotSuite habitus zones v2 count"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_count"
     _attr_icon = "mdi:counter"
 
@@ -166,7 +166,7 @@ class HabitusZonesV2ValidateButton(CopilotBaseEntity, ButtonEntity):
     """Validate zones v2 configuration."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot validate habitus zones v2"
+    _attr_name = "PilotSuite validate habitus zones v2"
     _attr_unique_id = "ai_home_copilot_validate_habitus_zones_v2"
     _attr_icon = "mdi:check-decagram"
 
@@ -242,7 +242,7 @@ class HabitusZonesV2ValidateButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "\n".join(msg),
-            title="AI Home CoPilot Habitus zones v2 validation",
+            title="PilotSuite Habitus zones v2 validation",
             notification_id="habitus_zones_v2_validation",
         )
 
@@ -251,7 +251,7 @@ class HabitusZonesV2StatesSensor(CopilotBaseEntity, SensorEntity):
     """Aggregated zone states - v2 new entity."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot habitus zones v2 states"
+    _attr_name = "PilotSuite habitus zones v2 states"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_states"
     _attr_icon = "mdi:state-machine"
 
@@ -308,7 +308,7 @@ class HabitusZonesV2HealthSensor(CopilotBaseEntity, SensorEntity):
     """Health status for zones v2."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot habitus zones v2 health"
+    _attr_name = "PilotSuite habitus zones v2 health"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_health"
     _attr_icon = "mdi:heart-pulse"
 
@@ -369,7 +369,7 @@ class HabitusZonesV2GlobalStateSelect(CopilotBaseEntity, SelectEntity):
     """Global zone mode - v2 new entity."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot zones v2 global state"
+    _attr_name = "PilotSuite zones v2 global state"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_global_state"
     _attr_icon = "mdi:cog-transfer"
     _attr_options = ["auto", "manual", "disabled"]
@@ -410,7 +410,7 @@ class HabitusZonesV2SyncGraphButton(CopilotBaseEntity, ButtonEntity):
     """Sync zones to Brain Graph - v2 new entity."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot sync zones v2 to brain graph"
+    _attr_name = "PilotSuite sync zones v2 to brain graph"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_sync_graph"
     _attr_icon = "mdi:graph-outline"
 
@@ -446,7 +446,7 @@ class HabitusZonesV2SyncGraphButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             f"Brain Graph Sync:\n- Zones processed: {len(zones)}\n- Success: {success_count}\n- Failed: {len(zones) - success_count}",
-            title="AI Home CoPilot Zones v2 → Brain Graph Sync",
+            title="PilotSuite Zones v2 → Brain Graph Sync",
             notification_id="habitus_zones_v2_graph_sync",
         )
 
@@ -455,7 +455,7 @@ class HabitusZonesV2ReloadButton(CopilotBaseEntity, ButtonEntity):
     """Reload zones v2 - re-read from storage."""
 
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot reload zones v2"
+    _attr_name = "PilotSuite reload zones v2"
     _attr_unique_id = "ai_home_copilot_habitus_zones_v2_reload"
     _attr_icon = "mdi:reload"
 
@@ -479,7 +479,7 @@ class HabitusZonesV2ReloadButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "Habitus Zones v2 reloaded successfully.",
-            title="AI Home CoPilot Zones v2",
+            title="PilotSuite Zones v2",
             notification_id="habitus_zones_v2_reload",
         )
 

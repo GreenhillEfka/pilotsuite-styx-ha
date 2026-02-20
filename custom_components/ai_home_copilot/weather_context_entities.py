@@ -1,4 +1,4 @@
-"""Weather Context Entities for AI Home CoPilot.
+"""Weather Context Entities for PilotSuite.
 
 Provides sensor entities for weather-based PV forecasting and energy optimization.
 """
@@ -57,7 +57,7 @@ class WeatherConditionSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot Weather Condition"
+        self._attr_name = "PilotSuite Weather Condition"
         self._attr_unique_id = f"{DOMAIN}_weather_condition"
         self._attr_icon = "mdi:weather-partly-cloudy"
         self._attr_device_class = SensorDeviceClass.ENUM
@@ -88,7 +88,7 @@ class WeatherTemperatureSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot Weather Temperature"
+        self._attr_name = "PilotSuite Weather Temperature"
         self._attr_unique_id = f"{DOMAIN}_weather_temperature"
         self._attr_icon = "mdi:thermometer"
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -108,7 +108,7 @@ class WeatherCloudCoverSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot Weather Cloud Cover"
+        self._attr_name = "PilotSuite Weather Cloud Cover"
         self._attr_unique_id = f"{DOMAIN}_weather_cloud_cover"
         self._attr_icon = "mdi:weather-cloudy"
         self._attr_native_unit_of_measurement = "%"
@@ -127,7 +127,7 @@ class WeatherUVIndexSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot Weather UV Index"
+        self._attr_name = "PilotSuite Weather UV Index"
         self._attr_unique_id = f"{DOMAIN}_weather_uv_index"
         self._attr_icon = "mdi:weather-sunny-alert"
         self._attr_native_unit_of_measurement = "UV"
@@ -146,7 +146,7 @@ class WeatherPVSolarForecastSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot PV Solar Forecast Today"
+        self._attr_name = "PilotSuite PV Solar Forecast Today"
         self._attr_unique_id = f"{DOMAIN}_pv_forecast_kwh"
         self._attr_icon = "mdi:solar-power"
         self._attr_device_class = SensorDeviceClass.ENERGY
@@ -166,7 +166,7 @@ class WeatherPVRecommendationSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot PV Recommendation"
+        self._attr_name = "PilotSuite PV Recommendation"
         self._attr_unique_id = f"{DOMAIN}_pv_recommendation"
         self._attr_icon = "mdi:lightbulb-group"
         self._attr_device_class = SensorDeviceClass.ENUM
@@ -190,7 +190,7 @@ class WeatherPVSurplusSensor(SensorEntity):
 
     def __init__(self, coordinator: WeatherContextCoordinator) -> None:
         super().__init__(coordinator=coordinator)
-        self._attr_name = "AI Home CoPilot PV Surplus Expected"
+        self._attr_name = "PilotSuite PV Surplus Expected"
         self._attr_unique_id = f"{DOMAIN}_pv_surplus_kwh"
         self._attr_icon = "mdi:transmission-tower-export"
         self._attr_device_class = SensorDeviceClass.ENERGY

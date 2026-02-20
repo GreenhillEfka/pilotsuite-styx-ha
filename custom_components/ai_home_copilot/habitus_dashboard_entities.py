@@ -64,7 +64,7 @@ class HabitusZoneScoreSensor(CopilotBaseEntity, SensorEntity):
         self._entry = entry
         self._zone_id = zone_id
         self._attr_unique_id = f"ai_home_copilot_zone_{zone_id}_score"
-        self._attr_name = f"AI Home CoPilot Zone {zone_id} Score"
+        self._attr_name = f"PilotSuite Zone {zone_id} Score"
 
     @property
     def zone(self) -> HabitusZoneV2 | None:
@@ -117,7 +117,7 @@ class HabitusZoneStatusSensor(CopilotBaseEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = "ai_home_copilot_habitus_zone_status"
-        self._attr_name = "AI Home CoPilot Habitus Zone Status"
+        self._attr_name = "PilotSuite Habitus Zone Status"
         self._unsub = None
 
     async def async_added_to_hass(self) -> None:
@@ -197,7 +197,7 @@ class HabitusMoodDistributionSensor(CopilotBaseEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = "ai_home_copilot_habitus_mood_distribution"
-        self._attr_name = "AI Home CoPilot Habitus Mood Distribution"
+        self._attr_name = "PilotSuite Habitus Mood Distribution"
         self._unsub = None
 
     async def async_added_to_hass(self) -> None:
@@ -285,7 +285,7 @@ class HabitusCurrentMoodSensor(CopilotBaseEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = "ai_home_copilot_habitus_current_mood"
-        self._attr_name = "AI Home CoPilot Habitus Current Mood"
+        self._attr_name = "PilotSuite Habitus Current Mood"
         self._unsub = None
 
     async def async_added_to_hass(self) -> None:
@@ -374,7 +374,7 @@ class HabitusZoneTransitionLogSensor(CopilotBaseEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = "ai_home_copilot_habitus_transitions"
-        self._attr_name = "AI Home CoPilot Habitus Zone Transitions"
+        self._attr_name = "PilotSuite Habitus Zone Transitions"
         self._transitions: list[dict] = []
         self._unsub = None
 
@@ -456,7 +456,7 @@ class HabitusCardsConfigText(CopilotBaseEntity, TextEntity):
 
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot habitus cards YAML"
+    _attr_name = "PilotSuite habitus cards YAML"
     _attr_unique_id = "ai_home_copilot_habitus_cards_yaml"
     _attr_icon = "mdi:card-text"
     _attr_mode = "text"  # multiline
@@ -480,7 +480,7 @@ class HabitusCardsConfigText(CopilotBaseEntity, TextEntity):
             generate_mood_distribution_card_simple,
         )
 
-        yaml_content = f"""# AI Home CoPilot Habitus Dashboard Cards
+        yaml_content = f"""# PilotSuite Habitus Dashboard Cards
 # Generated: {datetime.now().isoformat()}
 
 ---

@@ -1,4 +1,4 @@
-"""Home Alerts Module - AI Home CoPilot
+"""Home Alerts Module - PilotSuite
 
 Monitors critical home states and generates actionable alerts.
 Part of the PilotSuite neuron ecosystem.

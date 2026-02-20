@@ -1,4 +1,4 @@
-"""Other buttons for AI Home CoPilot."""
+"""Other buttons for PilotSuite."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
@@ -12,7 +12,7 @@ from .ha_errors_digest import async_show_ha_errors_digest
 class CopilotAnalyzeLogsButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot analyze logs"
+    _attr_name = "PilotSuite analyze logs"
     _attr_unique_id = "ai_home_copilot_analyze_logs"
     _attr_icon = "mdi:file-search"
 
@@ -24,7 +24,7 @@ class CopilotAnalyzeLogsButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotHaErrorsFetchButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot fetch HA errors"
+    _attr_name = "PilotSuite fetch HA errors"
     _attr_unique_id = "ai_home_copilot_fetch_ha_errors"
     _attr_icon = "mdi:alert-circle-outline"
 

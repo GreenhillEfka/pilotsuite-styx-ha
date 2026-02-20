@@ -1,5 +1,5 @@
 """
-Camera Dashboard Button for AI Home CoPilot.
+Camera Dashboard Button for PilotSuite.
 
 Provides a button to generate the camera dashboard.
 """
@@ -67,7 +67,7 @@ class CopilotGenerateCameraDashboardButton(ButtonEntity):
                     f"Generated camera dashboard YAML at:\n{out_path}\n\n"
                     f"Latest (stable):\n{latest_path}"
                 ),
-                title="AI Home CoPilot Camera Dashboard",
+                title="PilotSuite Camera Dashboard",
                 notification_id="ai_home_copilot_camera_dashboard",
             )
             
@@ -79,7 +79,7 @@ class CopilotGenerateCameraDashboardButton(ButtonEntity):
             persistent_notification.async_create(
                 self._hass,
                 f"Failed to generate camera dashboard: {e}",
-                title="AI Home CoPilot Camera Dashboard Error",
+                title="PilotSuite Camera Dashboard Error",
                 notification_id="ai_home_copilot_camera_dashboard_error",
             )
 
@@ -112,7 +112,7 @@ class CopilotDownloadCameraDashboardButton(ButtonEntity):
             persistent_notification.async_create(
                 self._hass,
                 "No camera dashboard generated yet. Click 'Generate Camera Dashboard' first.",
-                title="AI Home CoPilot Camera Dashboard",
+                title="PilotSuite Camera Dashboard",
                 notification_id="ai_home_copilot_camera_dashboard_download",
             )
             return
@@ -120,7 +120,7 @@ class CopilotDownloadCameraDashboardButton(ButtonEntity):
         persistent_notification.async_create(
             self._hass,
             f"Camera dashboard YAML available at:\n{latest_path}",
-            title="AI Home CoPilot Camera Dashboard",
+            title="PilotSuite Camera Dashboard",
             notification_id="ai_home_copilot_camera_dashboard_download",
         )
 

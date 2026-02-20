@@ -1,4 +1,4 @@
-"""System control buttons for AI Home CoPilot."""
+"""System control buttons for PilotSuite."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
@@ -17,7 +17,7 @@ from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard, async_pub
 class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot generate HA overview"
+    _attr_name = "PilotSuite generate HA overview"
     _attr_unique_id = "ai_home_copilot_generate_ha_overview"
     _attr_icon = "mdi:map-search"
 
@@ -29,7 +29,7 @@ class CopilotGenerateOverviewButton(CopilotBaseEntity, ButtonEntity):
 class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot download HA overview"
+    _attr_name = "PilotSuite download HA overview"
     _attr_unique_id = "ai_home_copilot_download_ha_overview"
     _attr_icon = "mdi:download"
 
@@ -41,7 +41,7 @@ class CopilotDownloadOverviewButton(CopilotBaseEntity, ButtonEntity):
 class CopilotGenerateInventoryButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot generate inventory"
+    _attr_name = "PilotSuite generate inventory"
     _attr_unique_id = "ai_home_copilot_generate_inventory"
     _attr_icon = "mdi:clipboard-list"
 
@@ -63,7 +63,7 @@ class CopilotSystemHealthReportButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to generate SystemHealth report: {err}",
-                title="AI Home CoPilot SystemHealth",
+                title="PilotSuite SystemHealth",
                 notification_id="ai_home_copilot_systemhealth",
             )
 
@@ -71,7 +71,7 @@ class CopilotSystemHealthReportButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotGenerateConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot generate config snapshot"
+    _attr_name = "PilotSuite generate config snapshot"
     _attr_unique_id = "ai_home_copilot_generate_config_snapshot"
     _attr_icon = "mdi:content-save-cog"
 
@@ -86,7 +86,7 @@ class CopilotGenerateConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotDownloadConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot download config snapshot"
+    _attr_name = "PilotSuite download config snapshot"
     _attr_unique_id = "ai_home_copilot_download_config_snapshot"
     _attr_icon = "mdi:download"
 
@@ -97,7 +97,7 @@ class CopilotDownloadConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to publish config snapshot: {err}",
-                title="AI Home CoPilot config snapshot",
+                title="PilotSuite config snapshot",
                 notification_id="ai_home_copilot_config_snapshot",
             )
 
@@ -105,7 +105,7 @@ class CopilotDownloadConfigSnapshotButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot reload"
+    _attr_name = "PilotSuite reload"
     _attr_unique_id = "ai_home_copilot_reload_config_entry"
     _attr_icon = "mdi:reload"
 
@@ -120,7 +120,7 @@ class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot generate habitus dashboard"
+    _attr_name = "PilotSuite generate habitus dashboard"
     _attr_unique_id = "ai_home_copilot_generate_habitus_dashboard"
     _attr_icon = "mdi:view-dashboard-outline"
 
@@ -135,7 +135,7 @@ class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotDownloadHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot download habitus dashboard"
+    _attr_name = "PilotSuite download habitus dashboard"
     _attr_unique_id = "ai_home_copilot_download_habitus_dashboard"
     _attr_icon = "mdi:download"
 
@@ -150,7 +150,7 @@ class CopilotDownloadHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to publish habitus dashboard: {err}",
-                title="AI Home CoPilot Habitus dashboard",
+                title="PilotSuite Habitus dashboard",
                 notification_id="ai_home_copilot_habitus_dashboard_download",
             )
 
@@ -158,7 +158,7 @@ class CopilotDownloadHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotGeneratePilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot generate PilotSuite dashboard"
+    _attr_name = "PilotSuite generate PilotSuite dashboard"
     _attr_unique_id = "ai_home_copilot_generate_pilotsuite_dashboard"
     _attr_icon = "mdi:view-dashboard"
 
@@ -173,7 +173,7 @@ class CopilotGeneratePilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotDownloadPilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot download PilotSuite dashboard"
+    _attr_name = "PilotSuite download PilotSuite dashboard"
     _attr_unique_id = "ai_home_copilot_download_pilotsuite_dashboard"
     _attr_icon = "mdi:download"
 
@@ -188,7 +188,7 @@ class CopilotDownloadPilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
             persistent_notification.async_create(
                 self.hass,
                 f"Failed to publish PilotSuite dashboard: {err}",
-                title="AI Home CoPilot PilotSuite dashboard",
+                title="PilotSuite PilotSuite dashboard",
                 notification_id="ai_home_copilot_pilotsuite_dashboard_download",
             )
 

@@ -1,4 +1,4 @@
-"""Setup Wizard for AI Home CoPilot - Auto-Configuration for new users.
+"""Setup Wizard for PilotSuite - Auto-Configuration for new users.
 
 Provides a guided setup flow with:
 - Auto-discovery of entities

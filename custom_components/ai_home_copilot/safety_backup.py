@@ -85,7 +85,7 @@ async def async_create_safety_backup(hass: HomeAssistant) -> SafetyBackupResult:
             "Hinweis: Den Fortschritt siehst du unter Einstellungen → System → Backups.\n"
             "(Dieses Backup wird nur manuell per Button gestartet – nicht automatisch bei Updates.)"
         ),
-        title="AI Home CoPilot Safety Backup",
+        title="PilotSuite Safety Backup",
         notification_id="ai_home_copilot_safety_backup",
     )
 
@@ -123,6 +123,6 @@ async def async_show_safety_backup_status(hass: HomeAssistant) -> None:
     persistent_notification.async_create(
         hass,
         msg,
-        title="AI Home CoPilot Safety Backup",
+        title="PilotSuite Safety Backup",
         notification_id="ai_home_copilot_safety_backup",
     )

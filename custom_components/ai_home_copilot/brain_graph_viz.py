@@ -198,7 +198,7 @@ async def async_publish_brain_graph_viz(hass: HomeAssistant, coordinator) -> Pat
         persistent_notification.async_create(
             hass,
             f"Failed to fetch core graph state: {sanitize_text(err, max_chars=240)}",
-            title="AI Home CoPilot Brain graph viz",
+            title="PilotSuite Brain graph viz",
             notification_id="ai_home_copilot_brain_graph_viz",
         )
         return None
@@ -213,7 +213,7 @@ async def async_publish_brain_graph_viz(hass: HomeAssistant, coordinator) -> Pat
     html = _render_html(
         nodes=nodes,
         edges=edges,
-        title="AI Home CoPilot brain graph (preview)",
+        title="PilotSuite brain graph (preview)",
     )
 
     latest_path = Path("/config/www/ai_home_copilot/brain_graph_latest.html")
@@ -239,7 +239,7 @@ async def async_publish_brain_graph_viz(hass: HomeAssistant, coordinator) -> Pat
     persistent_notification.async_create(
         hass,
         msg,
-        title="AI Home CoPilot Brain graph viz",
+        title="PilotSuite Brain graph viz",
         notification_id="ai_home_copilot_brain_graph_viz",
     )
 

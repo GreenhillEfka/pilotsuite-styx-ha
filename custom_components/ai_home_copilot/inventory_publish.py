@@ -51,7 +51,7 @@ async def async_publish_last_overview(hass: HomeAssistant) -> str:
             "Overview published for download. "
             f"Open this URL in your browser: {url}"
         ),
-        title="AI Home CoPilot overview download",
+        title="PilotSuite overview download",
         notification_id="ai_home_copilot_overview_download",
     )
 

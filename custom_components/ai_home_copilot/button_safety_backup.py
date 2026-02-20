@@ -9,7 +9,7 @@ from .safety_backup import async_create_safety_backup, async_show_safety_backup_
 
 class CopilotSafetyBackupCreateButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot Safety-Backup erstellen"
+    _attr_name = "PilotSuite Safety-Backup erstellen"
     _attr_unique_id = "ai_home_copilot_safety_backup_create"
     _attr_icon = "mdi:shield-check"
 
@@ -25,7 +25,7 @@ class CopilotSafetyBackupCreateButton(CopilotBaseEntity, ButtonEntity):
 
 class CopilotSafetyBackupStatusButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot Safety-Backup Status"
+    _attr_name = "PilotSuite Safety-Backup Status"
     _attr_unique_id = "ai_home_copilot_safety_backup_status"
     _attr_icon = "mdi:shield-search"
 

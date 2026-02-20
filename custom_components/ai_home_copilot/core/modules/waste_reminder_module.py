@@ -1,4 +1,4 @@
-"""Waste Collection Reminder Module - AI Home CoPilot
+"""Waste Collection Reminder Module - PilotSuite
 
 Integrates with hacs_waste_collection_schedule to provide:
 - Automated reminders (evening before + morning of collection)

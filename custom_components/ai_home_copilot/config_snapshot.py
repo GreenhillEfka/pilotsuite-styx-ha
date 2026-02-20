@@ -82,7 +82,7 @@ async def async_generate_config_snapshot(hass: HomeAssistant, entry: ConfigEntry
     persistent_notification.async_create(
         hass,
         f"Generated config snapshot:\n{path}",
-        title="AI Home CoPilot config snapshot",
+        title="PilotSuite config snapshot",
         notification_id="ai_home_copilot_config_snapshot",
     )
 
@@ -106,7 +106,7 @@ async def async_publish_last_config_snapshot(hass: HomeAssistant) -> str:
     persistent_notification.async_create(
         hass,
         f"Published snapshot for download:\n{url}",
-        title="AI Home CoPilot config snapshot",
+        title="PilotSuite config snapshot",
         notification_id="ai_home_copilot_config_snapshot",
     )
     return url

@@ -1,4 +1,4 @@
-"""Inspector Sensor - Shows AI CoPilot internal state"""
+"""Inspector Sensor - Shows PilotSuite internal state"""
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -33,7 +33,7 @@ class InspectorSensor(SensorEntity):
     def __init__(self, coordinator, sensor_type: str, name: str, icon: str):
         self._coordinator = coordinator
         self._sensor_type = sensor_type
-        self._attr_name = f"AI CoPilot {name}"
+        self._attr_name = f"PilotSuite {name}"
         self._attr_unique_id = f"ai_copilot_inspector_{sensor_type}"
         self._attr_icon = icon
         self._attr_should_poll = False

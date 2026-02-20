@@ -331,7 +331,7 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
         views.append(_lovelace_yaml_for_zone(hass, z))
 
     content = (
-        "# Generiert von AI Home CoPilot (Habitus-Zonen)\n"
+        "# Generiert von PilotSuite (Habitus-Zonen)\n"
         "# Governance-first: Diese Datei wird NICHT automatisch in Lovelace importiert.\n"
         "# Sie wird von den Buttons aktualisiert (Generate).\n\n"
         "title: Habitus-Zonen\n"
@@ -356,7 +356,7 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
             f"Generated Habitus zones dashboard YAML at:\n{out_path}\n\n"
             f"Latest (stable):\n{latest_path}"
         ),
-        title="AI Home CoPilot Habitus dashboard",
+        title="PilotSuite Habitus dashboard",
         notification_id="ai_home_copilot_habitus_dashboard",
     )
 
@@ -394,7 +394,7 @@ async def async_publish_last_habitus_dashboard(hass: HomeAssistant) -> str:
     persistent_notification.async_create(
         hass,
         f"Habitus dashboard published (stable). Open: {url}",
-        title="AI Home CoPilot Habitus dashboard download",
+        title="PilotSuite Habitus dashboard download",
         notification_id="ai_home_copilot_habitus_dashboard_download",
     )
 

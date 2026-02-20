@@ -1,4 +1,4 @@
-"""Select platform for AI Home CoPilot integration."""
+"""Select platform for PilotSuite integration."""
 from __future__ import annotations
 
 import logging

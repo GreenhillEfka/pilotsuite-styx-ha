@@ -1,4 +1,4 @@
-"""Frigate NVR Bridge Module for AI Home CoPilot.
+"""Frigate NVR Bridge Module for PilotSuite.
 
 Optional bridge that connects Frigate NVR events to the PilotSuite ecosystem.
 Discovers Frigate-generated entities in Home Assistant and forwards person/motion

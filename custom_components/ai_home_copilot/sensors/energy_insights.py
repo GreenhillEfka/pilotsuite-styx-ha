@@ -1,4 +1,4 @@
-"""Energy Insights Sensor for AI Home CoPilot.
+"""Energy Insights Sensor for PilotSuite.
 
 Shows energy consumption insights and optimization recommendations.
 """
@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 class EnergyInsightSensor(SensorEntity):
     """Sensor showing current energy insights."""
     
-    _attr_name = "AI CoPilot Energy Insights"
+    _attr_name = "PilotSuite Energy Insights"
     _attr_unique_id = "ai_copilot_energy_insights"
     _attr_icon = "mdi:lightning-bolt"
     _attr_device_class = SensorDeviceClass.ENERGY
@@ -70,7 +70,7 @@ class EnergyInsightSensor(SensorEntity):
 class EnergyRecommendationSensor(SensorEntity):
     """Sensor showing active energy recommendations."""
     
-    _attr_name = "AI CoPilot Energy Recommendations"
+    _attr_name = "PilotSuite Energy Recommendations"
     _attr_unique_id = "ai_copilot_energy_recommendations"
     _attr_icon = "mdi:idea"
     _attr_should_poll = False

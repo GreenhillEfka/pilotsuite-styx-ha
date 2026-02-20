@@ -1,4 +1,4 @@
-"""Energy Context Entities for AI Home CoPilot.
+"""Energy Context Entities for PilotSuite.
 
 Exposes energy data as Home Assistant entities:
 - sensor.ai_home_copilot_energy_consumption_today
@@ -34,7 +34,7 @@ class EnergyConsumptionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], 
     def __init__(self, hass: HomeAssistant, coordinator: EnergyContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_energy_consumption_today"
-        self._attr_name = "AI Home CoPilot Energy Consumption Today"
+        self._attr_name = "PilotSuite Energy Consumption Today"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -56,7 +56,7 @@ class EnergyProductionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], E
     def __init__(self, hass: HomeAssistant, coordinator: EnergyContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_energy_production_today"
-        self._attr_name = "AI Home CoPilot Energy Production Today"
+        self._attr_name = "PilotSuite Energy Production Today"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -78,7 +78,7 @@ class EnergyCurrentPowerSensor(CoordinatorEntity[EnergyContextCoordinator], Enti
     def __init__(self, hass: HomeAssistant, coordinator: EnergyContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_energy_current_power"
-        self._attr_name = "AI Home CoPilot Energy Current Power"
+        self._attr_name = "PilotSuite Energy Current Power"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -97,7 +97,7 @@ class EnergyAnomaliesSensor(CoordinatorEntity[EnergyContextCoordinator], Entity)
     def __init__(self, hass: HomeAssistant, coordinator: EnergyContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_energy_anomalies"
-        self._attr_name = "AI Home CoPilot Energy Anomalies"
+        self._attr_name = "PilotSuite Energy Anomalies"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -116,7 +116,7 @@ class EnergyShiftingOpportunitiesSensor(CoordinatorEntity[EnergyContextCoordinat
     def __init__(self, hass: HomeAssistant, coordinator: EnergyContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_energy_shifting"
-        self._attr_name = "AI Home CoPilot Energy Shifting Opportunities"
+        self._attr_name = "PilotSuite Energy Shifting Opportunities"
         self.entity_id = f"sensor.{self._attr_unique_id}"
 
     @property
@@ -136,7 +136,7 @@ class EnergyAnomalyAlertBinarySensor(CoordinatorEntity[EnergyContextCoordinator]
     def __init__(self, hass: HomeAssistant, coordinator: EnergyContextCoordinator):
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_energy_anomaly_alert"
-        self._attr_name = "AI Home CoPilot Energy Anomaly Alert"
+        self._attr_name = "PilotSuite Energy Anomaly Alert"
         self.entity_id = f"binary_sensor.{self._attr_unique_id}"
 
     @property

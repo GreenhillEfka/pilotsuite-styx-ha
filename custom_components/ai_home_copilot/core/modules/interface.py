@@ -1,4 +1,4 @@
-"""Module Interface Standard - AI Home CoPilot
+"""Module Interface Standard - PilotSuite
 
 This defines the standard interface for all core modules.
 All modules should follow this contract for consistency.

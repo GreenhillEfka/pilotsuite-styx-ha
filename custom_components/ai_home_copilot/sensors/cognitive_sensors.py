@@ -1,4 +1,4 @@
-"""Cognitive sensors for AI Home CoPilot Neurons.
+"""Cognitive sensors for PilotSuite Neurons.
 
 Sensors:
 - AttentionLoadSensor: Attention/mental load estimation
@@ -31,7 +31,7 @@ class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
     - Module Connector signals
     """
     
-    _attr_name = "AI CoPilot Attention Load"
+    _attr_name = "PilotSuite Attention Load"
     _attr_unique_id = "ai_copilot_attention_load"
     _attr_icon = "mdi:brain"
     _attr_should_poll = True
@@ -110,7 +110,7 @@ class AttentionLoadSensor(CoordinatorEntity, SensorEntity):
 class StressProxySensor(CoordinatorEntity, SensorEntity):
     """Sensor for stress proxy estimation."""
     
-    _attr_name = "AI CoPilot Stress Proxy"
+    _attr_name = "PilotSuite Stress Proxy"
     _attr_unique_id = "ai_copilot_stress_proxy"
     _attr_icon = "mdi:heart-pulse"
     _attr_should_poll = True

@@ -12,7 +12,7 @@ class CopilotTagRegistrySyncLabelsNowButton(CopilotBaseEntity, ButtonEntity):
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = False
-    _attr_name = "AI Home CoPilot tag registry sync labels now"
+    _attr_name = "PilotSuite tag registry sync labels now"
     _attr_unique_id = "ai_home_copilot_tag_registry_sync_labels_now"
     _attr_icon = "mdi:tag-sync"
 
@@ -34,6 +34,6 @@ class CopilotTagRegistrySyncLabelsNowButton(CopilotBaseEntity, ButtonEntity):
         persistent_notification.async_create(
             self.hass,
             "\n".join(lines),
-            title="AI Home CoPilot Tag Registry",
+            title="PilotSuite Tag Registry",
             notification_id="ai_home_copilot_tag_registry",
         )
