@@ -1,5 +1,21 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.2.1] - 2026-02-20
+
+### Bugfix — Hassfest + Config Flow Fix
+
+- **manifest.json** — Ungültigen `homeassistant`-Key entfernt (hassfest: `extra keys not allowed @ data['homeassistant']`); dieser Key wurde von neueren HA-Versionen als invalide abgelehnt und verhinderte das Laden der Integration → "Invalid handler specified" Config Flow Error behoben
+- **hacs.json** — Minimum HA-Version (`2024.1.0`) korrekt in `hacs.json` statt `manifest.json` deklariert
+- **manifest.json** + **entity.py** Version auf 4.2.1 synchronisiert
+
+## [4.2.0] - 2026-02-20
+
+### History Backfill
+
+- **history_backfill.py** — Neues Modul: Beim ersten Start werden letzte 24h aus dem HA Recorder geladen und als Events an Core gesendet; Brain Graph lernt sofort aus bestehender History; einmalig, Completion wird in HA Storage gespeichert
+- **__init__.py** — History Backfill Modul registriert (nach events_forwarder)
+- **manifest.json** + **entity.py** Version auf 4.2.0 synchronisiert
+
 ## [4.1.0] - 2026-02-20
 
 ### Race Conditions + Stability

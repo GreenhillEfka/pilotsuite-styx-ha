@@ -18,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .core.modules.legacy import LegacyModule
     from .core.modules.events_forwarder import EventsForwarderModule
+    from .core.modules.history_backfill import HistoryBackfillModule
     from .core.modules.dev_surface import DevSurfaceModule
     from .core.modules.performance_scaling import PerformanceScalingModule
     from .core.modules.habitus_miner import HabitusMinerModule
@@ -124,6 +125,7 @@ _MODULES = [
     "legacy",
     "performance_scaling",
     "events_forwarder",
+    "history_backfill",
     "dev_surface",
     "habitus_miner",
     "ops_runbook",
@@ -171,6 +173,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     # Import modules at runtime to avoid circular imports
     from .core.modules.legacy import LegacyModule
     from .core.modules.events_forwarder import EventsForwarderModule
+    from .core.modules.history_backfill import HistoryBackfillModule
     from .core.modules.dev_surface import DevSurfaceModule
     from .core.modules.performance_scaling import PerformanceScalingModule
     from .core.modules.habitus_miner import HabitusMinerModule
@@ -204,6 +207,7 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
         "legacy": LegacyModule,
         "performance_scaling": PerformanceScalingModule,
         "events_forwarder": EventsForwarderModule,
+        "history_backfill": HistoryBackfillModule,
         "dev_surface": DevSurfaceModule,
         "habitus_miner": HabitusMinerModule,
         "ops_runbook": OpsRunbookModule,
