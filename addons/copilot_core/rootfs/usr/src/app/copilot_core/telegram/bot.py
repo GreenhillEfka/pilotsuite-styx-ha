@@ -9,14 +9,17 @@ Config (addon options -> telegram section):
   allowed_chat_ids: List of allowed Telegram chat IDs (empty = allow all)
 """
 
-import json
 import logging
+import re
 import threading
 import time
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+# Telegram bot tokens look like: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz-1234567
+_TOKEN_PATTERN = re.compile(r"^\d+:[A-Za-z0-9_-]{20,}$")
 
 
 class TelegramBot:
@@ -30,6 +33,33 @@ class TelegramBot:
         self._running = False
         self._thread = None
         self._chat_handler = None
+        self._bot_username: str | None = None
+        self._consecutive_errors = 0
+
+    @staticmethod
+    def validate_token(token: str) -> bool:
+        """Validate Telegram bot token format (does not test API connectivity)."""
+        return bool(token and _TOKEN_PATTERN.match(token))
+
+    def verify_token(self) -> bool:
+        """Call Telegram getMe to verify the token works. Returns True on success."""
+        try:
+            resp = requests.get(f"{self._base_url}/getMe", timeout=10)
+            data = resp.json()
+            if data.get("ok"):
+                bot_info = data.get("result", {})
+                self._bot_username = bot_info.get("username", "unknown")
+                logger.info(
+                    "Telegram token verified — bot: @%s (id=%s)",
+                    self._bot_username,
+                    bot_info.get("id"),
+                )
+                return True
+            logger.error("Telegram getMe failed: %s", data.get("description", data))
+            return False
+        except requests.RequestException as exc:
+            logger.error("Telegram getMe network error: %s", exc)
+            return False
 
     def set_chat_handler(self, handler):
         """Set the function(text) -> str that processes chat messages."""
@@ -40,12 +70,16 @@ class TelegramBot:
         if self._running:
             return
         self._running = True
+        self._consecutive_errors = 0
         self._thread = threading.Thread(target=self._poll_loop, name="telegram-bot", daemon=True)
         self._thread.start()
         logger.info("Telegram bot started (long-polling)")
 
     def stop(self):
+        """Stop the polling loop and wait for the thread to finish."""
         self._running = False
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=5)
 
     @property
     def running(self) -> bool:
@@ -57,9 +91,20 @@ class TelegramBot:
         while self._running:
             try:
                 updates = self._get_updates()
+                self._consecutive_errors = 0
                 for update in updates:
                     self._handle_update(update)
+            except requests.ConnectionError:
+                self._consecutive_errors += 1
+                backoff = min(5 * self._consecutive_errors, 60)
+                logger.warning(
+                    "Telegram connection lost (attempt %d), retrying in %ds",
+                    self._consecutive_errors,
+                    backoff,
+                )
+                time.sleep(backoff)
             except Exception:
+                self._consecutive_errors += 1
                 logger.exception("Telegram poll error")
                 time.sleep(5)
 

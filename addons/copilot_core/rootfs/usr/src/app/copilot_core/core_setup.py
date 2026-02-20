@@ -369,19 +369,40 @@ def init_services(hass=None, config: dict = None):
     # Initialize Telegram Bot (requires conversation to be configured)
     try:
         tg_config = config.get("telegram", {}) if config else {}
-        tg_token = tg_config.get("token", "")
+        tg_token = tg_config.get("token", "").strip()
         if tg_config.get("enabled") and tg_token:
-            from copilot_core.api.v1.conversation import process_with_tool_execution
-            bot = TelegramBot(
-                token=tg_token,
-                allowed_chat_ids=tg_config.get("allowed_chat_ids", []),
-            )
-            bot.set_chat_handler(process_with_tool_execution)
-            bot.start()
-            services["telegram_bot"] = bot
-            _LOGGER.info("Telegram bot started (token=***%s)", tg_token[-4:])
+            # Validate token format before attempting connection
+            if not TelegramBot.validate_token(tg_token):
+                _LOGGER.error(
+                    "Telegram token format invalid — expected <bot_id>:<hash> from @BotFather"
+                )
+            else:
+                from copilot_core.api.v1.conversation import process_with_tool_execution
+                bot = TelegramBot(
+                    token=tg_token,
+                    allowed_chat_ids=tg_config.get("allowed_chat_ids", []),
+                )
+                # Verify token with Telegram API before starting poll loop
+                if bot.verify_token():
+                    bot.set_chat_handler(process_with_tool_execution)
+                    bot.start()
+                    services["telegram_bot"] = bot
+                    acl_info = (
+                        f"{len(bot.allowed_chat_ids)} allowed chat IDs"
+                        if bot.allowed_chat_ids
+                        else "all chats allowed"
+                    )
+                    _LOGGER.info(
+                        "Telegram bot started (token=***%s, %s)",
+                        tg_token[-4:],
+                        acl_info,
+                    )
+                else:
+                    _LOGGER.error(
+                        "Telegram bot token rejected by API — check token in addon config"
+                    )
         elif tg_config.get("enabled"):
-            _LOGGER.warning("Telegram enabled but no token configured")
+            _LOGGER.warning("Telegram enabled but no token configured — skipping bot startup")
     except Exception:
         _LOGGER.exception("Failed to init Telegram bot")
 
