@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
 
 from .const import DOMAIN
+from .coordinator import CopilotApiError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,53 +52,36 @@ class StyxConversationAgent(AbstractConversationAgent):
                 user_input, "PilotSuite coordinator not available."
             )
 
-        api = coordinator.api
-
-        payload: dict[str, Any] = {
-            "model": "pilotsuite",
-            "messages": [
-                {"role": "user", "content": user_input.text},
-            ],
-        }
-
-        if user_input.conversation_id:
-            payload["conversation_id"] = user_input.conversation_id
+        messages = [{"role": "user", "content": user_input.text}]
 
         try:
-            url = f"{api._base_url}/v1/chat/completions"
-            headers = {"Authorization": f"Bearer {api._token}"}
-
-            async with api._session.post(
-                url, json=payload, headers=headers, timeout=30
-            ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    _LOGGER.error(
-                        "PilotSuite API error %s: %s", resp.status, body[:200]
-                    )
-                    return self._error_result(
-                        user_input,
-                        f"Core returned status {resp.status}.",
-                    )
-
-                data = await resp.json()
-
+            result = await coordinator.api.async_chat_completions(
+                messages=messages,
+                conversation_id=user_input.conversation_id,
+            )
+        except CopilotApiError as err:
+            _LOGGER.error("PilotSuite API error: %s", err)
+            return self._error_result(
+                user_input, f"Core returned an error: {err}"
+            )
+        except TimeoutError:
+            _LOGGER.error("PilotSuite conversation request timed out")
+            return self._error_result(
+                user_input, "Request to PilotSuite Core timed out."
+            )
         except Exception as err:
             _LOGGER.error("PilotSuite conversation request failed: %s", err)
             return self._error_result(
                 user_input, "Could not reach PilotSuite Core."
             )
 
-        # Extract assistant message from OpenAI-compatible response
-        choices = data.get("choices", [])
-        reply = ""
-        if choices:
-            message = choices[0].get("message", {})
-            reply = message.get("content", "")
-
+        reply = result.get("content", "")
         response = intent.IntentResponse(language=user_input.language)
         response.async_set_speech(reply or "No response from PilotSuite.")
-        return ConversationResult(response=response, conversation_id=user_input.conversation_id)
+        return ConversationResult(
+            response=response,
+            conversation_id=user_input.conversation_id,
+        )
 
     @staticmethod
     def _error_result(
@@ -106,7 +90,10 @@ class StyxConversationAgent(AbstractConversationAgent):
         """Build a ConversationResult for error cases."""
         response = intent.IntentResponse(language=user_input.language)
         response.async_set_speech(message)
-        return ConversationResult(response=response, conversation_id=user_input.conversation_id)
+        return ConversationResult(
+            response=response,
+            conversation_id=user_input.conversation_id,
+        )
 
 
 async def async_setup_conversation(
@@ -118,3 +105,13 @@ async def async_setup_conversation(
     agent = StyxConversationAgent(hass, entry)
     async_set_agent(hass, entry, agent)
     _LOGGER.info("PilotSuite conversation agent registered")
+
+
+async def async_unload_conversation(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Unregister the PilotSuite conversation agent."""
+    from homeassistant.components.conversation import async_unset_agent
+
+    async_unset_agent(hass, entry)
+    _LOGGER.info("PilotSuite conversation agent unregistered")

@@ -292,6 +292,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to set up ZoneDetector")
 
+    # Register PilotSuite conversation agent (v3.10.0)
+    try:
+        from .conversation import async_setup_conversation
+        await async_setup_conversation(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to set up conversation agent")
+
     return True
 
 
@@ -314,5 +321,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     zone_detector = entry_data.get("zone_detector")
     if zone_detector:
         await zone_detector.async_unload()
+
+    # Unregister conversation agent (v3.10.0)
+    try:
+        from .conversation import async_unload_conversation
+        await async_unload_conversation(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to unload conversation agent")
 
     return await runtime.async_unload_entry(entry, modules=_MODULES)

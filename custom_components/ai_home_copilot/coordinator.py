@@ -74,6 +74,31 @@ class CopilotApiClient:
             _LOGGER.debug("Neurons API not available: %s", e)
         return {"neurons": {}}
     
+    async def async_chat_completions(
+        self, messages: list[dict[str, str]], conversation_id: str | None = None
+    ) -> dict[str, Any]:
+        """Send a chat request to the Core Add-on via /v1/chat/completions."""
+        url = f"{self._base_url}/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {self._token}"}
+        payload: dict[str, Any] = {"model": "pilotsuite", "messages": messages}
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
+
+        async with self._session.post(
+            url, json=payload, headers=headers, timeout=30
+        ) as resp:
+            if resp.status != 200:
+                body = await resp.text()
+                raise CopilotApiError(
+                    f"Chat API error {resp.status}: {body[:200]}"
+                )
+            data = await resp.json()
+            choices = data.get("choices", [])
+            content = ""
+            if choices:
+                content = choices[0].get("message", {}).get("content", "")
+            return {"content": content, "conversation_id": conversation_id}
+
     async def async_evaluate_neurons(self, context: dict[str, Any]) -> dict[str, Any]:
         """Evaluate neural pipeline with HA states."""
         url = f"{self._base_url}/api/v1/neurons/evaluate"
