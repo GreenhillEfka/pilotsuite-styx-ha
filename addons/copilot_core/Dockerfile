@@ -26,7 +26,8 @@ RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" 
         aarch64) DLARCH="arm64" ;; \
         *) echo "ERROR: Unsupported arch $ARCH"; exit 1 ;; \
       esac && \
-      curl -fsSL "https://ollama.com/download/ollama-linux-${DLARCH}.tgz" | tar xz -C /usr)) || \
+      curl -fsSL --retry 3 --retry-delay 2 \
+        "https://ollama.com/download/ollama-linux-${DLARCH}.tgz" | tar xz -C /usr)) || \
     echo "WARNING: Ollama installation failed -- LLM features will be unavailable"
 
 # Persist Ollama models in /share/ (NOT /data/) to avoid bloating HA backups
@@ -38,7 +39,7 @@ COPY rootfs/usr/src/app /usr/src/app
 
 EXPOSE 8909
 
-# Health check: verify the API server is responding (v3.6.0)
+# Health check: verify the API server is responding
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -sf http://localhost:8909/health || exit 1
 

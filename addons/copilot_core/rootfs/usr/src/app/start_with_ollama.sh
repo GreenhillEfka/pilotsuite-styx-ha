@@ -10,29 +10,51 @@ echo "Starting PilotSuite Core..."
 export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/ai_home_copilot/ollama/models}
 mkdir -p "$OLLAMA_MODELS"
 
-NEED_OLLAMA=${CONVERSATION_ENABLED:-false}
+FALLBACK_MODEL="qwen3:0.6b"
+MODEL=${OLLAMA_MODEL:-qwen3:4b}
+NEED_OLLAMA=${CONVERSATION_ENABLED:-true}
 
 if [ "$NEED_OLLAMA" = "true" ]; then
     echo "Checking Ollama..."
 
-    if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+    if ! curl -sf -m 3 http://localhost:11434/api/tags > /dev/null 2>&1; then
         echo "Starting Ollama service..."
 
         ollama serve &
         OLLAMA_PID=$!
 
+        # Cleanup on exit
+        trap "kill $OLLAMA_PID 2>/dev/null || true" EXIT INT TERM
+
         echo "Waiting for Ollama..."
-        for i in {1..30}; do
-            if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+        READY=false
+        for i in $(seq 1 30); do
+            if curl -sf -m 3 http://localhost:11434/api/tags > /dev/null 2>&1; then
                 echo "Ollama is ready!"
+                READY=true
                 break
             fi
-            sleep 1
+            sleep 2
         done
 
-        MODEL=${OLLAMA_MODEL:-qwen3:4b}
-        echo "Ensuring model $MODEL exists..."
-        ollama pull "$MODEL" || echo "WARNING: Failed to pull $MODEL"
+        if [ "$READY" = "false" ]; then
+            echo "WARNING: Ollama did not become ready within 60s"
+        fi
+
+        if [ "$READY" = "true" ]; then
+            # Ensure fallback model
+            echo "Ensuring fallback model $FALLBACK_MODEL..."
+            ollama pull "$FALLBACK_MODEL" || echo "WARNING: Failed to pull fallback $FALLBACK_MODEL"
+
+            # Pull configured model if different
+            if [ "$MODEL" != "$FALLBACK_MODEL" ]; then
+                echo "Ensuring configured model $MODEL..."
+                ollama pull "$MODEL" || {
+                    echo "WARNING: Failed to pull $MODEL, using fallback $FALLBACK_MODEL"
+                    export OLLAMA_MODEL="$FALLBACK_MODEL"
+                }
+            fi
+        fi
     else
         echo "Ollama already running"
     fi

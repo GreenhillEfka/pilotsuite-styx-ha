@@ -1,16 +1,18 @@
 """Energy Service - Energy monitoring, anomaly detection, and load shifting.
 
 Provides:
-- Energy consumption monitoring and baselines
+- Energy consumption monitoring via HA entity discovery
 - Anomaly detection for unusual patterns
 - Load shifting opportunity detection
 - Suggestion explainability
 """
 
 import logging
+import threading
 import time
+import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -50,24 +52,55 @@ class ShiftingOpportunity:
     timestamp: str
     device_type: str
     reason: str  # e.g., "solar_oversupply", "off_peak_pricing"
-    current_cost: float  # €/kWh
-    optimal_cost: float  # €/kWh
-    savings_estimate: float  # €
+    current_cost: float  # EUR/kWh
+    optimal_cost: float  # EUR/kWh
+    savings_estimate: float  # EUR
     suggested_time_window: tuple[str, str]  # start, end
     confidence: float  # 0-1
 
 
+# Common HA entity patterns for energy sensors
+_CONSUMPTION_PATTERNS = [
+    "sensor.energy_consumption_total",
+    "sensor.total_energy_consumption",
+    "sensor.electricity_consumption",
+    "sensor.grid_consumption",
+]
+_PRODUCTION_PATTERNS = [
+    "sensor.energy_production_total",
+    "sensor.solar_production_total",
+    "sensor.pv_production_total",
+    "sensor.solar_energy",
+    "sensor.pv_energy",
+]
+_POWER_PATTERNS = [
+    "sensor.power_consumption_now",
+    "sensor.power_consumption",
+    "sensor.current_power",
+    "sensor.grid_power",
+]
+
+
 class EnergyService:
     """Service for energy monitoring and optimization."""
-    
-    def __init__(self, hass=None):
-        """Initialize energy service."""
+
+    def __init__(self, hass=None, off_peak_hours: list[int] | None = None):
+        """Initialize energy service.
+
+        Args:
+            hass: Home Assistant instance (None = standalone/testing mode).
+            off_peak_hours: Custom off-peak hour list (default: 0-5, 22-23).
+        """
         self.hass = hass
         self._cache: dict[str, Any] = {}
         self._cache_ttl = 300  # 5 minutes
         self._last_update = 0.0
-        
-        # Baselines (would be learned over time)
+        self._cache_lock = threading.Lock()
+
+        # Off-peak hours (configurable)
+        self._off_peak_hours = off_peak_hours or [0, 1, 2, 3, 4, 5, 22, 23]
+
+        # Baselines (learned over time, these are reasonable defaults)
         self._baselines: dict[str, dict[str, float]] = {
             "washer": {"daily_kwh": 1.5, "peak_watts": 500},
             "dryer": {"daily_kwh": 3.5, "peak_watts": 3000},
@@ -76,112 +109,110 @@ class EnergyService:
             "heat_pump": {"daily_kwh": 15.0, "peak_watts": 2500},
             "hvac": {"daily_kwh": 8.0, "peak_watts": 2000},
         }
-        
+
         # Anomaly thresholds
         self._anomaly_thresholds = {
             "low": 0.15,      # 15% deviation
             "medium": 0.30,   # 30% deviation
             "high": 0.50,     # 50% deviation
         }
-    
+
     def _is_cache_valid(self) -> bool:
         """Check if cache is still valid."""
         return (time.time() - self._last_update) < self._cache_ttl
-    
+
     def _get_timestamp(self) -> str:
-        """Get current ISO timestamp."""
-        return datetime.utcnow().isoformat() + "Z"
-    
+        """Get current ISO 8601 UTC timestamp."""
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
     def _generate_id(self, prefix: str) -> str:
         """Generate unique ID."""
-        import hashlib
-        timestamp = str(time.time()).encode()
-        hash_val = hashlib.md5(timestamp).hexdigest()[:8]
-        return f"{prefix}_{hash_val}"
-    
+        return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+    @property
+    def _hass_available(self) -> bool:
+        """Check if HA is available for entity queries."""
+        return self.hass is not None and hasattr(self.hass, "states")
+
+    def _read_entity(self, entity_id: str) -> float | None:
+        """Safely read a float value from an HA entity."""
+        if not self._hass_available:
+            return None
+        try:
+            state = self.hass.states.get(entity_id)
+            if state and state.state not in ("unavailable", "unknown", ""):
+                return float(state.state)
+        except (ValueError, TypeError, AttributeError):
+            pass
+        return None
+
+    def _find_entity_value(self, patterns: list[str]) -> float | None:
+        """Try multiple entity patterns and return the first valid value."""
+        for entity_id in patterns:
+            val = self._read_entity(entity_id)
+            if val is not None:
+                return val
+        return None
+
     def _get_all_energy_entities(self) -> list[str]:
         """Get all energy-related entities from HA."""
-        if not self.hass:
+        if not self._hass_available:
             return []
-        
+
         energy_entities = []
         try:
-            # Get all entity states
-            states = self.hass.states.async_all()
+            states = self.hass.states.all() if hasattr(self.hass.states, "all") else []
             for state in states:
                 entity_id = state.entity_id
-                # Check for energy-related domains
-                if any(domain in entity_id for domain in [
-                    "sensor.energy", "sensor.power", "sensor.utility_meter",
-                    "sensor.pv", "sensor.solar", "sensor.inverter"
+                if any(kw in entity_id for kw in [
+                    "energy", "power", "utility_meter",
+                    "pv", "solar", "inverter"
                 ]):
                     energy_entities.append(entity_id)
         except Exception as e:
-            logger.error(f"Error fetching energy entities: {e}")
-        
+            logger.warning("Error fetching energy entities: %s", e)
+
         return energy_entities
-    
+
     def _get_consumption_today(self) -> float:
-        """Get total energy consumption for today."""
-        # Simplified: would query HA history in real implementation
-        if not self.hass:
-            return 15.0  # Default mock value
-        
-        try:
-            # Look for total consumption sensor
-            total_entity = "sensor.energy_consumption_total"
-            state = self.hass.states.get(total_entity)
-            if state and state.state != "unavailable":
-                return float(state.state)
-        except Exception as e:
-            logger.debug(f"Could not read consumption: {e}")
-        
-        return 15.0  # Default
-    
+        """Get total energy consumption for today from HA."""
+        val = self._find_entity_value(_CONSUMPTION_PATTERNS)
+        if val is not None:
+            return val
+        logger.debug("No consumption entity found, returning 0.0")
+        return 0.0
+
     def _get_production_today(self) -> float:
-        """Get total energy production (solar/PV) for today."""
-        if not self.hass:
-            return 5.0  # Default mock value
-        
-        try:
-            # Look for production sensor
-            prod_entities = [
-                "sensor.energy_production_total",
-                "sensor.solar_production_total",
-                "sensor.pv_production_total"
-            ]
-            for entity in prod_entities:
-                state = self.hass.states.get(entity)
-                if state and state.state != "unavailable":
-                    return float(state.state)
-        except Exception as e:
-            logger.debug(f"Could not read production: {e}")
-        
-        return 5.0  # Default
-    
+        """Get total energy production (solar/PV) for today from HA."""
+        val = self._find_entity_value(_PRODUCTION_PATTERNS)
+        if val is not None:
+            return val
+        logger.debug("No production entity found, returning 0.0")
+        return 0.0
+
     def _get_current_power(self) -> float:
-        """Get current power draw in Watts."""
-        if not self.hass:
-            return 850.0  # Default mock value
-        
-        try:
-            # Look for current power sensor
-            power_entity = "sensor.power_consumption_now"
-            state = self.hass.states.get(power_entity)
-            if state and state.state != "unavailable":
-                return float(state.state)
-        except Exception as e:
-            logger.debug(f"Could not read power: {e}")
-        
-        return 850.0  # Default
-    
+        """Get current power draw in Watts from HA."""
+        val = self._find_entity_value(_POWER_PATTERNS)
+        if val is not None:
+            return val
+        logger.debug("No power entity found, returning 0.0")
+        return 0.0
+
+    def _get_peak_power_today(self) -> float:
+        """Get peak power draw today from HA."""
+        # Peak tracking: use current power as minimum estimate
+        current = self._get_current_power()
+        cached_peak = self._cache.get("peak_power", 0.0)
+        peak = max(current, cached_peak)
+        self._cache["peak_power"] = peak
+        return peak
+
     def get_energy_snapshot(self) -> EnergySnapshot:
         """Get complete energy snapshot."""
-        if self._is_cache_valid():
-            return self._cache.get("snapshot")
-        
-        entities = self._get_all_energy_entities()
-        
+        with self._cache_lock:
+            if self._is_cache_valid() and "snapshot" in self._cache:
+                return self._cache["snapshot"]
+
         snapshot = EnergySnapshot(
             timestamp=self._get_timestamp(),
             total_consumption_today=self._get_consumption_today(),
@@ -192,42 +223,38 @@ class EnergyService:
             shifting_opportunities=len(self._detect_shifting_opportunities()),
             baselines=self._get_baselines()
         )
-        
-        self._cache["snapshot"] = snapshot
-        self._last_update = time.time()
-        
+
+        with self._cache_lock:
+            self._cache["snapshot"] = snapshot
+            self._last_update = time.time()
+
         return snapshot
-    
-    def _get_peak_power_today(self) -> float:
-        """Get peak power draw today."""
-        # Simplified: would query HA history in real implementation
-        return 2500.0  # Default mock value
-    
+
     def _get_baselines(self) -> dict[str, float]:
         """Get energy baselines per device type."""
         return {
-            device: data["daily_kwh"] 
+            device: data["daily_kwh"]
             for device, data in self._baselines.items()
         }
-    
+
     def detect_anomalies(self) -> list[EnergyAnomaly]:
         """Detect energy consumption anomalies."""
         return self._detect_anomalies()
-    
+
     def _detect_anomalies(self) -> list[EnergyAnomaly]:
         """Internal anomaly detection."""
         anomalies = []
-        
-        # Check each device type against baselines
+
         current_consumption = self._get_consumption_today()
+        if current_consumption <= 0:
+            return anomalies
+
         expected_total = sum(b["daily_kwh"] for b in self._baselines.values())
-        
-        # Calculate total expected (simplified)
         expected_total = expected_total * 0.6  # Assume 60% of baseline devices active
-        
+
         if expected_total > 0:
             deviation = (current_consumption - expected_total) / expected_total
-            
+
             if abs(deviation) >= self._anomaly_thresholds["high"]:
                 severity = "high"
             elif abs(deviation) >= self._anomaly_thresholds["medium"]:
@@ -236,8 +263,9 @@ class EnergyService:
                 severity = "low"
             else:
                 severity = None
-            
+
             if severity:
+                direction = "above" if deviation > 0 else "below"
                 anomaly = EnergyAnomaly(
                     id=self._generate_id("anomaly"),
                     timestamp=self._get_timestamp(),
@@ -247,132 +275,121 @@ class EnergyService:
                     actual_value=current_consumption,
                     deviation_percent=deviation * 100,
                     severity=severity,
-                    description=f"Consumption {abs(deviation)*100:.1f}% {'above' if deviation > 0 else 'below'} expected"
+                    description=f"Consumption {abs(deviation)*100:.1f}% {direction} expected"
                 )
                 anomalies.append(anomaly)
-        
-        # Check for device-specific anomalies
+
+        # Device-specific anomaly checks
         device_checks = [
             ("washer", "sensor.washer_energy"),
             ("dryer", "sensor.dryer_energy"),
             ("dishwasher", "sensor.dishwasher_energy"),
             ("ev_charger", "sensor.ev_charger_energy"),
         ]
-        
+
         for device_type, entity_id in device_checks:
-            if self.hass:
-                state = self.hass.states.get(entity_id)
-                if state and state.state != "unavailable":
-                    try:
-                        current = float(state.state)
-                        expected = self._baselines.get(device_type, {}).get("daily_kwh", 0)
-                        if expected > 0:
-                            deviation = (current - expected) / expected
-                            if abs(deviation) >= self._anomaly_thresholds["medium"]:
-                                severity = "high" if abs(deviation) >= self._anomaly_thresholds["high"] else "medium"
-                                anomaly = EnergyAnomaly(
-                                    id=self._generate_id("anomaly"),
-                                    timestamp=self._get_timestamp(),
-                                    device_id=entity_id,
-                                    device_type=device_type,
-                                    expected_value=expected,
-                                    actual_value=current,
-                                    deviation_percent=deviation * 100,
-                                    severity=severity,
-                                    description=f"{device_type} consumption {abs(deviation)*100:.1f}% {'above' if deviation > 0 else 'below'} expected"
-                                )
-                                anomalies.append(anomaly)
-                    except (ValueError, TypeError):
-                        pass
-        
+            current = self._read_entity(entity_id)
+            if current is not None:
+                expected = self._baselines.get(device_type, {}).get("daily_kwh", 0)
+                if expected > 0:
+                    deviation = (current - expected) / expected
+                    if abs(deviation) >= self._anomaly_thresholds["medium"]:
+                        severity = "high" if abs(deviation) >= self._anomaly_thresholds["high"] else "medium"
+                        direction = "above" if deviation > 0 else "below"
+                        anomaly = EnergyAnomaly(
+                            id=self._generate_id("anomaly"),
+                            timestamp=self._get_timestamp(),
+                            device_id=entity_id,
+                            device_type=device_type,
+                            expected_value=expected,
+                            actual_value=current,
+                            deviation_percent=deviation * 100,
+                            severity=severity,
+                            description=f"{device_type} consumption {abs(deviation)*100:.1f}% {direction} expected"
+                        )
+                        anomalies.append(anomaly)
+
         return anomalies
-    
+
     def detect_shifting_opportunities(self) -> list[ShiftingOpportunity]:
         """Detect load shifting opportunities."""
         return self._detect_shifting_opportunities()
-    
+
     def _detect_shifting_opportunities(self) -> list[ShiftingOpportunity]:
         """Internal load shifting detection."""
         opportunities = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         current_hour = now.hour
-        
-        # Solar oversupply detection
+
         production = self._get_production_today()
         consumption = self._get_consumption_today()
-        
-        # High production relative to consumption = shifting opportunity
-        if production > consumption * 1.5:
+
+        # Solar oversupply detection
+        if production > 0 and consumption > 0 and production > consumption * 1.5:
             opp = ShiftingOpportunity(
                 id=self._generate_id("shift"),
                 timestamp=self._get_timestamp(),
                 device_type="dishwasher",
                 reason="solar_oversupply",
-                current_cost=0.30,  # €/kWh
-                optimal_cost=0.0,  # Free during solar
-                savings_estimate=0.42,  # ~1.4 kWh * 0.30€
+                current_cost=0.30,
+                optimal_cost=0.0,
+                savings_estimate=round(1.4 * 0.30, 2),
                 suggested_time_window=(
-                    now.isoformat(),
-                    (now + timedelta(hours=3)).isoformat()
+                    now.isoformat(timespec="seconds"),
+                    (now + timedelta(hours=3)).isoformat(timespec="seconds")
                 ),
                 confidence=0.85
             )
             opportunities.append(opp)
-        
-        # Off-peak pricing windows (simplified)
-        off_peak_hours = [0, 1, 2, 3, 4, 5, 22, 23]
-        peak_hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
-        
-        if current_hour in off_peak_hours:
-            # Suggest running high-power devices now
+
+        # Off-peak pricing windows
+        if current_hour in self._off_peak_hours:
             opp = ShiftingOpportunity(
                 id=self._generate_id("shift"),
                 timestamp=self._get_timestamp(),
                 device_type="ev_charger",
                 reason="off_peak_pricing",
-                current_cost=0.22,  # Off-peak rate
-                optimal_cost=0.35,  # Peak rate
-                savings_estimate=1.00,  # 10kWh * 0.10€
+                current_cost=0.22,
+                optimal_cost=0.35,
+                savings_estimate=1.00,
                 suggested_time_window=(
-                    now.isoformat(),
-                    (now + timedelta(hours=6)).isoformat()
+                    now.isoformat(timespec="seconds"),
+                    (now + timedelta(hours=6)).isoformat(timespec="seconds")
                 ),
                 confidence=0.90
             )
             opportunities.append(opp)
-        
-        elif current_hour in peak_hours:
-            # Suggest delaying
+        elif current_hour not in self._off_peak_hours:
             opp = ShiftingOpportunity(
                 id=self._generate_id("shift"),
                 timestamp=self._get_timestamp(),
                 device_type="washer",
                 reason="avoid_peak_pricing",
-                current_cost=0.35,  # Peak rate
-                optimal_cost=0.22,  # Off-peak rate
-                savings_estimate=0.33,  # 1.5kWh * 0.10€
+                current_cost=0.35,
+                optimal_cost=0.22,
+                savings_estimate=0.33,
                 suggested_time_window=(
-                    (now + timedelta(hours=5)).isoformat(),
-                    (now + timedelta(hours=10)).isoformat()
+                    (now + timedelta(hours=5)).isoformat(timespec="seconds"),
+                    (now + timedelta(hours=10)).isoformat(timespec="seconds")
                 ),
                 confidence=0.75
             )
             opportunities.append(opp)
-        
+
         return opportunities
-    
+
     def explain_suggestion(self, suggestion_id: str) -> dict[str, Any]:
         """Explain why an energy suggestion was made."""
         anomalies = self._detect_anomalies()
         opportunities = self._detect_shifting_opportunities()
-        
-        # Find matching anomaly
+
+        # Strict ID matching for anomalies
         for anomaly in anomalies:
-            if suggestion_id in anomaly.id or suggestion_id == "anomaly":
+            if anomaly.id == suggestion_id:
                 return {
                     "suggestion_id": suggestion_id,
                     "type": "anomaly",
-                    "title": f"Hoher Energieverbrauch erkannt",
+                    "title": "Hoher Energieverbrauch erkannt",
                     "description": anomaly.description,
                     "details": {
                         "expected_kwh": anomaly.expected_value,
@@ -381,15 +398,15 @@ class EnergyService:
                         "severity": anomaly.severity
                     },
                     "actions": [
-                        "Überprüfe ob alle Geräte ausgeschaltet sind",
-                        "Prüfe Standby-Verbrauch",
+                        "Ueberpruefe ob alle Geraete ausgeschaltet sind",
+                        "Pruefe Standby-Verbrauch",
                         "Analysiere Verbrauchsmuster der letzten Woche"
                     ]
                 }
-        
-        # Find matching opportunity
+
+        # Strict ID matching for opportunities
         for opp in opportunities:
-            if suggestion_id in opp.id or suggestion_id == "opportunity":
+            if opp.id == suggestion_id:
                 return {
                     "suggestion_id": suggestion_id,
                     "type": "shifting",
@@ -404,22 +421,22 @@ class EnergyService:
                     },
                     "actions": [
                         f"Starte {opp.device_type} im vorgeschlagenen Zeitfenster",
-                        f"Geschätzte Ersparnis: {opp.savings_estimate:.2f}€"
+                        f"Geschaetzte Ersparnis: {opp.savings_estimate:.2f} EUR"
                     ]
                 }
-        
+
         return {
             "suggestion_id": suggestion_id,
             "type": "unknown",
             "title": "Vorschlag nicht gefunden",
             "description": "Die Anfrage konnte keinem bekannten Vorschlag zugeordnet werden."
         }
-    
+
     def get_suppression_status(self) -> dict[str, Any]:
         """Check if energy suggestions should be suppressed."""
         anomalies = self._detect_anomalies()
         high_severity_anomalies = [a for a in anomalies if a.severity == "high"]
-        
+
         return {
             "suppressed": len(high_severity_anomalies) > 0,
             "reason": f"{len(high_severity_anomalies)} high-severity anomalies detected" if high_severity_anomalies else None,
@@ -428,13 +445,15 @@ class EnergyService:
                 "Address high-severity anomalies before new suggestions" if high_severity_anomalies else None
             ]
         }
-    
+
     def get_health(self) -> dict[str, Any]:
         """Get service health status."""
         return {
             "status": "healthy",
+            "hass_available": self._hass_available,
             "cache_valid": self._is_cache_valid(),
             "last_update": self._last_update,
             "baselines_configured": len(self._baselines),
-            "anomaly_thresholds": self._anomaly_thresholds
+            "anomaly_thresholds": self._anomaly_thresholds,
+            "energy_entities_found": len(self._get_all_energy_entities()),
         }
