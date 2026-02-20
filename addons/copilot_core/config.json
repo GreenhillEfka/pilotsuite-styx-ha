@@ -2,7 +2,7 @@
   "name": "PilotSuite Core",
   "slug": "copilot_core",
   "description": "MVP Core Service for PilotSuite with Multi-User Preference Learning, Knowledge Graph, Brain Graph visualization, Cross-Home Sync, and Collective Intelligence.",
-  "version": "3.9.0",
+  "version": "3.9.1",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "arch": [
     "amd64",
@@ -20,7 +20,7 @@
     "8909/tcp": 8909
   },
   "ports_description": {
-    "8909/tcp": "CoPilot Core HTTP API (mood, brain_graph, habitus, LLM)"
+    "8909/tcp": "PilotSuite Core HTTP API (mood, brain_graph, habitus, LLM)"
   },
   "webui": "http://[HOST]:[PORT:8909]/",
   "options": {

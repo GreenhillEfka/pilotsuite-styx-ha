@@ -17,7 +17,7 @@ def _now_iso() -> str:
 
 @dataclass(frozen=True)
 class CopilotConfig:
-    version: str = os.environ.get("COPILOT_VERSION", "0.9.0")
+    version: str = os.environ.get("COPILOT_VERSION", "3.9.1")
 
     # Logging
     log_level: str = "info"

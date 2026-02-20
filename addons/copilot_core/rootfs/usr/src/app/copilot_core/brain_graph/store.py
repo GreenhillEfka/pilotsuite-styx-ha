@@ -501,8 +501,8 @@ class BrainGraphStore:
                     placeholders = ",".join("?" * len(nodes_to_remove))
                     # Remove associated edges first
                     cursor.execute(
-                        f"DELETE FROM edges WHERE from_node IN ({placeholders}) OR to_node IN ({placeholders})", 
-                        nodes_to_remove
+                        f"DELETE FROM edges WHERE from_node IN ({placeholders}) OR to_node IN ({placeholders})",
+                        nodes_to_remove + nodes_to_remove
                     )
                     # Remove nodes
                     cursor.execute(f"DELETE FROM nodes WHERE id IN ({placeholders})", nodes_to_remove)

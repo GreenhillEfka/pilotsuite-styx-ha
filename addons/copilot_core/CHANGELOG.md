@@ -1,7 +1,12 @@
-# Add-on Changelog – AI Home CoPilot Core (MVP)
+# Add-on Changelog – PilotSuite Core
 
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
+
+## 3.9.1
+- **HA Conformity** — Version sync with HACS integration
+- **Branding** — Port description updated to PilotSuite
+- **Security** — Token validation confirmed working (hmac.compare_digest)
 
 ## 0.8.5
 - **Phase 5 Feature: Cross-Home Sync API v0.2**

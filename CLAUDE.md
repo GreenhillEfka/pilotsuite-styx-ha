@@ -146,11 +146,12 @@ addons/copilot_core/
 
 ## Wo kommen wir her
 
-### Version v0.8.7 -- MVP
+### Version v3.9.1 -- HA Conformity Release
 
 - 24 Module implementiert und registriert
-- 37 API Endpoints (Flask Blueprints)
-- 521+ Tests
+- 37+ API Endpoints (Flask Blueprints)
+- 566 Tests, 1 skipped, alle gruen
+- Security: Token-Validierung mit `hmac.compare_digest` (bestaetigt korrekt)
 - Brain Graph mit Persistenz, Pruning, SVG-Snapshots
 - Habitus Miner mit Zone Mining und Association Rules
 - Mood Engine mit 3D-Scoring (Comfort/Joy/Frugality)
@@ -160,38 +161,11 @@ addons/copilot_core/
 - Cross-Home Sync und Collective Intelligence (Phase 5)
 - System Health Checks (Zigbee, Z-Wave, Recorder, etc.)
 - Performance: GZIP Compression, Connection Pooling, Caching
-
-### Bekannte Probleme (aus PROJECT_STATUS.md)
-
-- Token-Authentifizierung fehlerhaft in `security.py` (Request-Klasse statt Instanz)
-- Brain Graph Race Conditions (fehlende Transaction Isolation)
-- Mood Engine Scoring-Logik unvollstaendig
-- Event Processor ohne Rollback bei Partial Failure
-- Config Validation unzureichend (max_nodes=0 moeglich)
-
-### Neue Features (v0.9.0-alpha.1)
-
-- **PilotSuite Umbenennung**: Display-Namen aktualisiert
-- **Dockerfile Port-Fix**: 8909 korrigiert zu 8909
-- **Config durchreichen**: `_options` wird an `init_services(config=)` uebergeben
-- **NeuronManager Wiring**: Household + Webhook Callbacks verdrahtet
-- **Knowledge Graph/Vector/Neurons Blueprints**: Bereits in `blueprint.py` registriert
+- Ollama LLM Integration (Styx Chat-Assistent mit 26 Tools)
 
 ---
 
 ## Naechste Schritte
-
-### Security Fixes (Prioritaet P0)
-
-- `security.py`: `Request` (Klasse) durch `request` (Flask-Instanz) ersetzen
-- `events_ingest.py` + `tag_system.py`: `validate_token(request)` korrekt verwenden
-- Auth-Tests fuer alle geschuetzten Endpoints schreiben
-
-### Error Isolation
-
-- Modul-Setup mit try/except wrappen
-- Brain Graph Transaction Isolation (SQLite WAL-Mode)
-- Event Processor Rollback bei Partial Failure
 
 ### ML Training
 

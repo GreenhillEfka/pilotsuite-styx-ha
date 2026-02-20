@@ -50,7 +50,7 @@ class TestGraphApi(unittest.TestCase):
         r = client.get("/api/v1/graph/snapshot.svg")
         self.assertEqual(r.status_code, 200)
         self.assertIn("image/svg+xml", r.headers.get("Content-Type", ""))
-        self.assertIn("placeholder", r.get_data(as_text=True))
+        self.assertIn("no nodes yet", r.get_data(as_text=True))
 
 
 if __name__ == "__main__":

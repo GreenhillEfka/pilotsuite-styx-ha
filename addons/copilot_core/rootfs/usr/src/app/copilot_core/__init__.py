@@ -1,7 +1,7 @@
 """
-AI Home CoPilot Core Package
+PilotSuite Core Package
 
-Core services for AI Home CoPilot:
+Core services for PilotSuite:
 - Brain Graph: Event processing and pattern detection
 - Candidates: Automation suggestion storage
 - Habitus: A→B pattern mining
@@ -11,7 +11,7 @@ Core services for AI Home CoPilot:
 - Dev Surface: Development utilities
 """
 
-__version__ = "0.9.0"
+__version__ = "3.9.1"
 
 # Global service instances (initialized by init_services)
 _system_health_service = None

@@ -1,5 +1,7 @@
 """Tests for mood service."""
 
+import os
+import tempfile
 import unittest
 import time
 
@@ -14,10 +16,19 @@ class TestMoodService(unittest.TestCase):
     """Test MoodService functionality."""
 
     def setUp(self):
-        """Set up test fixtures."""
+        """Set up test fixtures with a fresh temp database."""
         if MoodService is None:
             self.skipTest("MoodService not available")
-        self.service = MoodService()
+        self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        self._tmp.close()
+        self.service = MoodService(db_path=self._tmp.name)
+
+    def tearDown(self):
+        """Clean up temp database."""
+        try:
+            os.unlink(self._tmp.name)
+        except OSError:
+            pass
 
     def test_service_initializes(self):
         """Test MoodService initializes correctly."""
@@ -371,10 +382,19 @@ class TestMoodServiceEdgeCases(unittest.TestCase):
     """Test edge cases for MoodService."""
 
     def setUp(self):
-        """Set up test fixtures."""
+        """Set up test fixtures with a fresh temp database."""
         if MoodService is None:
             self.skipTest("MoodService not available")
-        self.service = MoodService()
+        self._tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        self._tmp.close()
+        self.service = MoodService(db_path=self._tmp.name)
+
+    def tearDown(self):
+        """Clean up temp database."""
+        try:
+            os.unlink(self._tmp.name)
+        except OSError:
+            pass
 
     def test_empty_media_snapshot(self):
         """Test empty media snapshot doesn't crash."""

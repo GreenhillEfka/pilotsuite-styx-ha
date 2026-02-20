@@ -1,7 +1,7 @@
 {
   "domain": "copilot",
-  "name": "AI Home CoPilot (Adapter) – MVP",
-  "version": "0.8.3",
+  "name": "PilotSuite (Adapter)",
+  "version": "3.9.1",
   "documentation": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
   "requirements": [],
   "codeowners": ["@GreenhillEfka"],

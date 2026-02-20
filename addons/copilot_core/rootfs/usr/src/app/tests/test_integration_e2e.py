@@ -293,7 +293,7 @@ class TestMultiEndpointFlow(unittest.TestCase):
         
         self.assertEqual(r.status_code, 200)
         # Should contain some expected strings
-        self.assertIn(b"CoPilot", r.data)
+        self.assertIn(b"PilotSuite", r.data)
 
     def test_events_with_invalid_payload(self):
         """Test events endpoint handles invalid payload."""
