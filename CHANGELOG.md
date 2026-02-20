@@ -1,5 +1,17 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.0.1] - 2026-02-20
+
+### Patch — Version-Fix, Branding-Cleanup, Add-on Store Fix
+
+- **entity.py VERSION** auf 4.0.1 aktualisiert (war 3.13.0 — HACS zeigte falsche Version)
+- **manifest.json version** auf 4.0.1 synchronisiert
+- **README.md** Header von v3.9.1 auf v4.0.1 aktualisiert
+- **camera_dashboard.py** Dashboard-Pfad `ai-home-copilot-camera` → `pilotsuite-camera`
+- **docs/USER_MANUAL.md** Version-Header, Card-Types und Anchor-Links aktualisiert
+- **PROJECT_STATUS.md** Alpha-Referenzen durch v4.0.x ersetzt
+- Alte Version-Kommentare in `__init__.py` bereinigt
+
 ## [4.0.0] - 2026-02-20
 
 ### Official Release — Repository Rename + Feature-Complete
