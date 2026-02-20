@@ -1,4 +1,4 @@
-"""Neuron sensors for AI Home CoPilot - 14 Neurons from Original Plan.
+"""Neuron sensors for PilotSuite - 14 Neurons from Original Plan.
 
 This module is a lazy-loading facade that imports sensor classes from
 individual modules for better code organization and maintainability.

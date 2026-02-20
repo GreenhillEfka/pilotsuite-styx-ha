@@ -1,5 +1,5 @@
 """
-Cross-Home Sharing Integration for AI Home CoPilot.
+Cross-Home Sharing Integration for PilotSuite.
 
 Bridges HA Integration with the Core Add-on's Cross-Home Sharing API.
 Enables entity sync, discovery, and conflict resolution across multiple homes.
@@ -45,7 +45,7 @@ class CrossHomeClient:
     Client for Cross-Home Sharing via Core Add-on API.
     
     Communicates with the Core Add-on's sharing endpoints to:
-    - Discover other CoPilot homes on the network
+    - Discover other PilotSuite homes on the network
     - Register entities for sharing
     - Sync entity state changes
     - Receive updates from remote homes
@@ -201,7 +201,7 @@ class CrossHomeClient:
             
     async def async_discover_peers(self) -> Dict[str, Dict[str, Any]]:
         """
-        Discover other CoPilot homes on the network.
+        Discover other PilotSuite homes on the network.
         
         Returns:
             Dict mapping home_id to peer info

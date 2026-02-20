@@ -1,4 +1,4 @@
-"""Sensor entities for AI Home CoPilot.
+"""Sensor entities for PilotSuite.
 
 This module provides lazy loading of sensor modules for better performance.
 """

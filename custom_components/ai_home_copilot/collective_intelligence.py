@@ -1,7 +1,7 @@
 """
-Collective Intelligence Module - Federated Learning for AI Home CoPilot.
+Collective Intelligence Module - Federated Learning for PilotSuite.
 
-Enables distributed learning across multiple CoPilot homes without sharing raw data.
+Enables distributed learning across multiple PilotSuite homes without sharing raw data.
 Each home learns local patterns and only shares anonymized model updates (gradients/weights).
 
 Privacy-first: Only aggregated patterns, not raw entity data or user behavior.

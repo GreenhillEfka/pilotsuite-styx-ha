@@ -1,4 +1,4 @@
-"""Local user preference API endpoints for AI Home CoPilot.
+"""Local user preference API endpoints for PilotSuite.
 
 Privacy-first: user IDs remain local and are never forwarded to Core.
 """
