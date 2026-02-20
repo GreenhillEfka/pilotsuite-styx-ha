@@ -276,24 +276,221 @@ def export_user_data(user_id: str):
 @bp.get("/mood/aggregated")
 def get_aggregated_mood():
     """Get aggregated mood for multiple users.
-    
+
     Query params:
         users: Comma-separated list of user IDs (optional, defaults to active users)
-        
+
     Returns:
         Aggregated mood dict with comfort, frugality, joy
     """
     users_param = request.args.get("users")
-    
+
     if users_param:
         user_ids = [u.strip() for u in users_param.split(",") if u.strip()]
     else:
         user_ids = _store().get_active_users()
-    
+
     mood = _store().get_aggregated_mood(user_ids)
-    
+
     return jsonify({
         "status": "ok",
         "mood": mood,
         "user_count": len(user_ids),
     })
+
+
+# ==================== Role Inference ====================
+
+
+def _mupl():
+    """Get the MUPL module (lazy-loaded)."""
+    cfg = current_app.config.get("COPILOT_CFG")
+    mupl = getattr(cfg, "mupl", None)
+    if mupl is None:
+        from copilot_core.neurons.mupl import create_mupl_module
+        mupl = create_mupl_module()
+        if cfg:
+            cfg.mupl = mupl
+    return mupl
+
+
+@bp.get("/<user_id>/role")
+def get_user_role(user_id: str):
+    """Get inferred role for a user.
+
+    Returns role, confidence, device count, and automation count.
+    """
+    mupl = _mupl()
+    profile = mupl.get_user_profile(user_id)
+
+    if not profile:
+        return jsonify({
+            "user_id": user_id,
+            "role": "unknown",
+            "confidence": 0.0,
+            "device_count": 0,
+            "automation_count": 0,
+        })
+
+    return jsonify({
+        "user_id": user_id,
+        "role": profile.role.value,
+        "confidence": profile.confidence,
+        "device_count": profile.device_count,
+        "automation_count": profile.automation_count,
+    })
+
+
+@bp.get("/roles")
+def get_all_roles():
+    """Get inferred roles for all known users."""
+    mupl = _mupl()
+    profiles = mupl.get_all_profiles()
+
+    result = {}
+    for uid, profile in profiles.items():
+        if profile:
+            result[uid] = {
+                "role": profile.role.value,
+                "confidence": profile.confidence,
+                "device_count": profile.device_count,
+            }
+
+    return jsonify({"status": "ok", "roles": result, "count": len(result)})
+
+
+@bp.post("/<user_id>/device/<device_id>")
+def register_device_usage(user_id: str, device_id: str):
+    """Register that a user controlled a device.
+
+    Used for role inference and device affinity tracking.
+    """
+    mupl = _mupl()
+    mupl.register_device_control(user_id, device_id)
+
+    # Also update device affinity in the preference store
+    _store().update_device_affinity(user_id, device_id)
+
+    _LOGGER.debug("Registered device control: %s → %s", user_id, device_id)
+    return jsonify({"status": "ok"})
+
+
+@bp.get("/<user_id>/access/<device_id>")
+def check_device_access(user_id: str, device_id: str):
+    """Check if user has access to a device (RBAC)."""
+    mupl = _mupl()
+    allowed = mupl.check_access(user_id, device_id)
+
+    return jsonify({
+        "user_id": user_id,
+        "device_id": device_id,
+        "allowed": allowed,
+    })
+
+
+# ==================== Delegation ====================
+
+
+@bp.post("/<user_id>/delegate")
+def delegate_device(user_id: str):
+    """Delegate device access from one user to another.
+
+    Body:
+        target_user_id: User to receive access
+        device_id: Device to delegate
+        expires_hours: Optional expiry in hours (0 = permanent)
+
+    Only Device Managers can delegate.
+    """
+    import time as _time
+
+    data = request.get_json(silent=True) or {}
+    target = data.get("target_user_id")
+    device_id = data.get("device_id")
+
+    if not target or not device_id:
+        return jsonify({"error": "target_user_id and device_id required"}), 400
+
+    mupl = _mupl()
+
+    # Check caller has permission to delegate
+    caller_profile = mupl.get_user_profile(user_id)
+    if not caller_profile or caller_profile.role.value != "device_manager":
+        return jsonify({"error": "only_device_managers_can_delegate"}), 403
+
+    # Register device for target user
+    mupl.register_device_control(target, device_id)
+
+    # Track delegation in store
+    expires_hours = float(data.get("expires_hours", 0))
+    expires_at = _time.time() + expires_hours * 3600 if expires_hours > 0 else None
+
+    store = _store()
+    delegations = store._load_extra("delegations") or []
+    delegations.append({
+        "from": user_id,
+        "to": target,
+        "device_id": device_id,
+        "created_at": _time.time(),
+        "expires_at": expires_at,
+    })
+    store._save_extra("delegations", delegations)
+
+    _LOGGER.info("Delegation: %s → %s for device %s", user_id, target, device_id)
+
+    return jsonify({
+        "status": "delegated",
+        "from": user_id,
+        "to": target,
+        "device_id": device_id,
+        "expires_at": expires_at,
+    })
+
+
+@bp.delete("/<user_id>/delegate")
+def revoke_delegation(user_id: str):
+    """Revoke a device delegation.
+
+    Body:
+        target_user_id: User to revoke from
+        device_id: Device to revoke
+    """
+    data = request.get_json(silent=True) or {}
+    target = data.get("target_user_id")
+    device_id = data.get("device_id")
+
+    if not target or not device_id:
+        return jsonify({"error": "target_user_id and device_id required"}), 400
+
+    store = _store()
+    delegations = store._load_extra("delegations") or []
+    before = len(delegations)
+    delegations = [
+        d for d in delegations
+        if not (d["from"] == user_id and d["to"] == target and d["device_id"] == device_id)
+    ]
+    store._save_extra("delegations", delegations)
+
+    removed = before - len(delegations)
+    _LOGGER.info("Revoked %d delegation(s): %s → %s for %s", removed, user_id, target, device_id)
+
+    return jsonify({"status": "revoked", "removed": removed})
+
+
+@bp.get("/delegations")
+def list_delegations():
+    """List all active delegations."""
+    import time as _time
+
+    store = _store()
+    delegations = store._load_extra("delegations") or []
+
+    # Filter expired
+    now = _time.time()
+    active = [d for d in delegations if not d.get("expires_at") or d["expires_at"] > now]
+
+    # Clean up expired
+    if len(active) != len(delegations):
+        store._save_extra("delegations", active)
+
+    return jsonify({"status": "ok", "delegations": active, "count": len(active)})

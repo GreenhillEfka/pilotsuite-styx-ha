@@ -383,12 +383,32 @@ class UserPreferenceStore:
             "exported_at": _now_iso(),
         }
     
+    # ==================== Generic Extra Storage ====================
+
+    def _load_extra(self, key: str) -> Any:
+        """Load a named JSON blob from /data/{key}.json."""
+        path = os.path.join(self.data_dir, f"{key}.json")
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                return json.load(fh)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return None
+
+    def _save_extra(self, key: str, data: Any) -> None:
+        """Save a named JSON blob to /data/{key}.json."""
+        if not self.persist:
+            return
+        os.makedirs(self.data_dir, exist_ok=True)
+        path = os.path.join(self.data_dir, f"{key}.json")
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False, indent=2)
+
     def clear_all(self) -> None:
         """Clear all stored data (for testing/reset)."""
         self._users.clear()
         self._affinities.clear()
         self._active_users.clear()
-        
+
         if self.persist:
             for path in [self.users_path, self.affinities_path]:
                 try:
