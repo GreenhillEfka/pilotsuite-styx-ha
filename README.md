@@ -77,6 +77,48 @@ Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port
 | Waste/Birthday | Naechste Abholung, Geburtstage |
 | System | Health Score, API Status, Version |
 
+## Styx als Chat-Assistent einrichten
+
+PilotSuite stellt eine OpenAI-kompatible API bereit (`/v1/chat/completions`). So wird Styx zum Gespraechspartner:
+
+### Option 1: Extended OpenAI Conversation (empfohlen)
+
+1. [Extended OpenAI Conversation](https://github.com/jekalmin/extended_openai_conversation) via HACS installieren
+2. **Settings** → **Devices & services** → **Add integration** → **Extended OpenAI Conversation**
+3. Konfigurieren:
+   - **API Key**: Auth-Token aus dem Core Add-on
+   - **Base URL**: `http://homeassistant.local:8909/v1`
+   - **Model**: `qwen3:4b`
+4. **Settings** → **Voice Assistants** → Styx als Conversation Agent waehlen
+
+Styx antwortet mit **26 Tools** (Geraete steuern, Automations erstellen, Einkaufsliste, Kalender, Web-Suche, Warnmeldungen, Szenen, Musiksteuerung u.v.m.) und nutzt RAG-basiertes Langzeitgedaechtnis.
+
+### Option 2: Telegram Bot
+
+Im Core Add-on unter **Configuration** → `telegram.enabled: true` aktivieren. Styx fuehrt Tools serverseitig aus — kein zusaetzliches HA-Setup noetig.
+
+## Brain Graph Visualisierung
+
+Das Core Add-on bietet ein interaktives Web-Dashboard (Dark Theme) mit D3.js Brain Graph, erreichbar ueber den Ingress-Panel-Link im Add-on:
+
+```
+ Nodes (farblich nach Domain)
+ ============================
+
+     [light.*]  o----------o  [binary_sensor.*]
+       gelb     |          |     blau
+                |          |
+     [person.*] o----------o  [automation.*]
+       gruen               |     orange
+                           |
+     [sensor.*] o----------o  [climate.*]
+       cyan                      rot
+
+ Edges = Beziehungen (temporal, causal, spatial)
+```
+
+Dazu: Mood-Gauges (Comfort/Joy/Frugality), Habitus-Patterns, Chat-Interface und Modul-Health-Status in Echtzeit.
+
 ## Habituszonen
 
 Habituszonen sind unabhaengig von HA Areas — sie definieren kuratierte Raeume mit Motion/Praesenz + Licht + optionalen Sensoren. CoPilot lernt zonenspezifische Muster und schlaegt passende Automatisierungen vor.
