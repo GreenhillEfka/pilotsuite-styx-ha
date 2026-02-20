@@ -749,7 +749,12 @@ class EventsForwarderModule:
                     st.first_error_ts = now_ts
                 _persist_mark_dirty()
                 return
+            finally:
+                # Ensure flushing flag is always cleared so queue never deadlocks
+                st.flushing = False
 
+            # Re-acquire flushing lock for the POST phase
+            st.flushing = True
             # Take up to max_batch items, keep remainder.
             items = list(st.queue[:max_batch])
             remain = list(st.queue[max_batch:])

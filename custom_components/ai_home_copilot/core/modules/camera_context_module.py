@@ -107,24 +107,36 @@ class ImageProcessingEventData:
 class CameraContextModule(CopilotModule):
     """Module for camera event processing and Habitus integration."""
     
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
-        super().__init__(hass, entry_id)
-        self._hass = hass
-        self._entry_id = entry_id
+    def __init__(self) -> None:
+        self._hass: HomeAssistant | None = None
+        self._entry_id: str | None = None
         self._camera_entities: dict[str, CameraInfo] = {}
         self._tracked_cameras: list[str] = []
         self._enabled = True
         self._listeners: list[Any] = []
-        
+
     @property
     def name(self) -> str:
         return "Camera Context"
-    
+
     @property
     def enabled(self) -> bool:
         return self._enabled
-    
-    async def async_setup(self) -> bool:
+
+    async def async_setup_entry(self, ctx) -> None:
+        """Set up the module for a config entry."""
+        self._hass = ctx.hass
+        self._entry_id = ctx.entry_id
+        await self._async_setup()
+
+    async def async_unload_entry(self, ctx) -> bool:
+        """Unload listeners."""
+        for unsub in self._listeners:
+            unsub()
+        self._listeners.clear()
+        return True
+
+    async def _async_setup(self) -> bool:
         """Set up camera event listeners."""
         _LOGGER.info("Setting up Camera Context Module")
         

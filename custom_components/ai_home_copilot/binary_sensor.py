@@ -75,7 +75,7 @@ async def _discover_camera_entities(hass: HomeAssistant) -> list[tuple[str, str]
 
 class CopilotOnlineBinarySensor(CopilotBaseEntity, BinarySensorEntity):
     _attr_name = "Online"
-    _attr_unique_id = "online"
+    _attr_unique_id = "ai_home_copilot_online"
     _attr_icon = "mdi:robot"
 
     @property
