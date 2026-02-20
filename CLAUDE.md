@@ -96,7 +96,7 @@ services = init_services(config=options)
 ### Dateistruktur
 
 ```
-addons/copilot_core/
+copilot_core/
 +-- Dockerfile               # Container-Build
 +-- config.yaml              # HA Add-on Manifest
 +-- rootfs/usr/src/app/

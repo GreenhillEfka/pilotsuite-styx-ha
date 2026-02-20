@@ -17,7 +17,7 @@ jobs:
 
       - name: Syntax check (py_compile)
         run: |
-          python -m py_compile $(find addons/copilot_core/rootfs/usr/src/app -name '*.py')
+          python -m py_compile $(find copilot_core/rootfs/usr/src/app -name '*.py')
 
       - name: Install dependencies
         run: |
@@ -26,7 +26,7 @@ jobs:
 
       - name: Import smoke test (create_app)
         env:
-          PYTHONPATH: addons/copilot_core/rootfs/usr/src/app
+          PYTHONPATH: copilot_core/rootfs/usr/src/app
         run: |
           python - <<'PY'
           from copilot_core.app import create_app
@@ -53,10 +53,10 @@ jobs:
 
       - name: Run full test suite
         env:
-          PYTHONPATH: addons/copilot_core/rootfs/usr/src/app
+          PYTHONPATH: copilot_core/rootfs/usr/src/app
         run: |
           python -m pytest tests/ -v --tb=short \
-            --cov=addons/copilot_core/rootfs/usr/src/app/copilot_core \
+            --cov=copilot_core/rootfs/usr/src/app/copilot_core \
             --cov-report=term-missing \
             -x || true
 
@@ -76,6 +76,6 @@ jobs:
 
       - name: Security scan (bandit)
         run: |
-          bandit -r addons/copilot_core/rootfs/usr/src/app/copilot_core \
+          bandit -r copilot_core/rootfs/usr/src/app/copilot_core \
             -ll --skip B101,B404,B603 \
             -f txt || true

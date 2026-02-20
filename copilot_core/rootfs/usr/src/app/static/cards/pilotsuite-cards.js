@@ -1,5 +1,5 @@
 /**
- * PilotSuite Lovelace Custom Cards v3.11.0
+ * PilotSuite Lovelace Custom Cards v4.0.0
  *
  * Cards: ha-copilot-mood-card, ha-copilot-neurons-card, ha-copilot-habitus-card
  *
@@ -474,6 +474,6 @@ window.customCards.push(
 );
 
 console.info(
-  "%c PilotSuite Cards v3.11.0 loaded ",
+  "%c PilotSuite Cards v4.0.0 loaded ",
   "color: white; background: #4a90d9; font-weight: bold; padding: 2px 8px; border-radius: 4px;"
 );

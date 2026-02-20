@@ -1,5 +1,7 @@
 {
-  "name": "PilotSuite (MVP)",
+  "name": "PilotSuite Add-ons",
   "url": "https://github.com/GreenhillEfka/Home-Assistant-Copilot",
-  "maintainer": "GreenhillEfka"
+  "maintainer": "GreenhillEfka",
+  "channel": "stable",
+  "description": "PilotSuite — Styx: AI Home Copilot for Home Assistant. Mood detection, habitus zones, neural system, knowledge graph, and local LLM conversation."
 }
