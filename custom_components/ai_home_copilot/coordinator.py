@@ -7,6 +7,8 @@ import logging
 from typing import Any
 from dataclasses import dataclass, field
 
+import aiohttp
+
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -37,43 +39,40 @@ class CopilotApiClient:
         """Get basic status."""
         url = f"{self._base_url}/api/v1/status"
         headers = {"Authorization": f"Bearer {self._token}"}
-        
-        async with self._session.get(url, headers=headers) as resp:
+
+        async with self._session.get(url, headers=headers, timeout=10) as resp:
             if resp.status != 200:
                 raise CopilotApiError(f"API error: {resp.status}")
             return await resp.json()
-    
+
     async def async_get_mood(self) -> dict[str, Any]:
         """Get current mood from neural system."""
         url = f"{self._base_url}/api/v1/neurons/mood"
         headers = {"Authorization": f"Bearer {self._token}"}
-        
+
         try:
             async with self._session.get(url, headers=headers, timeout=5) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    # API returns {success: true, data: {...}}
-                    # Extract the data part
                     return data.get("data", data)
-        except Exception as e:
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
             _LOGGER.debug("Mood API not available: %s", e)
         return {"mood": "unknown", "confidence": 0.0}
-    
+
     async def async_get_neurons(self) -> dict[str, Any]:
         """Get all neuron states."""
         url = f"{self._base_url}/api/v1/neurons"
         headers = {"Authorization": f"Bearer {self._token}"}
-        
+
         try:
             async with self._session.get(url, headers=headers, timeout=5) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    # API returns {success: true, data: {...}}
                     return data.get("data", data)
-        except Exception as e:
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
             _LOGGER.debug("Neurons API not available: %s", e)
         return {"neurons": {}}
-    
+
     async def async_chat_completions(
         self, messages: list[dict[str, str]], conversation_id: str | None = None
     ) -> dict[str, Any]:
@@ -85,7 +84,7 @@ class CopilotApiClient:
             payload["conversation_id"] = conversation_id
 
         async with self._session.post(
-            url, json=payload, headers=headers, timeout=30
+            url, json=payload, headers=headers, timeout=20
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
@@ -103,13 +102,13 @@ class CopilotApiClient:
         """Evaluate neural pipeline with HA states."""
         url = f"{self._base_url}/api/v1/neurons/evaluate"
         headers = {"Authorization": f"Bearer {self._token}"}
-        
+
         try:
             async with self._session.post(url, json=context, headers=headers, timeout=10) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     return data.get("data", data)
-        except Exception as e:
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
             _LOGGER.warning("Neural evaluation failed: %s", e)
         return {}
 
@@ -146,36 +145,43 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         )
     
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from API."""
-        try:
-            # Get basic status
-            status = await self.api.async_get_status()
-            
-            # Get mood from neural system
-            mood_data = await self.api.async_get_mood()
-            
-            # Get neuron states
-            neurons_data = await self.api.async_get_neurons()
-            
-            # Get habit learning data from ML context if available
-            habit_data = await self._get_habit_learning_data()
-            
-            # Combine all data
-            return {
-                "ok": status.get("ok", True),
-                "version": status.get("version", "unknown"),
-                "mood": mood_data,
-                "neurons": neurons_data.get("neurons", {}),
-                "dominant_mood": mood_data.get("mood", "unknown"),
-                "mood_confidence": mood_data.get("confidence", 0.0),
-                # Include habit learning data
-                "habit_summary": habit_data.get("habit_summary", {}),
-                "predictions": habit_data.get("predictions", []),
-                "sequences": habit_data.get("sequences", []),
-            }
-        except Exception as err:
-            _LOGGER.error("Error fetching PilotSuite data: %s", err)
-            raise UpdateFailed(str(err)) from err
+        """Fetch data from API with retry on transient failures."""
+        last_err: Exception | None = None
+        for attempt in range(3):
+            try:
+                status = await self.api.async_get_status()
+
+                # Get mood from neural system
+                mood_data = await self.api.async_get_mood()
+
+                # Get neuron states
+                neurons_data = await self.api.async_get_neurons()
+
+                # Get habit learning data from ML context if available
+                habit_data = await self._get_habit_learning_data()
+
+                return {
+                    "ok": status.get("ok", True),
+                    "version": status.get("version", "unknown"),
+                    "mood": mood_data,
+                    "neurons": neurons_data.get("neurons", {}),
+                    "dominant_mood": mood_data.get("mood", "unknown"),
+                    "mood_confidence": mood_data.get("confidence", 0.0),
+                    "habit_summary": habit_data.get("habit_summary", {}),
+                    "predictions": habit_data.get("predictions", []),
+                    "sequences": habit_data.get("sequences", []),
+                }
+            except (asyncio.TimeoutError, aiohttp.ClientError) as err:
+                last_err = err
+                if attempt < 2:
+                    await asyncio.sleep(2 ** attempt)  # 1s, 2s backoff
+                    _LOGGER.debug("Retrying PilotSuite API (attempt %d): %s", attempt + 1, err)
+            except CopilotApiError as err:
+                _LOGGER.error("PilotSuite API error: %s", err)
+                raise UpdateFailed(str(err)) from err
+
+        _LOGGER.warning("PilotSuite API unreachable after 3 attempts: %s", last_err)
+        raise UpdateFailed(f"API timeout after retries: {last_err}") from last_err
     
     async def _get_habit_learning_data(self) -> dict[str, Any]:
         """Get habit learning data from ML context."""

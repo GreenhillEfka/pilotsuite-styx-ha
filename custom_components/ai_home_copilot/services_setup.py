@@ -4,7 +4,11 @@ Extracted from __init__.py to keep async_setup() lean.
 """
 from __future__ import annotations
 
+import logging
+
 import voluptuous as vol
+
+_LOGGER = logging.getLogger(__name__)
 
 from homeassistant.core import HomeAssistant, ServiceCall
 
@@ -361,6 +365,7 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
             from .multi_user_preferences import get_mupl_module
             mupl = get_mupl_module(hass)
             if not mupl:
+                _LOGGER.warning("MUPL module not available — enable mupl_enabled in integration config")
                 return
             user_id = call.data.get("user_id")
             pref_type = call.data.get("preference_type")
@@ -388,6 +393,7 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
             from .multi_user_preferences import get_mupl_module
             mupl = get_mupl_module(hass)
             if not mupl:
+                _LOGGER.warning("MUPL module not available — enable mupl_enabled in integration config")
                 return
             user_id = call.data.get("user_id")
             priority = float(call.data.get("priority", 0.5))
@@ -414,6 +420,7 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
             from .multi_user_preferences import get_mupl_module
             mupl = get_mupl_module(hass)
             if not mupl:
+                _LOGGER.warning("MUPL module not available — enable mupl_enabled in integration config")
                 return
             user_id = call.data.get("user_id")
             await mupl.delete_user_data(user_id)
@@ -431,6 +438,7 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
             from .multi_user_preferences import get_mupl_module
             mupl = get_mupl_module(hass)
             if not mupl:
+                _LOGGER.warning("MUPL module not available — enable mupl_enabled in integration config")
                 return
             user_id = call.data.get("user_id")
             data = await mupl.export_user_data(user_id)
@@ -453,6 +461,7 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
             from .multi_user_preferences import get_mupl_module
             mupl = get_mupl_module(hass)
             if not mupl:
+                _LOGGER.warning("MUPL module not available — enable mupl_enabled in integration config")
                 return
             active_users = await mupl.detect_active_users()
             # Fire event with results
@@ -473,6 +482,7 @@ def _register_mupl_services(hass: HomeAssistant) -> None:
             from .multi_user_preferences import get_mupl_module
             mupl = get_mupl_module(hass)
             if not mupl:
+                _LOGGER.warning("MUPL module not available — enable mupl_enabled in integration config")
                 return
             user_ids = call.data.get("user_ids")
             mood = mupl.get_aggregated_mood(user_ids)
