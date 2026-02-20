@@ -1,0 +1,94 @@
+{
+  "entity": {
+    "sensor": {
+      "mood": {
+        "default": "mdi:robot-happy"
+      },
+      "mood_confidence": {
+        "default": "mdi:gauge"
+      },
+      "active_neurons": {
+        "default": "mdi:brain"
+      },
+      "energy_proxy": {
+        "default": "mdi:lightning-bolt"
+      },
+      "energy_insights": {
+        "default": "mdi:flash"
+      },
+      "energy_recommendations": {
+        "default": "mdi:lightbulb-on-outline"
+      },
+      "presence": {
+        "default": "mdi:account-multiple"
+      },
+      "activity_level": {
+        "default": "mdi:run"
+      },
+      "activity_stillness": {
+        "default": "mdi:meditation"
+      },
+      "light_level": {
+        "default": "mdi:brightness-6"
+      },
+      "noise_level": {
+        "default": "mdi:volume-high"
+      },
+      "weather_context": {
+        "default": "mdi:weather-partly-cloudy"
+      },
+      "habit_learning": {
+        "default": "mdi:head-cog"
+      },
+      "habit_prediction": {
+        "default": "mdi:crystal-ball"
+      },
+      "anomaly_alert": {
+        "default": "mdi:alert-octagon"
+      },
+      "predictive_automation": {
+        "default": "mdi:auto-fix"
+      },
+      "neuron_dashboard": {
+        "default": "mdi:chart-timeline-variant"
+      },
+      "attention_load": {
+        "default": "mdi:head-lightbulb"
+      },
+      "stress_proxy": {
+        "default": "mdi:heart-pulse"
+      },
+      "calendar_context": {
+        "default": "mdi:calendar-clock"
+      },
+      "voice_context": {
+        "default": "mdi:microphone"
+      },
+      "inspector": {
+        "default": "mdi:magnify-scan"
+      }
+    }
+  },
+  "services": {
+    "ping": "mdi:connection",
+    "trigger_mining": "mdi:pickaxe",
+    "habitus_mine_rules": "mdi:head-cog",
+    "habitus_get_rules": "mdi:format-list-bulleted",
+    "habitus_reset_cache": "mdi:cached",
+    "habitus_configure_mining": "mdi:cog",
+    "enable_debug_for": "mdi:bug",
+    "disable_debug": "mdi:bug-outline",
+    "clear_error_digest": "mdi:notification-clear-all",
+    "tag_registry_upsert_tag": "mdi:tag-plus",
+    "tag_registry_set_assignment": "mdi:tag-arrow-right",
+    "tag_registry_confirm": "mdi:tag-check",
+    "tag_registry_sync_labels_now": "mdi:sync",
+    "tag_registry_pull_from_core": "mdi:cloud-download",
+    "ops_runbook_preflight_check": "mdi:airplane-check",
+    "ops_runbook_smoke_test": "mdi:test-tube",
+    "ops_runbook_execute_action": "mdi:play-circle",
+    "ops_runbook_run_checklist": "mdi:clipboard-check",
+    "ai_home_copilot_unifi_run_diagnostics": "mdi:network",
+    "ai_home_copilot_unifi_get_report": "mdi:file-chart"
+  }
+}

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Final
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -62,7 +62,8 @@ class EnergyProxySensor(CoordinatorEntity, SensorEntity):
     _attr_name: str = "AI CoPilot Energy Proxy"
     _attr_unique_id: str = "ai_copilot_energy_proxy"
     _attr_icon: str = "mdi:lightning-bolt"
-    _attr_native_unit_of_measurement: str = "W"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options: list[str] = ["low", "moderate", "high", "very_high"]
     _attr_should_poll: bool = False  # Using coordinator, no manual polling needed
     
     def __init__(

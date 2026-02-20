@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -24,6 +24,8 @@ class EnergyInsightSensor(SensorEntity):
     _attr_name = "AI CoPilot Energy Insights"
     _attr_unique_id = "ai_copilot_energy_insights"
     _attr_icon = "mdi:lightning-bolt"
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_native_unit_of_measurement = "kWh"
     _attr_should_poll = False
     
