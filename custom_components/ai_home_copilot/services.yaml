@@ -644,3 +644,35 @@ habit_learning_predict:
       selector:
         text:
 
+# ─── HomeKit Bridge (per-zone) ──────────────────────────────────────────────
+
+homekit_enable_zone:
+  name: HomeKit – Enable Zone
+  description: Aktiviert HomeKit für eine Habitus-Zone (exponiert Entities an Apple Home).
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID der Habitus-Zone.
+      required: true
+      example: "zone:wohnzimmer"
+      selector:
+        text:
+    zone_name:
+      name: Zone Name
+      description: Anzeigename der Zone in Apple Home.
+      example: "Wohnzimmer by Styx"
+      selector:
+        text:
+
+homekit_disable_zone:
+  name: HomeKit – Disable Zone
+  description: Deaktiviert HomeKit für eine Habitus-Zone.
+  fields:
+    zone_id:
+      name: Zone ID
+      description: ID der Habitus-Zone.
+      required: true
+      example: "zone:wohnzimmer"
+      selector:
+        text:
+

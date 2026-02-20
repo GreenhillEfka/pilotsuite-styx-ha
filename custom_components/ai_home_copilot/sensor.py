@@ -390,6 +390,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if homekit_mod is not None:
         entities.append(HomeKitBridgeSensor(hass, entry, homekit_mod))
 
+    # HomeKit per-zone toggle + QR entities (v4.0.0)
+    from .homekit_entities import async_create_homekit_entities
+    await async_create_homekit_entities(hass, entry, coordinator, async_add_entities)
+
     # Calendar Module sensor (v3.5.0)
     from .core.modules.calendar_module import get_calendar_module
     cal_mod = get_calendar_module(hass, entry.entry_id)

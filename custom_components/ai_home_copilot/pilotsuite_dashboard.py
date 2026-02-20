@@ -341,12 +341,38 @@ Wenn `/api/v1/events` leer bleibt:
             "        title: Habitus-Zonen\n"
         )
         habitus_buttons = _entities_card("Habitus-Steuerung", habitus_entities)
+
+        # HomeKit QR codes per zone
+        homekit_cards: list[str] = []
+        for z in zones:
+            if z.current_state == "disabled":
+                continue
+            zone_slug = z.zone_id.replace(":", "_").replace(" ", "_")
+            qr_url = f"{core_base}/api/v1/homekit/qr/{z.zone_id}.svg"
+            homekit_card = _markdown_card(
+                f"HomeKit — {z.name} by Styx",
+                f"![QR]({qr_url})\n\n"
+                f"**Zone:** {z.name}\n"
+                f"**Entities:** {len(z.entity_ids) if z.entity_ids else 0}\n\n"
+                f"Scanne den QR-Code mit der Apple Home App,\n"
+                f"um **{z.name}** zu deinem Zuhause hinzuzufügen.",
+            )
+            homekit_cards.append(homekit_card)
+
+        homekit_section = ""
+        if homekit_cards:
+            homekit_section = _grid_card(homekit_cards, columns=2)
+
+        habitus_content = [habitus_custom_card, habitus_buttons]
+        if homekit_section:
+            habitus_content.append(homekit_section)
+
         views.append(
             _view(
                 "Habitus",
                 "copilot-habitus",
                 "mdi:layers-outline",
-                "\n\n".join([habitus_custom_card, habitus_buttons]),
+                "\n\n".join(habitus_content),
             )
         )
 

@@ -1075,6 +1075,77 @@ def _register_habit_learning_services(hass: HomeAssistant) -> None:
 
 
 # ---------------------------------------------------------------------------
+# HomeKit Bridge services (per-zone toggle)
+# ---------------------------------------------------------------------------
+
+def _register_homekit_services(hass: HomeAssistant) -> None:
+    """Register HomeKit bridge per-zone services."""
+
+    if not hass.services.has_service(DOMAIN, "homekit_enable_zone"):
+
+        async def _handle_enable_zone(call: ServiceCall) -> None:
+            zone_id = call.data.get("zone_id", "")
+            zone_name = call.data.get("zone_name", zone_id)
+            if not zone_id:
+                return
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                from .core.modules.homekit_bridge import get_homekit_bridge
+                bridge = get_homekit_bridge(hass, entry.entry_id)
+                if not bridge:
+                    continue
+                # Get zone entities
+                try:
+                    from .habitus_zones_store_v2 import async_get_zones_v2
+                    zones = await async_get_zones_v2(hass, entry.entry_id)
+                    zone = next((z for z in zones if z.zone_id == zone_id), None)
+                    if zone:
+                        entity_ids = list(zone.entity_ids) if zone.entity_ids else []
+                        result = await bridge.async_enable_zone(zone_id, zone_name or zone.name, entity_ids)
+                        hass.bus.async_fire(
+                            f"{DOMAIN}_homekit_zone_toggled",
+                            {"zone_id": zone_id, "enabled": True, **result},
+                        )
+                except Exception as exc:
+                    _LOGGER.warning("HomeKit enable zone failed: %s", exc)
+                break
+
+        hass.services.async_register(
+            DOMAIN,
+            "homekit_enable_zone",
+            _handle_enable_zone,
+            schema=vol.Schema({
+                vol.Required("zone_id"): str,
+                vol.Optional("zone_name"): str,
+            }),
+        )
+
+    if not hass.services.has_service(DOMAIN, "homekit_disable_zone"):
+
+        async def _handle_disable_zone(call: ServiceCall) -> None:
+            zone_id = call.data.get("zone_id", "")
+            if not zone_id:
+                return
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                from .core.modules.homekit_bridge import get_homekit_bridge
+                bridge = get_homekit_bridge(hass, entry.entry_id)
+                if not bridge:
+                    continue
+                result = await bridge.async_disable_zone(zone_id)
+                hass.bus.async_fire(
+                    f"{DOMAIN}_homekit_zone_toggled",
+                    {"zone_id": zone_id, "enabled": False, **result},
+                )
+                break
+
+        hass.services.async_register(
+            DOMAIN,
+            "homekit_disable_zone",
+            _handle_disable_zone,
+            schema=vol.Schema({vol.Required("zone_id"): str}),
+        )
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -1093,3 +1164,4 @@ def async_register_all_services(hass: HomeAssistant) -> None:
     _register_anomaly_services(hass)
     _register_energy_services(hass)
     _register_habit_learning_services(hass)
+    _register_homekit_services(hass)

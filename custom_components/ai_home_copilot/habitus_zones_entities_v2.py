@@ -16,7 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import DOMAIN
+from .const import CONF_HOST, CONF_PORT, DEFAULT_HOST, DEFAULT_PORT, DOMAIN
 from .entity import CopilotBaseEntity
 from .habitus_zones_store_v2 import (
     HabitusZoneV2,
@@ -230,12 +230,19 @@ class HabitusZonesSensor(CopilotBaseEntity, SensorEntity):
                 zone_entry["mood"] = z.metadata["mood"]
             zone_list.append(zone_entry)
 
+        # Derive Core Add-on base URL from config entry
+        entry_data = self._entry.data if self._entry else {}
+        core_host = entry_data.get(CONF_HOST, DEFAULT_HOST)
+        core_port = entry_data.get(CONF_PORT, DEFAULT_PORT)
+        core_base = f"http://{core_host}:{core_port}"
+
         self._attr_native_value = f"{len(active_zones)}/{len(zones)} active"
         self._attr_extra_state_attributes = {
             "zones": zone_list,
             "behaviors": [],  # populated by event listener
             "zones_total": len(zones),
             "zones_active": len(active_zones),
+            "core_base": core_base,
         }
         self.async_write_ha_state()
 
