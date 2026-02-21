@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.7.0] - 2026-02-21
+
+### Comfort Index Sensor — Environmental Comfort in HA
+
+#### Comfort Index Sensor (NEW)
+- **sensors/comfort_index_sensor.py** — `ComfortIndexSensor` entity
+- State: composite comfort score (0-100 points)
+- Dynamic icon based on grade (happy/neutral/sad emoji)
+- Attributes: grade, per-factor scores (temperature, humidity, air quality, light), suggestions, zone
+- Async fetch from Core `GET /api/v1/comfort`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.7.0
+
 ## [5.6.0] - 2026-02-21
 
 ### Dashboard Card Generator — Auto-generate Lovelace YAML
