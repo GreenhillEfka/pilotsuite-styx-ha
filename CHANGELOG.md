@@ -1,5 +1,31 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.3.0] - 2026-02-21
+
+### System Integration Hub — Cross-Engine Orchestration
+
+#### System Integration Hub (NEW)
+- **hub/system_integration.py** — `SystemIntegrationHub`
+- Cross-Engine Event-Dispatch: alle 15 Module automatisch verdrahtet
+- 7 Event-Typen: presence_changed, zone_mode_changed, scene_activated, anomaly_detected, energy_threshold, person_arrived, person_departed
+- Auto-Wiring: Standardmäßige Event→Engine Verknüpfungen beim Start
+- Presence → Scene Intelligence + Media Follow + Notification Intelligence
+- Zone Mode → Light Intelligence + Notification DND
+- Scene Activated → Zone Modes Cascade + Notification
+- Anomaly → Notification + Predictive Maintenance
+- Energy Threshold → Notification + Scene Suggestion
+- Person Arrived/Departed → Scene Suggest + Away Mode + Energy Advisor
+
+#### API Endpoints (5 NEW)
+- `GET /api/v1/hub/integration` — Dashboard (Status + Wiring)
+- `GET /api/v1/hub/integration/status` — Hub Status
+- `GET /api/v1/hub/integration/wiring` — Wiring Diagram
+- `POST /api/v1/hub/integration/dispatch` — Event dispatchen
+- `POST /api/v1/hub/integration/auto-wire` — Auto-Wiring neu ausführen
+
+#### Test Suite (NEW — 34 tests)
+- **tests/test_system_integration.py** — Engine Registration, Subscriptions, Auto-Wiring, Dispatch, Presence/Zone/Scene/Anomaly/Energy/Person Events, Status
+
 ## [7.2.0] - 2026-02-21
 
 ### Notification Intelligence — Smart Benachrichtigungs-Steuerung
