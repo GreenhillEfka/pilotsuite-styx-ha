@@ -1,5 +1,31 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.2.0] - 2026-02-21
+
+### Anomaly Detection v2 — Multi-Dimensional Pattern Analysis
+
+#### Anomaly Detection Engine (NEW)
+- **hub/anomaly_detection.py** — `AnomalyDetectionEngine`
+- 6 anomaly types: spike, drift, flatline, seasonal, frequency, correlation
+- Multi-dimensional pattern analysis (time, value, frequency, cross-entity)
+- Seasonal decomposition: hourly (0-23) and daily (Mon-Sun) pattern profiles
+- Pearson correlation learning and broken-correlation detection
+- Z-score based severity: info (2σ), warning (3σ), critical (4σ)
+- Bilingual descriptions (DE/EN) for all anomaly types
+- Configurable history depth (default 2016 points = 12 weeks hourly)
+
+#### API Endpoints (7 NEW)
+- `GET /api/v1/hub/anomalies` — Anomaly summary
+- `GET /api/v1/hub/anomalies/list` — Anomalies with filters (entity, severity, type)
+- `POST /api/v1/hub/anomalies/ingest` — Ingest sensor data points
+- `POST /api/v1/hub/anomalies/detect` — Run anomaly detection
+- `GET /api/v1/hub/anomalies/correlations` — Entity correlations
+- `POST /api/v1/hub/anomalies/learn` — Trigger pattern learning
+- `POST /api/v1/hub/anomalies/clear` — Clear anomalies
+
+#### Test Suite (NEW — 31 tests)
+- **tests/test_anomaly_detection.py** — Ingestion, pattern learning, spikes, drift, flatline, seasonal, frequency, correlations, descriptions
+
 ## [6.1.0] - 2026-02-21
 
 ### Predictive Maintenance — Device Health Scoring & Failure Prediction
