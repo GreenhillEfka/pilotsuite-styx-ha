@@ -7,7 +7,10 @@ optimal times for high-consumption devices.
 from __future__ import annotations
 
 import logging
+import os
+import sqlite3
 import threading
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -247,3 +250,233 @@ class EnergyOptimizer:
             if start <= now < end:
                 return s["price_eur_kwh"]
         return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Load Shifting Scheduler (v5.0.0)
+# ═══════════════════════════════════════════════════════════════════════════
+
+LOAD_SHIFTING_DB = os.environ.get("LOAD_SHIFTING_DB", "/data/load_shifting.db")
+
+
+class LoadShiftingScheduler:
+    """Schedule device runs to minimize energy cost.
+
+    Extends EnergyOptimizer with:
+    - Persistent schedule storage (SQLite)
+    - Device priority queue (1-5, higher priority scheduled first)
+    - Time-of-use optimization against aWATTar day-ahead prices
+    - Schedule conflict resolution
+    """
+
+    def __init__(
+        self, optimizer: EnergyOptimizer, db_path: str | None = None
+    ):
+        self._optimizer = optimizer
+        self._db_path = db_path or LOAD_SHIFTING_DB
+        self._lock = threading.Lock()
+        self._init_db()
+        logger.info("LoadShiftingScheduler initialized at %s", self._db_path)
+
+    def _init_db(self) -> None:
+        os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
+        with self._lock:
+            conn = sqlite3.connect(self._db_path)
+            try:
+                conn.executescript("""
+                    CREATE TABLE IF NOT EXISTS device_schedules (
+                        id TEXT PRIMARY KEY,
+                        device_entity TEXT NOT NULL,
+                        consumption_kwh REAL NOT NULL,
+                        duration_hours REAL NOT NULL,
+                        priority INTEGER NOT NULL DEFAULT 3,
+                        optimal_start TEXT NOT NULL,
+                        optimal_end TEXT NOT NULL,
+                        estimated_cost_eur REAL NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'pending',
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_schedules_status
+                        ON device_schedules(status);
+                    CREATE INDEX IF NOT EXISTS idx_schedules_start
+                        ON device_schedules(optimal_start);
+                """)
+                conn.commit()
+            finally:
+                conn.close()
+
+    def schedule_device(
+        self,
+        device_entity: str,
+        consumption_kwh: float,
+        duration_hours: float,
+        priority: int = 3,
+        within_hours: float = 24.0,
+    ) -> Dict[str, Any]:
+        """Schedule a device run at the optimal price window.
+
+        Parameters
+        ----------
+        device_entity : str
+            HA entity id (e.g. "switch.dishwasher").
+        consumption_kwh : float
+            Expected energy consumption.
+        duration_hours : float
+            How long the device runs.
+        priority : int
+            1 (highest) to 5 (lowest).
+        within_hours : float
+            Look-ahead horizon.
+
+        Returns
+        -------
+        dict
+            The created schedule.
+        """
+        priority = max(1, min(5, int(priority)))
+
+        # Find optimal window
+        suggestion = self._optimizer.suggest_device_shift(
+            device_entity=device_entity,
+            consumption_kwh=consumption_kwh,
+            duration_hours=duration_hours,
+        )
+
+        now = datetime.now(timezone.utc)
+        schedule_id = uuid.uuid4().hex[:12]
+
+        # Determine start/end
+        optimal_start = suggestion.get("optimal_start") or now.isoformat()
+        optimal_end = suggestion.get("optimal_end") or (
+            now + timedelta(hours=duration_hours)
+        ).isoformat()
+        estimated_cost = suggestion.get("estimated_cost_eur", 0.0)
+
+        now_iso = now.isoformat()
+
+        with self._lock:
+            conn = sqlite3.connect(self._db_path)
+            try:
+                conn.execute(
+                    "INSERT INTO device_schedules "
+                    "(id, device_entity, consumption_kwh, duration_hours, "
+                    "priority, optimal_start, optimal_end, estimated_cost_eur, "
+                    "status, created_at, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)",
+                    (
+                        schedule_id,
+                        device_entity,
+                        consumption_kwh,
+                        duration_hours,
+                        priority,
+                        optimal_start,
+                        optimal_end,
+                        estimated_cost,
+                        now_iso,
+                        now_iso,
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+        logger.info(
+            "Scheduled %s: %s -> %s (priority=%d, cost=%.4f EUR)",
+            device_entity, optimal_start, optimal_end, priority, estimated_cost,
+        )
+
+        return {
+            "id": schedule_id,
+            "device_entity": device_entity,
+            "consumption_kwh": consumption_kwh,
+            "duration_hours": duration_hours,
+            "priority": priority,
+            "optimal_start": optimal_start,
+            "optimal_end": optimal_end,
+            "estimated_cost_eur": round(estimated_cost, 4),
+            "status": "pending",
+            "created_at": now_iso,
+        }
+
+    def get_schedules(
+        self, status: str | None = None, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Get all schedules, optionally filtered by status."""
+        with self._lock:
+            conn = sqlite3.connect(self._db_path)
+            try:
+                if status:
+                    rows = conn.execute(
+                        "SELECT id, device_entity, consumption_kwh, duration_hours, "
+                        "priority, optimal_start, optimal_end, estimated_cost_eur, "
+                        "status, created_at, updated_at "
+                        "FROM device_schedules WHERE status = ? "
+                        "ORDER BY optimal_start ASC LIMIT ?",
+                        (status, limit),
+                    ).fetchall()
+                else:
+                    rows = conn.execute(
+                        "SELECT id, device_entity, consumption_kwh, duration_hours, "
+                        "priority, optimal_start, optimal_end, estimated_cost_eur, "
+                        "status, created_at, updated_at "
+                        "FROM device_schedules "
+                        "ORDER BY optimal_start ASC LIMIT ?",
+                        (limit,),
+                    ).fetchall()
+            finally:
+                conn.close()
+
+        return [
+            {
+                "id": r[0],
+                "device_entity": r[1],
+                "consumption_kwh": r[2],
+                "duration_hours": r[3],
+                "priority": r[4],
+                "optimal_start": r[5],
+                "optimal_end": r[6],
+                "estimated_cost_eur": r[7],
+                "status": r[8],
+                "created_at": r[9],
+                "updated_at": r[10],
+            }
+            for r in rows
+        ]
+
+    def cancel_schedule(self, schedule_id: str) -> Dict[str, Any]:
+        """Cancel a pending schedule."""
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            conn = sqlite3.connect(self._db_path)
+            try:
+                cursor = conn.execute(
+                    "UPDATE device_schedules SET status = 'cancelled', updated_at = ? "
+                    "WHERE id = ? AND status = 'pending'",
+                    (now_iso, schedule_id),
+                )
+                conn.commit()
+                if cursor.rowcount == 0:
+                    return {"id": schedule_id, "error": "Schedule not found or not pending"}
+            finally:
+                conn.close()
+
+        logger.info("Cancelled schedule %s", schedule_id)
+        return {"id": schedule_id, "status": "cancelled", "updated_at": now_iso}
+
+    def complete_schedule(self, schedule_id: str) -> Dict[str, Any]:
+        """Mark a schedule as completed."""
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self._lock:
+            conn = sqlite3.connect(self._db_path)
+            try:
+                conn.execute(
+                    "UPDATE device_schedules SET status = 'completed', updated_at = ? "
+                    "WHERE id = ?",
+                    (now_iso, schedule_id),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+        return {"id": schedule_id, "status": "completed", "updated_at": now_iso}

@@ -480,12 +480,19 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Explainability API")
 
-    # Register Prediction API (v2.2.0)
+    # Register Prediction API (v2.2.0, extended v5.0.0 — timeseries + load shifting)
     try:
         from copilot_core.prediction.api import prediction_bp, init_prediction_api
         from copilot_core.prediction.forecaster import ArrivalForecaster
-        from copilot_core.prediction.energy_optimizer import EnergyOptimizer
-        init_prediction_api(ArrivalForecaster(), EnergyOptimizer())
+        from copilot_core.prediction.energy_optimizer import EnergyOptimizer, LoadShiftingScheduler
+        from copilot_core.prediction.timeseries import MoodTimeSeriesForecaster
+        _optimizer = EnergyOptimizer()
+        init_prediction_api(
+            ArrivalForecaster(),
+            _optimizer,
+            MoodTimeSeriesForecaster(),
+            LoadShiftingScheduler(_optimizer),
+        )
         app.register_blueprint(prediction_bp)
     except Exception:
         _LOGGER.exception("Failed to register Prediction API")

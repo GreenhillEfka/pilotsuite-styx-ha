@@ -399,10 +399,10 @@ def get_patterns() -> Response:
 def _parse_int_param(param_name: str, default: int = None, max_value: int = None) -> int:
     """Parse integer parameter with validation."""
     value = request.args.get(param_name)
-    
+
     if value is None:
         return default
-    
+
     try:
         parsed = int(value)
         if parsed < 1:
@@ -412,3 +412,44 @@ def _parse_int_param(param_name: str, default: int = None, max_value: int = None
         return parsed
     except ValueError:
         raise ValueError(f"{param_name} must be a valid positive integer")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.0.0 — SSE Real-Time Brain Graph Stream
+# ═══════════════════════════════════════════════════════════════════════════
+
+@brain_graph_bp.route('/stream', methods=['GET'])
+@require_api_key
+def stream_graph_updates() -> Response:
+    """SSE endpoint for real-time brain graph updates.
+
+    Streams node_updated, edge_updated, and graph_pruned events.
+    Client connects with: ``new EventSource('/api/v1/graph/stream')``.
+    """
+    if not _brain_graph_service:
+        return jsonify({"error": "Brain graph service not initialized"}), 503
+
+    import queue as _queue
+
+    subscriber = _brain_graph_service.subscribe_sse()
+
+    def generate():
+        try:
+            # Send initial connected event
+            yield f"data: {json.dumps({'event': 'connected', 'timestamp_ms': int(time.time() * 1000)})}\n\n"
+            while True:
+                try:
+                    msg = subscriber.get(timeout=30.0)
+                    yield f"data: {json.dumps(msg)}\n\n"
+                except _queue.Empty:
+                    yield ": keepalive\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            _brain_graph_service.unsubscribe_sse(subscriber)
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

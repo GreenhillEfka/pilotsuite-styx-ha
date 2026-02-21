@@ -17,9 +17,10 @@ from flask_compress import Compress
 from waitress import serve
 
 from copilot_core.api.security import require_token, validate_token
+from copilot_core.api.api_version import API_VERSION, parse_accept_version, get_deprecation_info
 from copilot_core.core_setup import init_services, register_blueprints
 
-APP_VERSION = os.environ.get("COPILOT_VERSION", "4.0.0")
+APP_VERSION = os.environ.get("COPILOT_VERSION", "5.0.0")
 
 _main_logger = _logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ SLOW_REQUEST_THRESHOLD = 2.0  # seconds
 def _before_request():
     g.start_time = time.time()
     g.request_id = request.headers.get("X-Request-ID", uuid.uuid4().hex[:12])
+    g.api_version = parse_accept_version(request.headers.get("Accept-Version"))
 
 
 @app.after_request
@@ -121,6 +123,15 @@ def _after_request(response):
     req_id = getattr(g, "request_id", "-")
     response.headers["X-Request-ID"] = req_id
     response.headers["X-Response-Time"] = f"{duration:.3f}s"
+    response.headers["X-API-Version"] = getattr(g, "api_version", API_VERSION)
+
+    # Deprecation warnings (v5.0.0)
+    deprecation = get_deprecation_info(request.path)
+    if deprecation:
+        response.headers["Deprecation"] = "true"
+        response.headers["Sunset"] = deprecation.get("sunset", "")
+        if deprecation.get("successor"):
+            response.headers["Link"] = f'<{deprecation["successor"]}>; rel="successor-version"'
 
     endpoint = request.endpoint or request.path
     status = response.status_code

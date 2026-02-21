@@ -1,5 +1,43 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.0.0] - 2026-02-21
+
+### Major Release — Prediction, SSE, API Versioning, Load Shifting
+
+#### Time Series Forecasting (NEW)
+- **prediction/timeseries.py** — Pure-Python Holt-Winters (Triple Exponential Smoothing) for mood trend forecasting
+- Additive & damped seasonality, configurable season length (hourly=24, daily=7)
+- Missing data interpolation, hourly bucketing from SQLite mood_snapshots
+- Multi-metric forecasting: comfort, frugality, joy per zone
+- `POST /api/v1/predict/timeseries/fit/<zone_id>` — Fit model on mood history
+- `GET /api/v1/predict/timeseries/forecast/<zone_id>` — Forecast with prediction intervals
+
+#### SSE Real-Time Brain Graph Updates (NEW)
+- **brain_graph/service.py** — SSE event broadcasting with subscriber queue architecture
+- `subscribe_sse()` / `unsubscribe_sse()` with thread-safe queue management
+- Non-blocking broadcast on node_updated, edge_updated, graph_pruned events
+- Slow consumer auto-cleanup (queue maxsize=256)
+- **brain_graph/api.py** — `GET /api/v1/graph/stream` SSE endpoint with 30s keepalive
+
+#### API Versioning (NEW)
+- **api/api_version.py** — API versioning module with `X-API-Version` header
+- `Accept-Version` request header parsing in before_request middleware
+- `Deprecation` + `Sunset` + `Link` headers for deprecated endpoints
+- Version constants and validation utilities
+
+#### Energy Load Shifting Scheduler (NEW)
+- **prediction/energy_optimizer.py** — `LoadShiftingScheduler` class
+- SQLite-backed device schedule persistence at `/data/load_shifting.db`
+- Device priority queue (1-5), time-of-use optimization with aWATTar prices
+- `POST /api/v1/predict/energy/load-shift` — Schedule device run
+- `GET /api/v1/predict/energy/schedules` — List all schedules
+- `DELETE /api/v1/predict/energy/load-shift/<id>` — Cancel schedule
+
+#### Infrastructure
+- **main.py** — APP_VERSION bumped to 5.0.0, API versioning middleware integrated
+- **core_setup.py** — Prediction API registration extended with MoodTimeSeriesForecaster + LoadShiftingScheduler
+- **config.json** — Version 5.0.0
+
 ## [1.0.0] - 2026-02-21
 
 ### Stable Release — Feature-Complete

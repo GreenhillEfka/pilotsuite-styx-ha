@@ -2,7 +2,9 @@
 Brain Graph service providing high-level graph operations.
 """
 
+import json
 import logging
+import queue
 import threading
 import time
 from typing import Dict, List, Optional, Any, Tuple, Iterable
@@ -48,6 +50,10 @@ class BrainGraphService:
         # Thread-safety: protects _batch_mode, _pending_invalidations, _operation_count
         self._lock = threading.Lock()
 
+        # SSE event broadcasting (v5.0.0)
+        self._sse_subscribers: List[queue.Queue] = []
+        self._sse_lock = threading.Lock()
+
         # Scheduled pruning: daemon thread that runs prune_graph at fixed intervals
         self._prune_interval_seconds = max(60, prune_interval_minutes * 60)
         self._prune_stop = threading.Event()
@@ -79,6 +85,52 @@ class BrainGraphService:
             self._prune_thread.join(timeout=5)
             self._prune_thread = None
 
+    # --- SSE Event Broadcasting (v5.0.0) ------------------------------------
+
+    def subscribe_sse(self) -> queue.Queue:
+        """Create a new SSE subscriber queue.
+
+        Returns a Queue that receives event dicts:
+            {"event": "node_updated"|"edge_updated"|"graph_pruned",
+             "data": {...}, "timestamp_ms": int}
+
+        Caller MUST call unsubscribe_sse() when done.
+        """
+        q: queue.Queue = queue.Queue(maxsize=256)
+        with self._sse_lock:
+            self._sse_subscribers.append(q)
+        logger.debug("SSE subscriber added (total: %d)", len(self._sse_subscribers))
+        return q
+
+    def unsubscribe_sse(self, q: queue.Queue) -> None:
+        """Remove an SSE subscriber queue."""
+        with self._sse_lock:
+            try:
+                self._sse_subscribers.remove(q)
+            except ValueError:
+                pass
+        logger.debug("SSE subscriber removed (total: %d)", len(self._sse_subscribers))
+
+    def _broadcast_sse(self, event_type: str, data: Dict[str, Any]) -> None:
+        """Broadcast an event to all SSE subscribers (non-blocking)."""
+        msg = {
+            "event": event_type,
+            "data": data,
+            "timestamp_ms": int(time.time() * 1000),
+        }
+        dead: List[queue.Queue] = []
+        with self._sse_lock:
+            for q in self._sse_subscribers:
+                try:
+                    q.put_nowait(msg)
+                except queue.Full:
+                    dead.append(q)
+            for q in dead:
+                try:
+                    self._sse_subscribers.remove(q)
+                except ValueError:
+                    pass
+
     def _prune_loop(self) -> None:
         """Background loop: sleep then prune, repeat until stopped."""
         while not self._prune_stop.wait(timeout=self._prune_interval_seconds):
@@ -92,6 +144,7 @@ class BrainGraphService:
                 removed = stats.get("nodes_removed", 0) + stats.get("edges_removed", 0)
                 if removed > 0:
                     _invalidate_graph_cache()
+                    self._broadcast_sse("graph_pruned", stats)
                     logger.info("Scheduled prune: removed %d nodes, %d edges",
                                 stats.get("nodes_removed", 0), stats.get("edges_removed", 0))
                 else:
@@ -198,6 +251,14 @@ class BrainGraphService:
         if should_prune:
             self.store.prune_graph(now_ms)
 
+        # Broadcast SSE event (v5.0.0)
+        self._broadcast_sse("node_updated", {
+            "id": updated_node.id,
+            "kind": updated_node.kind,
+            "label": updated_node.label,
+            "score": updated_node.score,
+        })
+
         return updated_node
     
     def touch_edge(
@@ -257,6 +318,15 @@ class BrainGraphService:
                 should_invalidate = True
         if should_invalidate:
             _invalidate_graph_cache()
+
+        # Broadcast SSE event (v5.0.0)
+        self._broadcast_sse("edge_updated", {
+            "id": updated_edge.id,
+            "from": updated_edge.from_node,
+            "to": updated_edge.to_node,
+            "type": updated_edge.edge_type,
+            "weight": updated_edge.weight,
+        })
 
         return updated_edge
     
