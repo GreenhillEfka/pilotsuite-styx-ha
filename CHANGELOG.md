@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.18.0] - 2026-02-21
+
+### Tariff Sensor — Dynamic Electricity Pricing in HA
+
+#### Tariff Sensor (NEW)
+- **sensors/tariff_sensor.py** — `TariffSensor` entity
+- State: current electricity price in ct/kWh
+- Dynamic icon: lightning-bolt (low) to flash-alert (high) based on price level
+- Attributes: avg/min/max prices, cheapest/most expensive hours, spread, tariff type, source
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.18.0
+
 ## [5.17.0] - 2026-02-21
 
 ### Fuel Price Sensor — Strom vs Diesel vs Benzin Cost Comparison in HA
