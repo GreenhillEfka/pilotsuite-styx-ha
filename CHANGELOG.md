@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.19.0] - 2026-02-21
+
+### Proactive Alert Sensor — Combined Energy Alerts in HA
+
+#### Proactive Alert Sensor (NEW)
+- **sensors/proactive_alert_sensor.py** — `ProactiveAlertSensor` entity
+- State: alert count + highest priority (e.g. "3x Kritisch")
+- Dynamic icon: check-circle → alert-octagon based on priority
+- Attributes: priority breakdown, category breakdown, alert list with titles/actions
+- German state labels ("Keine Alerts" when clear)
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.19.0
+
 ## [5.18.0] - 2026-02-21
 
 ### Tariff Sensor — Dynamic Electricity Pricing in HA
