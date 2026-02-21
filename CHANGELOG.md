@@ -1,5 +1,36 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.2.0] - 2026-02-21
+
+### Notification Intelligence — Smart Benachrichtigungs-Steuerung
+
+#### Notification Intelligence Engine (NEW)
+- **hub/notification_intelligence.py** — `NotificationIntelligenceEngine`
+- Smart Notification Routing mit Priority-System (critical, high, normal, low, info)
+- Do-Not-Disturb Integration per Person/Zone mit Critical-Override
+- Notification Batching mit konfigurierbarem Digest-Intervall
+- Multi-Channel Delivery: push, tts, display, email, telegram
+- Routing Rules mit Quiet-Hours und Kategorie-Filter
+- Notification History mit Read/Unread Tracking
+
+#### API Endpoints (13 NEW)
+- `GET /api/v1/hub/notifications` — Dashboard
+- `POST /api/v1/hub/notifications/send` — Send notification
+- `GET /api/v1/hub/notifications/history` — History
+- `POST /api/v1/hub/notifications/<id>/read` — Mark read
+- `POST /api/v1/hub/notifications/read-all` — Mark all read
+- `POST /api/v1/hub/notifications/dnd` — Set DND
+- `GET /api/v1/hub/notifications/dnd/status` — DND status
+- `GET /api/v1/hub/notifications/rules` — List rules
+- `POST /api/v1/hub/notifications/rules` — Add rule
+- `DELETE /api/v1/hub/notifications/rules/<id>` — Remove rule
+- `POST /api/v1/hub/notifications/batch` — Configure batching
+- `POST /api/v1/hub/notifications/batch/flush` — Flush batch
+- `GET /api/v1/hub/notifications/stats` — Statistics
+
+#### Test Suite (NEW — 39 tests)
+- **tests/test_notification_intelligence.py** — Send, DND, batching, rules, read tracking, history, stats, dashboard
+
 ## [7.1.0] - 2026-02-21
 
 ### Presence Intelligence — Anwesenheits-Intelligence & Raum-Tracking

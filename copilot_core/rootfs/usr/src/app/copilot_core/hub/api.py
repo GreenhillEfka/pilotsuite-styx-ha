@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v7.1.0)."""
+"""Hub API endpoints for PilotSuite (v7.2.0)."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ _energy_advisor: object | None = None
 _template_engine: object | None = None
 _scene_engine: object | None = None
 _presence_engine: object | None = None
+_notification_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
@@ -32,9 +33,10 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  zone_engine=None, light_engine=None,
                  mode_engine=None, media_engine=None,
                  energy_advisor=None, template_engine=None,
-                 scene_engine=None, presence_engine=None) -> None:
+                 scene_engine=None, presence_engine=None,
+                 notification_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -48,8 +50,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _template_engine = template_engine
     _scene_engine = scene_engine
     _presence_engine = presence_engine
+    _notification_engine = notification_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -62,6 +65,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         template_engine is not None,
         scene_engine is not None,
         presence_engine is not None,
+        notification_engine is not None,
     )
 
 
@@ -1565,3 +1569,202 @@ def check_presence_idle():
         return jsonify({"error": "Presence engine not initialized"}), 503
     fired = _presence_engine.check_idle_triggers()
     return jsonify({"ok": True, "fired": fired})
+
+
+# ── Notification Intelligence endpoints (v7.2.0) ────────────────────────────
+
+
+@hub_bp.route("/notifications", methods=["GET"])
+@require_token
+def get_notification_dashboard():
+    """Get notification intelligence dashboard."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    dashboard = _notification_engine.get_dashboard()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@hub_bp.route("/notifications/send", methods=["POST"])
+@require_token
+def send_notification():
+    """Send a notification.
+
+    JSON body: {"title": "...", "message": "...", "priority"?: "normal",
+                "channel"?: "push", "category"?: "general",
+                "person_id"?: "...", "zone_id"?: "...", "icon"?: "mdi:bell"}
+    """
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    n = _notification_engine.send(
+        title=body.get("title", ""),
+        message=body.get("message", ""),
+        priority=body.get("priority", "normal"),
+        channel=body.get("channel", "push"),
+        category=body.get("category", "general"),
+        person_id=body.get("person_id", ""),
+        zone_id=body.get("zone_id", ""),
+        icon=body.get("icon", "mdi:bell"),
+    )
+    return jsonify({
+        "ok": True,
+        "notification_id": n.notification_id,
+        "delivered": n.delivered,
+        "suppressed": n.suppressed,
+        "batched": n.batched,
+    })
+
+
+@hub_bp.route("/notifications/history", methods=["GET"])
+@require_token
+def get_notification_history():
+    """Get notification history.
+
+    Query params: limit, unread_only, category
+    """
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    limit = int(request.args.get("limit", 50))
+    unread_only = request.args.get("unread_only", "false").lower() == "true"
+    category = request.args.get("category", "")
+    history = _notification_engine.get_history(limit, unread_only, category)
+    return jsonify({"ok": True, "notifications": history})
+
+
+@hub_bp.route("/notifications/<notification_id>/read", methods=["POST"])
+@require_token
+def mark_notification_read(notification_id):
+    """Mark a notification as read."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    result = _notification_engine.mark_read(notification_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/notifications/read-all", methods=["POST"])
+@require_token
+def mark_all_notifications_read():
+    """Mark all notifications as read."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    count = _notification_engine.mark_all_read()
+    return jsonify({"ok": True, "marked": count})
+
+
+@hub_bp.route("/notifications/dnd", methods=["POST"])
+@require_token
+def set_notification_dnd():
+    """Set Do-Not-Disturb.
+
+    JSON body: {"enabled": true, "person_id"?: "...", "allow_critical"?: true,
+                "duration_min"?: 0, "zone_mode"?: "..."}
+    """
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    dnd = _notification_engine.set_dnd(
+        enabled=body.get("enabled", True),
+        person_id=body.get("person_id", ""),
+        allow_critical=body.get("allow_critical", True),
+        duration_min=body.get("duration_min", 0),
+        zone_mode=body.get("zone_mode", ""),
+    )
+    return jsonify({
+        "ok": True,
+        "enabled": dnd.enabled,
+        "until": dnd.until.isoformat() if dnd.until else None,
+    })
+
+
+@hub_bp.route("/notifications/dnd/status", methods=["GET"])
+@require_token
+def get_notification_dnd_status():
+    """Get DND status."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    return jsonify({"ok": True, "dnd": _notification_engine.get_dnd_status()})
+
+
+@hub_bp.route("/notifications/rules", methods=["GET"])
+@require_token
+def get_notification_rules():
+    """Get notification routing rules."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    return jsonify({"ok": True, "rules": _notification_engine.get_rules()})
+
+
+@hub_bp.route("/notifications/rules", methods=["POST"])
+@require_token
+def add_notification_rule():
+    """Add a notification routing rule.
+
+    JSON body: {"rule_id": "...", "name_de": "...", "category"?: "...",
+                "priority_min"?: "low", "channel"?: "push",
+                "quiet_hours_start"?: null, "quiet_hours_end"?: null}
+    """
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _notification_engine.add_rule(
+        body.get("rule_id", ""),
+        body.get("name_de", ""),
+        body.get("category", ""),
+        body.get("priority_min", "low"),
+        body.get("channel", "push"),
+        body.get("person_id", ""),
+        body.get("zone_id", ""),
+        body.get("quiet_hours_start"),
+        body.get("quiet_hours_end"),
+    )
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/notifications/rules/<rule_id>", methods=["DELETE"])
+@require_token
+def remove_notification_rule(rule_id):
+    """Remove a routing rule."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    result = _notification_engine.remove_rule(rule_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/notifications/batch", methods=["POST"])
+@require_token
+def configure_notification_batch():
+    """Configure notification batching.
+
+    JSON body: {"enabled": true, "interval_min"?: 15, "max_batch_size"?: 10,
+                "categories"?: [...]}
+    """
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    cfg = _notification_engine.configure_batching(
+        enabled=body.get("enabled", False),
+        interval_min=body.get("interval_min", 15),
+        max_batch_size=body.get("max_batch_size", 10),
+        categories=body.get("categories"),
+    )
+    return jsonify({"ok": True, "enabled": cfg.enabled, "interval_min": cfg.interval_min})
+
+
+@hub_bp.route("/notifications/batch/flush", methods=["POST"])
+@require_token
+def flush_notification_batch():
+    """Flush batched notifications."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    delivered = _notification_engine.flush_batch()
+    return jsonify({"ok": True, "delivered": len(delivered)})
+
+
+@hub_bp.route("/notifications/stats", methods=["GET"])
+@require_token
+def get_notification_stats():
+    """Get notification statistics."""
+    if not _notification_engine:
+        return jsonify({"error": "Notification engine not initialized"}), 503
+    stats = _notification_engine.get_stats()
+    return jsonify({"ok": True, **asdict(stats)})
