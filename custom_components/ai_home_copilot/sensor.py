@@ -132,6 +132,13 @@ from .mobile_dashboard_cards import (
     MobileEntityGridSensor,
 )
 
+# Regional Sensors (v5.16.0+)
+from .sensors.weather_warning_sensor import WeatherWarningSensor
+from .sensors.fuel_price_sensor import FuelPriceSensor
+from .sensors.tariff_sensor import TariffSensor
+from .sensors.proactive_alert_sensor import ProactiveAlertSensor
+from .sensors.energy_forecast_sensor import EnergyForecastSensor
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
@@ -300,6 +307,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         MobileDashboardSensor(hass, entry),
         MobileQuickActionsSensor(hass, entry),
         MobileEntityGridSensor(hass, entry),
+    ])
+
+    # Regional Sensors (v5.16.0+) — PV, prices, weather, alerts, forecast
+    entities.extend([
+        WeatherWarningSensor(coordinator),
+        FuelPriceSensor(coordinator),
+        TariffSensor(coordinator),
+        ProactiveAlertSensor(coordinator),
+        EnergyForecastSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)

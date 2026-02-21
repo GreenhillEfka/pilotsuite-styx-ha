@@ -1,5 +1,21 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.20.0] - 2026-02-21
+
+### Energy Forecast Sensor — 48h PV/Price/Weather Dashboard in HA
+
+#### Energy Forecast Sensor (NEW)
+- **sensors/energy_forecast_sensor.py** — `EnergyForecastSensor` entity
+- State: total estimated PV kWh over 48h forecast period
+- Icon: mdi:chart-timeline-variant, unit: kWh
+- Attributes: total hours, avg/min/max price, cheapest/most expensive hour,
+  daylight hours, avg PV factor, best charge/consume windows, weather impacted hours,
+  card count, generation timestamp
+- Fetches complete dashboard data from `/api/v1/regional/forecast/dashboard`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.20.0
+
 ## [5.19.0] - 2026-02-21
 
 ### Proactive Alert Sensor — Combined Energy Alerts in HA
