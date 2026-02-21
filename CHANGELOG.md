@@ -1,5 +1,15 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.6.0] - 2026-02-21
+
+### Dashboard Config API — Lovelace Card Generation Support
+
+#### API Endpoint (NEW)
+- `GET /api/v1/energy/dashboard-config` — Returns zone list, endpoint URLs, and current energy state for HA card generation
+
+#### Infrastructure
+- **config.json** — Version 5.6.0
+
 ## [5.5.0] - 2026-02-21
 
 ### Smart Schedule Planner — Optimal 24h Device Scheduling

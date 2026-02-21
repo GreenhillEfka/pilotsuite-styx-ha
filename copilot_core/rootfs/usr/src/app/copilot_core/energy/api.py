@@ -417,3 +417,51 @@ def get_sankey_svg():
         mimetype="image/svg+xml",
         headers={"Cache-Control": "public, max-age=30"},
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.6.0 — Dashboard Card Configuration
+# ═══════════════════════════════════════════════════════════════════════════
+
+@energy_bp.route("/api/v1/energy/dashboard-config", methods=["GET"])
+@require_api_key
+def get_dashboard_config():
+    """Get dashboard card configuration data for Lovelace generation.
+
+    Returns all data needed by the HA card generator: zones, endpoints,
+    and current energy state.
+    """
+    if not _energy_service:
+        return jsonify({"error": "Energy service not initialized"}), 503
+
+    zone_map = getattr(_energy_service, "_zone_energy_map", {})
+    zones = [
+        {
+            "zone_id": zid,
+            "zone_name": config["zone_name"],
+            "entity_count": len(config["entity_ids"]),
+        }
+        for zid, config in zone_map.items()
+    ]
+
+    snapshot = _energy_service.get_energy_snapshot()
+
+    return jsonify({
+        "ok": True,
+        "zones": zones,
+        "endpoints": {
+            "energy": "/api/v1/energy",
+            "anomalies": "/api/v1/energy/anomalies",
+            "sankey_svg": "/api/v1/energy/sankey.svg",
+            "sankey_json": "/api/v1/energy/sankey",
+            "schedule": "/api/v1/predict/schedule/daily",
+            "zones": "/api/v1/energy/zones",
+        },
+        "current_state": {
+            "consumption_kwh": snapshot.total_consumption_today,
+            "production_kwh": snapshot.total_production_today,
+            "current_power_watts": snapshot.current_power,
+            "anomalies": snapshot.anomalies_detected,
+        },
+        "timestamp": _energy_service._get_timestamp(),
+    })
