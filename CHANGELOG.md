@@ -1,5 +1,29 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.22.0] - 2026-02-21
+
+### Styx Greeting & Onboarding — Welcome Flow for New Installations
+
+#### Onboarding Module (NEW)
+- **onboarding.py** — `onboarding_bp` Blueprint with welcome & onboarding API
+- 8-step onboarding wizard: welcome, LLM check, conversation agent, regional config,
+  energy setup, dashboard check, test conversation, complete
+- Bilingual step descriptions (DE/EN) with icons and action types
+- Session-based state management (multiple concurrent onboardings)
+- Step completion and skip tracking with is_complete detection
+- Personalized welcome message with agent name, personality, quick actions
+- 6 character personalities: copilot, butler, energy_manager, security_guard, friendly, minimal
+
+#### API Endpoints (5 NEW)
+- `GET /api/v1/onboarding/welcome` — Personalized Styx welcome message
+- `GET /api/v1/onboarding/state` — Current onboarding progress
+- `POST /api/v1/onboarding/step/complete` — Mark step as done
+- `POST /api/v1/onboarding/step/skip` — Skip a step
+- `POST /api/v1/onboarding/reset` — Restart onboarding
+
+#### Test Suite (NEW — 21 tests)
+- **tests/test_onboarding.py** — Init, steps, state, sessions, welcome, personalities
+
 ## [5.21.0] - 2026-02-21
 
 ### Styx Agent Auto-Config — Health Check, Connectivity & Greeting API
