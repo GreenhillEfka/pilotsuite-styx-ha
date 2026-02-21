@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.1.0] - 2026-02-21
+
+### Predictive Maintenance Sensor — Device Health in HA
+
+#### Predictive Maintenance Sensor (NEW)
+- **sensors/predictive_maintenance_sensor.py** — `PredictiveMaintenanceSensor`
+- State: average device health score (0-100)
+- Dynamic icon: check-decagram (healthy) / wrench-cog (warning) / wrench-clock (critical)
+- Attributes: device counts by status, attention list, upcoming maintenance
+- Fetches from `/api/v1/hub/maintenance`
+
+#### Infrastructure
+- **sensor.py** — Registers PredictiveMaintenanceSensor
+- **entity.py** + **manifest.json** — Version 6.1.0
+
 ## [6.0.0] - 2026-02-21
 
 ### PilotSuite Hub Sensors — Dashboard, Plugins, Multi-Home in HA

@@ -148,6 +148,7 @@ from .sensors.hub_dashboard_sensor import (
     HubPluginsSensor,
     HubMultiHomeSensor,
 )
+from .sensors.predictive_maintenance_sensor import PredictiveMaintenanceSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -334,6 +335,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HubDashboardSensor(coordinator),
         HubPluginsSensor(coordinator),
         HubMultiHomeSensor(coordinator),
+        PredictiveMaintenanceSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)
