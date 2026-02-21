@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.1.0)."""
+"""Hub API endpoints for PilotSuite (v6.2.0)."""
 
 from __future__ import annotations
 
@@ -16,20 +16,24 @@ _dashboard: object | None = None
 _plugin_manager: object | None = None
 _multi_home: object | None = None
 _maintenance_engine: object | None = None
+_anomaly_engine: object | None = None
 
 
-def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None, maintenance_engine=None) -> None:
+def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
+                 maintenance_engine=None, anomaly_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
     _maintenance_engine = maintenance_engine
+    _anomaly_engine = anomaly_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
+        anomaly_engine is not None,
     )
 
 
@@ -320,3 +324,112 @@ def evaluate_devices():
     results = _maintenance_engine.evaluate_all()
     summary = _maintenance_engine.get_summary()
     return jsonify({"ok": True, "evaluated": len(results), **asdict(summary)})
+
+
+# ── Anomaly Detection v2 endpoints (v6.2.0) ────────────────────────────
+
+
+@hub_bp.route("/anomalies", methods=["GET"])
+@require_token
+def get_anomaly_summary():
+    """Get anomaly detection summary."""
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    summary = _anomaly_engine.get_summary()
+    return jsonify({"ok": True, **asdict(summary)})
+
+
+@hub_bp.route("/anomalies/list", methods=["GET"])
+@require_token
+def get_anomalies():
+    """Get anomalies with optional filters.
+
+    Query params: entity_id, severity, type, limit
+    """
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    entity_id = request.args.get("entity_id")
+    severity = request.args.get("severity")
+    atype = request.args.get("type")
+    limit = int(request.args.get("limit", 50))
+    anomalies = _anomaly_engine.get_anomalies(entity_id, severity, atype, limit)
+    return jsonify({
+        "ok": True,
+        "count": len(anomalies),
+        "anomalies": [asdict(a) for a in anomalies],
+    })
+
+
+@hub_bp.route("/anomalies/ingest", methods=["POST"])
+@require_token
+def ingest_anomaly_data():
+    """Ingest sensor data for anomaly detection.
+
+    JSON body: {"points": [{"entity_id": "...", "value": ..., "timestamp"?: "..."}, ...]}
+    """
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    points = body.get("points", [])
+    count = _anomaly_engine.ingest_batch(points)
+    return jsonify({"ok": True, "ingested": count})
+
+
+@hub_bp.route("/anomalies/detect", methods=["POST"])
+@require_token
+def run_anomaly_detection():
+    """Run anomaly detection.
+
+    JSON body (optional): {"entity_id": "..."} to detect for specific entity.
+    """
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    entity_id = body.get("entity_id")
+    _anomaly_engine.learn_patterns(entity_id)
+    anomalies = _anomaly_engine.detect(entity_id)
+    return jsonify({
+        "ok": True,
+        "new_anomalies": len(anomalies),
+        "anomalies": [asdict(a) for a in anomalies],
+    })
+
+
+@hub_bp.route("/anomalies/correlations", methods=["GET"])
+@require_token
+def get_correlations():
+    """Get learned entity correlations."""
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    corrs = _anomaly_engine.get_correlations()
+    return jsonify({"ok": True, "correlations": corrs})
+
+
+@hub_bp.route("/anomalies/learn", methods=["POST"])
+@require_token
+def learn_patterns():
+    """Trigger pattern learning and correlation discovery."""
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    profiles = _anomaly_engine.learn_patterns()
+    correlations = _anomaly_engine.learn_correlations()
+    return jsonify({
+        "ok": True,
+        "profiles_updated": profiles,
+        "correlations_learned": correlations,
+    })
+
+
+@hub_bp.route("/anomalies/clear", methods=["POST"])
+@require_token
+def clear_anomalies():
+    """Clear anomalies.
+
+    JSON body (optional): {"entity_id": "..."} to clear for specific entity.
+    """
+    if not _anomaly_engine:
+        return jsonify({"error": "Anomaly engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    entity_id = body.get("entity_id")
+    cleared = _anomaly_engine.clear_anomalies(entity_id)
+    return jsonify({"ok": True, "cleared": cleared})
