@@ -1,5 +1,33 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.6.0] - 2026-02-21
+
+### Dashboard Card Generator — Auto-generate Lovelace YAML
+
+#### Card Generator Module (NEW)
+- **dashboard/card_generator.py** — Auto-generates Lovelace card configurations
+- `generate_energy_overview_card()` — Consumption/production/power gauges with severity thresholds
+- `generate_schedule_card()` — Device schedule table with Jinja2 templates for live updates
+- `generate_sankey_card()` — Iframe embedding Core's SVG Sankey diagram
+- `generate_zone_cards()` — Per-zone energy breakdown with graph footer
+- `generate_anomaly_card()` — Conditional anomaly alerts
+- `generate_full_dashboard()` — Complete energy dashboard view (configurable sections)
+- `dashboard_to_yaml()` — Full YAML export for Lovelace import
+
+#### Test Suite (NEW — 30+ tests)
+- **tests/test_card_generator.py**
+  - `TestEnergyOverviewCard` — Gauges, severity levels, power max
+  - `TestScheduleCard` — Entity card, Jinja2 markdown table
+  - `TestSankeyCard` — Iframe URL, SVG endpoint, aspect ratio
+  - `TestZoneCards` — Empty zones fallback, multi-zone stacks, footer graphs
+  - `TestAnomalyCard` — Conditional type, markdown content
+  - `TestFullDashboard` — Section inclusion/exclusion, zone handling
+  - `TestYAMLExport` — Valid YAML, views structure, zone support
+
+#### Infrastructure
+- **dashboard/__init__.py** — New module with public exports
+- **entity.py** + **manifest.json** — Version 5.6.0
+
 ## [5.5.0] - 2026-02-21
 
 ### Energy Schedule Sensor — Daily Device Schedule in HA
