@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.14.0] - 2026-02-21
+
+### Demand Response Sensor — Grid Signal Monitoring in HA
+
+#### Demand Response Sensor (NEW)
+- **sensors/demand_response_sensor.py** — `DemandResponseSensor` entity
+- State: current signal level (Normal/Advisory/Moderate/Critical)
+- Dynamic icon: tower→alert→alert-octagon based on severity
+- Attributes: active signals, managed devices, curtailed count, total reduction watts, response active
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.14.0
+
 ## [5.13.0] - 2026-02-21
 
 ### Energy Report Sensor — Weekly Report Highlights in HA
