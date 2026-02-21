@@ -1,5 +1,36 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.4.0] - 2026-02-21
+
+### Habitus-Zonen — Room-to-Zone Grouping with Entity Adoption
+
+#### Habitus Zone Engine (NEW)
+- **hub/habitus_zones.py** — `HabitusZoneEngine`
+- Group HA rooms into Habitus-Zonen (z.B. Bad + Toilette => Badbereich)
+- Automatic entity adoption from rooms into zones
+- 7 zone templates: Wohnbereich, Badbereich, Schlafbereich, Küche, Eingang, Außen, Büro
+- 6 zone modes: Aktiv, Leerlauf, Schlafmodus, Partymodus, Abwesend, Benutzerdefiniert
+- Zone state aggregation: temperature, humidity, occupancy, lights, active devices
+- Entity deduplication across shared rooms
+- Room registration with HA area_id mapping
+
+#### API Endpoints (12 NEW)
+- `GET /api/v1/hub/zones` — Zone overview
+- `GET /api/v1/hub/zones/<id>` — Zone details
+- `POST /api/v1/hub/zones` — Create zone
+- `DELETE /api/v1/hub/zones/<id>` — Delete zone
+- `POST /api/v1/hub/zones/<id>/mode` — Set zone mode
+- `POST /api/v1/hub/zones/<id>/room` — Add room to zone
+- `DELETE /api/v1/hub/zones/<id>/room/<rid>` — Remove room
+- `GET /api/v1/hub/zones/rooms` — List rooms
+- `POST /api/v1/hub/zones/rooms` — Register room
+- `GET /api/v1/hub/zones/templates` — Zone templates
+- `POST /api/v1/hub/zones/template/<id>` — Create from template
+- `GET /api/v1/hub/zones/modes` — Available modes
+
+#### Test Suite (NEW — 36 tests)
+- **tests/test_habitus_zones.py** — Rooms, zones, entity adoption, modes, state, templates, deduplication
+
 ## [6.3.0] - 2026-02-21
 
 ### Gas Meter & Gastherme — Impulszähler, Preise, Statistiken, Forecast
