@@ -154,6 +154,7 @@ from .sensors.gas_meter_sensor import GasMeterSensor
 from .sensors.habitus_zone_sensor import HabitusZoneSensor
 from .sensors.light_intelligence_sensor import LightIntelligenceSensor
 from .sensors.zone_mode_sensor import ZoneModeSensor
+from .sensors.media_follow_sensor import MediaFollowSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -346,6 +347,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusZoneSensor(coordinator),
         LightIntelligenceSensor(coordinator),
         ZoneModeSensor(coordinator),
+        MediaFollowSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)

@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.7.0] - 2026-02-21
+
+### Media Follow / Musikwolke Sensor — Wiedergabe-Folgen & Playback
+
+#### Media Follow Sensor (NEW)
+- **sensors/media_follow_sensor.py** — `MediaFollowSensor`
+- State: "Keine Wiedergabe" / "Artist — Title" / "X Wiedergaben"
+- Dynamic icons per media type (music, tv, radio, podcast)
+- Attributes: active sessions, zones with playback, follow zones, zone states, transfers
+- Fetches from `/api/v1/hub/media`
+
+#### Infrastructure
+- **sensor.py** — Registers MediaFollowSensor
+- Version bump to 6.7.0
+
 ## [6.6.0] - 2026-02-21
 
 ### Zone Modes Sensor — Party/Sleep/Custom Quick-Switches
