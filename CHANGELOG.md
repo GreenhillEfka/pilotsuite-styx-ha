@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.5.0] - 2026-02-21
+
+### Licht-Intelligence Sensor — Sonnenstand, Szenen, Ausleuchtung
+
+#### Light Intelligence Sensor (NEW)
+- **sensors/light_intelligence_sensor.py** — `LightIntelligenceSensor`
+- State: suggested scene name or sun phase (Tag/Nacht/Dämmerung)
+- Dynamic icons per sun phase
+- Attributes: sun elevation/azimuth/phase, outdoor lux, scenes, cloud filter
+- Fetches from `/api/v1/hub/light`
+
+#### Infrastructure
+- **sensor.py** — Registers LightIntelligenceSensor
+- Version bump to 6.5.0
+
 ## [6.4.0] - 2026-02-21
 
 ### Habitus-Zonen Sensor — Room-to-Zone Overview
