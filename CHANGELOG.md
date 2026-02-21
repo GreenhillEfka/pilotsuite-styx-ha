@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.0.0] - 2026-02-21
+
+### Scene Intelligence Sensor — Intelligente Szenen & PilotSuite Cloud
+
+#### Scene Intelligence Sensor (NEW)
+- **sensors/scene_intelligence_sensor.py** — `SceneIntelligenceSensor`
+- State: Active scene name or "X Szenen verfügbar"
+- Dynamic icons per scene (morning sun, bed, party popper, etc.)
+- Attributes: active scene, suggestions, cloud status, categories, learned patterns
+- Fetches from `/api/v1/hub/scenes`
+
+#### Infrastructure
+- **sensor.py** — Registers SceneIntelligenceSensor
+- Version bump to 7.0.0
+
 ## [6.9.0] - 2026-02-21
 
 ### Automation Templates Sensor — Blueprint-Übersicht
