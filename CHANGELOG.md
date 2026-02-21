@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.3.0] - 2026-02-21
+
+### Gaszähler Sensor — Gas Consumption, Costs & Forecast
+
+#### Gas Meter Sensor (NEW)
+- **sensors/gas_meter_sensor.py** — `GasMeterSensor`
+- State: current meter reading (m³), device_class: gas, state_class: total_increasing
+- Attributes: impulses, today/month m³/kWh/EUR, forecast, trend, gas price
+- Fetches from `/api/v1/regional/gas`
+
+#### Infrastructure
+- **sensor.py** — Registers GasMeterSensor
+- Version bump to 6.3.0
+
 ## [6.2.0] - 2026-02-21
 
 ### Anomaly Detection v2 Sensor — Multi-Dimensional Pattern Analysis
