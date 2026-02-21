@@ -1,5 +1,35 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.15.0] - 2026-02-21
+
+### Regional Context Provider — Zero-Config Location-Aware Data
+
+#### Regional Context Provider (NEW)
+- **regional/context_provider.py** — Auto-detects country (DE/AT/CH) from HA zone.home coordinates
+- Solar position calculator: sunrise, sunset, solar noon, elevation, azimuth, day length
+- Country detection with DACH lat/lon mapping
+- German Bundesland detection from coordinates
+- Regional defaults per country: grid price, feed-in tariff, price API, weather service, news sources
+- PV production factor (0-1) from solar elevation
+- Day info bundle: sunrise, sunset, pricing, weather service, language
+- Zero-config design: HA sensor auto-pushes location from zone.home on first update
+
+#### API Endpoints (NEW)
+- `GET /api/v1/regional/context` — Complete context (location + solar + defaults)
+- `GET /api/v1/regional/solar` — Current solar position
+- `GET /api/v1/regional/solar/factor` — PV production factor (0-1)
+- `GET /api/v1/regional/defaults` — Regional defaults (pricing, services)
+- `GET /api/v1/regional/day-info` — Day info bundle
+- `POST /api/v1/regional/location` — Update location from HA
+
+#### Test Suite (NEW — 45+ tests)
+- **tests/test_regional_context.py** — Country detection, solar, defaults, context, PV factor, day info, update
+
+#### Infrastructure
+- **regional/__init__.py** — Module with public exports
+- **regional/api.py** — Blueprint with 6 endpoints
+- **config.json** — Version 5.15.0
+
 ## [5.14.0] - 2026-02-21
 
 ### Demand Response Manager — Grid Signal Response & Load Curtailment
