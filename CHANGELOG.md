@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.4.0] - 2026-02-21
+
+### Habitus-Zonen Sensor — Room-to-Zone Overview
+
+#### Habitus Zone Sensor (NEW)
+- **sensors/habitus_zone_sensor.py** — `HabitusZoneSensor`
+- State: "X/Y aktiv" zone count
+- Dynamic icon: party-popper (Partymodus) / sleep (Schlafmodus) / home-floor-1
+- Attributes: zone count, room count, entity count, mode distribution, unassigned rooms
+- Fetches from `/api/v1/hub/zones`
+
+#### Infrastructure
+- **sensor.py** — Registers HabitusZoneSensor
+- Version bump to 6.4.0
+
 ## [6.3.0] - 2026-02-21
 
 ### Gaszähler Sensor — Gas Consumption, Costs & Forecast

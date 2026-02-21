@@ -151,6 +151,7 @@ from .sensors.hub_dashboard_sensor import (
 from .sensors.predictive_maintenance_sensor import PredictiveMaintenanceSensor
 from .sensors.anomaly_detection_sensor import AnomalyDetectionSensor
 from .sensors.gas_meter_sensor import GasMeterSensor
+from .sensors.habitus_zone_sensor import HabitusZoneSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -340,6 +341,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         PredictiveMaintenanceSensor(coordinator),
         AnomalyDetectionSensor(coordinator),
         GasMeterSensor(coordinator),
+        HabitusZoneSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)
