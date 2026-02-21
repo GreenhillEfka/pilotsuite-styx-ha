@@ -1,5 +1,14 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.5.0] - 2026-02-21
+
+### Conflict Resolution Engine
+
+- **conflict_resolution.py** — Neues Modul: Erkennt und loest Praeferenz-Konflikte zwischen aktiven Nutzern; paarweiser Divergenz-Check auf allen Mood-Achsen (Schwellenwert 0.3); drei Strategien: `weighted` (prioritaetsgewichtet), `compromise` (Durchschnitt), `override` (einzelner Nutzer gewinnt)
+- **preference_input_card.py** — Umgeschrieben: Zeigt Konflikt-Status als HA-Entity mit `state: conflict|ok`; Extra-Attribute: aktive Konflikte, Strategie, beteiligte Nutzer, aufgeloester Mood, Konflikt-Details
+- **test_conflict_resolution.py** — 11 neue Tests: Konflikt-Erkennung, alle 3 Strategien, Serialisierung, Edge Cases
+- **manifest.json** + **entity.py** Version auf 4.5.0 synchronisiert
+
 ## [4.4.0] - 2026-02-21
 
 ### Test Coverage + Quality
