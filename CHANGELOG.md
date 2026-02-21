@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.23.0] - 2026-02-21
+
+### Battery Optimizer Sensor — Charge/Discharge Strategy in HA
+
+#### Battery Optimizer Sensor (NEW)
+- **sensors/battery_optimizer_sensor.py** — `BatteryOptimizerSensor` entity
+- State: current SoC percentage
+- Dynamic icon: charging/discharging/high/medium/low based on state
+- Attributes: SoC, capacity, action, power, strategy, cycles, savings,
+  charge/discharge prices, next charge/discharge times, health
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.23.0
+
 ## [5.22.0] - 2026-02-21
 
 ### Styx Onboarding Sensor — Setup Progress Tracking in HA
