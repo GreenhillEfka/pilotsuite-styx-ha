@@ -1,5 +1,17 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.4.0] - 2026-02-21
+
+### OpenAPI Spec v5.4.0 — Version Sync
+
+#### Version Sync
+- Synchronized with PilotSuite Core v5.4.0 (OpenAPI Spec update)
+- Core now serves 49 API paths with 64 component schemas
+- Complete Energy API documentation available at `/api/v1/docs`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.4.0
+
 ## [5.3.0] - 2026-02-21
 
 ### Test Coverage — Voice Context + Anomaly Detector
