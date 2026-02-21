@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.10.0] - 2026-02-21
+
+### Energy Cost Sensor — Cost Tracking in HA
+
+#### Energy Cost Sensor (NEW)
+- **sensors/energy_cost_sensor.py** — `EnergyCostSensor` entity
+- State: weekly total cost in EUR (e.g. "32.50")
+- Attributes: period, avg daily cost, total consumption, total savings, budget status (spent, remaining, percent used, on-track)
+- Async fetch from Core `GET /api/v1/energy/costs/summary` and `GET /api/v1/energy/costs/budget`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.10.0
+
 ## [5.9.0] - 2026-02-21
 
 ### Automation Suggestion Sensor — Smart Recommendations in HA
