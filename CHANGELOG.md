@@ -1,5 +1,36 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.20.0] - 2026-02-21
+
+### Energy Forecast Dashboard — 48h Visual Forecast with PV, Prices & Recommendations
+
+#### Energy Forecast Engine (NEW)
+- **regional/energy_forecast.py** — `EnergyForecastEngine` combining solar, prices, weather
+- 48-hour forecast with per-hour PV factor, estimated kW, price, and weather impact
+- Composite scoring (0-10) per hour: PV bonus, price scoring, weather penalty
+- 5 action recommendations: consume, charge, hold, shift, discharge
+- Price level classification: very_low/low/normal/high/very_high (ratio-based)
+- Inline solar position calculation (declination, equation of time, hour angle)
+- Dashboard card generation: price_chart, pv_forecast, recommendation, overview
+- Tariff data import (from RegionalTariffEngine format)
+- Weather warning impact import (from WeatherWarningManager format)
+- Configurable: PV peak kW, location, grid price
+
+#### API Endpoints (6 NEW)
+- `GET /api/v1/regional/forecast/dashboard` — Complete 48h dashboard data
+- `GET /api/v1/regional/forecast/hours` — Hourly forecast array
+- `GET /api/v1/regional/forecast/summary` — Summary statistics
+- `GET /api/v1/regional/forecast/cards` — Lovelace dashboard cards
+- `POST /api/v1/regional/forecast/ingest` — Import tariff/warning data
+- `POST /api/v1/regional/forecast/config` — Configure PV, location, price
+
+#### Test Suite (NEW — 37 tests)
+- **tests/test_energy_forecast.py** — Init, forecast, prices, weather, summary, cards, dashboard, import
+
+#### Infrastructure
+- **regional/__init__.py** — Exports EnergyForecastEngine
+- **regional/api.py** — init_regional_api() accepts forecast_engine parameter
+
 ## [5.19.0] - 2026-02-21
 
 ### Proactive Alert System — Combined Weather+Price+Grid Alerts

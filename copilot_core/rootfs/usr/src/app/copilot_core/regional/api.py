@@ -1,4 +1,4 @@
-"""Regional Context API endpoints (v5.19.0)."""
+"""Regional Context API endpoints (v5.20.0)."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ _warning_manager = None
 _fuel_tracker = None
 _tariff_engine = None
 _alert_engine = None
+_forecast_engine = None
 
 
 def init_regional_api(
@@ -25,20 +26,23 @@ def init_regional_api(
     fuel_tracker=None,
     tariff_engine=None,
     alert_engine=None,
+    forecast_engine=None,
 ) -> None:
     """Initialize all regional services."""
-    global _provider, _warning_manager, _fuel_tracker, _tariff_engine, _alert_engine
+    global _provider, _warning_manager, _fuel_tracker, _tariff_engine, _alert_engine, _forecast_engine
     _provider = provider
     _warning_manager = warning_manager
     _fuel_tracker = fuel_tracker
     _tariff_engine = tariff_engine
     _alert_engine = alert_engine
+    _forecast_engine = forecast_engine
     logger.info(
-        "Regional API initialized (warnings: %s, fuel: %s, tariff: %s, alerts: %s)",
+        "Regional API initialized (warnings: %s, fuel: %s, tariff: %s, alerts: %s, forecast: %s)",
         warning_manager is not None,
         fuel_tracker is not None,
         tariff_engine is not None,
         alert_engine is not None,
+        forecast_engine is not None,
     )
 
 
@@ -526,4 +530,113 @@ def configure_alerts():
         price_low_ct=body.get("price_low_ct"),
         pv_drop_pct=body.get("pv_drop_pct"),
     )
+    return jsonify({"ok": True, "configured": True})
+
+
+# ── Energy Forecast endpoints (v5.20.0) ──────────────────────────────────
+
+
+@regional_bp.route("/forecast/dashboard", methods=["GET"])
+@require_token
+def get_forecast_dashboard():
+    """Get complete 48h energy forecast dashboard."""
+    if not _forecast_engine:
+        return jsonify({"error": "Forecast engine not initialized"}), 503
+    dashboard = _forecast_engine.generate_dashboard()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@regional_bp.route("/forecast/hours", methods=["GET"])
+@require_token
+def get_forecast_hours():
+    """Get hourly 48h forecast data."""
+    if not _forecast_engine:
+        return jsonify({"error": "Forecast engine not initialized"}), 503
+    forecast = _forecast_engine.generate_forecast()
+    return jsonify({
+        "ok": True,
+        "hours": [asdict(h) for h in forecast],
+        "total": len(forecast),
+    })
+
+
+@regional_bp.route("/forecast/summary", methods=["GET"])
+@require_token
+def get_forecast_summary():
+    """Get 48h forecast summary statistics."""
+    if not _forecast_engine:
+        return jsonify({"error": "Forecast engine not initialized"}), 503
+    summary = _forecast_engine.generate_summary()
+    return jsonify({"ok": True, **asdict(summary)})
+
+
+@regional_bp.route("/forecast/cards", methods=["GET"])
+@require_token
+def get_forecast_cards():
+    """Get dashboard cards for Lovelace integration."""
+    if not _forecast_engine:
+        return jsonify({"error": "Forecast engine not initialized"}), 503
+    cards = _forecast_engine.generate_dashboard_cards()
+    return jsonify({
+        "ok": True,
+        "cards": [asdict(c) for c in cards],
+        "total": len(cards),
+    })
+
+
+@regional_bp.route("/forecast/ingest", methods=["POST"])
+@require_token
+def ingest_forecast_data():
+    """Ingest external data for forecast enrichment.
+
+    JSON body: {
+        "tariff_prices": [...],  // from tariff engine
+        "warning_impacts": [...]  // from warning manager
+    }
+    """
+    if not _forecast_engine:
+        return jsonify({"error": "Forecast engine not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+
+    try:
+        imported = {}
+        if "tariff_prices" in body:
+            _forecast_engine.import_tariff_data(body["tariff_prices"])
+            imported["tariff_hours"] = len(body["tariff_prices"])
+        if "warning_impacts" in body:
+            _forecast_engine.import_warning_data(body["warning_impacts"])
+            imported["warning_impacts"] = len(body["warning_impacts"])
+
+        return jsonify({"ok": True, "imported": imported})
+    except Exception as exc:
+        logger.error("Forecast data ingestion failed: %s", exc)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@regional_bp.route("/forecast/config", methods=["POST"])
+@require_token
+def configure_forecast():
+    """Configure forecast engine.
+
+    JSON body: {
+        "pv_peak_kw": 10.0,
+        "latitude": 52.52,
+        "longitude": 13.405,
+        "grid_price_ct": 30.0
+    }
+    """
+    if not _forecast_engine:
+        return jsonify({"error": "Forecast engine not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    if "pv_peak_kw" in body:
+        _forecast_engine.set_pv_peak(float(body["pv_peak_kw"]))
+    if "latitude" in body and "longitude" in body:
+        _forecast_engine.update_location(
+            float(body["latitude"]), float(body["longitude"])
+        )
+    if "grid_price_ct" in body:
+        _forecast_engine._default_price = float(body["grid_price_ct"])
+
     return jsonify({"ok": True, "configured": True})
