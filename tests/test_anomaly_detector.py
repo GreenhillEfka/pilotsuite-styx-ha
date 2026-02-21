@@ -16,6 +16,8 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 import pytest
 
+sklearn = pytest.importorskip("sklearn", reason="sklearn not installed")
+
 from custom_components.ai_home_copilot.ml.patterns.anomaly_detector import (
     AnomalyDetector,
     ContextAwareAnomalyDetector,
