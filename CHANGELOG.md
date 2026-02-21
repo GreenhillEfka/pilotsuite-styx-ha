@@ -1,5 +1,31 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.9.0] - 2026-02-21
+
+### Automation Templates — AI-Generated Automation Blueprints
+
+#### Automation Template Engine (NEW)
+- **hub/automation_templates.py** — `AutomationTemplateEngine`
+- 9 built-in Templates: Licht bei Bewegung, Nachtbeleuchtung, Heizplan, Fenster→Heizung, Türalarm, Spitzenverbrauch, Willkommen, Gute-Nacht, Gerät-fertig
+- 6 Kategorien: Beleuchtung, Klima, Sicherheit, Energie, Komfort, Anwesenheit
+- Template-Variablen mit Typ-System (entity, number, string, time, select)
+- YAML-Preview-Generierung mit Variablen-Substitution
+- Rating-System (1-5 Sterne) mit Running-Average
+- Usage-Tracking und Popularitätssortierung
+- Custom Template Registration
+
+#### API Endpoints (7 NEW)
+- `GET /api/v1/hub/templates` — List templates (filter by category/difficulty/search)
+- `GET /api/v1/hub/templates/<id>` — Template details
+- `GET /api/v1/hub/templates/categories` — Category overview
+- `GET /api/v1/hub/templates/summary` — Template summary
+- `POST /api/v1/hub/templates/generate` — Generate automation from template
+- `POST /api/v1/hub/templates/<id>/rate` — Rate template
+- `POST /api/v1/hub/templates/custom` — Register custom template
+
+#### Test Suite (NEW — 29 tests)
+- **tests/test_automation_templates.py** — Templates, filters, generation, rating, custom, summary
+
 ## [6.8.0] - 2026-02-21
 
 ### Energy Advisor — Personalized Savings Recommendations & Eco-Score

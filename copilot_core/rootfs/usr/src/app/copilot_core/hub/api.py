@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.8.0)."""
+"""Hub API endpoints for PilotSuite (v6.9.0)."""
 
 from __future__ import annotations
 
@@ -22,15 +22,16 @@ _light_engine: object | None = None
 _mode_engine: object | None = None
 _media_engine: object | None = None
 _energy_advisor: object | None = None
+_template_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  maintenance_engine=None, anomaly_engine=None,
                  zone_engine=None, light_engine=None,
                  mode_engine=None, media_engine=None,
-                 energy_advisor=None) -> None:
+                 energy_advisor=None, template_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -41,8 +42,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _mode_engine = mode_engine
     _media_engine = media_engine
     _energy_advisor = energy_advisor
+    _template_engine = template_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -52,6 +54,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         mode_engine is not None,
         media_engine is not None,
         energy_advisor is not None,
+        template_engine is not None,
     )
 
 
@@ -1073,3 +1076,111 @@ def set_energy_price():
     body = request.get_json(silent=True) or {}
     _energy_advisor.set_electricity_price(float(body.get("ct_kwh", 30.0)))
     return jsonify({"ok": True})
+
+
+# ── Automation Templates endpoints (v6.9.0) ────────────────────────────────
+
+
+@hub_bp.route("/templates", methods=["GET"])
+@require_token
+def get_automation_templates():
+    """Get automation templates.
+
+    Query params: category, difficulty, search, limit
+    """
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    category = request.args.get("category")
+    difficulty = request.args.get("difficulty")
+    search = request.args.get("search")
+    limit = int(request.args.get("limit", 50))
+    templates = _template_engine.get_templates(category, difficulty, search, limit)
+    return jsonify({"ok": True, "templates": templates})
+
+
+@hub_bp.route("/templates/<template_id>", methods=["GET"])
+@require_token
+def get_template_detail(template_id):
+    """Get full template details."""
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    detail = _template_engine.get_template_detail(template_id)
+    if not detail:
+        return jsonify({"ok": False, "error": "Template not found"}), 404
+    return jsonify({"ok": True, **detail})
+
+
+@hub_bp.route("/templates/categories", methods=["GET"])
+@require_token
+def get_template_categories():
+    """Get template categories with counts."""
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    return jsonify({"ok": True, "categories": _template_engine.get_categories()})
+
+
+@hub_bp.route("/templates/summary", methods=["GET"])
+@require_token
+def get_template_summary():
+    """Get template summary."""
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    summary = _template_engine.get_summary()
+    return jsonify({"ok": True, **asdict(summary)})
+
+
+@hub_bp.route("/templates/generate", methods=["POST"])
+@require_token
+def generate_automation():
+    """Generate an automation from a template.
+
+    JSON body: {"template_id": "...", "variables": {"key": "value"}, "name"?: "..."}
+    """
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    gen = _template_engine.generate_automation(
+        body.get("template_id", ""),
+        body.get("variables", {}),
+        body.get("name", ""),
+    )
+    if not gen:
+        return jsonify({"ok": False, "error": "Generation failed"}), 400
+    return jsonify({
+        "ok": True,
+        "automation_id": gen.automation_id,
+        "name": gen.name,
+        "yaml_preview": gen.yaml_preview,
+    })
+
+
+@hub_bp.route("/templates/<template_id>/rate", methods=["POST"])
+@require_token
+def rate_template(template_id):
+    """Rate a template.
+
+    JSON body: {"rating": 4.5}
+    """
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _template_engine.rate_template(template_id, float(body.get("rating", 0)))
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/templates/custom", methods=["POST"])
+@require_token
+def register_custom_template():
+    """Register a custom template.
+
+    JSON body: {"template_id": "...", "name_de": "...", "description_de": "...", ...}
+    """
+    if not _template_engine:
+        return jsonify({"error": "Template engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    template_id = body.pop("template_id", "")
+    name_de = body.pop("name_de", "")
+    description_de = body.pop("description_de", "")
+    category = body.pop("category", "comfort")
+    result = _template_engine.register_template(template_id, name_de, description_de, category, **body)
+    return jsonify({"ok": result, "template_id": template_id})
