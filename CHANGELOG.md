@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.2.0] - 2026-02-21
+
+### Notification Intelligence Sensor — Smart Benachrichtigungen
+
+#### Notification Intelligence Sensor (NEW)
+- **sensors/notification_intelligence_sensor.py** — `NotificationIntelligenceSensor`
+- State: "X ungelesen" / "Alle gelesen" / "Keine Benachrichtigungen"
+- Dynamic icons: bell-badge (unread), bell-off (DND), bell-check (all read)
+- Attributes: stats, DND status, recent notifications, rules, channels
+
+#### Infrastructure
+- **sensor.py** — Registers NotificationIntelligenceSensor
+- Version bump to 7.2.0
+
 ## [7.1.0] - 2026-02-21
 
 ### Presence Intelligence Sensor — Anwesenheits-Tracking & Raum-Belegung
