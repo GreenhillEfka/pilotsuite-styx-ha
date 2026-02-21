@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.0.0)."""
+"""Hub API endpoints for PilotSuite (v6.1.0)."""
 
 from __future__ import annotations
 
@@ -15,14 +15,16 @@ hub_bp = Blueprint("hub", __name__, url_prefix="/api/v1/hub")
 _dashboard: object | None = None
 _plugin_manager: object | None = None
 _multi_home: object | None = None
+_maintenance_engine: object | None = None
 
 
-def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None) -> None:
+def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None, maintenance_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
+    _maintenance_engine = maintenance_engine
     logger.info(
         "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s)",
         dashboard is not None,
@@ -249,3 +251,72 @@ def update_home_status(home_id):
         cost_eur=body.get("cost_eur"),
     )
     return jsonify({"ok": result})
+
+
+# ── Predictive Maintenance endpoints (v6.1.0) ────────────────────────────
+
+
+@hub_bp.route("/maintenance", methods=["GET"])
+@require_token
+def get_maintenance_summary():
+    """Get predictive maintenance summary."""
+    if not _maintenance_engine:
+        return jsonify({"error": "Maintenance engine not initialized"}), 503
+    summary = _maintenance_engine.get_summary()
+    return jsonify({"ok": True, **asdict(summary)})
+
+
+@hub_bp.route("/maintenance/device/<device_id>", methods=["GET"])
+@require_token
+def get_device_health(device_id):
+    """Get device health details."""
+    if not _maintenance_engine:
+        return jsonify({"error": "Maintenance engine not initialized"}), 503
+    info = _maintenance_engine.get_device(device_id)
+    if not info:
+        return jsonify({"ok": False, "error": "Device not found"}), 404
+    return jsonify({"ok": True, **info})
+
+
+@hub_bp.route("/maintenance/register", methods=["POST"])
+@require_token
+def register_device():
+    """Register a device for monitoring.
+
+    JSON body: {"device_id": "...", "name": "...", "device_type": "sensor"}
+    """
+    if not _maintenance_engine:
+        return jsonify({"error": "Maintenance engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    _maintenance_engine.register_device(
+        body.get("device_id", ""),
+        body.get("name", "Device"),
+        body.get("device_type", "sensor"),
+    )
+    return jsonify({"ok": True, "device_id": body.get("device_id", "")})
+
+
+@hub_bp.route("/maintenance/ingest", methods=["POST"])
+@require_token
+def ingest_device_metrics():
+    """Ingest device metrics.
+
+    JSON body: {"metrics": [{"device_id": "...", "metric": "...", "value": ...}, ...]}
+    """
+    if not _maintenance_engine:
+        return jsonify({"error": "Maintenance engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    metrics = body.get("metrics", [])
+    count = _maintenance_engine.ingest_metrics_batch(metrics)
+    return jsonify({"ok": True, "ingested": count})
+
+
+@hub_bp.route("/maintenance/evaluate", methods=["POST"])
+@require_token
+def evaluate_devices():
+    """Trigger health evaluation for all devices."""
+    if not _maintenance_engine:
+        return jsonify({"error": "Maintenance engine not initialized"}), 503
+    results = _maintenance_engine.evaluate_all()
+    summary = _maintenance_engine.get_summary()
+    return jsonify({"ok": True, "evaluated": len(results), **asdict(summary)})

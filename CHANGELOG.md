@@ -1,5 +1,29 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.1.0] - 2026-02-21
+
+### Predictive Maintenance — Device Health Scoring & Failure Prediction
+
+#### Predictive Maintenance Engine (NEW)
+- **hub/predictive_maintenance.py** — `PredictiveMaintenanceEngine`
+- Device health scoring (0-100) with type-specific metric weights
+- 6 monitored metrics: battery, response time, errors, uptime, signal, temperature
+- 4 device types: sensor, actuator, controller, gateway
+- Degradation rate tracking from metric history
+- Time-to-failure estimation based on battery drain / score trends
+- Issue identification and maintenance recommendations (DE)
+- Priority-based attention list and upcoming maintenance schedule
+
+#### API Endpoints (5 NEW)
+- `GET /api/v1/hub/maintenance` — Maintenance summary
+- `GET /api/v1/hub/maintenance/device/<id>` — Device health details
+- `POST /api/v1/hub/maintenance/register` — Register device
+- `POST /api/v1/hub/maintenance/ingest` — Ingest device metrics
+- `POST /api/v1/hub/maintenance/evaluate` — Trigger health evaluation
+
+#### Test Suite (NEW — 26 tests)
+- **tests/test_predictive_maintenance.py** — Registration, metrics, scoring, issues, degradation, summary
+
 ## [6.0.0] - 2026-02-21
 
 ### PilotSuite Hub — Unified Dashboard, Plugin Architecture, Multi-Home
