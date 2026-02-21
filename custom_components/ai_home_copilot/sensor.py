@@ -142,6 +142,7 @@ from .sensors.agent_status_sensor import AgentStatusSensor
 from .sensors.onboarding_sensor import OnboardingSensor
 from .sensors.battery_optimizer_sensor import BatteryOptimizerSensor
 from .sensors.heat_pump_sensor import HeatPumpSensor
+from .sensors.ev_charging_sensor import EVChargingSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -324,6 +325,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         OnboardingSensor(coordinator),
         BatteryOptimizerSensor(coordinator),
         HeatPumpSensor(coordinator),
+        EVChargingSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)

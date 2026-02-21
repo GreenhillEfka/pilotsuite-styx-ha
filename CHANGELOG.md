@@ -1,5 +1,21 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.25.0] - 2026-02-21
+
+### EV Charging Sensor — SoC & Smart Charging in HA
+
+#### EV Charging Sensor (NEW)
+- **sensors/ev_charging_sensor.py** — `EVChargingSensor` entity
+- State: current SoC percentage
+- Dynamic icon: ev-station (charging), solar-power (solar), car-electric (ready)
+- Attributes: vehicle name, connector, SoC, power, range, time-to-target,
+  departure readiness, cost, strategy, solar/grid energy split
+- Fetches from `/api/v1/regional/ev/status` and `/ev/schedule`
+
+#### Infrastructure
+- **sensor.py** — Registers EVChargingSensor
+- **entity.py** + **manifest.json** — Version 5.25.0
+
 ## [5.24.0] - 2026-02-21
 
 ### Heat Pump Sensor — COP & Scheduling in HA
