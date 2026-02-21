@@ -1,11 +1,17 @@
 """API v1 -- Prediction endpoints.
 
-Exposes the ArrivalForecaster and EnergyOptimizer via REST.
+Exposes the ArrivalForecaster, EnergyOptimizer, MoodTimeSeriesForecaster,
+and LoadShiftingScheduler via REST.
 
 Endpoints:
-    GET  /api/v1/predict/arrival/<person_id>     -- predict next arrival
-    GET  /api/v1/predict/energy/optimal-window   -- cheapest energy window
-    POST /api/v1/predict/energy/schedule          -- set manual price schedule
+    GET  /api/v1/predict/arrival/<person_id>           -- predict next arrival
+    GET  /api/v1/predict/energy/optimal-window         -- cheapest energy window
+    POST /api/v1/predict/energy/schedule               -- set manual price schedule
+    POST /api/v1/predict/timeseries/fit/<zone_id>      -- fit Holt-Winters model  (v5.0.0)
+    GET  /api/v1/predict/timeseries/forecast/<zone_id> -- forecast mood metrics   (v5.0.0)
+    POST /api/v1/predict/energy/load-shift             -- schedule device run     (v5.0.0)
+    GET  /api/v1/predict/energy/schedules              -- list load schedules     (v5.0.0)
+    DELETE /api/v1/predict/energy/load-shift/<id>      -- cancel schedule         (v5.0.0)
 """
 from __future__ import annotations
 
@@ -20,13 +26,22 @@ prediction_bp = Blueprint("prediction", __name__, url_prefix="/api/v1/predict")
 
 _forecaster = None
 _optimizer = None
+_ts_forecaster = None
+_load_scheduler = None
 
 
-def init_prediction_api(forecaster=None, optimizer=None) -> None:
+def init_prediction_api(
+    forecaster=None,
+    optimizer=None,
+    ts_forecaster=None,
+    load_scheduler=None,
+) -> None:
     """Inject service singletons at startup."""
-    global _forecaster, _optimizer
+    global _forecaster, _optimizer, _ts_forecaster, _load_scheduler
     _forecaster = forecaster
     _optimizer = optimizer
+    _ts_forecaster = ts_forecaster
+    _load_scheduler = load_scheduler
     logger.info("Prediction API initialized")
 
 
@@ -102,4 +117,126 @@ def set_energy_schedule():
         return jsonify({"ok": True, "slots": len(prices)}), 200
     except Exception as exc:
         logger.error("Failed to set price schedule: %s", exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.0.0 — Time Series Forecasting
+# ═══════════════════════════════════════════════════════════════════════════
+
+# -- POST /api/v1/predict/timeseries/fit/<zone_id> -------------------------
+
+@prediction_bp.route("/timeseries/fit/<zone_id>", methods=["POST"])
+@require_token
+def fit_timeseries(zone_id: str):
+    """Fit Holt-Winters model on mood history for a zone."""
+    if _ts_forecaster is None:
+        return jsonify({"ok": False, "error": "TimeSeriesForecaster not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    hours = body.get("hours", 168)
+
+    try:
+        result = _ts_forecaster.fit_zone(zone_id, hours=int(hours))
+        return jsonify({"ok": True, "zone_id": zone_id, **result}), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        logger.error("Timeseries fit failed for %s: %s", zone_id, exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# -- GET /api/v1/predict/timeseries/forecast/<zone_id> ---------------------
+
+@prediction_bp.route("/timeseries/forecast/<zone_id>", methods=["GET"])
+@require_token
+def forecast_timeseries(zone_id: str):
+    """Forecast mood metrics for a zone using fitted Holt-Winters model."""
+    if _ts_forecaster is None:
+        return jsonify({"ok": False, "error": "TimeSeriesForecaster not initialized"}), 503
+
+    steps = request.args.get("steps", 24, type=int)
+    steps = max(1, min(steps, 168))  # Clamp 1–168
+
+    try:
+        result = _ts_forecaster.forecast_zone(zone_id, steps=steps)
+        return jsonify({"ok": True, **result}), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        logger.error("Timeseries forecast failed for %s: %s", zone_id, exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.0.0 — Energy Load Shifting
+# ═══════════════════════════════════════════════════════════════════════════
+
+# -- POST /api/v1/predict/energy/load-shift --------------------------------
+
+@prediction_bp.route("/energy/load-shift", methods=["POST"])
+@require_token
+def schedule_load_shift():
+    """Schedule a device run at the optimal price window."""
+    if _load_scheduler is None:
+        return jsonify({"ok": False, "error": "LoadShiftingScheduler not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    device_entity = body.get("device_entity")
+    consumption_kwh = body.get("consumption_kwh")
+    duration_hours = body.get("duration_hours")
+
+    if not device_entity or consumption_kwh is None or duration_hours is None:
+        return jsonify({
+            "ok": False,
+            "error": "Missing required fields: device_entity, consumption_kwh, duration_hours",
+        }), 400
+
+    try:
+        result = _load_scheduler.schedule_device(
+            device_entity=device_entity,
+            consumption_kwh=float(consumption_kwh),
+            duration_hours=float(duration_hours),
+            priority=body.get("priority", 3),
+            within_hours=body.get("within_hours", 24.0),
+        )
+        return jsonify({"ok": True, **result}), 201
+    except Exception as exc:
+        logger.error("Load shift scheduling failed: %s", exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# -- GET /api/v1/predict/energy/schedules ----------------------------------
+
+@prediction_bp.route("/energy/schedules", methods=["GET"])
+@require_token
+def get_load_schedules():
+    """Get all load shifting schedules."""
+    if _load_scheduler is None:
+        return jsonify({"ok": False, "error": "LoadShiftingScheduler not initialized"}), 503
+
+    status_filter = request.args.get("status")
+
+    try:
+        schedules = _load_scheduler.get_schedules(status=status_filter)
+        return jsonify({"ok": True, "schedules": schedules, "count": len(schedules)}), 200
+    except Exception as exc:
+        logger.error("Get schedules failed: %s", exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# -- DELETE /api/v1/predict/energy/load-shift/<schedule_id> ----------------
+
+@prediction_bp.route("/energy/load-shift/<schedule_id>", methods=["DELETE"])
+@require_token
+def cancel_load_shift(schedule_id: str):
+    """Cancel a pending load shifting schedule."""
+    if _load_scheduler is None:
+        return jsonify({"ok": False, "error": "LoadShiftingScheduler not initialized"}), 503
+
+    try:
+        result = _load_scheduler.cancel_schedule(schedule_id)
+        return jsonify({"ok": True, **result}), 200
+    except Exception as exc:
+        logger.error("Cancel schedule failed: %s", exc, exc_info=True)
         return jsonify({"ok": False, "error": str(exc)}), 500
