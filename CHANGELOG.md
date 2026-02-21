@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.2.0] - 2026-02-21
+
+### Sankey Energy Flow Sensor
+
+#### Energy Sankey Sensor (NEW)
+- **sensors/energy_sankey_sensor.py** — `EnergySankeySensor` entity
+- Exposes energy Sankey flow data from Core API as HA sensor
+- Attributes: sankey_svg_url, sankey_json_url, sources, consumers, node/flow counts
+- State shows node and flow count summary
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.2.0
+
 ## [5.1.0] - 2026-02-21
 
 ### Zone Energy Device Discovery — Auto-Association + Tagging
