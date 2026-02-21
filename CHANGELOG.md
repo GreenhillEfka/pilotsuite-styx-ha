@@ -1,5 +1,26 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.2.0] - 2026-02-21
+
+### Sankey Energy Flow Diagrams — SVG + JSON
+
+#### Sankey Renderer (NEW)
+- **energy/sankey.py** — Pure-Python SVG Sankey diagram generator (no external dependencies)
+- `SankeyRenderer` class — Bezier-curve flow paths, node positioning, dark/light themes
+- `SankeyNode` / `SankeyFlow` / `SankeyData` dataclasses for structured flow data
+- `build_sankey_from_energy()` — Builds Sankey from consumption/production/baselines/zones
+- Supports per-zone and global diagrams
+- Hover tooltips on flows, color-coded by source/device type
+- Responsive SVG with configurable width/height
+
+#### Sankey API Endpoints (NEW)
+- `GET /api/v1/energy/sankey` — JSON flow data (nodes, flows, summary)
+- `GET /api/v1/energy/sankey.svg` — SVG image with query params: zone, width, height, theme
+- 30-second cache headers for SVG responses
+
+#### Infrastructure
+- **config.json** — Version 5.2.0
+
 ## [5.1.0] - 2026-02-21
 
 ### Zone Energy API — Per-Habitzone Energy Device Management

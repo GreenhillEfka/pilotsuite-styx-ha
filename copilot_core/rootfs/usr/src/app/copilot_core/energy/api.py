@@ -1,7 +1,8 @@
 """Energy Neuron API endpoints."""
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
+from .sankey import SankeyRenderer, build_sankey_from_energy
 from .service import EnergyService
 from ..api.security import require_api_key
 
@@ -261,3 +262,158 @@ def get_all_zone_energy():
         "global_power_watts": round(sum(z["total_power_watts"] for z in zones), 2),
         "timestamp": _energy_service._get_timestamp(),
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.2.0 — Sankey Energy Flow Diagrams
+# ═══════════════════════════════════════════════════════════════════════════
+
+@energy_bp.route("/api/v1/energy/sankey", methods=["GET"])
+@require_api_key
+def get_sankey_data():
+    """Get Sankey flow data as JSON.
+
+    Query params:
+        zone: Optional zone_id to filter (default: global)
+    """
+    if not _energy_service:
+        return jsonify({"error": "Energy service not initialized"}), 503
+
+    zone_id = request.args.get("zone")
+    snapshot = _energy_service.get_energy_snapshot()
+
+    # Build zone data if zones registered
+    zone_data = None
+    if zone_id:
+        zone_map = getattr(_energy_service, "_zone_energy_map", {})
+        zone_config = zone_map.get(zone_id)
+        if zone_config:
+            total = 0.0
+            for eid in zone_config["entity_ids"]:
+                val = _energy_service._find_single_entity_value(eid)
+                if val is not None:
+                    total += val
+            zone_data = {zone_config["zone_name"]: total}
+            title = f"Energiefluss — {zone_config['zone_name']}"
+        else:
+            return jsonify({"ok": False, "error": f"Zone '{zone_id}' not found"}), 404
+    else:
+        # Global: use all registered zones or baselines
+        zone_map = getattr(_energy_service, "_zone_energy_map", {})
+        if zone_map:
+            zone_data = {}
+            for zid, config in zone_map.items():
+                total = 0.0
+                for eid in config["entity_ids"]:
+                    val = _energy_service._find_single_entity_value(eid)
+                    if val is not None:
+                        total += val
+                zone_data[config["zone_name"]] = total
+        title = "Energiefluss — Gesamt"
+
+    sankey = build_sankey_from_energy(
+        consumption=snapshot.total_consumption_today,
+        production=snapshot.total_production_today,
+        baselines=snapshot.baselines,
+        zone_data=zone_data,
+        title=title,
+    )
+
+    return jsonify({
+        "ok": True,
+        "title": sankey.title,
+        "unit": sankey.unit,
+        "nodes": [
+            {
+                "id": n.id,
+                "label": n.label,
+                "value": n.value,
+                "color": n.color,
+                "category": n.category,
+            }
+            for n in sankey.nodes
+        ],
+        "flows": [
+            {
+                "source": f.source,
+                "target": f.target,
+                "value": f.value,
+            }
+            for f in sankey.flows
+        ],
+        "summary": {
+            "total_consumption_kwh": snapshot.total_consumption_today,
+            "total_production_kwh": snapshot.total_production_today,
+            "grid_kwh": max(snapshot.total_consumption_today - snapshot.total_production_today, 0),
+        },
+        "timestamp": _energy_service._get_timestamp(),
+    })
+
+
+@energy_bp.route("/api/v1/energy/sankey.svg", methods=["GET"])
+@require_api_key
+def get_sankey_svg():
+    """Get Sankey diagram as SVG image.
+
+    Query params:
+        zone: Optional zone_id (default: global)
+        width: SVG width in px (default: 700)
+        height: SVG height in px (default: 400)
+        theme: dark or light (default: dark)
+    """
+    if not _energy_service:
+        return Response(
+            '<svg xmlns="http://www.w3.org/2000/svg"><text y="20">Service unavailable</text></svg>',
+            mimetype="image/svg+xml",
+            status=503,
+        )
+
+    zone_id = request.args.get("zone")
+    width = min(int(request.args.get("width", 700)), 2000)
+    height = min(int(request.args.get("height", 400)), 1200)
+    theme = request.args.get("theme", "dark")
+
+    snapshot = _energy_service.get_energy_snapshot()
+
+    # Build zone data
+    zone_data = None
+    title = "Energiefluss — Gesamt"
+    if zone_id:
+        zone_map = getattr(_energy_service, "_zone_energy_map", {})
+        zone_config = zone_map.get(zone_id)
+        if zone_config:
+            total = 0.0
+            for eid in zone_config["entity_ids"]:
+                val = _energy_service._find_single_entity_value(eid)
+                if val is not None:
+                    total += val
+            zone_data = {zone_config["zone_name"]: total}
+            title = f"Energiefluss — {zone_config['zone_name']}"
+    else:
+        zone_map = getattr(_energy_service, "_zone_energy_map", {})
+        if zone_map:
+            zone_data = {}
+            for zid, config in zone_map.items():
+                total = 0.0
+                for eid in config["entity_ids"]:
+                    val = _energy_service._find_single_entity_value(eid)
+                    if val is not None:
+                        total += val
+                zone_data[config["zone_name"]] = total
+
+    sankey = build_sankey_from_energy(
+        consumption=snapshot.total_consumption_today,
+        production=snapshot.total_production_today,
+        baselines=snapshot.baselines,
+        zone_data=zone_data,
+        title=title,
+    )
+
+    renderer = SankeyRenderer(width=width, height=height, theme=theme)
+    svg = renderer.render(sankey)
+
+    return Response(
+        svg,
+        mimetype="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=30"},
+    )
