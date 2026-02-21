@@ -1,5 +1,25 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.0.0] - 2026-02-21
+
+### Major Release — Performance Monitoring, Test Coverage
+
+#### Performance Monitoring Module (EXPANDED)
+- **performance_scaling.py** — Expanded from v0.1 stub (54 lines) to v1.0 kernel (314 lines)
+- API response time tracking with rolling window (500 samples) and percentiles (p50/p90/p95/p99)
+- Memory usage monitoring via `/proc/self/status` (Linux)
+- Entity count metrics for PilotSuite entities
+- Coordinator update latency tracking
+- Configurable alert thresholds (API time, coordinator, entity count, memory, error rate)
+- Background monitoring loop (60s interval) with alert generation
+- Integration with existing PerformanceGuardrails rate limiting
+- `get_snapshot()`, `get_percentiles()`, `get_guardrails_status()` query API
+
+#### Test Coverage (+4 test files, ~60 new tests)
+- **test_performance_scaling.py** (NEW) — 16 tests: recording, snapshot, percentiles, thresholds, alerts, edge cases
+- **test_energy_context.py** (NEW) — 14 tests: frugality scoring, mood dict, snapshot, edge cases
+- **entity.py** + **manifest.json** — Version 5.0.0
+
 ## [1.0.0] - 2026-02-21
 
 ### Stable Release — Feature-Complete
