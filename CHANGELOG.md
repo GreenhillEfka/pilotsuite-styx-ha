@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.15.0] - 2026-02-21
+
+### Regional Context Sensor — Zero-Config Location Awareness in HA
+
+#### Regional Context Sensor (NEW)
+- **sensors/regional_context_sensor.py** — `RegionalContextSensor` entity
+- State: country + region (e.g. "DE — Brandenburg/Berlin")
+- Auto-syncs location from HA zone.home to Core on first update (zero-config)
+- Attributes: lat, lon, country, region, timezone, sunrise, sunset, solar elevation, grid price, weather service
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.15.0
+
 ## [5.14.0] - 2026-02-21
 
 ### Demand Response Sensor — Grid Signal Monitoring in HA
