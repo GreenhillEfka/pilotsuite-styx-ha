@@ -1,5 +1,22 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.0] - 2026-02-21 — HA CONFORMITY RELEASE
+
+### Kompletter HA-Konformitaets-Audit — alle Stolperstellen gefixt
+
+#### Docker Build Fix
+- `numpy` zu Dockerfile hinzugefuegt (fehlte → Build-Fehler bei collective_intelligence Modul)
+
+#### config.yaml Fixes
+- `hassio_api: true` hinzugefuegt (Supervisor Token Injection fuer HA API Zugriff)
+- `homeassistant_api: true` hinzugefuegt (HA REST API Zugriff)
+- `homeassistant: "2024.1.0"` Mindestversion gesetzt
+
+#### Add-on UI
+- `translations/en.yaml` erstellt (freundliche Labels fuer alle Config-Optionen)
+- `DOCS.md` erstellt (Dokumentation Tab im Add-on UI)
+- `start_dual.sh` Execute-Bit in Git gesetzt
+
 ## [7.6.4] - 2026-02-21 — ADD-ON DISCOVERY FIX
 
 ### config.json → config.yaml Migration

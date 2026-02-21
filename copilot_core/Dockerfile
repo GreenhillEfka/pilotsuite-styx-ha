@@ -13,7 +13,8 @@ RUN apk add --no-cache python3 py3-pip graphviz curl bash libstdc++ libgcc && \
         neo4j==5.26.0 \
         pydantic==2.12.5 \
         requests==2.31.0 \
-        qrcode==8.0
+        qrcode==8.0 \
+        numpy
 
 # Install Ollama from Alpine edge/community (native musl build)
 # Falls back to binary download with gcompat if edge package unavailable

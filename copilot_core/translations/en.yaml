@@ -1,0 +1,19 @@
+configuration:
+  log_level:
+    name: Log Level
+    description: Set the logging verbosity (trace, debug, info, warning, error)
+  auth_token:
+    name: Auth Token
+    description: Optional authentication token for API access. Leave empty to disable auth.
+  conversation_ollama_url:
+    name: Ollama URL
+    description: URL of the Ollama server for local LLM inference
+  conversation_ollama_model:
+    name: Ollama Model
+    description: Which Ollama model to use (e.g. qwen3:4b, llama3:8b)
+  conversation_assistant_name:
+    name: Assistant Name
+    description: Name of the AI assistant shown in conversations
+  conversation_enabled:
+    name: Conversation Enabled
+    description: Enable or disable the conversation/chat feature
