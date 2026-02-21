@@ -1,5 +1,27 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.6.1] - 2026-02-21 — STABILITY PATCH
+
+### Granular Fault Isolation fuer Hub-Engines
+
+#### Fix: Cascading Failure Prevention (HIGH Priority)
+- **VORHER**: Ein Fehler in EINEM Hub-Modul brachte ALLE 17 Engines zum Absturz
+- **NACHHER**: Jede Engine hat eigenes try/except — ein Fehler betrifft nur diese Engine
+- **core_setup.py** komplett ueberarbeitet:
+  1. Import-Phase: Wenn `hub/__init__.py` fehlschlaegt → klares Logging, Rest laeuft weiter
+  2. Instantiierung: Jede der 17 Engines einzeln in try/except
+  3. Integration Hub: Nur registrieren was existiert (None-Engines werden uebersprungen)
+  4. Brain Sync: Nur wenn beide Seiten verfuegbar sind
+- Integration Hub `register_engine()` crasht nicht mehr auf None
+- `auto_wire()` und `sync_with_hub()` jeweils separat abgesichert
+- Klares Logging: "Hub engines: X/17 initialized"
+
+#### Szenario-Tests:
+- Engine A defekt → Engine B-Q laufen trotzdem ✓
+- Integration Hub defekt → Brain Architecture degradiert graceful ✓
+- Alle Engines defekt → Core startet trotzdem, API gibt 503 ✓
+- Alle Engines OK → Normalbetrieb wie v7.6.0 ✓
+
 ## [7.6.0] - 2026-02-21 — PRODUCTION-READY RELEASE
 
 ### Bulletproof Startup — Alle Engines verdrahtet und funktionsfaehig

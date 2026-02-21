@@ -386,7 +386,10 @@ def init_services(hass=None, config: dict = None):
     except Exception:
         _LOGGER.exception("Failed to init ProactiveContextEngine")
 
-    # ── PilotSuite Hub — All 17 engines (v7.6.0) ──────────────────────────
+    # ── PilotSuite Hub — All 17 engines (v7.6.1 — granular fault isolation) ──
+
+    # Step 1: Import Hub module (if this fails, no engines can load)
+    _hub_available = False
     try:
         from copilot_core.hub import (
             DashboardHub,
@@ -407,58 +410,91 @@ def init_services(hass=None, config: dict = None):
             BrainArchitectureEngine,
             BrainActivityEngine,
         )
-
-        services["hub_dashboard"] = DashboardHub()
-        services["hub_plugin_manager"] = PluginManager()
-        services["hub_multi_home"] = MultiHomeManager()
-        services["hub_maintenance"] = PredictiveMaintenanceEngine()
-        services["hub_anomaly"] = AnomalyDetectionEngine()
-        services["hub_zones"] = HabitusZoneEngine()
-        services["hub_light"] = LightIntelligenceEngine()
-        services["hub_modes"] = ZoneModeEngine()
-        services["hub_media"] = MediaFollowEngine()
-        services["hub_energy"] = EnergyAdvisorEngine()
-        services["hub_templates"] = AutomationTemplateEngine()
-        services["hub_scenes"] = SceneIntelligenceEngine()
-        services["hub_presence"] = PresenceIntelligenceEngine()
-        services["hub_notifications"] = NotificationIntelligenceEngine()
-        services["hub_integration"] = SystemIntegrationHub()
-        services["hub_brain_arch"] = BrainArchitectureEngine()
-        services["hub_brain_activity"] = BrainActivityEngine()
-
-        # Register all engines with the Integration Hub
-        integration_hub = services["hub_integration"]
-        engine_map = {
-            "dashboard": services["hub_dashboard"],
-            "plugin_manager": services["hub_plugin_manager"],
-            "multi_home": services["hub_multi_home"],
-            "predictive_maintenance": services["hub_maintenance"],
-            "anomaly_detection": services["hub_anomaly"],
-            "habitus_zones": services["hub_zones"],
-            "light_intelligence": services["hub_light"],
-            "zone_modes": services["hub_modes"],
-            "media_follow": services["hub_media"],
-            "energy_advisor": services["hub_energy"],
-            "automation_templates": services["hub_templates"],
-            "scene_intelligence": services["hub_scenes"],
-            "presence_intelligence": services["hub_presence"],
-            "notification_intelligence": services["hub_notifications"],
-        }
-        for name, engine in engine_map.items():
-            integration_hub.register_engine(name, engine)
-
-        # Auto-wire default event subscriptions
-        wire_count = integration_hub.auto_wire()
-
-        # Sync Brain Architecture with Integration Hub
-        services["hub_brain_arch"].sync_with_hub(integration_hub)
-
-        _LOGGER.info(
-            "PilotSuite Hub initialized: 17 engines, %d event subscriptions, brain synced",
-            wire_count,
-        )
+        _hub_available = True
     except Exception:
-        _LOGGER.exception("Failed to init PilotSuite Hub engines")
+        _LOGGER.exception(
+            "Failed to import Hub module — ALL Hub engines disabled. "
+            "Check for syntax errors in copilot_core/hub/ files."
+        )
+
+    # Step 2: Instantiate each engine individually (one failure won't kill others)
+    if _hub_available:
+        _hub_engines = {
+            "hub_dashboard": (DashboardHub, "DashboardHub"),
+            "hub_plugin_manager": (PluginManager, "PluginManager"),
+            "hub_multi_home": (MultiHomeManager, "MultiHomeManager"),
+            "hub_maintenance": (PredictiveMaintenanceEngine, "PredictiveMaintenanceEngine"),
+            "hub_anomaly": (AnomalyDetectionEngine, "AnomalyDetectionEngine"),
+            "hub_zones": (HabitusZoneEngine, "HabitusZoneEngine"),
+            "hub_light": (LightIntelligenceEngine, "LightIntelligenceEngine"),
+            "hub_modes": (ZoneModeEngine, "ZoneModeEngine"),
+            "hub_media": (MediaFollowEngine, "MediaFollowEngine"),
+            "hub_energy": (EnergyAdvisorEngine, "EnergyAdvisorEngine"),
+            "hub_templates": (AutomationTemplateEngine, "AutomationTemplateEngine"),
+            "hub_scenes": (SceneIntelligenceEngine, "SceneIntelligenceEngine"),
+            "hub_presence": (PresenceIntelligenceEngine, "PresenceIntelligenceEngine"),
+            "hub_notifications": (NotificationIntelligenceEngine, "NotificationIntelligenceEngine"),
+            "hub_integration": (SystemIntegrationHub, "SystemIntegrationHub"),
+            "hub_brain_arch": (BrainArchitectureEngine, "BrainArchitectureEngine"),
+            "hub_brain_activity": (BrainActivityEngine, "BrainActivityEngine"),
+        }
+        _engines_ok = 0
+        for svc_key, (cls, cls_name) in _hub_engines.items():
+            try:
+                services[svc_key] = cls()
+                _engines_ok += 1
+            except Exception:
+                _LOGGER.exception("Failed to init %s — this engine will be unavailable", cls_name)
+
+        _LOGGER.info("Hub engines: %d/%d initialized", _engines_ok, len(_hub_engines))
+
+    # Step 3: Wire Integration Hub (only if it was created)
+    integration_hub = services.get("hub_integration")
+    if integration_hub is not None:
+        _engine_map = {
+            "dashboard": services.get("hub_dashboard"),
+            "plugin_manager": services.get("hub_plugin_manager"),
+            "multi_home": services.get("hub_multi_home"),
+            "predictive_maintenance": services.get("hub_maintenance"),
+            "anomaly_detection": services.get("hub_anomaly"),
+            "habitus_zones": services.get("hub_zones"),
+            "light_intelligence": services.get("hub_light"),
+            "zone_modes": services.get("hub_modes"),
+            "media_follow": services.get("hub_media"),
+            "energy_advisor": services.get("hub_energy"),
+            "automation_templates": services.get("hub_templates"),
+            "scene_intelligence": services.get("hub_scenes"),
+            "presence_intelligence": services.get("hub_presence"),
+            "notification_intelligence": services.get("hub_notifications"),
+        }
+        for name, engine in _engine_map.items():
+            if engine is not None:
+                try:
+                    integration_hub.register_engine(name, engine)
+                except Exception:
+                    _LOGGER.exception("Failed to register engine '%s' with Integration Hub", name)
+
+        try:
+            wire_count = integration_hub.auto_wire()
+            _LOGGER.info("Integration Hub: %d event subscriptions auto-wired", wire_count)
+        except Exception:
+            _LOGGER.exception("Failed to auto-wire Integration Hub")
+
+    # Step 4: Sync Brain Architecture (only if both exist)
+    brain_arch = services.get("hub_brain_arch")
+    if brain_arch is not None and integration_hub is not None:
+        try:
+            brain_arch.sync_with_hub(integration_hub)
+            _LOGGER.info("Brain Architecture synced with Integration Hub")
+        except Exception:
+            _LOGGER.exception("Failed to sync Brain Architecture with Integration Hub")
+
+    _LOGGER.info(
+        "PilotSuite Hub init complete: %d engines, integration=%s, brain=%s",
+        sum(1 for k in services if k.startswith("hub_") and services[k] is not None),
+        integration_hub is not None,
+        brain_arch is not None,
+    )
 
     # Initialize Telegram Bot (requires conversation to be configured)
     try:
