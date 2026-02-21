@@ -18,8 +18,8 @@ from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant, State
 
-from ..core.module import CopilotModule, ModuleContext
-from ..const import DOMAIN
+from .module import CopilotModule, ModuleContext
+from ...const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
