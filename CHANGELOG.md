@@ -1,5 +1,39 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.0.0] - 2026-02-21
+
+### PilotSuite Hub — Unified Dashboard, Plugin Architecture, Multi-Home
+
+#### Dashboard Hub (NEW)
+- **hub/dashboard.py** — `DashboardHub` with configurable widget layouts
+- 14 widget types: energy, battery, heat pump, EV, weather, tariff, mood, etc.
+- Layout management: columns, themes (auto/light/dark), language (DE/EN)
+- Widget CRUD: add, remove, reorder, update data
+- Data source registration for real-time widget updates
+- Savings tracking and alert count aggregation
+
+#### Plugin Manager (NEW)
+- **hub/plugin_manager.py** — `PluginManager` with dependency-aware lifecycle
+- 6 built-in plugins: energy_management, heat_pump, ev_charging, weather, mood, styx_agent
+- Plugin lifecycle: install → activate → disable, with dependency validation
+- Category system: energy, comfort, security, automation, general
+- Plugin configuration and capability registry
+
+#### Multi-Home Manager (NEW)
+- **hub/multi_home.py** — `MultiHomeManager` for multiple properties
+- Home registration with location, URL, and token
+- Active home switching
+- Cross-home aggregation: total devices, energy, cost
+- Status tracking: online/offline/syncing per home
+
+#### Hub API (15 NEW endpoints)
+- Dashboard: GET overview, GET/POST/DELETE widgets, POST layout
+- Plugins: GET list, GET detail, POST activate/disable/config
+- Multi-Home: GET list, GET/POST/DELETE homes, POST activate, POST status
+
+#### Test Suite (NEW — 39 tests)
+- **tests/test_hub.py** — Dashboard, plugin manager, multi-home manager
+
 ## [5.25.0] - 2026-02-21
 
 ### EV Charging Planner — Smart Charging from Tariff+Solar+Departure
