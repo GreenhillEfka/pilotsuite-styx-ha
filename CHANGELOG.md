@@ -1,5 +1,13 @@
 # Changelog - PilotSuite Core Add-on
 
+## [4.4.0] - 2026-02-21
+
+### Test Coverage + Quality
+
+- **test_role_delegation_api.py** — 18 neue Tests fuer Role Inference API (Device Manager/Everyday/Restricted Role Detection), Delegation Workflows (delegate/revoke/list/expiry), Extra-Storage Helpers
+- **config.json** — Version auf 4.4.0
+- Gesamte Test Suite: 582 Tests bestanden (2 pre-existing energy test failures)
+
 ## [4.3.0] - 2026-02-20
 
 ### MUPL Role Sync + Delegation API
