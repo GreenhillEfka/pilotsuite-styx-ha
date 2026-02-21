@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.5.0] - 2026-02-21
+
+### Brain Activity Sensor — Pulse, Sleep & Chat
+
+#### Brain Activity Sensor (NEW)
+- **sensors/brain_activity_sensor.py** — `BrainActivitySensor`
+- State: "Aktiv — pulsierend" / "Wach — bereit" / "Schlafend"
+- Dynamic icons: head-lightbulb (active), brain (idle), power-sleep (sleeping)
+- Attributes: pulse count, chat messages, uptime, sleep time, recent activity
+- Frontend nutzt state für Brain-Animation (pulse/glow/dim)
+
+#### Infrastructure
+- **sensor.py** — Registers BrainActivitySensor
+- Version bump to 7.5.0
+
 ## [7.4.0] - 2026-02-21
 
 ### Brain Architecture Sensor — Hirnregionen, Neuronen & Synapsen
