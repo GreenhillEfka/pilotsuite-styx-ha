@@ -1,54 +1,313 @@
+"""Performance Monitoring Module (v5.0.0).
+
+Tracks API response times, memory usage, entity counts, coordinator
+update latency, and alert thresholds.  Integrates with the existing
+PerformanceGuardrails rate-limiting infrastructure.
+
+Expanded from v0.1 stub to full monitoring kernel v1.0.
+"""
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
+from collections import deque
+from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, List, Optional
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from ...const import DOMAIN
 from ..module import ModuleContext
+from .performance_guardrails import get_guardrails
 
 _LOGGER = logging.getLogger(__name__)
 
+# Alert thresholds (configurable at runtime)
+DEFAULT_THRESHOLDS = {
+    "api_response_time_ms": 2000,
+    "coordinator_update_ms": 5000,
+    "entity_count_max": 200,
+    "memory_usage_mb_max": 256,
+    "error_rate_percent": 5.0,
+}
+
+
+@dataclass
+class PerformanceSnapshot:
+    """A point-in-time performance reading."""
+
+    timestamp: float
+    api_response_times_ms: List[float] = field(default_factory=list)
+    coordinator_latency_ms: float = 0.0
+    entity_count: int = 0
+    memory_usage_mb: float = 0.0
+    error_count: int = 0
+    request_count: int = 0
+    alerts: List[Dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 class PerformanceScalingModule:
-    """Performance & scaling guardrails (kernel v0.1).
+    """Performance monitoring and scaling guardrails (kernel v1.0).
 
-    This module intentionally stays lightweight and primarily provides:
-    - a stable place to attach future performance instrumentation
-    - a single runtime hook point for entry-scoped scaling settings
-
-    The core behavior changes for v0.1 live in the coordinator + forwarder:
-    - coordinator backoff + concurrency limits
-    - bounded in-memory queues + flush concurrency guard
+    Provides:
+    - API response time tracking (rolling window, percentiles)
+    - Memory usage monitoring (via /proc/self/status on Linux)
+    - Entity count metrics
+    - Coordinator update latency tracking
+    - Alert thresholds with configurable limits
+    - Integration with PerformanceGuardrails rate limiting
     """
 
     name = "performance_scaling"
 
-    async def async_setup_entry(self, ctx: ModuleContext) -> None:
-        hass: HomeAssistant = ctx.hass
-        entry: ConfigEntry = ctx.entry
+    def __init__(self) -> None:
+        self._api_response_times: deque[float] = deque(maxlen=500)
+        self._coordinator_latencies: deque[float] = deque(maxlen=100)
+        self._error_count: int = 0
+        self._request_count: int = 0
+        self._thresholds: Dict[str, float] = dict(DEFAULT_THRESHOLDS)
+        self._alerts: deque[Dict[str, Any]] = deque(maxlen=100)
+        self._monitor_task: Optional[asyncio.Task] = None
+        self._hass: Optional[HomeAssistant] = None
+        self._entry: Optional[ConfigEntry] = None
 
-        dom = hass.data.setdefault(DOMAIN, {})
-        ent = dom.setdefault(entry.entry_id, {})
+    async def async_setup_entry(self, ctx: ModuleContext) -> None:
+        self._hass = ctx.hass
+        self._entry = ctx.entry
+
+        dom = ctx.hass.data.setdefault(DOMAIN, {})
+        ent = dom.setdefault(ctx.entry.entry_id, {})
         if not isinstance(ent, dict):
             return
 
-        # Expose a tiny, stable diagnostic surface. (Read by future sensors/diagnostics.)
-        ent.setdefault(
-            "performance_scaling",
-            {
-                "kernel_version": "0.1",
-            },
+        ent["performance_scaling"] = {
+            "kernel_version": "1.0",
+            "module": self,
+        }
+
+        # Start background monitor (every 60s)
+        self._monitor_task = ctx.hass.async_create_task(self._monitor_loop())
+
+        _LOGGER.info(
+            "Performance scaling kernel v1.0 active for entry %s",
+            ctx.entry.entry_id,
         )
 
-        _LOGGER.debug("Performance scaling kernel v0.1 active for entry %s", entry.entry_id)
-
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
-        hass: HomeAssistant = ctx.hass
-        entry: ConfigEntry = ctx.entry
+        if self._monitor_task and not self._monitor_task.done():
+            self._monitor_task.cancel()
+            try:
+                await self._monitor_task
+            except asyncio.CancelledError:
+                pass
 
-        data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        data = ctx.hass.data.get(DOMAIN, {}).get(ctx.entry.entry_id)
         if isinstance(data, dict):
             data.pop("performance_scaling", None)
+
+        self._hass = None
+        self._entry = None
         return True
+
+    # --- Tracking API (called by coordinator/forwarder) -------------------
+
+    def record_api_response(self, duration_ms: float) -> None:
+        """Record an API response time in milliseconds."""
+        self._api_response_times.append(duration_ms)
+        self._request_count += 1
+
+    def record_api_error(self) -> None:
+        """Record an API error."""
+        self._error_count += 1
+        self._request_count += 1
+
+    def record_coordinator_update(self, duration_ms: float) -> None:
+        """Record a coordinator update latency."""
+        self._coordinator_latencies.append(duration_ms)
+
+    def set_threshold(self, key: str, value: float) -> None:
+        """Set an alert threshold at runtime."""
+        if key in self._thresholds:
+            self._thresholds[key] = value
+
+    # --- Query API --------------------------------------------------------
+
+    def get_snapshot(self) -> PerformanceSnapshot:
+        """Get current performance snapshot."""
+        api_times = list(self._api_response_times)
+        coord_latency = (
+            self._coordinator_latencies[-1]
+            if self._coordinator_latencies
+            else 0.0
+        )
+
+        return PerformanceSnapshot(
+            timestamp=time.time(),
+            api_response_times_ms=api_times[-20:],
+            coordinator_latency_ms=round(coord_latency, 1),
+            entity_count=self._count_entities(),
+            memory_usage_mb=self._get_memory_mb(),
+            error_count=self._error_count,
+            request_count=self._request_count,
+            alerts=list(self._alerts)[-10:],
+        )
+
+    def get_percentiles(self) -> Dict[str, float]:
+        """Get API response time percentiles."""
+        times = sorted(self._api_response_times)
+        if not times:
+            return {"p50": 0, "p90": 0, "p95": 0, "p99": 0, "count": 0}
+
+        def percentile(data: list, p: float) -> float:
+            idx = int(len(data) * p / 100)
+            return data[min(idx, len(data) - 1)]
+
+        return {
+            "p50": round(percentile(times, 50), 1),
+            "p90": round(percentile(times, 90), 1),
+            "p95": round(percentile(times, 95), 1),
+            "p99": round(percentile(times, 99), 1),
+            "count": len(times),
+        }
+
+    def get_guardrails_status(self) -> Dict[str, Any]:
+        """Get rate limiter status from PerformanceGuardrails."""
+        guardrails = get_guardrails()
+        return guardrails.get_status()
+
+    # --- Internal ---------------------------------------------------------
+
+    def _count_entities(self) -> int:
+        """Count PilotSuite entities in HA."""
+        if not self._hass:
+            return 0
+        try:
+            all_states = self._hass.states.async_all()
+            return sum(
+                1
+                for s in all_states
+                if s.entity_id.startswith("sensor.ai_home_copilot")
+                or s.entity_id.startswith("button.ai_home_copilot")
+                or s.entity_id.startswith("binary_sensor.ai_home_copilot")
+            )
+        except Exception:
+            return 0
+
+    @staticmethod
+    def _get_memory_mb() -> float:
+        """Get current process memory usage in MB (Linux only)."""
+        try:
+            with open("/proc/self/status", "r") as f:
+                for line in f:
+                    if line.startswith("VmRSS:"):
+                        kb = int(line.split()[1])
+                        return round(kb / 1024, 1)
+        except Exception:
+            pass
+        return 0.0
+
+    def _check_alerts(self) -> List[Dict[str, Any]]:
+        """Check all thresholds and generate alerts."""
+        alerts = []
+        now = time.time()
+
+        # API response time
+        if self._api_response_times:
+            avg_ms = sum(self._api_response_times) / len(
+                self._api_response_times
+            )
+            if avg_ms > self._thresholds["api_response_time_ms"]:
+                alerts.append(
+                    {
+                        "type": "api_slow",
+                        "message": (
+                            f"Average API response {avg_ms:.0f}ms "
+                            f"exceeds {self._thresholds['api_response_time_ms']}ms"
+                        ),
+                        "timestamp": now,
+                        "value": avg_ms,
+                    }
+                )
+
+        # Coordinator latency
+        if self._coordinator_latencies:
+            latest = self._coordinator_latencies[-1]
+            if latest > self._thresholds["coordinator_update_ms"]:
+                alerts.append(
+                    {
+                        "type": "coordinator_slow",
+                        "message": (
+                            f"Coordinator update {latest:.0f}ms "
+                            f"exceeds {self._thresholds['coordinator_update_ms']}ms"
+                        ),
+                        "timestamp": now,
+                        "value": latest,
+                    }
+                )
+
+        # Entity count
+        entity_count = self._count_entities()
+        if entity_count > self._thresholds["entity_count_max"]:
+            alerts.append(
+                {
+                    "type": "entity_count_high",
+                    "message": (
+                        f"Entity count {entity_count} "
+                        f"exceeds {self._thresholds['entity_count_max']}"
+                    ),
+                    "timestamp": now,
+                    "value": entity_count,
+                }
+            )
+
+        # Memory
+        memory_mb = self._get_memory_mb()
+        if memory_mb > self._thresholds["memory_usage_mb_max"]:
+            alerts.append(
+                {
+                    "type": "memory_high",
+                    "message": (
+                        f"Memory {memory_mb:.1f}MB "
+                        f"exceeds {self._thresholds['memory_usage_mb_max']}MB"
+                    ),
+                    "timestamp": now,
+                    "value": memory_mb,
+                }
+            )
+
+        # Error rate
+        if self._request_count > 0:
+            error_rate = (self._error_count / self._request_count) * 100
+            if error_rate > self._thresholds["error_rate_percent"]:
+                alerts.append(
+                    {
+                        "type": "error_rate_high",
+                        "message": (
+                            f"Error rate {error_rate:.1f}% "
+                            f"exceeds {self._thresholds['error_rate_percent']}%"
+                        ),
+                        "timestamp": now,
+                        "value": error_rate,
+                    }
+                )
+
+        return alerts
+
+    async def _monitor_loop(self) -> None:
+        """Background task: check alerts every 60 seconds."""
+        while True:
+            try:
+                await asyncio.sleep(60)
+                alerts = self._check_alerts()
+                for alert in alerts:
+                    self._alerts.append(alert)
+                    _LOGGER.warning("Performance alert: %s", alert["message"])
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                _LOGGER.exception("Performance monitor error")
