@@ -1,9 +1,0 @@
-{
-  "domain": "copilot",
-  "name": "PilotSuite (Adapter)",
-  "version": "4.0.0",
-  "documentation": "https://github.com/GreenhillEfka/pilotsuite-styx-core",
-  "requirements": [],
-  "codeowners": ["@GreenhillEfka"],
-  "iot_class": "local_push"
-}

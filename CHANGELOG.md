@@ -1,5 +1,13 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.6.3] - 2026-02-21 — REPO HYGIENE
+
+### Add-on Repository Cleanup
+
+- Stale `custom_components/copilot/` Verzeichnis entfernt (v4.0.0 Altlast, falscher Domain, verwirrte HACS)
+- Git Remote URL korrigiert: `Home-Assistant-Copilot.git` → `pilotsuite-styx-core.git`
+- Add-on Supervisor Kompatibilitaet verifiziert: `repository.json`, `config.json`, `Dockerfile`, `build.yaml` alle korrekt
+
 ## [7.6.2] - 2026-02-21 — VERSION ALIGNMENT
 
 ### Version-Sync mit HA v7.6.2
