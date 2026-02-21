@@ -1,5 +1,37 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.25.0] - 2026-02-21
+
+### EV Charging Sensor — SoC & Smart Charging in HA
+
+#### EV Charging Sensor (NEW)
+- **sensors/ev_charging_sensor.py** — `EVChargingSensor` entity
+- State: current SoC percentage
+- Dynamic icon: ev-station (charging), solar-power (solar), car-electric (ready)
+- Attributes: vehicle name, connector, SoC, power, range, time-to-target,
+  departure readiness, cost, strategy, solar/grid energy split
+- Fetches from `/api/v1/regional/ev/status` and `/ev/schedule`
+
+#### Infrastructure
+- **sensor.py** — Registers EVChargingSensor
+- **entity.py** + **manifest.json** — Version 5.25.0
+
+## [5.24.0] - 2026-02-21
+
+### Heat Pump Sensor — COP & Scheduling in HA
+
+#### Heat Pump Sensor (NEW)
+- **sensors/heat_pump_sensor.py** — `HeatPumpSensor` entity
+- State: current COP (coefficient of performance)
+- Dynamic icon: heat-pump/water-boiler/solar-power/snowflake-melt based on action
+- Attributes: pump type, action, COP, power, room/outdoor/DHW temps,
+  runtime, heat/electricity today, cost, strategy, schedule totals
+- Fetches from `/api/v1/regional/heatpump/status` and `/heatpump/schedule`
+
+#### Infrastructure
+- **sensor.py** — Registers HeatPumpSensor
+- **entity.py** + **manifest.json** — Version 5.24.0
+
 ## [5.23.0] - 2026-02-21
 
 ### Battery Optimizer Sensor — Charge/Discharge Strategy in HA
