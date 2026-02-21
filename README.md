@@ -8,8 +8,6 @@ Home Assistant Custom Integration fuer **PilotSuite — Styx**, einen privacy-fi
 
 Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt **94+ Sensoren**, **30 Module** und **Dashboard Cards** in Home Assistant bereit.
 
-> **v1.0.0 Stable** — PilotSuite Styx ist feature-complete: Ollama LLM (26 Tools, RAG), Conflict Resolution, 94+ Sensoren, 30 Module, Governance-first, 100% lokal.
-
 ## Schnellstart
 
 ### Voraussetzung
