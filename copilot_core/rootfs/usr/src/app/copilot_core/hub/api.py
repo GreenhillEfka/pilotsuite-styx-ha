@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v7.3.0)."""
+"""Hub API endpoints for PilotSuite (v7.4.0)."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ _scene_engine: object | None = None
 _presence_engine: object | None = None
 _notification_engine: object | None = None
 _integration_hub: object | None = None
+_brain_architecture: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
@@ -35,9 +36,10 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  mode_engine=None, media_engine=None,
                  energy_advisor=None, template_engine=None,
                  scene_engine=None, presence_engine=None,
-                 notification_engine=None, integration_hub=None) -> None:
+                 notification_engine=None, integration_hub=None,
+                 brain_architecture=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine, _integration_hub
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine, _integration_hub, _brain_architecture
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -53,8 +55,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _presence_engine = presence_engine
     _notification_engine = notification_engine
     _integration_hub = integration_hub
+    _brain_architecture = brain_architecture
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s, integration: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s, integration: %s, brain: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -69,6 +72,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         presence_engine is not None,
         notification_engine is not None,
         integration_hub is not None,
+        brain_architecture is not None,
     )
 
 
@@ -1843,3 +1847,173 @@ def auto_wire_integration():
         return jsonify({"error": "Integration hub not initialized"}), 503
     count = _integration_hub.auto_wire()
     return jsonify({"ok": True, "subscriptions_created": count})
+
+
+# ── Brain Architecture ─────────────────────────────────────────────────────
+
+
+@hub_bp.route("/brain", methods=["GET"])
+@require_token
+def get_brain_dashboard():
+    """Get full brain architecture dashboard."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    return jsonify(_brain_architecture.get_dashboard())
+
+
+@hub_bp.route("/brain/graph", methods=["GET"])
+@require_token
+def get_brain_graph():
+    """Get brain graph data (nodes + edges) for visualization."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    return jsonify({"ok": True, **_brain_architecture.get_graph_data()})
+
+
+@hub_bp.route("/brain/regions", methods=["GET"])
+@require_token
+def get_brain_regions():
+    """Get all brain regions."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    regions = _brain_architecture.get_all_regions()
+    return jsonify({
+        "ok": True,
+        "regions": [
+            {
+                "region_id": r.region_id,
+                "name_de": r.name_de,
+                "name_en": r.name_en,
+                "color": r.color,
+                "icon": r.icon,
+                "role": r.role,
+                "engine_key": r.engine_key,
+                "active": r.is_active,
+                "health": r.health,
+            }
+            for r in regions
+        ],
+    })
+
+
+@hub_bp.route("/brain/regions/<region_id>", methods=["GET"])
+@require_token
+def get_brain_region(region_id):
+    """Get a specific brain region."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    r = _brain_architecture.get_region(region_id)
+    if not r:
+        return jsonify({"error": f"Region '{region_id}' not found"}), 404
+    neurons = _brain_architecture.get_neurons_for_region(region_id)
+    outgoing = _brain_architecture.get_synapses_from(region_id)
+    incoming = _brain_architecture.get_synapses_to(region_id)
+    return jsonify({
+        "ok": True,
+        "region_id": r.region_id,
+        "name_de": r.name_de,
+        "name_en": r.name_en,
+        "color": r.color,
+        "icon": r.icon,
+        "role": r.role,
+        "engine_key": r.engine_key,
+        "active": r.is_active,
+        "health": r.health,
+        "description_de": r.description_de,
+        "neurons": [{"neuron_id": n.neuron_id, "sensor_class": n.sensor_class, "state": n.state} for n in neurons],
+        "outgoing_synapses": [{"synapse_id": s.synapse_id, "target": s.target_region, "event": s.event_type, "state": s.state} for s in outgoing],
+        "incoming_synapses": [{"synapse_id": s.synapse_id, "source": s.source_region, "event": s.event_type, "state": s.state} for s in incoming],
+    })
+
+
+@hub_bp.route("/brain/synapses", methods=["GET"])
+@require_token
+def get_brain_synapses():
+    """Get all synapses."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    synapses = _brain_architecture.get_all_synapses()
+    return jsonify({
+        "ok": True,
+        "synapses": [
+            {
+                "synapse_id": s.synapse_id,
+                "source": s.source_region,
+                "target": s.target_region,
+                "event_type": s.event_type,
+                "state": s.state,
+                "strength": s.strength,
+                "fire_count": s.fire_count,
+                "description_de": s.description_de,
+            }
+            for s in synapses
+        ],
+    })
+
+
+@hub_bp.route("/brain/synapses", methods=["POST"])
+@require_token
+def add_brain_synapse():
+    """Add a custom synapse.
+
+    JSON body: {"source": "region_id", "target": "region_id",
+                "event_type": "...", "description_de"?: "..."}
+    """
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    s = _brain_architecture.add_synapse(
+        body.get("source", ""),
+        body.get("target", ""),
+        body.get("event_type", ""),
+        body.get("description_de", ""),
+    )
+    if not s:
+        return jsonify({"error": "Invalid source or target region"}), 400
+    return jsonify({"ok": True, "synapse_id": s.synapse_id})
+
+
+@hub_bp.route("/brain/synapses/<synapse_id>", methods=["DELETE"])
+@require_token
+def remove_brain_synapse(synapse_id):
+    """Remove a synapse."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    result = _brain_architecture.remove_synapse(synapse_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/brain/synapses/<synapse_id>/state", methods=["POST"])
+@require_token
+def set_brain_synapse_state(synapse_id):
+    """Set synapse state (active, dormant, pending, blocked).
+
+    JSON body: {"state": "active"}
+    """
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _brain_architecture.set_synapse_state(synapse_id, body.get("state", "active"))
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/brain/synapses/<synapse_id>/fire", methods=["POST"])
+@require_token
+def fire_brain_synapse(synapse_id):
+    """Fire a synapse (record event dispatch)."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    result = _brain_architecture.fire_synapse(synapse_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/brain/sync", methods=["POST"])
+@require_token
+def sync_brain_with_hub():
+    """Sync brain architecture with SystemIntegrationHub."""
+    if not _brain_architecture:
+        return jsonify({"error": "Brain architecture not initialized"}), 503
+    if not _integration_hub:
+        return jsonify({"error": "Integration hub not initialized"}), 503
+    result = _brain_architecture.sync_with_hub(_integration_hub)
+    return jsonify({"ok": True, **result})

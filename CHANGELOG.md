@@ -1,5 +1,39 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.4.0] - 2026-02-21
+
+### Brain Architecture — Hirnregionen, Neuronen & Synapsen
+
+#### Brain Architecture Engine (NEW)
+- **hub/brain_architecture.py** — `BrainArchitectureEngine`
+- 15 Hirnregionen mit Farben, Icons und funktionalen Rollen
+  - Perception: Anomalie-Amygdala, Zonen-Thalamus, Energie-Hypothalamus, Anwesenheits-Somatosensorik
+  - Cognition: Erweiterungskortex, Modus-Präfrontalkortex, Szenen-Wernicke-Areal
+  - Motor: Licht-Visueller-Kortex, Medien-Auditorischer-Kortex, Automations-Broca-Areal, Benachrichtigungs-Insula
+  - Memory: Wartungs-Hippocampus
+  - Coordination: Kommandozentrale, Netzwerk-Kortex, Integrations-Corpus-Callosum
+- Neuronen-Registry: HA Sensoren werden Hirnregionen zugeordnet
+- 14 Default-Synapsen: Event-basierte Verbindungen zwischen Regionen
+- Synapse Management: add, remove, fire, state (active/dormant/pending/blocked)
+- Hebbian Learning: Häufig genutzte Synapsen werden stärker
+- Hub-Sync: Automatischer Abgleich mit SystemIntegrationHub
+- Graph-Daten: nodes + edges für Brain Graph Visualisierung
+
+#### API Endpoints (11 NEW)
+- `GET /api/v1/hub/brain` — Brain Dashboard (Regionen + Neuronen + Synapsen + Graph)
+- `GET /api/v1/hub/brain/graph` — Graph-Daten für Visualisierung
+- `GET /api/v1/hub/brain/regions` — Alle Hirnregionen
+- `GET /api/v1/hub/brain/regions/<id>` — Region-Detail mit Neuronen & Synapsen
+- `GET /api/v1/hub/brain/synapses` — Alle Synapsen
+- `POST /api/v1/hub/brain/synapses` — Synapse erstellen
+- `DELETE /api/v1/hub/brain/synapses/<id>` — Synapse entfernen
+- `POST /api/v1/hub/brain/synapses/<id>/state` — Synapse-Status setzen
+- `POST /api/v1/hub/brain/synapses/<id>/fire` — Synapse feuern
+- `POST /api/v1/hub/brain/sync` — Mit Integration Hub synchronisieren
+
+#### Test Suite (NEW — 41 tests)
+- **tests/test_brain_architecture.py** — Regions, Neurons, Synapses, Sync, Graph, Status, Dashboard
+
 ## [7.3.0] - 2026-02-21
 
 ### System Integration Hub — Cross-Engine Orchestration
