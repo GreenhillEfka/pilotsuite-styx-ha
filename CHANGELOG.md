@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.3.0] - 2026-02-21
+
+### System Integration Sensor — Cross-Engine Monitoring
+
+#### System Integration Sensor (NEW)
+- **sensors/system_integration_sensor.py** — `SystemIntegrationSensor`
+- State: "X Engines / Y Verknüpfungen" / "Nicht verbunden"
+- Dynamic icons: hub (active), hub-outline (idle/disconnected)
+- Attributes: engines list, wiring diagram, event log, subscriptions count
+
+#### Infrastructure
+- **sensor.py** — Registers SystemIntegrationSensor
+- Version bump to 7.3.0
+
 ## [7.2.0] - 2026-02-21
 
 ### Notification Intelligence Sensor — Smart Benachrichtigungen
