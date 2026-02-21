@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.2.0] - 2026-02-21
+
+### Anomaly Detection v2 Sensor — Multi-Dimensional Pattern Analysis
+
+#### Anomaly Detection Sensor (NEW)
+- **sensors/anomaly_detection_sensor.py** — `AnomalyDetectionSensor`
+- State: "Normal" / "X Anomalien" / "X kritisch"
+- Dynamic icon: check-decagram (ok) / alert (warning) / alert-octagon (critical)
+- Attributes: entity count, anomaly counts by severity, anomaly types, top 5 anomalies
+- Fetches from `/api/v1/hub/anomalies`
+
+#### Infrastructure
+- **sensor.py** — Registers AnomalyDetectionSensor
+- Version bump to 6.2.0
+
 ## [6.1.0] - 2026-02-21
 
 ### Predictive Maintenance Sensor — Device Health in HA
