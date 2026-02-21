@@ -1,5 +1,33 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.7.0] - 2026-02-21
+
+### Comfort Index — Environmental Comfort Scoring + Adaptive Lighting
+
+#### Comfort Module (NEW)
+- **comfort/index.py** — Composite 0-100 comfort index from 4 environmental factors:
+  - Temperature (35%): Optimal 20-22C, scored with decay curve
+  - Humidity (25%): Optimal 40-60%, penalizes dry and humid extremes
+  - Air Quality (20%): CO2 ppm scoring — optimal <600, poor >1500
+  - Light Level (20%): Time-of-day adaptive targets (300 lux morning, 500 daytime, 80 evening)
+- Letter grades (A/B/C/D/F) based on composite score
+- German-language improvement suggestions per factor
+- `get_lighting_suggestion()` — Adaptive lighting with circadian color temperature:
+  - 4000K morning (wake), 5000K daytime (productive), 3000K evening (warm), 2200K night
+  - Cloud cover adjustment for natural light deficit
+  - Brightness auto-calculation from deficit vs. target lux
+
+#### API Endpoints (NEW)
+- `GET /api/v1/comfort` — Comfort index with per-factor scores and suggestions
+- `GET /api/v1/comfort/lighting` — Adaptive lighting suggestion per area
+
+#### Test Suite (NEW — 45+ tests)
+- **tests/test_comfort_index.py** — Temperature, humidity, CO2, light scoring, grades, composite, suggestions, lighting
+
+#### Infrastructure
+- **comfort/__init__.py** — Module with public exports
+- **config.json** — Version 5.7.0
+
 ## [5.6.0] - 2026-02-21
 
 ### Dashboard Config API — Lovelace Card Generation Support
