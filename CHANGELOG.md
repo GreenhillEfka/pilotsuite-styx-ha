@@ -1,5 +1,34 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.7.0] - 2026-02-21
+
+### Media Follow / Musikwolke — Wiedergabe-Folgen & Playback Dashboard
+
+#### Media Follow Engine (NEW)
+- **hub/media_follow.py** — `MediaFollowEngine`
+- Track active media playback across zones (music, TV, radio, podcast)
+- Follow mode: playback follows user between Habitus zones on zone entry
+- Per-zone and global follow toggle
+- Playback session management with state tracking (playing/paused/idle)
+- Media transfer between zones (presence-triggered or manual)
+- Media cloud dashboard with zone states and transfer history
+- Source registration with media type classification
+
+#### API Endpoints (10 NEW)
+- `GET /api/v1/hub/media` — Media cloud dashboard
+- `GET /api/v1/hub/media/sources` — Registered media sources
+- `POST /api/v1/hub/media/sources` — Register media source
+- `DELETE /api/v1/hub/media/sources/<id>` — Unregister source
+- `POST /api/v1/hub/media/playback` — Update playback state
+- `GET /api/v1/hub/media/sessions` — Active sessions
+- `GET /api/v1/hub/media/zone/<id>` — Zone media state
+- `POST /api/v1/hub/media/follow` — Set follow mode
+- `POST /api/v1/hub/media/transfer` — Transfer playback
+- `POST /api/v1/hub/media/zone_enter` — Trigger zone entry follow
+
+#### Test Suite (NEW — 33 tests)
+- **tests/test_media_follow.py** — Sources, playback, follow mode, transfers, zones, dashboard
+
 ## [6.6.0] - 2026-02-21
 
 ### Zone Modes — Party/Sleep/Custom Quick-Switches mit Timer & Suppression

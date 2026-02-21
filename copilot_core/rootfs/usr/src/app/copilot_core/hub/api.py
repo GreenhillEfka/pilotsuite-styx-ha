@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.6.0)."""
+"""Hub API endpoints for PilotSuite (v6.7.0)."""
 
 from __future__ import annotations
 
@@ -20,14 +20,15 @@ _anomaly_engine: object | None = None
 _zone_engine: object | None = None
 _light_engine: object | None = None
 _mode_engine: object | None = None
+_media_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  maintenance_engine=None, anomaly_engine=None,
                  zone_engine=None, light_engine=None,
-                 mode_engine=None) -> None:
+                 mode_engine=None, media_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -36,8 +37,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _zone_engine = zone_engine
     _light_engine = light_engine
     _mode_engine = mode_engine
+    _media_engine = media_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -45,6 +47,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         zone_engine is not None,
         light_engine is not None,
         mode_engine is not None,
+        media_engine is not None,
     )
 
 
@@ -793,3 +796,156 @@ def register_custom_mode():
     icon = body.pop("icon", "mdi:cog")
     result = _mode_engine.register_custom_mode(mode_id, name_de, name_en, icon, **body)
     return jsonify({"ok": result, "mode_id": mode_id})
+
+
+# ── Media Follow / Musikwolke endpoints (v6.7.0) ───────────────────────────
+
+
+@hub_bp.route("/media", methods=["GET"])
+@require_token
+def get_media_dashboard():
+    """Get media cloud dashboard overview."""
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    dashboard = _media_engine.get_dashboard()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@hub_bp.route("/media/sources", methods=["GET"])
+@require_token
+def get_media_sources():
+    """Get all registered media sources."""
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    return jsonify({"ok": True, "sources": _media_engine.get_sources()})
+
+
+@hub_bp.route("/media/sources", methods=["POST"])
+@require_token
+def register_media_source():
+    """Register a media source.
+
+    JSON body: {"entity_id": "...", "name": "...", "zone_id": "...", "media_type"?: "music"}
+    """
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    source = _media_engine.register_source(
+        entity_id=body.get("entity_id", ""),
+        name=body.get("name", ""),
+        zone_id=body.get("zone_id", ""),
+        media_type=body.get("media_type", "music"),
+    )
+    return jsonify({"ok": True, "entity_id": source.entity_id, "zone_id": source.zone_id})
+
+
+@hub_bp.route("/media/sources/<path:entity_id>", methods=["DELETE"])
+@require_token
+def unregister_media_source(entity_id):
+    """Unregister a media source."""
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    result = _media_engine.unregister_source(entity_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/media/playback", methods=["POST"])
+@require_token
+def update_media_playback():
+    """Update playback state.
+
+    JSON body: {"entity_id": "...", "state": "playing", "title"?: "...", "artist"?: "...",
+                "album"?: "...", "volume_pct"?: 50}
+    """
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    session = _media_engine.update_playback(
+        entity_id=body.get("entity_id", ""),
+        state=body.get("state", "idle"),
+        title=body.get("title", ""),
+        artist=body.get("artist", ""),
+        album=body.get("album", ""),
+        volume_pct=body.get("volume_pct"),
+        media_image_url=body.get("media_image_url", ""),
+    )
+    if session:
+        return jsonify({"ok": True, "session_id": session.session_id, "state": session.state})
+    return jsonify({"ok": True, "session_id": None})
+
+
+@hub_bp.route("/media/sessions", methods=["GET"])
+@require_token
+def get_media_sessions():
+    """Get all active playback sessions."""
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    return jsonify({"ok": True, "sessions": _media_engine.get_active_sessions()})
+
+
+@hub_bp.route("/media/zone/<zone_id>", methods=["GET"])
+@require_token
+def get_zone_media(zone_id):
+    """Get media state for a zone."""
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    zm = _media_engine.get_zone_media(zone_id)
+    return jsonify({"ok": True, **asdict(zm)})
+
+
+@hub_bp.route("/media/follow", methods=["POST"])
+@require_token
+def set_media_follow():
+    """Set follow mode.
+
+    JSON body: {"zone_id"?: "...", "enabled": true, "global"?: false}
+    """
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    if body.get("global"):
+        _media_engine.set_global_follow(body.get("enabled", False))
+    else:
+        _media_engine.set_follow_zone(body.get("zone_id", ""), body.get("enabled", False))
+    return jsonify({"ok": True})
+
+
+@hub_bp.route("/media/transfer", methods=["POST"])
+@require_token
+def transfer_media():
+    """Transfer playback to another zone.
+
+    JSON body: {"session_id": "...", "to_zone_id": "...", "trigger"?: "manual"}
+    """
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    transfer = _media_engine.transfer_playback(
+        body.get("session_id", ""),
+        body.get("to_zone_id", ""),
+        body.get("trigger", "manual"),
+    )
+    if transfer:
+        return jsonify({"ok": True, "from_zone": transfer.from_zone, "to_zone": transfer.to_zone})
+    return jsonify({"ok": False, "error": "Transfer failed"}), 400
+
+
+@hub_bp.route("/media/zone_enter", methods=["POST"])
+@require_token
+def on_zone_enter_media():
+    """Handle user entering a zone — trigger media follow.
+
+    JSON body: {"zone_id": "..."}
+    """
+    if not _media_engine:
+        return jsonify({"error": "Media engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    transfers = _media_engine.on_zone_enter(body.get("zone_id", ""))
+    return jsonify({
+        "ok": True,
+        "transfers": len(transfers),
+        "details": [
+            {"from": t.from_zone, "to": t.to_zone, "title": t.title}
+            for t in transfers
+        ],
+    })
