@@ -8,7 +8,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 if TYPE_CHECKING:
     from .coordinator import CopilotDataUpdateCoordinator
 
-VERSION = "6.1.0"
+VERSION = "6.2.0"
 
 
 class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
