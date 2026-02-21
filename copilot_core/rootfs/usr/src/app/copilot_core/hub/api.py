@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.2.0)."""
+"""Hub API endpoints for PilotSuite (v6.4.0)."""
 
 from __future__ import annotations
 
@@ -17,23 +17,27 @@ _plugin_manager: object | None = None
 _multi_home: object | None = None
 _maintenance_engine: object | None = None
 _anomaly_engine: object | None = None
+_zone_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
-                 maintenance_engine=None, anomaly_engine=None) -> None:
+                 maintenance_engine=None, anomaly_engine=None,
+                 zone_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
     _maintenance_engine = maintenance_engine
     _anomaly_engine = anomaly_engine
+    _zone_engine = zone_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
         anomaly_engine is not None,
+        zone_engine is not None,
     )
 
 
@@ -433,3 +437,157 @@ def clear_anomalies():
     entity_id = body.get("entity_id")
     cleared = _anomaly_engine.clear_anomalies(entity_id)
     return jsonify({"ok": True, "cleared": cleared})
+
+
+# ── Habitus-Zonen endpoints (v6.4.0) ───────────────────────────────────────
+
+
+@hub_bp.route("/zones", methods=["GET"])
+@require_token
+def get_zones_overview():
+    """Get Habitus-Zonen overview."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    overview = _zone_engine.get_overview()
+    return jsonify({"ok": True, **asdict(overview)})
+
+
+@hub_bp.route("/zones/<zone_id>", methods=["GET"])
+@require_token
+def get_zone_detail(zone_id):
+    """Get zone details."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    zone = _zone_engine.get_zone(zone_id)
+    if not zone:
+        return jsonify({"ok": False, "error": "Zone not found"}), 404
+    return jsonify({"ok": True, **zone})
+
+
+@hub_bp.route("/zones", methods=["POST"])
+@require_token
+def create_zone():
+    """Create a Habitus Zone.
+
+    JSON body: {"zone_id": "...", "name": "...", "room_ids": [...], "icon": "...", "priority": 0}
+    """
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    zone = _zone_engine.create_zone(
+        zone_id=body.get("zone_id", ""),
+        name=body.get("name", "Zone"),
+        room_ids=body.get("room_ids", []),
+        icon=body.get("icon", "mdi:home-floor-1"),
+        priority=body.get("priority", 0),
+    )
+    return jsonify({"ok": True, "zone_id": zone.zone_id, "entity_count": len(zone.entities)})
+
+
+@hub_bp.route("/zones/<zone_id>", methods=["DELETE"])
+@require_token
+def delete_zone_endpoint(zone_id):
+    """Delete a zone."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    result = _zone_engine.delete_zone(zone_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/zones/<zone_id>/mode", methods=["POST"])
+@require_token
+def set_zone_mode_endpoint(zone_id):
+    """Set zone mode.
+
+    JSON body: {"mode": "party"} — active/idle/sleeping/party/away/custom
+    """
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _zone_engine.set_zone_mode(zone_id, body.get("mode", "active"))
+    return jsonify({"ok": result, "zone_id": zone_id, "mode": body.get("mode", "active")})
+
+
+@hub_bp.route("/zones/<zone_id>/room", methods=["POST"])
+@require_token
+def add_room_to_zone_endpoint(zone_id):
+    """Add a room to a zone.
+
+    JSON body: {"room_id": "..."}
+    """
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _zone_engine.add_room_to_zone(zone_id, body.get("room_id", ""))
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/zones/<zone_id>/room/<room_id>", methods=["DELETE"])
+@require_token
+def remove_room_from_zone_endpoint(zone_id, room_id):
+    """Remove a room from a zone."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    result = _zone_engine.remove_room_from_zone(zone_id, room_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/zones/rooms", methods=["GET"])
+@require_token
+def get_rooms():
+    """Get all registered rooms."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    rooms = _zone_engine.get_rooms()
+    return jsonify({"ok": True, "rooms": rooms})
+
+
+@hub_bp.route("/zones/rooms", methods=["POST"])
+@require_token
+def register_room_endpoint():
+    """Register a room.
+
+    JSON body: {"room_id": "...", "name": "...", "area_id": "...", "entities": [...]}
+    """
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    room = _zone_engine.register_room(
+        room_id=body.get("room_id", ""),
+        name=body.get("name", "Room"),
+        area_id=body.get("area_id", ""),
+        entities=body.get("entities", []),
+        floor=body.get("floor", ""),
+        icon=body.get("icon", "mdi:door"),
+    )
+    return jsonify({"ok": True, "room_id": room.room_id, "entities": len(room.entities)})
+
+
+@hub_bp.route("/zones/templates", methods=["GET"])
+@require_token
+def get_zone_templates():
+    """Get available zone templates."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    return jsonify({"ok": True, "templates": _zone_engine.get_templates()})
+
+
+@hub_bp.route("/zones/template/<template_id>", methods=["POST"])
+@require_token
+def create_zone_from_template_endpoint(template_id):
+    """Create a zone from a template."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    zone = _zone_engine.create_zone_from_template(template_id)
+    if not zone:
+        return jsonify({"ok": False, "error": "Template not found"}), 404
+    return jsonify({"ok": True, "zone_id": zone.zone_id, "rooms": zone.rooms})
+
+
+@hub_bp.route("/zones/modes", methods=["GET"])
+@require_token
+def get_zone_modes():
+    """Get available zone modes."""
+    if not _zone_engine:
+        return jsonify({"error": "Zone engine not initialized"}), 503
+    return jsonify({"ok": True, "modes": _zone_engine.get_modes()})
