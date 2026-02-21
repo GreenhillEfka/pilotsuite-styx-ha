@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.9.0] - 2026-02-21
+
+### Automation Templates Sensor — Blueprint-Übersicht
+
+#### Automation Template Sensor (NEW)
+- **sensors/automation_template_sensor.py** — `AutomationTemplateSensor`
+- State: "X Templates, Y generiert"
+- Attributes: categories, popular templates, usage stats
+- Fetches from `/api/v1/hub/templates/summary`
+
+#### Infrastructure
+- **sensor.py** — Registers AutomationTemplateSensor
+- Version bump to 6.9.0
+
 ## [6.8.0] - 2026-02-21
 
 ### Energy Advisor Sensor — Eco-Score, Sparempfehlungen & Verbrauchsübersicht
