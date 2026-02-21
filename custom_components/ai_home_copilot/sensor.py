@@ -139,6 +139,7 @@ from .sensors.tariff_sensor import TariffSensor
 from .sensors.proactive_alert_sensor import ProactiveAlertSensor
 from .sensors.energy_forecast_sensor import EnergyForecastSensor
 from .sensors.agent_status_sensor import AgentStatusSensor
+from .sensors.onboarding_sensor import OnboardingSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -318,6 +319,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         ProactiveAlertSensor(coordinator),
         EnergyForecastSensor(coordinator),
         AgentStatusSensor(coordinator),
+        OnboardingSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)
