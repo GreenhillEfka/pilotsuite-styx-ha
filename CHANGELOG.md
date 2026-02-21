@@ -1,5 +1,12 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.6.2] - 2026-02-21 — VERSION ALIGNMENT
+
+### Version-Sync mit HA v7.6.2
+
+- Version auf 7.6.2 synchronisiert (HA-seitige Bugfixes)
+- Core unverändert — alle 1935 Tests bestehen weiterhin
+
 ## [7.6.1] - 2026-02-21 — STABILITY PATCH
 
 ### Granular Fault Isolation fuer Hub-Engines
