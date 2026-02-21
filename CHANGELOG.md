@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.13.0] - 2026-02-21
+
+### Energy Report Sensor — Weekly Report Highlights in HA
+
+#### Energy Report Sensor (NEW)
+- **sensors/energy_report_sensor.py** — `EnergyReportSensor` entity
+- State: weekly net cost in EUR
+- Attributes: period, consumption, production, autarky %, solar savings, trend, highlights, recommendation count
+- Fetches weekly report from Core `POST /api/v1/energy/reports/generate`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.13.0
+
 ## [5.12.0] - 2026-02-21
 
 ### Appliance Fingerprint Sensor — Device Recognition in HA
