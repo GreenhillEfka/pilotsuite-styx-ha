@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.5.0] - 2026-02-21
+
+### Energy Schedule Sensor — Daily Device Schedule in HA
+
+#### Energy Schedule Sensor (NEW)
+- **sensors/energy_schedule_sensor.py** — `EnergyScheduleSensor` entity
+- Shows next scheduled device as sensor state (e.g. "washer at 11:00")
+- Exposes attributes: date, devices_scheduled, total cost estimate, PV coverage %, peak load
+- Per-device schedule breakdown with hours, cost, and PV percentage
+- URLs for daily schedule and next-device API endpoints
+- Async fetches from Core `GET /api/v1/predict/schedule/daily`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.5.0
+
 ## [5.4.0] - 2026-02-21
 
 ### OpenAPI Spec v5.4.0 — Version Sync
