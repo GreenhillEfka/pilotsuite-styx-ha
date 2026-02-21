@@ -1,5 +1,36 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.16.0] - 2026-02-21
+
+### DWD Weather Warnings — German Weather Service Alerts
+
+#### Weather Warning Manager (NEW)
+- **regional/weather_warnings.py** — `WeatherWarningManager` for DWD/ZAMG/MeteoSchweiz alerts
+- 4 severity levels: Wetterwarnung (yellow), Markante (orange), Unwetter (red), Extreme (violet)
+- 11 warning types: Gewitter, Wind, Starkregen, Schnee, Glätte, Nebel, Frost, Hitze, UV, Hochwasser
+- DWD JSON format parser (cell-based dict + list formats)
+- Generic warning parser for ZAMG and MeteoSchweiz
+- PV impact assessment: per-type reduction estimates (0-100%) with severity scaling
+- Grid risk assessment: per-type grid stability evaluation
+- Energy recommendations in German and English per warning type
+- Warning filtering: by severity, active status, PV impact, grid risk
+- Human-readable summary text (DE/EN) with PV reduction indicators
+- 5-minute cache TTL for warning refresh management
+
+#### API Endpoints (5 NEW)
+- `GET /api/v1/regional/warnings` — All active warnings with impact assessment
+- `GET /api/v1/regional/warnings/pv` — PV-affecting warnings only
+- `GET /api/v1/regional/warnings/grid` — Grid-affecting warnings only
+- `GET /api/v1/regional/warnings/summary` — Human-readable summary (de/en)
+- `POST /api/v1/regional/warnings/ingest` — Ingest DWD/generic warning data
+
+#### Test Suite (NEW — 52 tests)
+- **tests/test_weather_warnings.py** — DWD parsing, generic parsing, impact, filtering, overview, summary
+
+#### Infrastructure
+- **regional/__init__.py** — Exports WeatherWarningManager
+- **regional/api.py** — Updated with warning endpoints and init_regional_api(warning_manager=)
+
 ## [5.15.0] - 2026-02-21
 
 ### Regional Context Provider — Zero-Config Location-Aware Data

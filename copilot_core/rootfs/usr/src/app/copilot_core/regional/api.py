@@ -1,4 +1,4 @@
-"""Regional Context API endpoints (v5.15.0)."""
+"""Regional Context API endpoints (v5.16.0)."""
 
 from __future__ import annotations
 
@@ -13,13 +13,15 @@ logger = logging.getLogger(__name__)
 regional_bp = Blueprint("regional", __name__, url_prefix="/api/v1/regional")
 
 _provider = None
+_warning_manager = None
 
 
-def init_regional_api(provider=None) -> None:
-    """Initialize regional context provider."""
-    global _provider
+def init_regional_api(provider=None, warning_manager=None) -> None:
+    """Initialize regional context provider and warning manager."""
+    global _provider, _warning_manager
     _provider = provider
-    logger.info("Regional API initialized")
+    _warning_manager = warning_manager
+    logger.info("Regional API initialized (warnings: %s)", warning_manager is not None)
 
 
 @regional_bp.route("/context", methods=["GET"])
@@ -96,3 +98,83 @@ def update_location():
     )
     ctx = _provider.get_context()
     return jsonify({"ok": True, "updated": True, **asdict(ctx)})
+
+
+# ── Weather Warning endpoints (v5.16.0) ──────────────────────────────────
+
+
+@regional_bp.route("/warnings", methods=["GET"])
+@require_token
+def get_warnings():
+    """Get all active weather warnings with impact assessment."""
+    if not _warning_manager:
+        return jsonify({"error": "Warning manager not initialized"}), 503
+    overview = _warning_manager.get_overview()
+    return jsonify({"ok": True, **asdict(overview)})
+
+
+@regional_bp.route("/warnings/pv", methods=["GET"])
+@require_token
+def get_pv_warnings():
+    """Get warnings that affect PV production."""
+    if not _warning_manager:
+        return jsonify({"error": "Warning manager not initialized"}), 503
+    pv_warnings = _warning_manager.get_pv_warnings()
+    return jsonify({"ok": True, "warnings": pv_warnings, "total": len(pv_warnings)})
+
+
+@regional_bp.route("/warnings/grid", methods=["GET"])
+@require_token
+def get_grid_warnings():
+    """Get warnings that affect grid stability."""
+    if not _warning_manager:
+        return jsonify({"error": "Warning manager not initialized"}), 503
+    grid_warnings = _warning_manager.get_grid_warnings()
+    return jsonify({"ok": True, "warnings": grid_warnings, "total": len(grid_warnings)})
+
+
+@regional_bp.route("/warnings/summary", methods=["GET"])
+@require_token
+def get_warning_summary():
+    """Get human-readable warning summary."""
+    if not _warning_manager:
+        return jsonify({"error": "Warning manager not initialized"}), 503
+    lang = request.args.get("lang", "de")
+    summary = _warning_manager.get_summary_text(language=lang)
+    return jsonify({
+        "ok": True,
+        "summary": summary,
+        "active_count": _warning_manager.warning_count,
+        "language": lang,
+    })
+
+
+@regional_bp.route("/warnings/ingest", methods=["POST"])
+@require_token
+def ingest_warnings():
+    """Ingest weather warnings from DWD or generic format.
+
+    JSON body: {"source": "dwd"|"generic", "data": {...}}
+    """
+    if not _warning_manager:
+        return jsonify({"error": "Warning manager not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    source = body.get("source", "generic")
+    data = body.get("data", {})
+
+    try:
+        if source == "dwd":
+            warnings = _warning_manager.process_dwd_warnings(data)
+        else:
+            warnings_list = data if isinstance(data, list) else data.get("warnings", [])
+            warnings = _warning_manager.process_generic_warnings(
+                warnings_list, source=source
+            )
+
+        logger.info("Ingested %d warnings from %s", len(warnings), source)
+        overview = _warning_manager.get_overview()
+        return jsonify({"ok": True, "ingested": len(warnings), **asdict(overview)})
+    except Exception as exc:
+        logger.error("Warning ingestion failed: %s", exc)
+        return jsonify({"ok": False, "error": str(exc)}), 500
