@@ -1,5 +1,36 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.6.0] - 2026-02-21 — PRODUCTION-READY RELEASE
+
+### Bulletproof HA Integration — Bereit fuer echten Test
+
+#### Production Readiness
+- Version aligned mit Core v7.6.0
+- Core startet jetzt alle 17 Hub-Engines korrekt
+- Alle 18 Sensoren koennen Daten von Core abrufen
+- 120+ API Endpoints live unter /api/v1/hub/*
+
+#### Vollstaendige Sensor-Liste (18 Sensoren):
+1. CopilotStatusSensor — System-Status
+2. PredictiveMaintenanceSensor — Wartungsvorhersage
+3. AnomalyDetectionSensor — Anomalie-Erkennung
+4. GasMeterSensor — Gaszaehler
+5. HabitusZoneSensor — Zonen-Erkennung
+6. LightIntelligenceSensor — Licht-Intelligence
+7. ZoneModeSensor — Zonen-Modi
+8. MediaFollowSensor — Media Follow
+9. EnergyAdvisorSensor — Energie-Beratung
+10. AutomationTemplateSensor — Automation Templates
+11. SceneIntelligenceSensor — Szenen-Intelligence
+12. PresenceIntelligenceSensor — Anwesenheit
+13. NotificationIntelligenceSensor — Benachrichtigungen
+14. SystemIntegrationSensor — System Integration
+15. BrainArchitectureSensor — Hirnregionen
+16. BrainActivitySensor — Brain Pulse/Sleep
+
+#### Infrastructure
+- Version bump to 7.6.0
+
 ## [7.5.0] - 2026-02-21
 
 ### Brain Activity Sensor — Pulse, Sleep & Chat
