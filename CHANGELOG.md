@@ -1,5 +1,27 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.21.0] - 2026-02-21
+
+### Styx Agent Auto-Config — Health Check, Connectivity & Greeting API
+
+#### Agent Config Module (NEW)
+- **agent_config.py** — `agent_config_bp` Blueprint with agent health/config endpoints
+- Agent status reporting: name, version, uptime, LLM availability, features, character
+- Agent capabilities discovery: conversation, tool calling, web search, energy, mood, brain graph
+- Bilingual greeting templates (DE/EN) for new installations
+- Bidirectional communication verification (HA sends, Core echoes + status)
+- Ping endpoint for quick health checks
+
+#### API Endpoints (5 NEW)
+- `GET /api/v1/agent/status` — Full agent health and status
+- `GET /api/v1/agent/capabilities` — Agent feature discovery
+- `GET /api/v1/agent/greeting` — Installation greeting (lang=de/en)
+- `GET /api/v1/agent/ping` — Quick alive check
+- `POST /api/v1/agent/verify` — Bidirectional communication verification
+
+#### Test Suite (NEW — 17 tests)
+- **tests/test_agent_config.py** — Init, LLM availability, features, dataclasses, greetings
+
 ## [5.20.0] - 2026-02-21
 
 ### Energy Forecast Dashboard — 48h Visual Forecast with PV, Prices & Recommendations
