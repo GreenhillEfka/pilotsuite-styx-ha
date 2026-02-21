@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.8.0] - 2026-02-21
+
+### Notification Sensor — Alert Monitoring in HA
+
+#### Notification Sensor (NEW)
+- **sensors/notification_sensor.py** — `NotificationSensor` entity
+- State: pending alert count (e.g. "3 pending" or "no alerts")
+- Dynamic icon: bell-alert when pending, bell-outline when clear
+- Attributes: latest 5 notifications, 24h digest with by-source/by-priority counts
+- Dual endpoint polling: notifications + digest
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.8.0
+
 ## [5.7.0] - 2026-02-21
 
 ### Comfort Index Sensor — Environmental Comfort in HA
