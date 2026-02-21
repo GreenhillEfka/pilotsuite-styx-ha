@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.1.0] - 2026-02-21
+
+### Presence Intelligence Sensor — Anwesenheits-Tracking & Raum-Belegung
+
+#### Presence Intelligence Sensor (NEW)
+- **sensors/presence_intelligence_sensor.py** — `PresenceIntelligenceSensor`
+- State: "Alle zu Hause" / "Alle abwesend" / "X/Y zu Hause"
+- Dynamic icons: home-account, home-export, home-clock
+- Attributes: persons home/away, occupied rooms, transitions, triggers
+
+#### Infrastructure
+- **sensor.py** — Registers PresenceIntelligenceSensor
+- Version bump to 7.1.0
+
 ## [7.0.0] - 2026-02-21
 
 ### Scene Intelligence Sensor — Intelligente Szenen & PilotSuite Cloud
