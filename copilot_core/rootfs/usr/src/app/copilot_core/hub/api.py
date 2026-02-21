@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.7.0)."""
+"""Hub API endpoints for PilotSuite (v6.8.0)."""
 
 from __future__ import annotations
 
@@ -21,14 +21,16 @@ _zone_engine: object | None = None
 _light_engine: object | None = None
 _mode_engine: object | None = None
 _media_engine: object | None = None
+_energy_advisor: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  maintenance_engine=None, anomaly_engine=None,
                  zone_engine=None, light_engine=None,
-                 mode_engine=None, media_engine=None) -> None:
+                 mode_engine=None, media_engine=None,
+                 energy_advisor=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -38,8 +40,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _light_engine = light_engine
     _mode_engine = mode_engine
     _media_engine = media_engine
+    _energy_advisor = energy_advisor
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -48,6 +51,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         light_engine is not None,
         mode_engine is not None,
         media_engine is not None,
+        energy_advisor is not None,
     )
 
 
@@ -949,3 +953,123 @@ def on_zone_enter_media():
             for t in transfers
         ],
     })
+
+
+# ── Energy Advisor endpoints (v6.8.0) ──────────────────────────────────────
+
+
+@hub_bp.route("/energy", methods=["GET"])
+@require_token
+def get_energy_dashboard():
+    """Get energy advisor dashboard."""
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    dashboard = _energy_advisor.get_dashboard()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@hub_bp.route("/energy/devices", methods=["POST"])
+@require_token
+def register_energy_device():
+    """Register a device for energy tracking.
+
+    JSON body: {"entity_id": "...", "name": "...", "category"?: "other"}
+    """
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    device = _energy_advisor.register_device(
+        body.get("entity_id", ""),
+        body.get("name", ""),
+        body.get("category", "other"),
+    )
+    return jsonify({"ok": True, "entity_id": device.entity_id, "category": device.category})
+
+
+@hub_bp.route("/energy/consumption", methods=["POST"])
+@require_token
+def update_energy_consumption():
+    """Update daily consumption for a device.
+
+    JSON body: {"entity_id": "...", "daily_kwh": ...}
+    """
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _energy_advisor.update_consumption(
+        body.get("entity_id", ""),
+        float(body.get("daily_kwh", 0)),
+    )
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/energy/breakdown", methods=["GET"])
+@require_token
+def get_energy_breakdown():
+    """Get consumption breakdown by category."""
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    breakdown = _energy_advisor.get_breakdown()
+    return jsonify({
+        "ok": True,
+        "breakdown": [asdict(b) for b in breakdown],
+    })
+
+
+@hub_bp.route("/energy/top", methods=["GET"])
+@require_token
+def get_top_energy_consumers():
+    """Get top energy consuming devices."""
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    limit = int(request.args.get("limit", 10))
+    return jsonify({"ok": True, "consumers": _energy_advisor.get_top_consumers(limit)})
+
+
+@hub_bp.route("/energy/recommendations", methods=["GET"])
+@require_token
+def get_energy_recommendations():
+    """Get savings recommendations.
+
+    Query params: category, limit
+    """
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    category = request.args.get("category")
+    limit = int(request.args.get("limit", 10))
+    recs = _energy_advisor.get_recommendations(category, limit)
+    return jsonify({"ok": True, "recommendations": recs})
+
+
+@hub_bp.route("/energy/recommendations/<rec_id>/apply", methods=["POST"])
+@require_token
+def apply_energy_recommendation(rec_id):
+    """Mark a recommendation as applied."""
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    result = _energy_advisor.mark_recommendation_applied(rec_id)
+    return jsonify({"ok": result, "rec_id": rec_id})
+
+
+@hub_bp.route("/energy/eco-score", methods=["GET"])
+@require_token
+def get_eco_score():
+    """Get household eco-score."""
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    eco = _energy_advisor.calculate_eco_score()
+    return jsonify({"ok": True, **asdict(eco)})
+
+
+@hub_bp.route("/energy/price", methods=["POST"])
+@require_token
+def set_energy_price():
+    """Set electricity price.
+
+    JSON body: {"ct_kwh": 30.0}
+    """
+    if not _energy_advisor:
+        return jsonify({"error": "Energy advisor not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    _energy_advisor.set_electricity_price(float(body.get("ct_kwh", 30.0)))
+    return jsonify({"ok": True})

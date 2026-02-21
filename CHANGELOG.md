@@ -1,5 +1,33 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.8.0] - 2026-02-21
+
+### Energy Advisor — Personalized Savings Recommendations & Eco-Score
+
+#### Energy Advisor Engine (NEW)
+- **hub/energy_advisor.py** — `EnergyAdvisorEngine`
+- Device energy tracking per category (Beleuchtung, Heizung, Kühlung, Haushaltsgeräte, Medien, Standby, EV)
+- Consumption breakdown with percentages and costs
+- Top consumer analysis
+- Eco-Score (A+ bis F) with trend detection and household comparison
+- 7 built-in Sparempfehlungen (Standby, LED, Heizplan, Waschen, E-Auto, Kühlung, Medien)
+- Custom recommendation registration
+- Dynamic electricity price updates with cost recalculation
+
+#### API Endpoints (9 NEW)
+- `GET /api/v1/hub/energy` — Energy advisor dashboard
+- `POST /api/v1/hub/energy/devices` — Register device
+- `POST /api/v1/hub/energy/consumption` — Update consumption
+- `GET /api/v1/hub/energy/breakdown` — Category breakdown
+- `GET /api/v1/hub/energy/top` — Top consumers
+- `GET /api/v1/hub/energy/recommendations` — Savings recommendations
+- `POST /api/v1/hub/energy/recommendations/<id>/apply` — Apply recommendation
+- `GET /api/v1/hub/energy/eco-score` — Eco-Score
+- `POST /api/v1/hub/energy/price` — Set electricity price
+
+#### Test Suite (NEW — 30 tests)
+- **tests/test_energy_advisor.py** — Device tracking, breakdown, eco-score, recommendations, dashboard
+
 ## [6.7.0] - 2026-02-21
 
 ### Media Follow / Musikwolke — Wiedergabe-Folgen & Playback Dashboard
