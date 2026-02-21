@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.8.0] - 2026-02-21
+
+### Energy Advisor Sensor — Eco-Score, Sparempfehlungen & Verbrauchsübersicht
+
+#### Energy Advisor Sensor (NEW)
+- **sensors/energy_advisor_sensor.py** — `EnergyAdvisorSensor`
+- State: "Eco-Score A+ (95/100)" with grade-based icons
+- Attributes: eco-score, trend, daily/monthly kWh/EUR, savings potential
+- Breakdown by category, top consumers, recommendations
+- Fetches from `/api/v1/hub/energy`
+
+#### Infrastructure
+- **sensor.py** — Registers EnergyAdvisorSensor
+- Version bump to 6.8.0
+
 ## [6.7.0] - 2026-02-21
 
 ### Media Follow / Musikwolke Sensor — Wiedergabe-Folgen & Playback
