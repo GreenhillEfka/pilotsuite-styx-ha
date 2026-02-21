@@ -159,6 +159,7 @@ from .sensors.energy_advisor_sensor import EnergyAdvisorSensor
 from .sensors.automation_template_sensor import AutomationTemplateSensor
 from .sensors.scene_intelligence_sensor import SceneIntelligenceSensor
 from .sensors.presence_intelligence_sensor import PresenceIntelligenceSensor
+from .sensors.notification_intelligence_sensor import NotificationIntelligenceSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -356,6 +357,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         AutomationTemplateSensor(coordinator),
         SceneIntelligenceSensor(coordinator),
         PresenceIntelligenceSensor(coordinator),
+        NotificationIntelligenceSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)
