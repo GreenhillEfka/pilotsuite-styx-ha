@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.6.0] - 2026-02-21
+
+### Zone Modes Sensor — Party/Sleep/Custom Quick-Switches
+
+#### Zone Mode Sensor (NEW)
+- **sensors/zone_mode_sensor.py** — `ZoneModeSensor`
+- State: "Keine aktiven Modi" / Mode-Name / "X Modi aktiv"
+- Dynamic icons per active mode (party-popper, baby-face, movie, heart, etc.)
+- Attributes: active modes with remaining time, available modes, recent events
+- Fetches from `/api/v1/hub/modes`
+
+#### Infrastructure
+- **sensor.py** — Registers ZoneModeSensor
+- Version bump to 6.6.0
+
 ## [6.5.0] - 2026-02-21
 
 ### Licht-Intelligence Sensor — Sonnenstand, Szenen, Ausleuchtung
