@@ -751,3 +751,149 @@ def add_report_data():
         devices=body.get("devices"),
     )
     return jsonify({"ok": True, "date": date_str}), 201
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.14.0 — Demand Response Manager
+# ═══════════════════════════════════════════════════════════════════════════
+
+_demand_response = None
+
+
+def init_demand_response(manager=None):
+    """Initialize the demand response manager singleton."""
+    global _demand_response
+    if manager is None:
+        from .demand_response import DemandResponseManager
+        manager = DemandResponseManager()
+    _demand_response = manager
+
+
+@energy_bp.route("/api/v1/energy/demand-response/status", methods=["GET"])
+@require_api_key
+def dr_status():
+    """Get demand response system status."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+    from dataclasses import asdict
+    status = _demand_response.get_status()
+    return jsonify({"ok": True, **asdict(status)})
+
+
+@energy_bp.route("/api/v1/energy/demand-response/signal", methods=["POST"])
+@require_api_key
+def dr_receive_signal():
+    """Receive a grid signal.
+
+    JSON body: {level, source, reason, target_reduction_watts, duration_minutes}
+    """
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    level = body.get("level", 1)
+    from dataclasses import asdict
+    signal = _demand_response.receive_signal(
+        level=int(level),
+        source=body.get("source", "manual"),
+        reason=body.get("reason", ""),
+        target_reduction_watts=float(body.get("target_reduction_watts", 0)),
+        duration_minutes=int(body.get("duration_minutes", 60)),
+    )
+    return jsonify({"ok": True, "signal": asdict(signal)}), 201
+
+
+@energy_bp.route("/api/v1/energy/demand-response/signals", methods=["GET"])
+@require_api_key
+def dr_active_signals():
+    """Get active grid signals."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+    signals = _demand_response.get_active_signals()
+    return jsonify({"ok": True, "signals": signals, "count": len(signals)})
+
+
+@energy_bp.route("/api/v1/energy/demand-response/devices", methods=["GET"])
+@require_api_key
+def dr_devices():
+    """Get all managed devices."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+    devices = _demand_response.get_devices()
+    return jsonify({"ok": True, "devices": devices, "count": len(devices)})
+
+
+@energy_bp.route("/api/v1/energy/demand-response/devices", methods=["POST"])
+@require_api_key
+def dr_register_device():
+    """Register a device for demand response.
+
+    JSON body: {device_id, device_name, priority, max_watts, auto_restore_minutes}
+    """
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    device_id = body.get("device_id")
+    if not device_id:
+        return jsonify({"ok": False, "error": "device_id required"}), 400
+
+    from dataclasses import asdict
+    dev = _demand_response.register_device(
+        device_id=device_id,
+        device_name=body.get("device_name", device_id),
+        priority=int(body.get("priority", 2)),
+        max_watts=float(body.get("max_watts", 1000)),
+        auto_restore_minutes=int(body.get("auto_restore_minutes", 60)),
+    )
+    return jsonify({"ok": True, "device": asdict(dev)}), 201
+
+
+@energy_bp.route("/api/v1/energy/demand-response/curtail/<device_id>", methods=["POST"])
+@require_api_key
+def dr_curtail(device_id: str):
+    """Manually curtail a device."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+
+    from dataclasses import asdict
+    action = _demand_response.curtail_device(device_id)
+    if not action:
+        return jsonify({"ok": False, "error": "Device not found or already curtailed"}), 404
+    return jsonify({"ok": True, "action": asdict(action)})
+
+
+@energy_bp.route("/api/v1/energy/demand-response/restore/<device_id>", methods=["POST"])
+@require_api_key
+def dr_restore(device_id: str):
+    """Restore a curtailed device."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+
+    from dataclasses import asdict
+    action = _demand_response.restore_device(device_id)
+    if not action:
+        return jsonify({"ok": False, "error": "Device not found or not curtailed"}), 404
+    return jsonify({"ok": True, "action": asdict(action)})
+
+
+@energy_bp.route("/api/v1/energy/demand-response/history", methods=["GET"])
+@require_api_key
+def dr_history():
+    """Get curtailment action history."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+
+    limit = request.args.get("limit", 50, type=int)
+    history = _demand_response.get_action_history(limit=limit)
+    return jsonify({"ok": True, "actions": history, "count": len(history)})
+
+
+@energy_bp.route("/api/v1/energy/demand-response/metrics", methods=["GET"])
+@require_api_key
+def dr_metrics():
+    """Get demand response performance metrics."""
+    if not _demand_response:
+        return jsonify({"error": "Demand response not initialized"}), 503
+    metrics = _demand_response.get_metrics()
+    return jsonify({"ok": True, **metrics})

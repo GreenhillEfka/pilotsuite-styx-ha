@@ -1,5 +1,37 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.14.0] - 2026-02-21
+
+### Demand Response Manager — Grid Signal Response & Load Curtailment
+
+#### Demand Response Manager (NEW)
+- **energy/demand_response.py** — Responds to grid signals with automatic load curtailment
+- 4 signal levels: NORMAL (0), ADVISORY (1), MODERATE (2), CRITICAL (3)
+- 4 device priorities: DEFERRABLE (1), FLEXIBLE (2), COMFORT (3), ESSENTIAL (4)
+- ESSENTIAL devices never shed; COMFORT only shed at CRITICAL level
+- Automatic curtailment based on signal level with priority ordering
+- Signal cancellation auto-restores all curtailed devices
+- Action history with curtail/restore events
+- Performance metrics tracking
+- Thread-safe with `threading.Lock`
+
+#### API Endpoints (NEW)
+- `GET /api/v1/energy/demand-response/status` — System status
+- `POST /api/v1/energy/demand-response/signal` — Receive grid signal
+- `GET /api/v1/energy/demand-response/signals` — Active signals
+- `GET /api/v1/energy/demand-response/devices` — Managed devices list
+- `POST /api/v1/energy/demand-response/devices` — Register device
+- `POST /api/v1/energy/demand-response/curtail/<device_id>` — Manual curtail
+- `POST /api/v1/energy/demand-response/restore/<device_id>` — Restore device
+- `GET /api/v1/energy/demand-response/history` — Action history
+- `GET /api/v1/energy/demand-response/metrics` — Performance metrics
+
+#### Test Suite (NEW — 40+ tests)
+- **tests/test_demand_response.py** — Registration, signals, auto-curtailment, manual, status, history, metrics
+
+#### Infrastructure
+- **config.json** — Version 5.14.0
+
 ## [5.13.0] - 2026-02-21
 
 ### Energy Report Generator — Structured Energy Reports
