@@ -162,6 +162,7 @@ from .sensors.presence_intelligence_sensor import PresenceIntelligenceSensor
 from .sensors.notification_intelligence_sensor import NotificationIntelligenceSensor
 from .sensors.system_integration_sensor import SystemIntegrationSensor
 from .sensors.brain_architecture_sensor import BrainArchitectureSensor
+from .sensors.brain_activity_sensor import BrainActivitySensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -362,6 +363,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         NotificationIntelligenceSensor(coordinator),
         SystemIntegrationSensor(coordinator),
         BrainArchitectureSensor(coordinator),
+        BrainActivitySensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)
