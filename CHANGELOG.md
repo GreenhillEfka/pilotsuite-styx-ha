@@ -1,5 +1,36 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.24.0] - 2026-02-21
+
+### Heat Pump Controller — COP-Optimized Scheduling
+
+#### Heat Pump Engine (NEW)
+- **regional/heat_pump_controller.py** — `HeatPumpController` with COP-optimized scheduling
+- Carnot-based COP calculation for air_water, ground_water, air_air pump types
+- 4 strategies: cop_optimized, price_optimized, comfort_first, solar_boost
+- Building thermal model: heat loss estimation, room temp simulation
+- DHW (domestic hot water) cycle management with tank temperature tracking
+- Defrost cycle detection for air-source pumps (frost-prone range)
+- PV surplus solar boost — free heating from photovoltaic excess
+- Weather forecast integration for outdoor temperature profiles
+- Tariff-aware scheduling — combines COP and price for effective cost per kWh_th
+
+#### API Endpoints (7 NEW)
+- `GET /api/v1/regional/heatpump/schedule` — COP-optimized schedule (48h default)
+- `GET /api/v1/regional/heatpump/status` — Current heat pump state
+- `POST /api/v1/regional/heatpump/room-temp` — Update room temperature
+- `POST /api/v1/regional/heatpump/hot-water-temp` — Update DHW temperature
+- `POST /api/v1/regional/heatpump/config` — Configure heat pump system
+- `POST /api/v1/regional/heatpump/strategy` — Set scheduling strategy
+- `POST /api/v1/regional/heatpump/ingest` — Import weather/tariff/PV data
+
+#### Test Suite (NEW — 43 tests)
+- **tests/test_heat_pump_controller.py** — COP, config, optimization, strategies, data import, status
+
+#### Infrastructure
+- **regional/__init__.py** — Exports HeatPumpController
+- **regional/api.py** — init_regional_api() accepts heat_pump_controller parameter
+
 ## [5.23.0] - 2026-02-21
 
 ### Battery Strategy Optimizer — ML-based Charge/Discharge Scheduling

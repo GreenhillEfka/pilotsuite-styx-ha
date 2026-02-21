@@ -1,4 +1,4 @@
-"""Regional Context API endpoints (v5.23.0)."""
+"""Regional Context API endpoints (v5.24.0)."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ _tariff_engine = None
 _alert_engine = None
 _forecast_engine = None
 _battery_optimizer = None
+_heat_pump_controller = None
 
 
 def init_regional_api(
@@ -29,9 +30,10 @@ def init_regional_api(
     alert_engine=None,
     forecast_engine=None,
     battery_optimizer=None,
+    heat_pump_controller=None,
 ) -> None:
     """Initialize all regional services."""
-    global _provider, _warning_manager, _fuel_tracker, _tariff_engine, _alert_engine, _forecast_engine, _battery_optimizer
+    global _provider, _warning_manager, _fuel_tracker, _tariff_engine, _alert_engine, _forecast_engine, _battery_optimizer, _heat_pump_controller
     _provider = provider
     _warning_manager = warning_manager
     _fuel_tracker = fuel_tracker
@@ -39,14 +41,16 @@ def init_regional_api(
     _alert_engine = alert_engine
     _forecast_engine = forecast_engine
     _battery_optimizer = battery_optimizer
+    _heat_pump_controller = heat_pump_controller
     logger.info(
-        "Regional API initialized (warnings: %s, fuel: %s, tariff: %s, alerts: %s, forecast: %s, battery: %s)",
+        "Regional API initialized (warnings: %s, fuel: %s, tariff: %s, alerts: %s, forecast: %s, battery: %s, heatpump: %s)",
         warning_manager is not None,
         fuel_tracker is not None,
         tariff_engine is not None,
         alert_engine is not None,
         forecast_engine is not None,
         battery_optimizer is not None,
+        heat_pump_controller is not None,
     )
 
 
@@ -737,4 +741,146 @@ def ingest_battery_data():
         return jsonify({"ok": True, "ingested": True})
     except Exception as exc:
         logger.error("Battery data ingestion failed: %s", exc)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ── Heat Pump Controller endpoints (v5.24.0) ─────────────────────────────
+
+
+@regional_bp.route("/heatpump/schedule", methods=["GET"])
+@require_token
+def get_heatpump_schedule():
+    """Get COP-optimized heat pump schedule."""
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+    hours = int(request.args.get("hours", 48))
+    schedule = _heat_pump_controller.optimize(horizon_hours=hours)
+    return jsonify({"ok": True, **asdict(schedule)})
+
+
+@regional_bp.route("/heatpump/status", methods=["GET"])
+@require_token
+def get_heatpump_status():
+    """Get current heat pump status."""
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+    status = _heat_pump_controller.get_status()
+    return jsonify({"ok": True, **asdict(status)})
+
+
+@regional_bp.route("/heatpump/room-temp", methods=["POST"])
+@require_token
+def update_room_temp():
+    """Update current room temperature.
+
+    JSON body: {"temp_c": 20.5}
+    """
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    temp = body.get("temp_c")
+    if temp is None:
+        return jsonify({"ok": False, "error": "temp_c required"}), 400
+
+    _heat_pump_controller.set_room_temp(float(temp))
+    return jsonify({"ok": True, "room_temp_c": _heat_pump_controller.config.current_room_temp_c})
+
+
+@regional_bp.route("/heatpump/hot-water-temp", methods=["POST"])
+@require_token
+def update_hot_water_temp():
+    """Update current hot water temperature.
+
+    JSON body: {"temp_c": 48.0}
+    """
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    temp = body.get("temp_c")
+    if temp is None:
+        return jsonify({"ok": False, "error": "temp_c required"}), 400
+
+    _heat_pump_controller.set_hot_water_temp(float(temp))
+    return jsonify({"ok": True, "hot_water_temp_c": _heat_pump_controller.config.current_hot_water_temp_c})
+
+
+@regional_bp.route("/heatpump/config", methods=["POST"])
+@require_token
+def configure_heatpump():
+    """Configure heat pump system.
+
+    JSON body: {
+        "pump_type": "air_water"|"ground_water"|"air_air",
+        "nominal_power_kw": 8.0,
+        "max_flow_temp_c": 55.0,
+        "target_room_temp_c": 21.0,
+        "building_thermal_mass_kwh_per_k": 2.5,
+        "hot_water_tank_l": 300.0,
+        "hot_water_target_c": 55.0
+    }
+    """
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    _heat_pump_controller.update_config(**body)
+    return jsonify({"ok": True, "configured": True, "config": asdict(_heat_pump_controller.config)})
+
+
+@regional_bp.route("/heatpump/strategy", methods=["POST"])
+@require_token
+def set_heatpump_strategy():
+    """Set heat pump scheduling strategy.
+
+    JSON body: {"strategy": "cop_optimized"|"price_optimized"|"comfort_first"|"solar_boost"}
+    """
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    strategy = body.get("strategy", "")
+    if strategy not in _heat_pump_controller.STRATEGIES:
+        return jsonify({
+            "ok": False,
+            "error": f"Invalid strategy. Choose from: {', '.join(_heat_pump_controller.STRATEGIES)}",
+        }), 400
+
+    _heat_pump_controller.set_strategy(strategy)
+    return jsonify({"ok": True, "strategy": strategy})
+
+
+@regional_bp.route("/heatpump/ingest", methods=["POST"])
+@require_token
+def ingest_heatpump_data():
+    """Ingest weather/tariff/PV data for heat pump optimization.
+
+    JSON body: {
+        "weather": [{"hour": 0, "temperature_c": -2.0}, ...],
+        "tariff": [{"hour": 0, "price_ct": 25.0}, ...],
+        "pv_forecast": {"10": 3.0, "11": 5.0, ...}
+    }
+    """
+    if not _heat_pump_controller:
+        return jsonify({"error": "Heat pump controller not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+
+    try:
+        imported = {}
+        if "weather" in body:
+            _heat_pump_controller.import_weather_data(body["weather"])
+            imported["weather_hours"] = len(body["weather"])
+        if "tariff" in body:
+            _heat_pump_controller.import_tariff_data(body["tariff"])
+            imported["tariff_hours"] = len(body["tariff"])
+        if "pv_forecast" in body:
+            _heat_pump_controller.set_pv_forecast(
+                {int(k): float(v) for k, v in body["pv_forecast"].items()}
+            )
+            imported["pv_hours"] = len(body["pv_forecast"])
+        return jsonify({"ok": True, "imported": imported})
+    except Exception as exc:
+        logger.error("Heat pump data ingestion failed: %s", exc)
         return jsonify({"ok": False, "error": str(exc)}), 500
