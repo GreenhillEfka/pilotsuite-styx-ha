@@ -1,5 +1,12 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.6.3] - 2026-02-21 — VERSION ALIGNMENT + REPO HYGIENE
+
+### Sync mit Core v7.6.3
+
+- Version aligned mit Core v7.6.3
+- Core hat stale `custom_components/copilot/` Verzeichnis entfernt (Add-on Discovery Fix)
+
 ## [7.6.2] - 2026-02-21 — BUGFIX: 3 Echte Bugs gefixt
 
 ### Audit & Bugfix Release
