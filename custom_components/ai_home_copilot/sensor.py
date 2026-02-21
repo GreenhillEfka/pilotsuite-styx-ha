@@ -157,6 +157,7 @@ from .sensors.zone_mode_sensor import ZoneModeSensor
 from .sensors.media_follow_sensor import MediaFollowSensor
 from .sensors.energy_advisor_sensor import EnergyAdvisorSensor
 from .sensors.automation_template_sensor import AutomationTemplateSensor
+from .sensors.scene_intelligence_sensor import SceneIntelligenceSensor
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -352,6 +353,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         MediaFollowSensor(coordinator),
         EnergyAdvisorSensor(coordinator),
         AutomationTemplateSensor(coordinator),
+        SceneIntelligenceSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)
