@@ -1,5 +1,11 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.6.4] - 2026-02-21 — ADD-ON DISCOVERY FIX
+
+### Sync mit Core v7.6.4
+
+- Core Add-on: `config.json` → `config.yaml` Migration (Schema-Mismatch war Root Cause fuer fehlende Add-on Anzeige im Store)
+
 ## [7.6.3] - 2026-02-21 — VERSION ALIGNMENT + REPO HYGIENE
 
 ### Sync mit Core v7.6.3
