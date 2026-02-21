@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [6.0.0] - 2026-02-21
+
+### PilotSuite Hub Sensors — Dashboard, Plugins, Multi-Home in HA
+
+#### Hub Dashboard Sensor (NEW)
+- **sensors/hub_dashboard_sensor.py** — 3 new sensor entities
+- `HubDashboardSensor` — active device count, alerts, savings, layout
+- `HubPluginsSensor` — active plugin count, categories, status
+- `HubMultiHomeSensor` — home count, online/offline, cross-home totals
+
+#### Infrastructure
+- **sensor.py** — Registers all 3 Hub sensors
+- **entity.py** + **manifest.json** — Version 6.0.0
+
 ## [5.25.0] - 2026-02-21
 
 ### EV Charging Sensor — SoC & Smart Charging in HA
