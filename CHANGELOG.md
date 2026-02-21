@@ -1,5 +1,35 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.5.0] - 2026-02-21
+
+### Brain Activity — Pulse, Sleep & Chat History
+
+#### Brain Activity Engine (NEW)
+- **hub/brain_activity.py** — `BrainActivityEngine`
+- 3 Brain States: **active** (pulsierend), **idle** (wach), **sleeping** (Ressourcen-Sparmodus)
+- Pulse Tracking: Jede Aktivität (Chat, API, Event) erzeugt einen Pulse
+- Auto-Sleep: Nach konfigurierbarem Idle-Timeout schläft das Brain ein
+- Auto-Wake: Chat-Nachricht oder API-Request weckt das Brain automatisch
+- Chat History mit Message-Log (user/assistant), Metadata-Support
+- Assistant-Nachrichten erzeugen automatisch Activity-Pulses
+- Konfigurierbare Timeouts: idle (30s–1h), sleep (60s–24h)
+- Pulse-History (500 Einträge), Chat-History (200 Einträge)
+
+#### API Endpoints (10 NEW)
+- `GET /api/v1/hub/brain/activity` — Activity Dashboard
+- `GET /api/v1/hub/brain/activity/state` — Aktueller Brain State
+- `POST /api/v1/hub/brain/activity/wake` — Brain aufwecken
+- `POST /api/v1/hub/brain/activity/sleep` — Brain schlafen legen
+- `POST /api/v1/hub/brain/activity/pulse` — Pulse starten
+- `POST /api/v1/hub/brain/activity/pulse/end` — Pulse beenden
+- `GET /api/v1/hub/brain/activity/chat` — Chat History abrufen
+- `POST /api/v1/hub/brain/activity/chat` — Chat-Nachricht senden
+- `POST /api/v1/hub/brain/activity/chat/clear` — Chat History löschen
+- `POST /api/v1/hub/brain/activity/config` — Timeouts konfigurieren
+
+#### Test Suite (NEW — 35 tests)
+- **tests/test_brain_activity.py** — States, Idle Check, Pulses, Chat, Config, Status, Dashboard
+
 ## [7.4.0] - 2026-02-21
 
 ### Brain Architecture — Hirnregionen, Neuronen & Synapsen

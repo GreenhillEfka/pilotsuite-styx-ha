@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v7.4.0)."""
+"""Hub API endpoints for PilotSuite (v7.5.0)."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ _presence_engine: object | None = None
 _notification_engine: object | None = None
 _integration_hub: object | None = None
 _brain_architecture: object | None = None
+_brain_activity: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
@@ -37,9 +38,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  energy_advisor=None, template_engine=None,
                  scene_engine=None, presence_engine=None,
                  notification_engine=None, integration_hub=None,
-                 brain_architecture=None) -> None:
+                 brain_architecture=None, brain_activity=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine, _integration_hub, _brain_architecture
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine, _integration_hub, _brain_architecture, _brain_activity
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -56,8 +57,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _notification_engine = notification_engine
     _integration_hub = integration_hub
     _brain_architecture = brain_architecture
+    _brain_activity = brain_activity
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s, integration: %s, brain: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s, integration: %s, brain: %s, activity: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -73,6 +75,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         notification_engine is not None,
         integration_hub is not None,
         brain_architecture is not None,
+        brain_activity is not None,
     )
 
 
@@ -2016,4 +2019,140 @@ def sync_brain_with_hub():
     if not _integration_hub:
         return jsonify({"error": "Integration hub not initialized"}), 503
     result = _brain_architecture.sync_with_hub(_integration_hub)
+    return jsonify({"ok": True, **result})
+
+
+# ── Brain Activity ─────────────────────────────────────────────────────────
+
+
+@hub_bp.route("/brain/activity", methods=["GET"])
+@require_token
+def get_brain_activity():
+    """Get brain activity dashboard (state, pulses, chat)."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    return jsonify(_brain_activity.get_dashboard())
+
+
+@hub_bp.route("/brain/activity/state", methods=["GET"])
+@require_token
+def get_brain_state():
+    """Get current brain state (active/idle/sleeping)."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    return jsonify({"ok": True, "state": _brain_activity.state.value})
+
+
+@hub_bp.route("/brain/activity/wake", methods=["POST"])
+@require_token
+def wake_brain():
+    """Wake the brain from sleep."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    state = _brain_activity.wake()
+    return jsonify({"ok": True, "state": state})
+
+
+@hub_bp.route("/brain/activity/sleep", methods=["POST"])
+@require_token
+def sleep_brain():
+    """Put the brain to sleep."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    state = _brain_activity.sleep()
+    return jsonify({"ok": True, "state": state})
+
+
+@hub_bp.route("/brain/activity/pulse", methods=["POST"])
+@require_token
+def start_brain_pulse():
+    """Start a brain pulse (mark as active).
+
+    JSON body: {"reason"?: "chat"}
+    """
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    pulse = _brain_activity.start_pulse(body.get("reason", "api_request"))
+    return jsonify({"ok": True, "pulse_id": pulse.pulse_id, "state": "active"})
+
+
+@hub_bp.route("/brain/activity/pulse/end", methods=["POST"])
+@require_token
+def end_brain_pulse():
+    """End the current brain pulse (return to idle)."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    pulse = _brain_activity.end_pulse()
+    if not pulse:
+        return jsonify({"ok": False, "error": "No active pulse"})
+    return jsonify({"ok": True, "pulse_id": pulse.pulse_id, "duration_ms": pulse.duration_ms})
+
+
+@hub_bp.route("/brain/activity/chat", methods=["GET"])
+@require_token
+def get_brain_chat():
+    """Get chat history."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    limit = request.args.get("limit", 50, type=int)
+    messages = _brain_activity.get_chat_history(limit)
+    return jsonify({
+        "ok": True,
+        "messages": [
+            {
+                "message_id": m.message_id,
+                "role": m.role,
+                "content": m.content,
+                "timestamp": m.timestamp,
+                "metadata": m.metadata,
+            }
+            for m in messages
+        ],
+    })
+
+
+@hub_bp.route("/brain/activity/chat", methods=["POST"])
+@require_token
+def add_brain_chat():
+    """Add a chat message.
+
+    JSON body: {"role": "user"|"assistant", "content": "...", "metadata"?: {...}}
+    """
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    role = body.get("role", "user")
+    content = body.get("content", "")
+    if not content:
+        return jsonify({"error": "content required"}), 400
+    msg = _brain_activity.add_chat_message(role, content, body.get("metadata"))
+    return jsonify({"ok": True, "message_id": msg.message_id, "state": _brain_activity.state.value})
+
+
+@hub_bp.route("/brain/activity/chat/clear", methods=["POST"])
+@require_token
+def clear_brain_chat():
+    """Clear chat history."""
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    count = _brain_activity.clear_chat_history()
+    return jsonify({"ok": True, "cleared": count})
+
+
+@hub_bp.route("/brain/activity/config", methods=["POST"])
+@require_token
+def configure_brain_activity():
+    """Configure activity timeouts.
+
+    JSON body: {"idle_timeout"?: 300, "sleep_timeout"?: 1800}
+    """
+    if not _brain_activity:
+        return jsonify({"error": "Brain activity not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = {}
+    if "idle_timeout" in body:
+        result["idle_timeout"] = _brain_activity.set_idle_timeout(body["idle_timeout"])
+    if "sleep_timeout" in body:
+        result["sleep_timeout"] = _brain_activity.set_sleep_timeout(body["sleep_timeout"])
     return jsonify({"ok": True, **result})
