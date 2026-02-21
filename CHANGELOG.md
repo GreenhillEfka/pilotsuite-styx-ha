@@ -1,5 +1,32 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.10.0] - 2026-02-21
+
+### Energy Cost Tracker — Daily/Weekly/Monthly Cost History
+
+#### Energy Cost Tracker (NEW)
+- **energy/cost_tracker.py** — Tracks energy costs with budget management
+- `record_day()` — Record daily consumption, production, and pricing → DailyCost
+- Net consumption = max(0, consumption - production); solar savings calculated
+- `get_daily_history(days)` — Most-recent-first cost history with configurable limit
+- `get_summary(period)` — CostSummary for "daily", "weekly", "monthly" periods
+- `get_budget_status()` — Monthly budget tracking with projected total and on-track flag
+- `compare_periods(current_days, previous_days)` — Period-over-period with trend (up/down/stable)
+- `get_rolling_average(days)` — Windowed daily cost average
+- Dataclasses: DailyCost, CostSummary, BudgetStatus
+
+#### API Endpoints (NEW)
+- `GET /api/v1/energy/costs` — Daily cost history (query: `days`)
+- `GET /api/v1/energy/costs/summary` — Period summary (query: `period`)
+- `GET /api/v1/energy/costs/budget` — Monthly budget status
+- `GET /api/v1/energy/costs/compare` — Period comparison (query: `current_days`, `previous_days`)
+
+#### Test Suite (NEW — 30+ tests)
+- **tests/test_cost_tracker.py** — RecordDay, DailyHistory, Summary, Budget, Comparison, RollingAverage
+
+#### Infrastructure
+- **config.json** — Version 5.10.0
+
 ## [5.9.0] - 2026-02-21
 
 ### Automation Suggestions — Generate HA Automations from Patterns

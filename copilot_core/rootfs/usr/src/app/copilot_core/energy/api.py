@@ -465,3 +465,98 @@ def get_dashboard_config():
         },
         "timestamp": _energy_service._get_timestamp(),
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.10.0 — Energy Cost Tracking
+# ═══════════════════════════════════════════════════════════════════════════
+
+_cost_tracker = None
+
+
+def init_cost_tracker(tracker):
+    """Initialize cost tracker instance."""
+    global _cost_tracker
+    _cost_tracker = tracker
+
+
+@energy_bp.route("/api/v1/energy/costs", methods=["GET"])
+@require_api_key
+def get_cost_history():
+    """Get daily cost history.
+
+    Query params:
+        days: Number of days (default 30, max 365)
+    """
+    if not _cost_tracker:
+        return jsonify({"error": "Cost tracker not initialized"}), 503
+
+    days = min(365, request.args.get("days", 30, type=int))
+    history = _cost_tracker.get_daily_history(days=days)
+    return jsonify({"ok": True, "days": len(history), "history": history})
+
+
+@energy_bp.route("/api/v1/energy/costs/summary", methods=["GET"])
+@require_api_key
+def get_cost_summary():
+    """Get cost summary.
+
+    Query params:
+        period: daily, weekly, monthly (default weekly)
+    """
+    if not _cost_tracker:
+        return jsonify({"error": "Cost tracker not initialized"}), 503
+
+    period = request.args.get("period", "weekly")
+    if period not in ("daily", "weekly", "monthly"):
+        return jsonify({"ok": False, "error": "Invalid period"}), 400
+
+    summary = _cost_tracker.get_summary(period=period)
+    return jsonify({
+        "ok": True,
+        "period": summary.period,
+        "start_date": summary.start_date,
+        "end_date": summary.end_date,
+        "total_cost_eur": summary.total_cost_eur,
+        "total_consumption_kwh": summary.total_consumption_kwh,
+        "total_production_kwh": summary.total_production_kwh,
+        "total_savings_eur": summary.total_savings_eur,
+        "avg_daily_cost_eur": summary.avg_daily_cost_eur,
+        "days_count": summary.days_count,
+    })
+
+
+@energy_bp.route("/api/v1/energy/costs/budget", methods=["GET"])
+@require_api_key
+def get_budget_status():
+    """Get monthly budget tracking."""
+    if not _cost_tracker:
+        return jsonify({"error": "Cost tracker not initialized"}), 503
+
+    status = _cost_tracker.get_budget_status()
+    return jsonify({
+        "ok": True,
+        "month": status.month,
+        "budget_eur": status.budget_eur,
+        "spent_eur": status.spent_eur,
+        "remaining_eur": status.remaining_eur,
+        "percent_used": status.percent_used,
+        "projected_total_eur": status.projected_total_eur,
+        "on_track": status.on_track,
+    })
+
+
+@energy_bp.route("/api/v1/energy/costs/compare", methods=["GET"])
+@require_api_key
+def get_cost_comparison():
+    """Compare current vs previous period.
+
+    Query params:
+        days: Period length (default 7)
+    """
+    if not _cost_tracker:
+        return jsonify({"error": "Cost tracker not initialized"}), 503
+
+    days = request.args.get("days", 7, type=int)
+    comparison = _cost_tracker.compare_periods(current_days=days, offset_days=days)
+    return jsonify({"ok": True, **comparison})
