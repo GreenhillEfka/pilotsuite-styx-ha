@@ -1,5 +1,43 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.4.0] - 2026-02-21
+
+### OpenAPI Spec v5.4.0 — Complete Energy API Documentation
+
+#### OpenAPI Specification Update
+- **docs/openapi.yaml** — Updated from 4.2.0 to 5.4.0
+- Added `Energy` tag with full description
+- Updated API description with energy monitoring and Sankey capabilities
+
+#### Energy Endpoints Documented (11 paths, 12 operations)
+- `GET /api/v1/energy` — Complete energy snapshot
+- `GET /api/v1/energy/anomalies` — Anomaly detection with severity levels
+- `GET /api/v1/energy/shifting` — Load shifting opportunities with cost/savings
+- `GET /api/v1/energy/explain/{suggestion_id}` — Suggestion explainability
+- `GET /api/v1/energy/baselines` — Device type consumption baselines
+- `GET /api/v1/energy/suppress` — Suggestion suppression status
+- `GET /api/v1/energy/health` — Energy service health diagnostics
+- `GET /api/v1/energy/zone/{zone_id}` — Zone energy data with entity breakdown
+- `POST /api/v1/energy/zone/{zone_id}` — Register zone energy entities
+- `GET /api/v1/energy/zones` — All zones energy overview
+- `GET /api/v1/energy/sankey` — Sankey flow data (JSON)
+- `GET /api/v1/energy/sankey.svg` — Sankey diagram (SVG image)
+
+#### New Component Schemas (17 schemas)
+- `EnergySnapshot`, `EnergyAnomaly`, `EnergyAnomaliesResponse`
+- `ShiftingOpportunity`, `ShiftingResponse`, `SuggestionExplanation`
+- `BaselinesResponse`, `SuppressResponse`, `EnergyHealthResponse`
+- `ZoneEnergyRegister`, `ZoneEnergyRegistered`, `ZoneEnergyResponse`
+- `AllZonesEnergyResponse`, `SankeyNode`, `SankeyFlow`, `SankeyDataResponse`
+
+#### Spec Statistics
+- Total paths: 49 (was 38)
+- Total schemas: 64 (was 47)
+- Total tags: 13 (was 12)
+
+#### Infrastructure
+- **config.json** — Version 5.4.0
+
 ## [5.3.0] - 2026-02-21
 
 ### Test Coverage — Sankey Renderer Tests
