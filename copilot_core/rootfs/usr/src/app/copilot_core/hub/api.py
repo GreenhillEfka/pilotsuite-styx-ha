@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.4.0)."""
+"""Hub API endpoints for PilotSuite (v6.6.0)."""
 
 from __future__ import annotations
 
@@ -19,13 +19,15 @@ _maintenance_engine: object | None = None
 _anomaly_engine: object | None = None
 _zone_engine: object | None = None
 _light_engine: object | None = None
+_mode_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  maintenance_engine=None, anomaly_engine=None,
-                 zone_engine=None, light_engine=None) -> None:
+                 zone_engine=None, light_engine=None,
+                 mode_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -33,13 +35,16 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _anomaly_engine = anomaly_engine
     _zone_engine = zone_engine
     _light_engine = light_engine
+    _mode_engine = mode_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
         anomaly_engine is not None,
         zone_engine is not None,
+        light_engine is not None,
+        mode_engine is not None,
     )
 
 
@@ -693,3 +698,98 @@ def suggest_light_scene():
             "color_temp_k": scene.color_temp_k,
         },
     })
+
+
+# ── Zone Modes endpoints (v6.6.0) ──────────────────────────────────────────
+
+
+@hub_bp.route("/modes", methods=["GET"])
+@require_token
+def get_mode_overview():
+    """Get zone modes overview."""
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    overview = _mode_engine.get_overview()
+    return jsonify({"ok": True, **asdict(overview)})
+
+
+@hub_bp.route("/modes/available", methods=["GET"])
+@require_token
+def get_available_modes():
+    """Get all available mode definitions."""
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    modes = _mode_engine.get_available_modes()
+    return jsonify({"ok": True, "modes": modes})
+
+
+@hub_bp.route("/modes/zone/<zone_id>", methods=["GET"])
+@require_token
+def get_zone_mode_status(zone_id):
+    """Get current mode status for a zone."""
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    status = _mode_engine.get_zone_status(zone_id)
+    return jsonify({"ok": True, **asdict(status)})
+
+
+@hub_bp.route("/modes/activate", methods=["POST"])
+@require_token
+def activate_zone_mode():
+    """Activate a mode on a zone.
+
+    JSON body: {"zone_id": "...", "mode_id": "...", "duration_min"?: ..., "activated_by"?: "user"}
+    """
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _mode_engine.activate_mode(
+        zone_id=body.get("zone_id", ""),
+        mode_id=body.get("mode_id", ""),
+        duration_min=body.get("duration_min"),
+        activated_by=body.get("activated_by", "user"),
+    )
+    return jsonify({"ok": result, "zone_id": body.get("zone_id"), "mode_id": body.get("mode_id")})
+
+
+@hub_bp.route("/modes/deactivate", methods=["POST"])
+@require_token
+def deactivate_zone_mode():
+    """Deactivate the current mode on a zone.
+
+    JSON body: {"zone_id": "..."}
+    """
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _mode_engine.deactivate_mode(body.get("zone_id", ""))
+    return jsonify({"ok": result, "zone_id": body.get("zone_id")})
+
+
+@hub_bp.route("/modes/expire", methods=["POST"])
+@require_token
+def check_mode_expirations():
+    """Check and expire timed-out modes."""
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    expired = _mode_engine.check_expirations()
+    return jsonify({"ok": True, "expired_zones": expired})
+
+
+@hub_bp.route("/modes/custom", methods=["POST"])
+@require_token
+def register_custom_mode():
+    """Register a custom mode.
+
+    JSON body: {"mode_id": "...", "name_de": "...", "name_en"?: "...", "icon"?: "...",
+                "suppress_automations"?: false, "suppress_lights"?: false, ...}
+    """
+    if not _mode_engine:
+        return jsonify({"error": "Mode engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    mode_id = body.pop("mode_id", "")
+    name_de = body.pop("name_de", "")
+    name_en = body.pop("name_en", "")
+    icon = body.pop("icon", "mdi:cog")
+    result = _mode_engine.register_custom_mode(mode_id, name_de, name_en, icon, **body)
+    return jsonify({"ok": result, "mode_id": mode_id})

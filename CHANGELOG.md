@@ -1,5 +1,31 @@
 # Changelog - PilotSuite Core Add-on
 
+## [6.6.0] - 2026-02-21
+
+### Zone Modes — Party/Sleep/Custom Quick-Switches mit Timer & Suppression
+
+#### Zone Mode Engine (NEW)
+- **hub/zone_modes.py** — `ZoneModeEngine`
+- 8 built-in Modi: Partymodus, Kinderschlafmodus, Filmeabend, Gästemodus, Fokusmodus, Abwesend, Nachtmodus, Romantik
+- Timer-basierte Auto-Deaktivierung (z.B. Party 3h, Film 3h, Gäste 8h)
+- Suppression-System: Automationen, Licht, Medien, Benachrichtigungen pro Modus steuerbar
+- Restrictions: max_volume_pct, min/max_brightness_pct, color_temp_k
+- Mode-History mit Dauer-Tracking (activated, deactivated, expired, overridden)
+- Custom Mode Registration für benutzerdefinierte Modi
+- Per-Zone Modus-Verwaltung mit automatischer Ablösung
+
+#### API Endpoints (7 NEW)
+- `GET /api/v1/hub/modes` — Zone modes overview
+- `GET /api/v1/hub/modes/available` — Available mode definitions
+- `GET /api/v1/hub/modes/zone/<id>` — Zone mode status
+- `POST /api/v1/hub/modes/activate` — Activate mode on zone
+- `POST /api/v1/hub/modes/deactivate` — Deactivate zone mode
+- `POST /api/v1/hub/modes/expire` — Check/expire timed-out modes
+- `POST /api/v1/hub/modes/custom` — Register custom mode
+
+#### Test Suite (NEW — 44 tests)
+- **tests/test_zone_modes.py** — Built-in modes, activation, deactivation, expiration, suppression, restrictions, history, overview, custom modes
+
 ## [6.5.0] - 2026-02-21
 
 ### Licht-Intelligence — Sonnenstand, Helligkeit, Schwellwertregler, Mood-Szenen
