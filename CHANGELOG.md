@@ -1,5 +1,29 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.13.0] - 2026-02-21
+
+### Energy Report Generator — Structured Energy Reports
+
+#### Report Generator (NEW)
+- **energy/report_generator.py** — Generates daily/weekly/monthly energy reports
+- Consumption breakdown: total, production, net grid, self-consumed, fed-in, autarky ratio
+- Cost analysis: gross/net cost, solar savings, feed-in revenue, cheapest/most expensive day
+- Period comparison with trend detection (improving/stable/worsening)
+- German optimization recommendations by category (solar, scheduling, consumption, tariff)
+- Device-level insights aggregated from fingerprint data
+- Highlights summary in German
+
+#### API Endpoints (NEW)
+- `POST /api/v1/energy/reports/generate` — Generate report (body: report_type, end_date)
+- `GET /api/v1/energy/reports/coverage` — Data coverage info
+- `POST /api/v1/energy/reports/data` — Add daily energy data
+
+#### Test Suite (NEW — 40+ tests)
+- **tests/test_report_generator.py** — Data, generation, consumption, costs, comparison, recommendations, highlights, devices
+
+#### Infrastructure
+- **config.json** — Version 5.13.0
+
 ## [5.12.0] - 2026-02-21
 
 ### Appliance Fingerprinting — Device Identification from Power Signatures

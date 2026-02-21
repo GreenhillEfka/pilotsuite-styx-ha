@@ -661,3 +661,93 @@ def get_usage_stats():
 
     stats = _fingerprinter.get_all_usage_stats()
     return jsonify({"ok": True, "devices": stats, "count": len(stats)})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.13.0 — Energy Report Generator
+# ═══════════════════════════════════════════════════════════════════════════
+
+_report_generator = None
+
+
+def init_report_generator(generator=None):
+    """Initialize the report generator singleton."""
+    global _report_generator
+    if generator is None:
+        from .report_generator import EnergyReportGenerator
+        generator = EnergyReportGenerator()
+    _report_generator = generator
+
+
+@energy_bp.route("/api/v1/energy/reports/generate", methods=["POST"])
+@require_api_key
+def generate_report():
+    """Generate an energy report.
+
+    JSON body: {report_type: "daily"|"weekly"|"monthly", end_date: "YYYY-MM-DD"}
+    """
+    if not _report_generator:
+        return jsonify({"error": "Report generator not initialized"}), 503
+
+    from dataclasses import asdict
+    from datetime import date as date_cls
+
+    body = request.get_json(silent=True) or {}
+    report_type = body.get("report_type", "weekly")
+    end_str = body.get("end_date")
+
+    end_date = None
+    if end_str:
+        try:
+            end_date = date_cls.fromisoformat(end_str)
+        except ValueError:
+            return jsonify({"ok": False, "error": "Invalid date format"}), 400
+
+    report = _report_generator.generate_report(report_type=report_type, end_date=end_date)
+    return jsonify({"ok": True, "report": asdict(report)})
+
+
+@energy_bp.route("/api/v1/energy/reports/coverage", methods=["GET"])
+@require_api_key
+def report_coverage():
+    """Get data coverage for report generation."""
+    if not _report_generator:
+        return jsonify({"error": "Report generator not initialized"}), 503
+
+    coverage = _report_generator.get_data_coverage()
+    return jsonify({"ok": True, **coverage})
+
+
+@energy_bp.route("/api/v1/energy/reports/data", methods=["POST"])
+@require_api_key
+def add_report_data():
+    """Add daily energy data for reports.
+
+    JSON body: {date, consumption_kwh, production_kwh, avg_price_eur_kwh, devices}
+    """
+    if not _report_generator:
+        return jsonify({"error": "Report generator not initialized"}), 503
+
+    from datetime import date as date_cls
+
+    body = request.get_json(silent=True) or {}
+    date_str = body.get("date")
+    consumption = body.get("consumption_kwh")
+    production = body.get("production_kwh", 0)
+
+    if not date_str or consumption is None:
+        return jsonify({"ok": False, "error": "date and consumption_kwh required"}), 400
+
+    try:
+        day = date_cls.fromisoformat(date_str)
+    except ValueError:
+        return jsonify({"ok": False, "error": "Invalid date format"}), 400
+
+    _report_generator.add_daily_data(
+        day=day,
+        consumption_kwh=float(consumption),
+        production_kwh=float(production),
+        avg_price_eur_kwh=body.get("avg_price_eur_kwh"),
+        devices=body.get("devices"),
+    )
+    return jsonify({"ok": True, "date": date_str}), 201
