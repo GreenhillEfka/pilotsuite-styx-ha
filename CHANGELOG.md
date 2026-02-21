@@ -1,5 +1,37 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.3.0] - 2026-02-21
+
+### Test Coverage — Voice Context + Anomaly Detector
+
+#### Voice Context Tests (NEW — 45+ tests)
+- **tests/test_voice_context.py**
+  - `TestCommandPattern` — Regex matching, case insensitivity, entity extraction, multiple patterns
+  - `TestExtractors` — Temperature, scene, automation, entity extraction functions
+  - `TestParseCommand` — All 16 intents: light on/off/toggle, climate warmer/cooler/set, media play/pause/stop, volume up/down, scene, automation, status, search, help, unknown
+  - `TestVoiceTone` — Tone config switching (formal/friendly/casual/cautious), character service integration, response formatting fallbacks
+  - `TestTTSDiscovery` — Priority-based entity discovery (Sonos, Google Home, TTS capability, fallback)
+  - `TestSpeak` — TTS service calls, custom entity, failure fallback to media_player
+  - `TestModuleProperties` — Name, version, help text
+  - `TestDataclasses` — VoiceCommand, TTSRequest defaults and custom values
+  - `TestCommandPatternsCoverage` — Ensures all defined intents are reachable
+
+#### Anomaly Detector Tests (NEW — 35+ tests)
+- **tests/test_anomaly_detector.py**
+  - `TestInit` — Default/custom params, empty initial state
+  - `TestFeatures` — Feature initialization, buffer sizes, vector extraction, missing/non-numeric values
+  - `TestFit` — Model fitting, disabled state, random seed, error fallback
+  - `TestUpdate` — Not-fitted, disabled, normal/anomalous values, history tracking, missing features
+  - `TestScoring` — Score range validation, exception handling
+  - `TestAdaptiveThreshold` — Default (cold start), high/low/medium anomaly rates
+  - `TestSummary` — Empty, with data, time filter
+  - `TestReset` — State clearing, feature history clearing
+  - `TestContextAware` — ContextAwareAnomalyDetector: init, temporal analysis, relationship analysis, context defaults
+  - `TestEdgeCases` — History/window max size, empty features, multiple sequential updates
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.3.0
+
 ## [5.2.0] - 2026-02-21
 
 ### Sankey Energy Flow Sensor
