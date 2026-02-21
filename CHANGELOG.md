@@ -1,5 +1,34 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.9.0] - 2026-02-21
+
+### Automation Suggestions — Generate HA Automations from Patterns
+
+#### Automation Suggestion Engine (NEW)
+- **automations/suggestion_engine.py** — Generates HA automation YAML from observed patterns
+- 4 suggestion types:
+  - **Time-based**: Schedule device runs at optimal hours (weekday/daily)
+  - **Solar-based**: Start devices when PV surplus exceeds threshold
+  - **Comfort-based**: Trigger actions on CO2, temperature, humidity thresholds
+  - **Presence-based**: Away-mode actions when nobody home
+- Accept/dismiss workflow for user-driven curation
+- Confidence scoring and savings estimates per suggestion
+- Valid HA automation YAML output ready for direct import
+
+#### API Endpoints (NEW)
+- `GET /api/v1/automations/suggestions` — List suggestions with category filter
+- `POST /api/v1/automations/suggestions/{id}/accept` — Accept a suggestion
+- `POST /api/v1/automations/suggestions/{id}/dismiss` — Dismiss a suggestion
+- `GET /api/v1/automations/suggestions/{id}/yaml` — Raw YAML for a suggestion
+- `POST /api/v1/automations/generate` — Bulk-generate from schedule/solar/comfort/presence data
+
+#### Test Suite (NEW — 30+ tests)
+- **tests/test_automation_suggestions.py** — Schedule, solar, comfort, presence, management
+
+#### Infrastructure
+- **automations/__init__.py** — Module with public exports
+- **config.json** — Version 5.9.0
+
 ## [5.8.0] - 2026-02-21
 
 ### Notification Engine — Smart Alert Aggregation
