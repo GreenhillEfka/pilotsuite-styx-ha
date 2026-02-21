@@ -1,4 +1,4 @@
-"""Regional Context API endpoints (v5.18.0)."""
+"""Regional Context API endpoints (v5.19.0)."""
 
 from __future__ import annotations
 
@@ -16,22 +16,29 @@ _provider = None
 _warning_manager = None
 _fuel_tracker = None
 _tariff_engine = None
+_alert_engine = None
 
 
 def init_regional_api(
-    provider=None, warning_manager=None, fuel_tracker=None, tariff_engine=None
+    provider=None,
+    warning_manager=None,
+    fuel_tracker=None,
+    tariff_engine=None,
+    alert_engine=None,
 ) -> None:
     """Initialize all regional services."""
-    global _provider, _warning_manager, _fuel_tracker, _tariff_engine
+    global _provider, _warning_manager, _fuel_tracker, _tariff_engine, _alert_engine
     _provider = provider
     _warning_manager = warning_manager
     _fuel_tracker = fuel_tracker
     _tariff_engine = tariff_engine
+    _alert_engine = alert_engine
     logger.info(
-        "Regional API initialized (warnings: %s, fuel: %s, tariff: %s)",
+        "Regional API initialized (warnings: %s, fuel: %s, tariff: %s, alerts: %s)",
         warning_manager is not None,
         fuel_tracker is not None,
         tariff_engine is not None,
+        alert_engine is not None,
     )
 
 
@@ -426,3 +433,97 @@ def configure_tariff():
         feed_in=body.get("feed_in_eur_kwh"),
     )
     return jsonify({"ok": True, "configured": True, "tariff_type": _tariff_engine.tariff_type})
+
+
+# ── Proactive Alert endpoints (v5.19.0) ──────────────────────────────────
+
+
+@regional_bp.route("/alerts", methods=["GET"])
+@require_token
+def get_alerts():
+    """Get all active proactive alerts."""
+    if not _alert_engine:
+        return jsonify({"error": "Alert engine not initialized"}), 503
+    summary = _alert_engine.get_summary()
+    return jsonify({"ok": True, **asdict(summary)})
+
+
+@regional_bp.route("/alerts/evaluate", methods=["POST"])
+@require_token
+def evaluate_alerts():
+    """Trigger alert evaluation with current data from all services."""
+    if not _alert_engine:
+        return jsonify({"error": "Alert engine not initialized"}), 503
+
+    # Gather data from available services
+    warning_data = None
+    tariff_data = None
+    pv_factor = 0.0
+    solar_data = None
+
+    if _warning_manager:
+        overview = _warning_manager.get_overview()
+        warning_data = asdict(overview)
+
+    if _tariff_engine:
+        summary = _tariff_engine.get_summary()
+        tariff_data = asdict(summary)
+
+    if _provider:
+        pv_factor = _provider.get_pv_factor()
+        solar = _provider.get_solar_position()
+        solar_data = asdict(solar)
+
+    new_alerts = _alert_engine.evaluate_combined(
+        warning_overview=warning_data,
+        tariff_summary=tariff_data,
+        pv_factor=pv_factor,
+        solar_data=solar_data,
+    )
+
+    summary = _alert_engine.get_summary()
+    return jsonify({
+        "ok": True,
+        "new_alerts": len(new_alerts),
+        **asdict(summary),
+    })
+
+
+@regional_bp.route("/alerts/dismiss", methods=["POST"])
+@require_token
+def dismiss_alert():
+    """Dismiss/acknowledge an alert.
+
+    JSON body: {"alert_id": "alert-1"}
+    """
+    if not _alert_engine:
+        return jsonify({"error": "Alert engine not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    alert_id = body.get("alert_id", "")
+
+    result = _alert_engine.dismiss_alert(alert_id)
+    return jsonify({"ok": True, "dismissed": result, "alert_id": alert_id})
+
+
+@regional_bp.route("/alerts/config", methods=["POST"])
+@require_token
+def configure_alerts():
+    """Configure alert thresholds.
+
+    JSON body: {
+        "price_spike_ct": 35.0,
+        "price_low_ct": 20.0,
+        "pv_drop_pct": 50.0
+    }
+    """
+    if not _alert_engine:
+        return jsonify({"error": "Alert engine not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    _alert_engine.configure(
+        price_spike_ct=body.get("price_spike_ct"),
+        price_low_ct=body.get("price_low_ct"),
+        pv_drop_pct=body.get("pv_drop_pct"),
+    )
+    return jsonify({"ok": True, "configured": True})

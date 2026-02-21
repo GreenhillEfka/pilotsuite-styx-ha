@@ -1,5 +1,35 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.19.0] - 2026-02-21
+
+### Proactive Alert System — Combined Weather+Price+Grid Alerts
+
+#### Proactive Alert Engine (NEW)
+- **regional/proactive_alerts.py** — `ProactiveAlertEngine` aggregating all regional data
+- Weather alerts: severe weather → battery protection, PV impact → grid fallback, grid risk → curtailment
+- Price alerts: spike detection, cheap window notification, arbitrage opportunities
+- PV alerts: high production → self-consumption, sunset → charge from PV
+- Combined alert: severe weather + high price = critical protection mode
+- 4 priority levels: Info, Hinweis, Warnung, Kritisch
+- Cooldown system prevents duplicate alerts (configurable per rule)
+- Alert expiration (TTL) with automatic cleanup
+- Dismiss/acknowledge alerts via API
+- Configurable thresholds: price spike, price low, PV drop percentage
+- Bilingual alerts (DE/EN) with action recommendations
+
+#### API Endpoints (4 NEW)
+- `GET /api/v1/regional/alerts` — All active alerts with summary
+- `POST /api/v1/regional/alerts/evaluate` — Trigger evaluation from all services
+- `POST /api/v1/regional/alerts/dismiss` — Dismiss an alert
+- `POST /api/v1/regional/alerts/config` — Configure thresholds
+
+#### Test Suite (NEW — 32 tests)
+- **tests/test_proactive_alerts.py** — Weather, price, PV, combined, cooldowns, dismiss, config
+
+#### Infrastructure
+- **regional/__init__.py** — Exports ProactiveAlertEngine
+- **regional/api.py** — Updated with alert endpoints and evaluate integration
+
 ## [5.18.0] - 2026-02-21
 
 ### Regional Tariff Engine — Dynamic Electricity Pricing with aWATTar/EPEX
