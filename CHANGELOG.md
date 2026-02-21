@@ -1,5 +1,37 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.17.0] - 2026-02-21
+
+### Fuel Price Tracker — Tankerkoenig Integration with EV vs ICE Comparison
+
+#### Fuel Price Tracker (NEW)
+- **regional/fuel_prices.py** — `FuelPriceTracker` with Tankerkoenig API integration
+- Parses Tankerkoenig station data (name, brand, distance, diesel/E5/E10 prices)
+- Manual price input for users without API key
+- Price aggregation: avg/min/max per fuel type, cheapest station names
+- Cost-per-100km comparison: Elektro vs Diesel vs Benzin vs E10
+- Default consumption: EV 18kWh, Diesel 6L, Benzin 7.5L per 100km
+- CO2 comparison per 100km (electric vs combustion)
+- Configurable: API key, radius, vehicle consumption values, grid price
+- Price history tracking (up to 168 snapshots for weekly trend)
+- Dashboard-ready data with top 5 nearest stations and 48h price history
+- Bilingual recommendations (DE/EN) with savings calculations
+
+#### API Endpoints (6 NEW)
+- `GET /api/v1/regional/fuel/prices` — Aggregated fuel price summary
+- `GET /api/v1/regional/fuel/compare` — Cost-per-100km comparison
+- `GET /api/v1/regional/fuel/dashboard` — Full dashboard data with history
+- `GET /api/v1/regional/fuel/stations` — Nearby stations with prices
+- `POST /api/v1/regional/fuel/ingest` — Ingest Tankerkoenig/manual data
+- `POST /api/v1/regional/fuel/config` — Configure API key, consumption, radius
+
+#### Test Suite (NEW — 56 tests)
+- **tests/test_fuel_prices.py** — Parsing, aggregation, comparison, dashboard, config, history
+
+#### Infrastructure
+- **regional/__init__.py** — Exports FuelPriceTracker
+- **regional/api.py** — Updated with fuel endpoints and init_regional_api(fuel_tracker=)
+
 ## [5.16.0] - 2026-02-21
 
 ### DWD Weather Warnings — German Weather Service Alerts

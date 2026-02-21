@@ -1,4 +1,4 @@
-"""Regional Context API endpoints (v5.16.0)."""
+"""Regional Context API endpoints (v5.17.0)."""
 
 from __future__ import annotations
 
@@ -14,14 +14,20 @@ regional_bp = Blueprint("regional", __name__, url_prefix="/api/v1/regional")
 
 _provider = None
 _warning_manager = None
+_fuel_tracker = None
 
 
-def init_regional_api(provider=None, warning_manager=None) -> None:
-    """Initialize regional context provider and warning manager."""
-    global _provider, _warning_manager
+def init_regional_api(provider=None, warning_manager=None, fuel_tracker=None) -> None:
+    """Initialize regional context provider, warning manager, and fuel tracker."""
+    global _provider, _warning_manager, _fuel_tracker
     _provider = provider
     _warning_manager = warning_manager
-    logger.info("Regional API initialized (warnings: %s)", warning_manager is not None)
+    _fuel_tracker = fuel_tracker
+    logger.info(
+        "Regional API initialized (warnings: %s, fuel: %s)",
+        warning_manager is not None,
+        fuel_tracker is not None,
+    )
 
 
 @regional_bp.route("/context", methods=["GET"])
@@ -178,3 +184,128 @@ def ingest_warnings():
     except Exception as exc:
         logger.error("Warning ingestion failed: %s", exc)
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ── Fuel Price endpoints (v5.17.0) ───────────────────────────────────────
+
+
+@regional_bp.route("/fuel/prices", methods=["GET"])
+@require_token
+def get_fuel_prices():
+    """Get current fuel prices summary."""
+    if not _fuel_tracker:
+        return jsonify({"error": "Fuel tracker not initialized"}), 503
+    prices = _fuel_tracker.get_prices()
+    if not prices:
+        return jsonify({"ok": True, "prices": None, "message": "No price data yet"})
+    return jsonify({"ok": True, **asdict(prices)})
+
+
+@regional_bp.route("/fuel/compare", methods=["GET"])
+@require_token
+def get_fuel_compare():
+    """Get cost-per-100km comparison (Strom vs Diesel vs Benzin vs E10)."""
+    if not _fuel_tracker:
+        return jsonify({"error": "Fuel tracker not initialized"}), 503
+    cost = _fuel_tracker.get_cost_per_100km()
+    if not cost:
+        return jsonify({"ok": True, "comparison": None, "message": "No price data yet"})
+    return jsonify({"ok": True, **asdict(cost)})
+
+
+@regional_bp.route("/fuel/dashboard", methods=["GET"])
+@require_token
+def get_fuel_dashboard():
+    """Get dashboard-ready fuel data with all comparisons and history."""
+    if not _fuel_tracker:
+        return jsonify({"error": "Fuel tracker not initialized"}), 503
+    dashboard = _fuel_tracker.get_dashboard_data()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@regional_bp.route("/fuel/stations", methods=["GET"])
+@require_token
+def get_fuel_stations():
+    """Get nearby fuel stations with current prices."""
+    if not _fuel_tracker:
+        return jsonify({"error": "Fuel tracker not initialized"}), 503
+    stations = [s for s in _fuel_tracker._stations if s.is_open]
+    return jsonify({
+        "ok": True,
+        "stations": [asdict(s) for s in sorted(stations, key=lambda x: x.dist)[:20]],
+        "total": len(stations),
+    })
+
+
+@regional_bp.route("/fuel/ingest", methods=["POST"])
+@require_token
+def ingest_fuel_prices():
+    """Ingest fuel prices from Tankerkoenig or manual input.
+
+    JSON body: {"source": "tankerkoenig"|"manual", "data": {...}}
+    For manual: {"source": "manual", "data": {"diesel": 1.45, "e5": 1.65, "e10": 1.59}}
+    """
+    if not _fuel_tracker:
+        return jsonify({"error": "Fuel tracker not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    source = body.get("source", "manual")
+    data = body.get("data", {})
+
+    try:
+        if source == "tankerkoenig":
+            stations = _fuel_tracker.process_tankerkoenig_response(data)
+        else:
+            stations = _fuel_tracker.process_manual_prices(
+                diesel=data.get("diesel"),
+                e5=data.get("e5"),
+                e10=data.get("e10"),
+            )
+
+        logger.info("Ingested fuel prices from %s: %d stations", source, len(stations))
+        prices = _fuel_tracker.get_prices()
+        return jsonify({
+            "ok": True,
+            "source": source,
+            "station_count": len(stations),
+            "prices": asdict(prices) if prices else None,
+        })
+    except Exception as exc:
+        logger.error("Fuel price ingestion failed: %s", exc)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@regional_bp.route("/fuel/config", methods=["POST"])
+@require_token
+def configure_fuel():
+    """Configure fuel tracker (API key, consumption values).
+
+    JSON body: {
+        "api_key": "...",
+        "ev_kwh_per_100km": 18.0,
+        "diesel_l_per_100km": 6.0,
+        "benzin_l_per_100km": 7.5,
+        "radius_km": 10.0
+    }
+    """
+    if not _fuel_tracker:
+        return jsonify({"error": "Fuel tracker not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+
+    if "api_key" in body:
+        _fuel_tracker.set_api_key(body["api_key"])
+    if "radius_km" in body:
+        _fuel_tracker.update_location(
+            _fuel_tracker._lat, _fuel_tracker._lon, float(body["radius_km"])
+        )
+    _fuel_tracker.update_consumption(
+        ev_kwh=body.get("ev_kwh_per_100km"),
+        diesel_l=body.get("diesel_l_per_100km"),
+        benzin_l=body.get("benzin_l_per_100km"),
+        e10_l=body.get("e10_l_per_100km"),
+    )
+    if "grid_price_eur_kwh" in body:
+        _fuel_tracker.update_grid_price(float(body["grid_price_eur_kwh"]))
+
+    return jsonify({"ok": True, "configured": True, "has_api_key": _fuel_tracker.has_api_key})
