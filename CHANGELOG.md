@@ -1,5 +1,24 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.1.0] - 2026-02-21
+
+### Zone Energy Device Discovery — Auto-Association + Tagging
+
+#### Zone Energy Discovery Module (NEW)
+- **zone_energy_devices.py** — `ZoneEnergyDiscovery` class for automatic energy device detection per Habitzone
+- `ZoneEnergyDevice` dataclass — entity_id, device_class, related_entities, association_method, tags
+- 3 auto-discovery strategies:
+  1. **Device-based**: Energy sensors sharing `device_id` with zone entities
+  2. **Area-based**: Energy sensors in the same HA area
+  3. **Name-based**: Energy sensor names matching zone entity/zone name patterns
+- `discover_all_energy_entities()` — Scans HA entity registry for power/energy/current/voltage device classes
+- `discover_for_zone(zone_entity_ids, zone_name)` — Auto-discovers energy devices for a specific Habitzone
+- `get_zone_power_total(energy_entity_ids)` — Aggregates power with unit conversion (kW→W, mW→W)
+- Uses HA registries: `entity_registry`, `device_registry`, `area_registry`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.1.0
+
 ## [5.0.0] - 2026-02-21
 
 ### Major Release — Performance Monitoring, Test Coverage
