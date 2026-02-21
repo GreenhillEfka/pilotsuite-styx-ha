@@ -1,5 +1,21 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.24.0] - 2026-02-21
+
+### Heat Pump Sensor — COP & Scheduling in HA
+
+#### Heat Pump Sensor (NEW)
+- **sensors/heat_pump_sensor.py** — `HeatPumpSensor` entity
+- State: current COP (coefficient of performance)
+- Dynamic icon: heat-pump/water-boiler/solar-power/snowflake-melt based on action
+- Attributes: pump type, action, COP, power, room/outdoor/DHW temps,
+  runtime, heat/electricity today, cost, strategy, schedule totals
+- Fetches from `/api/v1/regional/heatpump/status` and `/heatpump/schedule`
+
+#### Infrastructure
+- **sensor.py** — Registers HeatPumpSensor
+- **entity.py** + **manifest.json** — Version 5.24.0
+
 ## [5.23.0] - 2026-02-21
 
 ### Battery Optimizer Sensor — Charge/Discharge Strategy in HA
