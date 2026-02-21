@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.9.0] - 2026-02-21
+
+### Automation Suggestion Sensor — Smart Recommendations in HA
+
+#### Automation Suggestion Sensor (NEW)
+- **sensors/automation_suggestion_sensor.py** — `AutomationSuggestionSensor` entity
+- State: suggestion count (e.g. "3 suggestions")
+- Attributes: top 3 suggestions with title/category/confidence/savings, category breakdown, total savings
+- Async fetch from Core `GET /api/v1/automations/suggestions`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.9.0
+
 ## [5.8.0] - 2026-02-21
 
 ### Notification Sensor — Alert Monitoring in HA
