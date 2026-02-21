@@ -1,5 +1,22 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.0] - 2026-02-21 — HA CONFORMITY RELEASE
+
+### Kompletter HA-Konformitaets-Audit — alle Stolperstellen gefixt
+
+#### KRITISCH: Integration lud keine Plattformen
+- **legacy.py**: `CopilotDataUpdateCoordinator` war hinter `TYPE_CHECKING` versteckt aber wurde zur Laufzeit benoetigt → `NameError` → KEINE Sensoren/Buttons/etc wurden geladen. GEFIXT.
+
+#### Kaputte Imports
+- **quick_search.py**: `..core.module` → `.module`, `..const` → `...const`
+- **module_connector.py**: `..const` → `.const`
+
+#### manifest.json
+- `homeassistant: "2024.1.0"` Mindestversion hinzugefuegt
+
+#### Sonstiges
+- **mood_module.py**: Falscher Default-Port `5000` → `8909`
+
 ## [7.6.4] - 2026-02-21 — ADD-ON DISCOVERY FIX
 
 ### Sync mit Core v7.6.4

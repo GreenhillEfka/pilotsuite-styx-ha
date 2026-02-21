@@ -675,7 +675,7 @@ class MoodModule(CopilotModule):
             API response dictionary or None on error.
         """
         # Get core add-on URL from hass data or config
-        core_url = "http://localhost:5000"  # Default, should be configurable
+        core_url = "http://localhost:8909"  # Default, should be configurable
         
         try:
             # In production, this would make actual HTTP calls
