@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.12.0] - 2026-02-21
+
+### Appliance Fingerprint Sensor — Device Recognition in HA
+
+#### Appliance Fingerprint Sensor (NEW)
+- **sensors/appliance_fingerprint_sensor.py** — `ApplianceFingerprintSensor` entity
+- State: count of known device fingerprints
+- Attributes: top 5 fingerprints (id, name, type, avg watts), top 5 usage stats (runs, kWh)
+- Dual endpoint polling: fingerprints + usage stats
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.12.0
+
 ## [5.11.0] - 2026-02-21
 
 ### Weather Optimizer Sensor — Forecast-Based Energy Insights in HA
