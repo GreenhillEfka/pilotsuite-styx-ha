@@ -14,7 +14,8 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity, EntityDescription
+from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -23,7 +24,7 @@ from .energy_context import EnergyContextCoordinator, EnergySnapshot
 _LOGGER = logging.getLogger(__name__)
 
 
-class EnergyConsumptionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], Entity):
+class EnergyConsumptionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], SensorEntity):
     """Sensor for daily energy consumption."""
 
     _attr_native_unit_of_measurement = "kWh"
@@ -45,7 +46,7 @@ class EnergyConsumptionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], 
         return 0.0
 
 
-class EnergyProductionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], Entity):
+class EnergyProductionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], SensorEntity):
     """Sensor for daily energy production (e.g., solar)."""
 
     _attr_native_unit_of_measurement = "kWh"
@@ -67,7 +68,7 @@ class EnergyProductionTodaySensor(CoordinatorEntity[EnergyContextCoordinator], E
         return 0.0
 
 
-class EnergyCurrentPowerSensor(CoordinatorEntity[EnergyContextCoordinator], Entity):
+class EnergyCurrentPowerSensor(CoordinatorEntity[EnergyContextCoordinator], SensorEntity):
     """Sensor for current power draw/production."""
 
     _attr_native_unit_of_measurement = "W"
@@ -89,7 +90,7 @@ class EnergyCurrentPowerSensor(CoordinatorEntity[EnergyContextCoordinator], Enti
         return 0.0
 
 
-class EnergyAnomaliesSensor(CoordinatorEntity[EnergyContextCoordinator], Entity):
+class EnergyAnomaliesSensor(CoordinatorEntity[EnergyContextCoordinator], SensorEntity):
     """Sensor for number of detected energy anomalies."""
 
     _attr_icon = "mdi:alert-circle"
@@ -108,7 +109,7 @@ class EnergyAnomaliesSensor(CoordinatorEntity[EnergyContextCoordinator], Entity)
         return 0
 
 
-class EnergyShiftingOpportunitiesSensor(CoordinatorEntity[EnergyContextCoordinator], Entity):
+class EnergyShiftingOpportunitiesSensor(CoordinatorEntity[EnergyContextCoordinator], SensorEntity):
     """Sensor for number of load shifting opportunities."""
 
     _attr_icon = "mdi:clock-outline"
@@ -127,7 +128,7 @@ class EnergyShiftingOpportunitiesSensor(CoordinatorEntity[EnergyContextCoordinat
         return 0
 
 
-class EnergyAnomalyAlertBinarySensor(CoordinatorEntity[EnergyContextCoordinator], Entity):
+class EnergyAnomalyAlertBinarySensor(CoordinatorEntity[EnergyContextCoordinator], BinarySensorEntity):
     """Binary sensor that is ON when there are high-severity energy anomalies."""
 
     _attr_device_class = "problem"

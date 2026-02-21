@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.6.2] - 2026-02-21 — BUGFIX: 3 Echte Bugs gefixt
+
+### Audit & Bugfix Release
+
+#### Fixes
+- **energy_context_entities.py**: Metaclass-Konflikt behoben — `Entity` durch `SensorEntity`/`BinarySensorEntity` ersetzt (6 Klassen)
+- **voice_context.py**: Kaputte Import-Pfade gefixt (`..core.module` → `.module`, `..const` → `...const`)
+- **anomaly_detector.py**: `sklearn` graceful Fallback — ML-Detection deaktiviert wenn sklearn nicht installiert (kein Crash mehr)
+- **test_anomaly_detector.py**: Tests skippen automatisch ohne sklearn (`pytest.importorskip`)
+
+#### Tests
+- 497 Tests bestanden, 0 Fehler (5 skipped wegen fehlender sklearn)
+- Alle 3 vorher kaputten Test-Dateien funktionieren jetzt
+
 ## [7.6.0] - 2026-02-21 — PRODUCTION-READY RELEASE
 
 ### Bulletproof HA Integration — Bereit fuer echten Test

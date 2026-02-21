@@ -7,8 +7,16 @@ _LOGGER = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Tuple, Any
 from collections import deque
 import numpy as np
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
+
+try:
+    from sklearn.ensemble import IsolationForest
+    from sklearn.preprocessing import StandardScaler
+    _SKLEARN_AVAILABLE = True
+except ImportError:
+    _SKLEARN_AVAILABLE = False
+    IsolationForest = None
+    StandardScaler = None
+    _LOGGER.info("sklearn not installed — ML anomaly detection disabled, using threshold fallback")
 
 
 class AnomalyDetector:
@@ -46,8 +54,8 @@ class AnomalyDetector:
         self.window_size = window_size
         self.enabled = enabled
         
-        self.model: Optional[IsolationForest] = None
-        self.scaler = StandardScaler()
+        self.model = None
+        self.scaler = StandardScaler() if _SKLEARN_AVAILABLE else None
         self.window: deque = deque(maxlen=window_size)
         self.feature_names: List[str] = []
         self.feature_history: Dict[str, deque] = {}
@@ -117,6 +125,8 @@ class AnomalyDetector:
     
     def _compute_anomaly_score(self, feature_vector: np.ndarray) -> float:
         """Compute anomaly score for a feature vector."""
+        if not _SKLEARN_AVAILABLE or self.scaler is None or self.model is None:
+            return 0.0
         try:
             # Scale the features
             scaled = self.scaler.transform(feature_vector)
@@ -149,11 +159,11 @@ class AnomalyDetector:
     def fit(self, data: np.ndarray) -> None:
         """
         Fit the anomaly detector on historical data.
-        
+
         Args:
             data: 2D array of shape (n_samples, n_features)
         """
-        if not self.enabled:
+        if not self.enabled or not _SKLEARN_AVAILABLE:
             return
             
         try:
