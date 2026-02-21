@@ -1,5 +1,32 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.11.0] - 2026-02-21
+
+### Weather-Aware Energy Optimizer — Forecast-Driven Consumption Planning
+
+#### Weather-Aware Optimizer (NEW)
+- **prediction/weather_optimizer.py** — Combines weather, pricing, PV forecast into 48h plans
+- `WeatherAwareOptimizer.optimize()` → WeatherOptimizationPlan with hourly forecast, windows, battery plan
+- Composite scoring: PV (35%) + Price (35%) + Weather (15%) + Demand (15%)
+- Contiguous optimal window detection with reason classification (solar_surplus, low_price, combined)
+- Battery management: charge_from_pv, charge_from_grid, discharge, hold — rule-based SOC management
+- German-language alerts: storm, extended cloud, price spikes, frost warnings
+- `get_best_window(duration)` — Find best contiguous block for device scheduling
+- Cloud-to-PV efficiency interpolation, solar elevation curve, default price curve
+
+#### API Endpoints (NEW)
+- `GET /api/v1/predict/weather-optimize` — Summary plan with windows + alerts
+- `GET /api/v1/predict/weather-optimize/full` — Full plan with all hourly data + battery actions
+- `GET /api/v1/predict/weather-optimize/best-window` — Best contiguous window (query: `duration`)
+
+#### Test Suite (NEW — 45+ tests)
+- **tests/test_weather_optimizer.py** — Helpers, optimize, hourly, windows, battery, alerts, best-window, summary
+
+#### Infrastructure
+- **prediction/__init__.py** — Export WeatherAwareOptimizer
+- **prediction/api.py** — `_weather_optimizer` singleton + `weather_optimizer` param
+- **config.json** — Version 5.11.0
+
 ## [5.10.0] - 2026-02-21
 
 ### Energy Cost Tracker — Daily/Weekly/Monthly Cost History

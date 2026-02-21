@@ -29,6 +29,7 @@ _optimizer = None
 _ts_forecaster = None
 _load_scheduler = None
 _schedule_planner = None
+_weather_optimizer = None
 
 
 def init_prediction_api(
@@ -37,14 +38,16 @@ def init_prediction_api(
     ts_forecaster=None,
     load_scheduler=None,
     schedule_planner=None,
+    weather_optimizer=None,
 ) -> None:
     """Inject service singletons at startup."""
-    global _forecaster, _optimizer, _ts_forecaster, _load_scheduler, _schedule_planner
+    global _forecaster, _optimizer, _ts_forecaster, _load_scheduler, _schedule_planner, _weather_optimizer
     _forecaster = forecaster
     _optimizer = optimizer
     _ts_forecaster = ts_forecaster
     _load_scheduler = load_scheduler
     _schedule_planner = schedule_planner
+    _weather_optimizer = weather_optimizer
     logger.info("Prediction API initialized")
 
 
@@ -359,4 +362,96 @@ def get_next_scheduled():
         }), 200
     except Exception as exc:
         logger.error("Next schedule lookup failed: %s", exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.11.0 — Weather-Aware Energy Optimizer
+# ═══════════════════════════════════════════════════════════════════════════
+
+# -- GET /api/v1/predict/weather-optimize ---------------------------------
+
+@prediction_bp.route("/weather-optimize", methods=["GET"])
+@require_token
+def weather_optimize():
+    """Generate 48-hour weather-aware energy optimization plan.
+
+    Query params:
+        horizon: hours to plan (default 48, max 72)
+    """
+    if _weather_optimizer is None:
+        return jsonify({"ok": False, "error": "WeatherAwareOptimizer not initialized"}), 503
+
+    horizon = request.args.get("horizon", 48, type=int)
+    horizon = max(1, min(horizon, 72))
+
+    try:
+        plan = _weather_optimizer.optimize(horizon=horizon)
+        return jsonify({
+            "ok": True,
+            "generated_at": plan.generated_at,
+            "base_date": plan.base_date,
+            "horizon_hours": plan.horizon_hours,
+            "summary": plan.summary,
+            "alerts": plan.alerts,
+            "top_windows": plan.top_windows,
+            "battery_plan_count": len(plan.battery_plan),
+            "hourly_count": len(plan.hourly_forecast),
+        }), 200
+    except Exception as exc:
+        logger.error("Weather optimization failed: %s", exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# -- GET /api/v1/predict/weather-optimize/full ----------------------------
+
+@prediction_bp.route("/weather-optimize/full", methods=["GET"])
+@require_token
+def weather_optimize_full():
+    """Full 48-hour plan with all hourly data and battery actions."""
+    if _weather_optimizer is None:
+        return jsonify({"ok": False, "error": "WeatherAwareOptimizer not initialized"}), 503
+
+    horizon = request.args.get("horizon", 48, type=int)
+    horizon = max(1, min(horizon, 72))
+
+    try:
+        plan = _weather_optimizer.optimize(horizon=horizon)
+        return jsonify({
+            "ok": True,
+            "generated_at": plan.generated_at,
+            "base_date": plan.base_date,
+            "horizon_hours": plan.horizon_hours,
+            "summary": plan.summary,
+            "alerts": plan.alerts,
+            "top_windows": plan.top_windows,
+            "battery_plan": plan.battery_plan,
+            "hourly_forecast": plan.hourly_forecast,
+        }), 200
+    except Exception as exc:
+        logger.error("Full weather optimization failed: %s", exc, exc_info=True)
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# -- GET /api/v1/predict/weather-optimize/best-window --------------------
+
+@prediction_bp.route("/weather-optimize/best-window", methods=["GET"])
+@require_token
+def weather_best_window():
+    """Find the best contiguous window considering weather + price.
+
+    Query params:
+        duration: hours needed (default 3)
+    """
+    if _weather_optimizer is None:
+        return jsonify({"ok": False, "error": "WeatherAwareOptimizer not initialized"}), 503
+
+    duration = request.args.get("duration", 3, type=int)
+    duration = max(1, min(duration, 12))
+
+    try:
+        result = _weather_optimizer.get_best_window(duration_hours=duration)
+        return jsonify({"ok": True, **result}), 200
+    except Exception as exc:
+        logger.error("Weather best-window search failed: %s", exc, exc_info=True)
         return jsonify({"ok": False, "error": str(exc)}), 500
