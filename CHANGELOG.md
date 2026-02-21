@@ -1,5 +1,28 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [1.0.0] - 2026-02-21
+
+### Stable Release — Feature-Complete
+
+PilotSuite Styx HACS Integration erreicht **v1.0.0 Stable**. Alle geplanten Meilensteine sind abgeschlossen.
+
+**Cumulative seit v4.0.0:**
+- **v4.1.0** Race Conditions Fix (asyncio.Lock)
+- **v4.2.0** History Backfill (HA Recorder → Core, einmalig)
+- **v4.2.1** Hassfest + Config Flow Fix
+- **v4.3.0** Mood Persistence (HA Storage API, 24h TTL Cache)
+- **v4.4.0** Test Coverage: 14 neue Tests (Mood Store + Cache)
+- **v4.5.0** Conflict Resolution Engine (ConflictResolver + PreferenceInputCard + 11 Tests)
+
+**Gesamtbilanz:**
+- 94+ Sensoren, 30 Module, 22+ Dashboard Cards
+- 3 Native Lovelace Cards (Brain Graph, Mood, Habitus)
+- HA Conversation Agent (Styx → Core `/v1/chat/completions`)
+- Conflict Resolution (weighted/compromise/override)
+- Config Flow (Zero Config, Quick Start, Manual)
+- Deutsch + Englisch Translations
+- CI/HACS/Hassfest gruen
+
 ## [4.5.0] - 2026-02-21
 
 ### Conflict Resolution Engine
