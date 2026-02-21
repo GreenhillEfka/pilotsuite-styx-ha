@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.4.0] - 2026-02-21
+
+### Brain Architecture Sensor — Hirnregionen, Neuronen & Synapsen
+
+#### Brain Architecture Sensor (NEW)
+- **sensors/brain_architecture_sensor.py** — `BrainArchitectureSensor`
+- State: "X/Y Regionen aktiv" / "X/Y Regionen — Z% Gesundheit"
+- Dynamic icons: brain (healthy), head-alert (degraded), head-remove (critical)
+- Attributes: regions mit Farben & Rollen, synapse summary, graph nodes/edges
+- Connectivity Score & Health Score Monitoring
+
+#### Infrastructure
+- **sensor.py** — Registers BrainArchitectureSensor
+- Version bump to 7.4.0
+
 ## [7.3.0] - 2026-02-21
 
 ### System Integration Sensor — Cross-Engine Monitoring
