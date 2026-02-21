@@ -1,5 +1,31 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.12.0] - 2026-02-21
+
+### Appliance Fingerprinting — Device Identification from Power Signatures
+
+#### Appliance Fingerprinter (NEW)
+- **energy/fingerprint.py** — Learns and identifies appliances from power consumption patterns
+- `ApplianceFingerprinter` with archetype bootstrapping (washer, dryer, dishwasher, oven, ev_charger, heat_pump)
+- `record_signature()` — Record power samples for fingerprint learning
+- `identify()` — Match live power reading to known fingerprints (Gaussian confidence scoring)
+- `get_usage_stats()` — Per-device usage statistics (runs, kWh, duration, weekly/monthly counts)
+- Phase detection: Hochlast/Normalbetrieb/Niedriglast from power variance
+- Remaining time estimation based on matched phase position
+
+#### API Endpoints (NEW)
+- `GET /api/v1/energy/fingerprints` — List all known fingerprints
+- `GET /api/v1/energy/fingerprints/<device_id>` — Get specific fingerprint
+- `POST /api/v1/energy/fingerprints/record` — Record power signature
+- `POST /api/v1/energy/fingerprints/identify` — Identify device from watts
+- `GET /api/v1/energy/fingerprints/usage` — Usage statistics for all devices
+
+#### Test Suite (NEW — 40+ tests)
+- **tests/test_appliance_fingerprint.py** — Bootstrap, record, identify, usage, phases
+
+#### Infrastructure
+- **config.json** — Version 5.12.0
+
 ## [5.11.0] - 2026-02-21
 
 ### Weather-Aware Energy Optimizer — Forecast-Driven Consumption Planning

@@ -560,3 +560,104 @@ def get_cost_comparison():
     days = request.args.get("days", 7, type=int)
     comparison = _cost_tracker.compare_periods(current_days=days, offset_days=days)
     return jsonify({"ok": True, **comparison})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.12.0 — Appliance Fingerprinting
+# ═══════════════════════════════════════════════════════════════════════════
+
+_fingerprinter = None
+
+
+def init_fingerprinter(fingerprinter=None):
+    """Initialize the fingerprinter singleton."""
+    global _fingerprinter
+    if fingerprinter is None:
+        from .fingerprint import ApplianceFingerprinter
+        fingerprinter = ApplianceFingerprinter()
+    _fingerprinter = fingerprinter
+
+
+@energy_bp.route("/api/v1/energy/fingerprints", methods=["GET"])
+@require_api_key
+def get_fingerprints():
+    """Get all known appliance fingerprints."""
+    if not _fingerprinter:
+        return jsonify({"error": "Fingerprinter not initialized"}), 503
+
+    fps = _fingerprinter.get_all_fingerprints()
+    return jsonify({"ok": True, "fingerprints": fps, "count": len(fps)})
+
+
+@energy_bp.route("/api/v1/energy/fingerprints/<device_id>", methods=["GET"])
+@require_api_key
+def get_fingerprint(device_id: str):
+    """Get fingerprint for a specific device."""
+    if not _fingerprinter:
+        return jsonify({"error": "Fingerprinter not initialized"}), 503
+
+    from dataclasses import asdict
+    fp = _fingerprinter.get_fingerprint(device_id)
+    if not fp:
+        return jsonify({"ok": False, "error": "Device not found"}), 404
+    return jsonify({"ok": True, **asdict(fp)})
+
+
+@energy_bp.route("/api/v1/energy/fingerprints/record", methods=["POST"])
+@require_api_key
+def record_fingerprint():
+    """Record a power signature for fingerprint learning.
+
+    JSON body:
+        device_id, device_name, device_type, samples: [{timestamp, watts}]
+    """
+    if not _fingerprinter:
+        return jsonify({"error": "Fingerprinter not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    device_id = body.get("device_id")
+    device_name = body.get("device_name", "")
+    device_type = body.get("device_type", "unknown")
+    samples = body.get("samples", [])
+
+    if not device_id or not samples:
+        return jsonify({"ok": False, "error": "device_id and samples required"}), 400
+
+    from dataclasses import asdict
+    fp = _fingerprinter.record_signature(device_id, device_name, device_type, samples)
+    return jsonify({"ok": True, "fingerprint": asdict(fp)}), 201
+
+
+@energy_bp.route("/api/v1/energy/fingerprints/identify", methods=["POST"])
+@require_api_key
+def identify_appliance():
+    """Identify running appliance from current power reading.
+
+    JSON body: {watts: float}
+    """
+    if not _fingerprinter:
+        return jsonify({"error": "Fingerprinter not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    watts = body.get("watts")
+    if watts is None:
+        return jsonify({"ok": False, "error": "watts required"}), 400
+
+    from dataclasses import asdict
+    matches = _fingerprinter.identify(float(watts))
+    return jsonify({
+        "ok": True,
+        "matches": [asdict(m) for m in matches],
+        "count": len(matches),
+    })
+
+
+@energy_bp.route("/api/v1/energy/fingerprints/usage", methods=["GET"])
+@require_api_key
+def get_usage_stats():
+    """Get usage statistics for all fingerprinted devices."""
+    if not _fingerprinter:
+        return jsonify({"error": "Fingerprinter not initialized"}), 503
+
+    stats = _fingerprinter.get_all_usage_stats()
+    return jsonify({"ok": True, "devices": stats, "count": len(stats)})
