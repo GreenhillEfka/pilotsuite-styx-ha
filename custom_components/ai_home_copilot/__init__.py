@@ -303,6 +303,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to set up conversation agent")
 
+    # Auto-configure Styx as default conversation agent (v5.21.0)
+    try:
+        from .agent_auto_config import async_setup_agent_auto_config
+        await async_setup_agent_auto_config(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to set up agent auto-config")
+
     # Register Lovelace card resources from Core Add-on
     try:
         from .lovelace_resources import async_register_card_resources
@@ -372,5 +379,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_unload_conversation(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to unload conversation agent")
+
+    # Unload agent auto-config services (v5.21.0)
+    try:
+        from .agent_auto_config import async_unload_agent_auto_config
+        await async_unload_agent_auto_config(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to unload agent auto-config")
 
     return await runtime.async_unload_entry(entry, modules=_MODULES)

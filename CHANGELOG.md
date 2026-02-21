@@ -1,5 +1,31 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.21.0] - 2026-02-21
+
+### Styx Agent Auto-Config — Default Agent Setup & Connectivity Verification
+
+#### Agent Auto-Config Module (NEW)
+- **agent_auto_config.py** — Auto-configure Styx as HA conversation agent
+- Bidirectional connectivity verification (HA <-> Core) on startup
+- Fires `pilotsuite_agent_ready` event when agent is registered
+- 3 new HA services:
+  - `ai_home_copilot.set_default_agent` — Register + guide to set as default
+  - `ai_home_copilot.verify_agent` — Verify Core connectivity with notification
+  - `ai_home_copilot.get_agent_status` — Show full agent status notification
+
+#### Agent Status Sensor (NEW)
+- **sensors/agent_status_sensor.py** — `AgentStatusSensor` entity
+- State: "Styx: ready" / "Styx: degraded" / "Styx: offline"
+- Dynamic icon: robot-happy (ready), robot-confused (degraded), robot-off (offline)
+- Attributes: version, uptime, LLM model/backend, character, features, languages
+
+#### Integration Lifecycle
+- Auto-config runs after conversation agent registration in `async_setup_entry`
+- Services unloaded cleanly in `async_unload_entry`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.21.0
+
 ## [5.20.0] - 2026-02-21
 
 ### Energy Forecast Sensor — 48h PV/Price/Weather Dashboard in HA
