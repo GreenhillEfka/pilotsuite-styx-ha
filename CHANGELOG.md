@@ -1,5 +1,14 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [4.4.0] - 2026-02-21
+
+### Test Coverage + Quality
+
+- **test_mood_store.py** — 8 neue Tests fuer Mood State Persistence (save/load/TTL/roundtrip/edge cases)
+- **test_mood_context_cache.py** — 6 neue Tests fuer MoodContextModule Cache-Integration (pre-load/fallback/idempotenz)
+- **manifest.json** + **entity.py** Version auf 4.4.0 synchronisiert
+- Gesamte Test Suite: 352 Tests bestanden, 0 Fehler
+
 ## [4.3.0] - 2026-02-20
 
 ### Mood Persistence + MUPL Role Sync
