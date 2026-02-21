@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.16.0] - 2026-02-21
+
+### Weather Warning Sensor — DWD/ZAMG/MeteoSchweiz Alerts in HA
+
+#### Weather Warning Sensor (NEW)
+- **sensors/weather_warning_sensor.py** — `WeatherWarningSensor` entity
+- State: warning count + highest severity (e.g. "2x Unwetterwarnung")
+- Dynamic icon: sunny→alert→alert-octagon based on severity level
+- Attributes: total warnings, severity breakdown, PV impact, grid risk, max PV reduction %, recommendations
+- Warning list with headline, severity, type, region, color for each active warning
+- German "Keine Warnungen" state when clear
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.16.0
+
 ## [5.15.0] - 2026-02-21
 
 ### Regional Context Sensor — Zero-Config Location Awareness in HA
