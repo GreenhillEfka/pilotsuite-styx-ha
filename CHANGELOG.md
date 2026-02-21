@@ -1,5 +1,37 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.0.0] - 2026-02-21
+
+### Scene Intelligence + PilotSuite Cloud — Intelligente Szenen-Steuerung
+
+#### Scene Intelligence Engine (NEW)
+- **hub/scene_intelligence.py** — `SceneIntelligenceEngine`
+- 10 Built-in Szenen: Morgenroutine, Arbeits-Fokus, Mittagspause, Nachmittags-Entspannung, Abendessen, Filmabend, Romantischer Abend, Schlafenszeit, Party, Abwesend
+- Kontext-basierte Szenen-Vorschläge (Uhrzeit, Anwesenheit, Helligkeit, Muster)
+- Pattern Learning aus Aktivierungs-Historie (min. 3 Aktivierungen)
+- PilotSuite Cloud: Verbindung, Sync, Szenen teilen, Local-First Fallback
+- Custom Szenen Registration mit Tags und Kategorie
+- Rating-System (1-5 Sterne) mit Running-Average
+- Usage-Tracking und Popularitätssortierung
+- 6 Kategorien: morning, day, evening, night, activity, custom
+
+#### API Endpoints (12 NEW)
+- `GET /api/v1/hub/scenes` — Scene Intelligence Dashboard
+- `GET /api/v1/hub/scenes/list` — All scenes (filter by category)
+- `GET /api/v1/hub/scenes/active` — Active scene
+- `POST /api/v1/hub/scenes/activate` — Activate scene
+- `POST /api/v1/hub/scenes/deactivate` — Deactivate scene
+- `POST /api/v1/hub/scenes/suggest` — Context-based suggestions
+- `POST /api/v1/hub/scenes/learn` — Trigger pattern learning
+- `POST /api/v1/hub/scenes/cloud` — Configure PilotSuite Cloud
+- `GET /api/v1/hub/scenes/cloud/status` — Cloud status
+- `POST /api/v1/hub/scenes/cloud/share` — Share scene to cloud
+- `POST /api/v1/hub/scenes/<id>/rate` — Rate scene
+- `POST /api/v1/hub/scenes/custom` — Register custom scene
+
+#### Test Suite (NEW — 46 tests)
+- **tests/test_scene_intelligence.py** — Builtin scenes, activation, suggestions, patterns, cloud, custom, rating, dashboard
+
 ## [6.9.0] - 2026-02-21
 
 ### Automation Templates — AI-Generated Automation Blueprints

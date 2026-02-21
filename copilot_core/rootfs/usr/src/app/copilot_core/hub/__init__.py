@@ -1,4 +1,4 @@
-"""PilotSuite Hub — Unified Dashboard & Plugin Architecture (v6.9.0)."""
+"""PilotSuite Hub — Unified Dashboard & Plugin Architecture (v7.0.0)."""
 
 from .dashboard import DashboardHub  # noqa: F401
 from .plugin_manager import PluginManager  # noqa: F401
@@ -11,3 +11,4 @@ from .zone_modes import ZoneModeEngine  # noqa: F401
 from .media_follow import MediaFollowEngine  # noqa: F401
 from .energy_advisor import EnergyAdvisorEngine  # noqa: F401
 from .automation_templates import AutomationTemplateEngine  # noqa: F401
+from .scene_intelligence import SceneIntelligenceEngine  # noqa: F401

@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v6.9.0)."""
+"""Hub API endpoints for PilotSuite (v7.0.0)."""
 
 from __future__ import annotations
 
@@ -23,15 +23,17 @@ _mode_engine: object | None = None
 _media_engine: object | None = None
 _energy_advisor: object | None = None
 _template_engine: object | None = None
+_scene_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  maintenance_engine=None, anomaly_engine=None,
                  zone_engine=None, light_engine=None,
                  mode_engine=None, media_engine=None,
-                 energy_advisor=None, template_engine=None) -> None:
+                 energy_advisor=None, template_engine=None,
+                 scene_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -43,8 +45,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _media_engine = media_engine
     _energy_advisor = energy_advisor
     _template_engine = template_engine
+    _scene_engine = scene_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -55,6 +58,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         media_engine is not None,
         energy_advisor is not None,
         template_engine is not None,
+        scene_engine is not None,
     )
 
 
@@ -1184,3 +1188,182 @@ def register_custom_template():
     category = body.pop("category", "comfort")
     result = _template_engine.register_template(template_id, name_de, description_de, category, **body)
     return jsonify({"ok": result, "template_id": template_id})
+
+
+# ── Scene Intelligence + PilotSuite Cloud endpoints (v7.0.0) ────────────────
+
+
+@hub_bp.route("/scenes", methods=["GET"])
+@require_token
+def get_scene_dashboard():
+    """Get scene intelligence dashboard."""
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    dashboard = _scene_engine.get_dashboard()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@hub_bp.route("/scenes/list", methods=["GET"])
+@require_token
+def get_scenes_list():
+    """Get all scenes with optional category filter.
+
+    Query params: category, limit
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    category = request.args.get("category")
+    limit = int(request.args.get("limit", 50))
+    scenes = _scene_engine.get_scenes(category, limit)
+    return jsonify({"ok": True, "scenes": scenes})
+
+
+@hub_bp.route("/scenes/active", methods=["GET"])
+@require_token
+def get_active_scene():
+    """Get the currently active scene."""
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    active = _scene_engine.get_active_scene()
+    return jsonify({"ok": True, "active_scene": active})
+
+
+@hub_bp.route("/scenes/activate", methods=["POST"])
+@require_token
+def activate_scene():
+    """Activate a scene.
+
+    JSON body: {"scene_id": "...", "zone_id"?: "..."}
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _scene_engine.activate_scene(
+        body.get("scene_id", ""),
+        body.get("zone_id", ""),
+    )
+    return jsonify({"ok": result, "scene_id": body.get("scene_id")})
+
+
+@hub_bp.route("/scenes/deactivate", methods=["POST"])
+@require_token
+def deactivate_scene():
+    """Deactivate the current scene."""
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    result = _scene_engine.deactivate_scene()
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/scenes/suggest", methods=["POST"])
+@require_token
+def suggest_scenes():
+    """Get scene suggestions based on context.
+
+    JSON body (optional): {"hour": 20, "is_home": true, "occupancy_count": 2,
+                           "outdoor_lux": 50, "indoor_temp_c": 21, "is_weekend": false,
+                           "active_zone": "..."}
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    from copilot_core.hub.scene_intelligence import SceneContext
+    ctx = None
+    if body:
+        ctx = SceneContext(
+            hour=body.get("hour", 12),
+            is_home=body.get("is_home", True),
+            occupancy_count=body.get("occupancy_count", 1),
+            outdoor_lux=body.get("outdoor_lux", 500.0),
+            indoor_temp_c=body.get("indoor_temp_c", 21.0),
+            is_weekend=body.get("is_weekend", False),
+            active_zone=body.get("active_zone", ""),
+        )
+    limit = body.get("limit", 3) if body else 3
+    suggestions = _scene_engine.suggest_scenes(ctx, limit)
+    return jsonify({
+        "ok": True,
+        "suggestions": [asdict(s) for s in suggestions],
+    })
+
+
+@hub_bp.route("/scenes/learn", methods=["POST"])
+@require_token
+def learn_scene_patterns():
+    """Trigger pattern learning from activation history."""
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    new_patterns = _scene_engine.learn_patterns()
+    return jsonify({"ok": True, "new_patterns": new_patterns})
+
+
+@hub_bp.route("/scenes/cloud", methods=["POST"])
+@require_token
+def configure_scene_cloud():
+    """Configure PilotSuite Cloud connection.
+
+    JSON body: {"cloud_url": "https://...", "sync_interval_min"?: 15}
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    status = _scene_engine.configure_cloud(
+        body.get("cloud_url", ""),
+        body.get("sync_interval_min", 15),
+    )
+    return jsonify({"ok": True, **asdict(status)})
+
+
+@hub_bp.route("/scenes/cloud/status", methods=["GET"])
+@require_token
+def get_scene_cloud_status():
+    """Get PilotSuite Cloud status."""
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    return jsonify({"ok": True, **_scene_engine.get_cloud_status()})
+
+
+@hub_bp.route("/scenes/cloud/share", methods=["POST"])
+@require_token
+def share_scene_to_cloud():
+    """Share a scene to PilotSuite Cloud.
+
+    JSON body: {"scene_id": "..."}
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _scene_engine.share_scene(body.get("scene_id", ""))
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/scenes/<scene_id>/rate", methods=["POST"])
+@require_token
+def rate_scene(scene_id):
+    """Rate a scene.
+
+    JSON body: {"rating": 4.5}
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _scene_engine.rate_scene(scene_id, float(body.get("rating", 0)))
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/scenes/custom", methods=["POST"])
+@require_token
+def register_custom_scene():
+    """Register a custom scene.
+
+    JSON body: {"scene_id": "...", "name_de": "...", "name_en"?: "...", "icon"?: "...", ...}
+    """
+    if not _scene_engine:
+        return jsonify({"error": "Scene engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    scene_id = body.pop("scene_id", "")
+    name_de = body.pop("name_de", "")
+    name_en = body.pop("name_en", "")
+    icon = body.pop("icon", "mdi:palette")
+    result = _scene_engine.register_scene(scene_id, name_de, name_en, icon, **body)
+    return jsonify({"ok": result, "scene_id": scene_id})
