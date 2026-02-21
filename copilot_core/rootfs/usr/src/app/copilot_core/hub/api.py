@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v7.0.0)."""
+"""Hub API endpoints for PilotSuite (v7.1.0)."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ _media_engine: object | None = None
 _energy_advisor: object | None = None
 _template_engine: object | None = None
 _scene_engine: object | None = None
+_presence_engine: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
@@ -31,9 +32,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  zone_engine=None, light_engine=None,
                  mode_engine=None, media_engine=None,
                  energy_advisor=None, template_engine=None,
-                 scene_engine=None) -> None:
+                 scene_engine=None, presence_engine=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -46,8 +47,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _energy_advisor = energy_advisor
     _template_engine = template_engine
     _scene_engine = scene_engine
+    _presence_engine = presence_engine
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -59,6 +61,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         energy_advisor is not None,
         template_engine is not None,
         scene_engine is not None,
+        presence_engine is not None,
     )
 
 
@@ -1367,3 +1370,198 @@ def register_custom_scene():
     icon = body.pop("icon", "mdi:palette")
     result = _scene_engine.register_scene(scene_id, name_de, name_en, icon, **body)
     return jsonify({"ok": result, "scene_id": scene_id})
+
+
+# ── Presence Intelligence endpoints (v7.1.0) ────────────────────────────────
+
+
+@hub_bp.route("/presence", methods=["GET"])
+@require_token
+def get_presence_dashboard():
+    """Get presence intelligence dashboard."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    dashboard = _presence_engine.get_dashboard()
+    return jsonify({"ok": True, **asdict(dashboard)})
+
+
+@hub_bp.route("/presence/persons", methods=["POST"])
+@require_token
+def register_presence_person():
+    """Register a person for presence tracking.
+
+    JSON body: {"person_id": "...", "name": "...", "icon"?: "mdi:account"}
+    """
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    person = _presence_engine.register_person(
+        body.get("person_id", ""),
+        body.get("name", ""),
+        body.get("icon", "mdi:account"),
+    )
+    return jsonify({"ok": True, "person_id": person.person_id, "name": person.name})
+
+
+@hub_bp.route("/presence/persons/<person_id>", methods=["GET"])
+@require_token
+def get_presence_person(person_id):
+    """Get person presence details."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    p = _presence_engine.get_person(person_id)
+    if not p:
+        return jsonify({"ok": False, "error": "Person not found"}), 404
+    return jsonify({"ok": True, **p})
+
+
+@hub_bp.route("/presence/persons/<person_id>", methods=["DELETE"])
+@require_token
+def unregister_presence_person(person_id):
+    """Unregister a person from tracking."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    result = _presence_engine.unregister_person(person_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/presence/rooms", methods=["GET"])
+@require_token
+def get_presence_rooms():
+    """Get all rooms with occupancy info."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    return jsonify({"ok": True, "rooms": _presence_engine.get_rooms()})
+
+
+@hub_bp.route("/presence/rooms", methods=["POST"])
+@require_token
+def register_presence_room():
+    """Register a room for presence tracking.
+
+    JSON body: {"room_id": "...", "room_name"?: "..."}
+    """
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _presence_engine.register_room(
+        body.get("room_id", ""),
+        body.get("room_name", ""),
+    )
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/presence/update", methods=["POST"])
+@require_token
+def update_person_presence():
+    """Update a person's presence state.
+
+    JSON body: {"person_id": "...", "room_id"?: "...", "zone_id"?: "...", "is_home"?: true}
+    """
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _presence_engine.update_presence(
+        body.get("person_id", ""),
+        body.get("room_id", ""),
+        body.get("zone_id", ""),
+        body.get("is_home", True),
+    )
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/presence/household", methods=["GET"])
+@require_token
+def get_household_presence():
+    """Get household-level presence status."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    return jsonify({"ok": True, **_presence_engine.get_household_status()})
+
+
+@hub_bp.route("/presence/transitions", methods=["GET"])
+@require_token
+def get_presence_transitions():
+    """Get recent room transitions.
+
+    Query params: limit
+    """
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    limit = int(request.args.get("limit", 20))
+    return jsonify({"ok": True, "transitions": _presence_engine.get_transitions(limit)})
+
+
+@hub_bp.route("/presence/room/<room_id>/occupancy", methods=["GET"])
+@require_token
+def get_room_occupancy(room_id):
+    """Get occupancy stats for a room."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    occ = _presence_engine.get_room_occupancy(room_id)
+    return jsonify({"ok": True, **asdict(occ)})
+
+
+@hub_bp.route("/presence/heatmap", methods=["GET"])
+@require_token
+def get_presence_heatmap():
+    """Get occupancy heatmap.
+
+    Query params: hours (default 24)
+    """
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    hours = int(request.args.get("hours", 24))
+    heatmap = _presence_engine.get_heatmap(hours)
+    return jsonify({"ok": True, "heatmap": [asdict(h) for h in heatmap]})
+
+
+@hub_bp.route("/presence/triggers", methods=["GET"])
+@require_token
+def get_presence_triggers():
+    """Get all presence triggers."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    return jsonify({"ok": True, "triggers": _presence_engine.get_triggers()})
+
+
+@hub_bp.route("/presence/triggers", methods=["POST"])
+@require_token
+def register_presence_trigger():
+    """Register a presence trigger.
+
+    JSON body: {"trigger_id": "...", "trigger_type": "arrival|departure|idle|room_enter|room_leave",
+                "person_id"?: "...", "room_id"?: "...", "idle_threshold_min"?: 30}
+    """
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    result = _presence_engine.register_trigger(
+        body.get("trigger_id", ""),
+        body.get("trigger_type", ""),
+        body.get("person_id", ""),
+        body.get("room_id", ""),
+        body.get("zone_id", ""),
+        body.get("idle_threshold_min", 30),
+    )
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/presence/triggers/<trigger_id>", methods=["DELETE"])
+@require_token
+def unregister_presence_trigger(trigger_id):
+    """Remove a presence trigger."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    result = _presence_engine.unregister_trigger(trigger_id)
+    return jsonify({"ok": result})
+
+
+@hub_bp.route("/presence/idle", methods=["POST"])
+@require_token
+def check_presence_idle():
+    """Check idle triggers (call periodically)."""
+    if not _presence_engine:
+        return jsonify({"error": "Presence engine not initialized"}), 503
+    fired = _presence_engine.check_idle_triggers()
+    return jsonify({"ok": True, "fired": fired})

@@ -1,5 +1,39 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.1.0] - 2026-02-21
+
+### Presence Intelligence — Anwesenheits-Intelligence & Raum-Tracking
+
+#### Presence Intelligence Engine (NEW)
+- **hub/presence_intelligence.py** — `PresenceIntelligenceEngine`
+- Person-Level Anwesenheits-Tracking mit Raum-Auflösung
+- Raum-zu-Raum Transition Detection mit Zeitstempel
+- Occupancy Heatmap pro Raum über konfigurierbare Zeitfenster
+- Presence-basierte Automation-Trigger (arrival, departure, idle, room_enter, room_leave)
+- Home/Away Detection auf Person- und Haushalts-Ebene
+- Occupancy Analytics: Peak Hours, Durchschnittsdauer, Visit-Logs
+- Idle-Detection mit konfigurierbarem Schwellwert
+
+#### API Endpoints (16 NEW)
+- `GET /api/v1/hub/presence` — Presence Dashboard
+- `POST /api/v1/hub/presence/persons` — Register person
+- `GET /api/v1/hub/presence/persons/<id>` — Person details
+- `DELETE /api/v1/hub/presence/persons/<id>` — Unregister person
+- `GET /api/v1/hub/presence/rooms` — All rooms with occupancy
+- `POST /api/v1/hub/presence/rooms` — Register room
+- `POST /api/v1/hub/presence/update` — Update presence state
+- `GET /api/v1/hub/presence/household` — Household status
+- `GET /api/v1/hub/presence/transitions` — Recent transitions
+- `GET /api/v1/hub/presence/room/<id>/occupancy` — Room occupancy stats
+- `GET /api/v1/hub/presence/heatmap` — Occupancy heatmap
+- `GET /api/v1/hub/presence/triggers` — List triggers
+- `POST /api/v1/hub/presence/triggers` — Register trigger
+- `DELETE /api/v1/hub/presence/triggers/<id>` — Remove trigger
+- `POST /api/v1/hub/presence/idle` — Check idle triggers
+
+#### Test Suite (NEW — 38 tests)
+- **tests/test_presence_intelligence.py** — Persons, rooms, presence updates, triggers, analytics, household, dashboard
+
 ## [7.0.0] - 2026-02-21
 
 ### Scene Intelligence + PilotSuite Cloud — Intelligente Szenen-Steuerung
