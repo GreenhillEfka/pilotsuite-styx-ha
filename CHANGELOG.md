@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.22.0] - 2026-02-21
+
+### Styx Onboarding Sensor — Setup Progress Tracking in HA
+
+#### Onboarding Sensor (NEW)
+- **sensors/onboarding_sensor.py** — `OnboardingSensor` entity
+- State: "Schritt X/8" during setup, "Abgeschlossen" when done
+- Dynamic icon: school (in progress) → check-decagram (complete)
+- Attributes: current/total steps, completed/skipped counts, agent name, timestamps
+- Fetches from `/api/v1/onboarding/state`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.22.0
+
 ## [5.21.0] - 2026-02-21
 
 ### Styx Agent Auto-Config — Default Agent Setup & Connectivity Verification
