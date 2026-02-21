@@ -1,6 +1,6 @@
 """Energy Neuron API endpoints."""
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from .service import EnergyService
 from ..api.security import require_api_key
@@ -142,3 +142,122 @@ def get_health():
         return jsonify({"error": "Energy service not initialized"}), 503
     
     return jsonify(_energy_service.get_health())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# v5.1.0 — Zone Energy API
+# ═══════════════════════════════════════════════════════════════════════════
+
+@energy_bp.route("/api/v1/energy/zone/<zone_id>", methods=["POST"])
+@require_api_key
+def register_zone_energy(zone_id: str):
+    """Register energy entities for a zone.
+
+    Body: {"entity_ids": ["sensor.kitchen_power", ...], "zone_name": "Kitchen"}
+    """
+    if not _energy_service:
+        return jsonify({"error": "Energy service not initialized"}), 503
+
+    body = request.get_json(silent=True) or {}
+    entity_ids = body.get("entity_ids", [])
+    zone_name = body.get("zone_name", zone_id)
+
+    if not isinstance(entity_ids, list):
+        return jsonify({"ok": False, "error": "entity_ids must be a list"}), 400
+
+    # Store zone energy mapping
+    if not hasattr(_energy_service, "_zone_energy_map"):
+        _energy_service._zone_energy_map = {}
+
+    _energy_service._zone_energy_map[zone_id] = {
+        "zone_name": zone_name,
+        "entity_ids": entity_ids,
+        "registered_at": _energy_service._get_timestamp(),
+    }
+
+    return jsonify({
+        "ok": True,
+        "zone_id": zone_id,
+        "zone_name": zone_name,
+        "entity_count": len(entity_ids),
+    }), 201
+
+
+@energy_bp.route("/api/v1/energy/zone/<zone_id>", methods=["GET"])
+@require_api_key
+def get_zone_energy(zone_id: str):
+    """Get energy data for a specific zone."""
+    if not _energy_service:
+        return jsonify({"error": "Energy service not initialized"}), 503
+
+    zone_map = getattr(_energy_service, "_zone_energy_map", {})
+    zone_config = zone_map.get(zone_id)
+
+    if not zone_config:
+        return jsonify({
+            "ok": False,
+            "error": f"No energy entities registered for zone '{zone_id}'",
+        }), 404
+
+    # Aggregate zone energy from HA entities
+    entity_ids = zone_config["entity_ids"]
+    total_power = 0.0
+    breakdown = []
+
+    for eid in entity_ids:
+        value = _energy_service._find_single_entity_value(eid)
+        if value is not None:
+            total_power += value
+            breakdown.append({"entity_id": eid, "value": round(value, 2), "status": "ok"})
+        else:
+            breakdown.append({"entity_id": eid, "value": None, "status": "unavailable"})
+
+    return jsonify({
+        "ok": True,
+        "zone_id": zone_id,
+        "zone_name": zone_config["zone_name"],
+        "total_power_watts": round(total_power, 2),
+        "entity_count": len(entity_ids),
+        "active_count": sum(1 for b in breakdown if b["status"] == "ok"),
+        "breakdown": breakdown,
+        "timestamp": _energy_service._get_timestamp(),
+    })
+
+
+@energy_bp.route("/api/v1/energy/zones", methods=["GET"])
+@require_api_key
+def get_all_zone_energy():
+    """Get energy overview for all registered zones."""
+    if not _energy_service:
+        return jsonify({"error": "Energy service not initialized"}), 503
+
+    zone_map = getattr(_energy_service, "_zone_energy_map", {})
+    zones = []
+
+    for zone_id, config in zone_map.items():
+        total_power = 0.0
+        active = 0
+        for eid in config["entity_ids"]:
+            value = _energy_service._find_single_entity_value(eid)
+            if value is not None:
+                total_power += value
+                active += 1
+
+        zones.append({
+            "zone_id": zone_id,
+            "zone_name": config["zone_name"],
+            "total_power_watts": round(total_power, 2),
+            "entity_count": len(config["entity_ids"]),
+            "active_count": active,
+        })
+
+    # Sort by power descending (highest consuming zone first)
+    zones.sort(key=lambda z: z["total_power_watts"], reverse=True)
+
+    return jsonify({
+        "ok": True,
+        "zones": zones,
+        "total_zones": len(zones),
+        "global_power_watts": round(sum(z["total_power_watts"] for z in zones), 2),
+        "timestamp": _energy_service._get_timestamp(),
+    })

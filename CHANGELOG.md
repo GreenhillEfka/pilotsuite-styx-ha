@@ -1,5 +1,22 @@
 # Changelog - PilotSuite Core Add-on
 
+## [5.1.0] - 2026-02-21
+
+### Zone Energy API — Per-Habitzone Energy Device Management
+
+#### Zone Energy Endpoints (NEW)
+- `POST /api/v1/energy/zone/<zone_id>` — Register energy entity IDs for a Habitzone
+- `GET /api/v1/energy/zone/<zone_id>` — Get zone energy data with per-entity power breakdown
+- `GET /api/v1/energy/zones` — List all zones energy overview sorted by total power
+
+#### Energy Service Extension
+- **energy/service.py** — New `_find_single_entity_value(entity_id)` helper for zone-level energy queries
+- In-memory zone→entity mapping (`_zone_energy_map`) for fast lookups
+- Per-entity power readings with unit conversion support
+
+#### Infrastructure
+- **config.json** — Version 5.1.0
+
 ## [5.0.0] - 2026-02-21
 
 ### Major Release — Prediction, SSE, API Versioning, Load Shifting

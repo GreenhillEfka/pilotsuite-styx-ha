@@ -154,6 +154,10 @@ class EnergyService:
                 return val
         return None
 
+    def _find_single_entity_value(self, entity_id: str) -> float | None:
+        """Read a single entity's numeric value (v5.1.0 — zone energy API)."""
+        return self._read_entity(entity_id)
+
     def _get_all_energy_entities(self) -> list[str]:
         """Get all energy-related entities from HA."""
         if not self._hass_available:
