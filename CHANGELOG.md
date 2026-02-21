@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.11.0] - 2026-02-21
+
+### Weather Optimizer Sensor — Forecast-Based Energy Insights in HA
+
+#### Weather Optimizer Sensor (NEW)
+- **sensors/weather_optimizer_sensor.py** — `WeatherOptimizerSensor` entity
+- State: number of optimal consumption windows found
+- Attributes: total PV kWh, avg price, best/worst hours, alerts, top 3 windows, battery actions, self-consumption %
+- Async fetch from Core `GET /api/v1/predict/weather-optimize`
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.11.0
+
 ## [5.10.0] - 2026-02-21
 
 ### Energy Cost Sensor — Cost Tracking in HA
