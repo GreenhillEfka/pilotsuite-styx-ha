@@ -1,4 +1,4 @@
-"""Hub API endpoints for PilotSuite (v7.2.0)."""
+"""Hub API endpoints for PilotSuite (v7.3.0)."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ _template_engine: object | None = None
 _scene_engine: object | None = None
 _presence_engine: object | None = None
 _notification_engine: object | None = None
+_integration_hub: object | None = None
 
 
 def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
@@ -34,9 +35,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
                  mode_engine=None, media_engine=None,
                  energy_advisor=None, template_engine=None,
                  scene_engine=None, presence_engine=None,
-                 notification_engine=None) -> None:
+                 notification_engine=None, integration_hub=None) -> None:
     """Initialize hub services."""
-    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine
+    global _dashboard, _plugin_manager, _multi_home, _maintenance_engine, _anomaly_engine, _zone_engine, _light_engine, _mode_engine, _media_engine, _energy_advisor, _template_engine, _scene_engine, _presence_engine, _notification_engine, _integration_hub
     _dashboard = dashboard
     _plugin_manager = plugin_manager
     _multi_home = multi_home
@@ -51,8 +52,9 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
     _scene_engine = scene_engine
     _presence_engine = presence_engine
     _notification_engine = notification_engine
+    _integration_hub = integration_hub
     logger.info(
-        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s)",
+        "Hub API initialized (dashboard: %s, plugins: %s, multi_home: %s, anomaly: %s, zones: %s, light: %s, modes: %s, media: %s, energy: %s, templates: %s, scenes: %s, presence: %s, notifications: %s, integration: %s)",
         dashboard is not None,
         plugin_manager is not None,
         multi_home is not None,
@@ -66,6 +68,7 @@ def init_hub_api(dashboard=None, plugin_manager=None, multi_home=None,
         scene_engine is not None,
         presence_engine is not None,
         notification_engine is not None,
+        integration_hub is not None,
     )
 
 
@@ -1768,3 +1771,75 @@ def get_notification_stats():
         return jsonify({"error": "Notification engine not initialized"}), 503
     stats = _notification_engine.get_stats()
     return jsonify({"ok": True, **asdict(stats)})
+
+
+# ── System Integration Hub ────────────────────────────────────────────────
+
+
+@hub_bp.route("/integration", methods=["GET"])
+@require_token
+def get_integration_dashboard():
+    """Get system integration hub dashboard."""
+    if not _integration_hub:
+        return jsonify({"error": "Integration hub not initialized"}), 503
+    status = _integration_hub.get_status()
+    wiring = _integration_hub.get_wiring_diagram()
+    return jsonify({
+        "ok": True,
+        **asdict(status),
+        "wiring_diagram": wiring,
+    })
+
+
+@hub_bp.route("/integration/status", methods=["GET"])
+@require_token
+def get_integration_status():
+    """Get integration hub status."""
+    if not _integration_hub:
+        return jsonify({"error": "Integration hub not initialized"}), 503
+    status = _integration_hub.get_status()
+    return jsonify({"ok": True, **asdict(status)})
+
+
+@hub_bp.route("/integration/wiring", methods=["GET"])
+@require_token
+def get_integration_wiring():
+    """Get the wiring diagram (event → subscriber mappings)."""
+    if not _integration_hub:
+        return jsonify({"error": "Integration hub not initialized"}), 503
+    diagram = _integration_hub.get_wiring_diagram()
+    return jsonify({"ok": True, "wiring": diagram})
+
+
+@hub_bp.route("/integration/dispatch", methods=["POST"])
+@require_token
+def dispatch_integration_event():
+    """Dispatch an event through the integration hub.
+
+    JSON body: {"event_type": "...", "source": "...", "data"?: {...}}
+    """
+    if not _integration_hub:
+        return jsonify({"error": "Integration hub not initialized"}), 503
+    body = request.get_json(silent=True) or {}
+    event_type = body.get("event_type", "")
+    source = body.get("source", "api")
+    data = body.get("data", {})
+    if not event_type:
+        return jsonify({"error": "event_type required"}), 400
+    event = _integration_hub.dispatch(event_type, source, data)
+    return jsonify({
+        "ok": True,
+        "event_type": event.event_type,
+        "handled_by": event.handled_by,
+        "timestamp": event.timestamp.isoformat(),
+    })
+
+
+@hub_bp.route("/integration/auto-wire", methods=["POST"])
+@require_token
+def auto_wire_integration():
+    """Re-run auto-wiring for all registered engines."""
+    if not _integration_hub:
+        return jsonify({"error": "Integration hub not initialized"}), 503
+    count = _integration_hub.auto_wire()
+    return jsonify({"ok": True, "subscriptions_created": count})
