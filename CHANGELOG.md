@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [5.17.0] - 2026-02-21
+
+### Fuel Price Sensor — Strom vs Diesel vs Benzin Cost Comparison in HA
+
+#### Fuel Price Sensor (NEW)
+- **sensors/fuel_price_sensor.py** — `FuelPriceSensor` entity
+- State: electricity cost per 100km (EUR/100km)
+- Attributes: electric/diesel/benzin/e10 cost per 100km, cheapest option, CO2 comparison
+- Raw fuel prices: avg/min per fuel type, station count, cheapest stations
+- Savings vs diesel/benzin calculated automatically
+- Fetches both `/fuel/prices` and `/fuel/compare` from Core API
+
+#### Infrastructure
+- **entity.py** + **manifest.json** — Version 5.17.0
+
 ## [5.16.0] - 2026-02-21
 
 ### Weather Warning Sensor — DWD/ZAMG/MeteoSchweiz Alerts in HA
