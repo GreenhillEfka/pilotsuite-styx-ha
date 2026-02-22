@@ -123,6 +123,12 @@ PilotSuite stellt eine OpenAI-kompatible API bereit (`/v1/chat/completions`). So
 
 Styx antwortet mit **26 Tools** (Geraete steuern, Automations erstellen, Einkaufsliste, Kalender, Web-Suche, Warnmeldungen, Szenen, Musiksteuerung u.v.m.) und nutzt RAG-basiertes Langzeitgedaechtnis.
 
+### Optional: Onyx als erweitertes RAG-Frontend
+
+Wenn du Connector-RAG (Drive/Slack/Mail), Team-Rollen und Deep Research willst, kann Onyx
+zusaetzlich vor Styx betrieben werden. Empfohlene Architektur und Action-Contract:
+`https://github.com/GreenhillEfka/pilotsuite-styx-core/blob/main/docs/ONYX_INTEGRATION.md`
+
 ### Option 2: Telegram Bot
 
 Im Core Add-on unter **Configuration** → `telegram.enabled: true` aktivieren. Styx fuehrt Tools serverseitig aus — kein zusaetzliches HA-Setup noetig.
