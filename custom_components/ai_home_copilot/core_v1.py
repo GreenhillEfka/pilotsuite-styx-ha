@@ -72,15 +72,35 @@ async def async_fetch_core_capabilities(
         state.error = None
     except CopilotApiError as err:
         status = _parse_http_status(err)
-        state.http_status = status
-        # 404 means: old core without API v1
+        # 404 means: Core without /api/v1/capabilities; try backward-compatible
+        # readiness endpoints before marking as unsupported.
         if status == 404:
-            state.supported = False
-            state.error = "not_supported"
+            for fallback in ("/api/v1/agent/status", "/chat/status"):
+                try:
+                    fallback_data = await api.async_get(fallback)
+                    state.data = (
+                        fallback_data
+                        if isinstance(fallback_data, dict)
+                        else {"raw": fallback_data}
+                    )
+                    state.http_status = 200
+                    state.supported = True
+                    state.error = None
+                    break
+                except CopilotApiError:
+                    continue
+                except Exception:  # noqa: BLE001
+                    continue
+            else:
+                state.http_status = status
+                state.supported = False
+                state.error = "not_supported"
         elif status == 401:
+            state.http_status = status
             state.supported = None
             state.error = "unauthorized"
         else:
+            state.http_status = status
             state.supported = None
             state.error = str(err)
 

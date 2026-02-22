@@ -542,4 +542,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to unload agent auto-config")
 
-    return await runtime.async_unload_entry(entry, modules=_MODULES)
+    result = await runtime.async_unload_entry(entry, modules=_MODULES)
+    return bool(result)

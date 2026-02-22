@@ -5,6 +5,15 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.22] - 2026-02-22
+- Runtime unload now coerces module unload results to strict boolean values.
+- Connection options flow now tolerates `test_light_entity_id: null` safely.
+- Config/Options network schema accepts optional `None` test light values.
+- Pipeline health checks now support Core variants without `/api/v1/capabilities` or `/api/v1/habitus/status`.
+- Core v1 capabilities fetch now falls back to agent/chat status endpoints on 404.
+- Lovelace resource registration now handles both mapping and object-based Lovelace data.
+- Quick-search service registration fixed (valid schemas, URL-encoded query params, registry access cleanup).
+
 ## [7.7.21] - 2026-02-22
 - Connection config normalization added (host/port/token) incl. legacy key migration.
 - Failover no longer switches hosts on 401/403 auth errors.

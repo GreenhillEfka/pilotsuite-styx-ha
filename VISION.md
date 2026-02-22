@@ -5,7 +5,7 @@ This document is the active vision baseline for the dual-repo system:
 - HACS integration repo: `pilotsuite-styx-ha`
 
 Version baseline:
-- Core add-on: `7.7.17`
+- Core add-on: `7.7.18`
 - HA integration: `7.7.20`
 - Core API port: `8909`
 

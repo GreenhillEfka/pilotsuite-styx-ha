@@ -58,7 +58,14 @@ class CopilotRuntime:
                 _LOGGER.debug("Module %s was not loaded — skip unload", name)
                 continue
             try:
-                unload_ok = await mod.async_unload_entry(ctx) and unload_ok
+                result = await mod.async_unload_entry(ctx)
+                if not isinstance(result, bool):
+                    _LOGGER.warning(
+                        "Module %s returned non-bool unload result %r; coercing to bool",
+                        name,
+                        result,
+                    )
+                unload_ok = bool(result) and unload_ok
             except Exception:
                 _LOGGER.exception("Module %s failed to unload", name)
                 unload_ok = False

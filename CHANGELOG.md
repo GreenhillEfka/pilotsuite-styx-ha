@@ -1,5 +1,30 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.22] - 2026-02-22 — RUNTIME RELOAD STABILITY + TOKEN FLOW HARDENING
+
+### Fixes
+- **Runtime-Unload robust gemacht**
+  - unload-Rueckgaben aus Modulen werden jetzt strikt auf `bool` normalisiert.
+  - verhindert `AssertionError` beim Config-Entry-Unload/Reload (`async_unload_entry` muss bool liefern).
+- **OptionsFlow Connection-Step stabilisiert**
+  - `test_light_entity_id=None` wird sauber behandelt statt als invalides Entity-ID-Format zu scheitern.
+  - verhindert Reload-/Save-Fehler in Connection-Updates.
+- **Network-Schema toleriert optionales Test-Light**
+  - `CONF_TEST_LIGHT` akzeptiert jetzt explizit `None` in Config/Options-Schemata.
+- **Pipeline-Health kompatibler mit Core-Varianten**
+  - Candidates-Check erkennt jetzt auch Payloads ohne `ok`-Flag korrekt als erfolgreich.
+  - Habitus-Health faellt bei 404 auf `/api/v1/habitus/health` zurueck.
+  - Capabilities-Check faellt bei 404 auf `/api/v1/agent/status` bzw. `/chat/status` zurueck.
+- **Core-v1-Sensor fallback erweitert**
+  - bei fehlendem `/api/v1/capabilities` werden kompatible Agent-/Chat-Status-Endpoints probiert, statt pauschal `not_supported`.
+- **Lovelace-Resource-Autoregistration kompatibel gemacht**
+  - unterstuetzt sowohl dict-basierte als auch objektbasierte Lovelace-Datenstrukturen.
+  - behebt Fehler `'LovelaceData' object has no attribute 'get'`.
+- **Quick-Search-Services repariert**
+  - Service-Schema auf gueltige `vol.Optional`-Definitionen umgestellt.
+  - Query-Parameter werden korrekt URL-encodiert.
+  - Entity-Registry-Zugriffe nutzen den registrierten Registry-Handle statt nicht-existenter Attribute.
+
 ## [7.7.21] - 2026-02-22 — CONNECTION NORMALIZATION + LEGACY CLEANUP
 
 ### Fixes

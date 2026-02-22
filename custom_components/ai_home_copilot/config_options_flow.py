@@ -21,6 +21,7 @@ from .const import (
     CONF_HOST,
     CONF_PORT,
     CONF_TOKEN,
+    CONF_TEST_LIGHT,
     CONF_WEBHOOK_URL,
     CONF_MEDIA_MUSIC_PLAYERS,
     CONF_MEDIA_TV_PLAYERS,
@@ -98,6 +99,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 token = user_input.get(CONF_TOKEN, "").strip()
                 if not token:
                     user_input[CONF_TOKEN] = ""
+
+            # Optional selector: keep prior value when UI submits null.
+            test_light = user_input.get(CONF_TEST_LIGHT)
+            if test_light in (None, ""):
+                existing_test_light = str(data.get(CONF_TEST_LIGHT) or "").strip()
+                if existing_test_light:
+                    user_input[CONF_TEST_LIGHT] = existing_test_light
+                else:
+                    user_input.pop(CONF_TEST_LIGHT, None)
 
             return self._create_merged_entry(user_input)
 

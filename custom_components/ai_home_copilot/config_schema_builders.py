@@ -158,8 +158,11 @@ def build_network_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
         vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
         vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
         vol.Optional("_clear_token"): bool,
-        vol.Optional(CONF_TEST_LIGHT, default=test_light_default): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="light", multiple=False),
+        vol.Optional(CONF_TEST_LIGHT, default=test_light_default): vol.Any(
+            None,
+            selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="light", multiple=False),
+            ),
         ),
     }
 
