@@ -1,5 +1,5 @@
 #!/bin/sh
-# PilotSuite Core v4.0.0 + Ollama startup script
+# PilotSuite Core + Ollama startup script
 # Ollama is bundled in the addon for offline LLM support.
 # Models are persisted in /share/ (NOT /data/) to avoid bloating HA backups.
 #
@@ -10,21 +10,18 @@
 set -e
 
 echo "============================================"
-echo "  PilotSuite v7.7.3 -- Styx"
+echo "  PilotSuite v7.7.4 -- Styx"
 echo "  Die Verbindung beider Welten"
 echo "  Local AI for your Smart Home"
 echo "============================================"
 
 # ---------------------------------------------------------------------------
 # Bridge: Read /data/options.json and export env vars
-# This ensures addon configuration from HA UI reaches both the shell script
-# (for Ollama model selection) and Python (via core_setup.py).
 # ---------------------------------------------------------------------------
 OPTIONS_FILE="/data/options.json"
 if [ -f "$OPTIONS_FILE" ]; then
     echo "Loading addon configuration from $OPTIONS_FILE..."
 
-    # Extract configuration via Python (jq not available on Alpine base)
     eval "$(python3 -c "
 import json, os
 try:
@@ -36,11 +33,9 @@ try:
         'CONVERSATION_ENABLED': str(opts.get('conversation_enabled', True)).lower(),
         'ASSISTANT_NAME': opts.get('conversation_assistant_name', ''),
     }
-    # Log level
     ll = opts.get('log_level', '')
     if ll:
         pairs['LOG_LEVEL'] = ll
-    # Auth token
     at = opts.get('auth_token', '')
     if at:
         pairs['AUTH_TOKEN'] = at
@@ -49,36 +44,83 @@ try:
         if v:
             print(f'export {k}=\"{v}\"')
 except Exception as e:
-    print(f'echo \"WARNING: Could not parse {chr(36)}OPTIONS_FILE: {e}\"', flush=True)
+    print(f'echo \"WARNING: Could not parse options.json: {e}\"', flush=True)
 " 2>/dev/null)" || echo "WARNING: Config bridge failed, using defaults"
 else
     echo "No $OPTIONS_FILE found (development mode), using env defaults"
 fi
 
+# ---------------------------------------------------------------------------
+# Ollama configuration
+# ---------------------------------------------------------------------------
+
+# Internal Ollama port (avoids conflicts if host also runs Ollama on 11434)
+INTERNAL_OLLAMA_PORT=${INTERNAL_OLLAMA_PORT:-11435}
+INTERNAL_OLLAMA_URL="http://127.0.0.1:${INTERNAL_OLLAMA_PORT}"
+
+# Determine Ollama URL: user-configured external, or internal bundled
+CONFIGURED_URL="${OLLAMA_URL:-}"
+
+# Detect if user points to an external Ollama server
+USE_INTERNAL_OLLAMA=true
+if [ -n "$CONFIGURED_URL" ]; then
+    case "$CONFIGURED_URL" in
+        *localhost:${INTERNAL_OLLAMA_PORT}*|*127.0.0.1:${INTERNAL_OLLAMA_PORT}*)
+            # Points to our internal instance
+            USE_INTERNAL_OLLAMA=true
+            ;;
+        *localhost*|*127.0.0.1*)
+            # Points to localhost but different port — rewrite to our internal port
+            echo "INFO: Rewriting Ollama URL to internal port ${INTERNAL_OLLAMA_PORT}"
+            export OLLAMA_URL="$INTERNAL_OLLAMA_URL"
+            USE_INTERNAL_OLLAMA=true
+            ;;
+        *)
+            # Points to external server (e.g. NAS, other machine)
+            echo "INFO: Using external Ollama at $CONFIGURED_URL — skipping internal Ollama"
+            USE_INTERNAL_OLLAMA=false
+            ;;
+    esac
+else
+    # No URL configured, use internal
+    export OLLAMA_URL="$INTERNAL_OLLAMA_URL"
+fi
+
 # Obligatory minimum model (always available, 400MB)
 FALLBACK_MODEL="qwen3:0.6b"
 
-# Recommended model (configurable via addon options -> env var)
+# Recommended model (configurable via addon options)
 MODEL=${OLLAMA_MODEL:-qwen3:4b}
 
 # Ensure model persistence directory exists
 export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/pilotsuite/ollama/models}
 mkdir -p "$OLLAMA_MODELS" 2>/dev/null || echo "WARNING: Cannot create $OLLAMA_MODELS (is /share mounted?)"
 
-echo "Configuration: model=$MODEL, ollama_url=${OLLAMA_URL:-http://localhost:11434}"
+echo "Configuration: model=$MODEL, ollama_url=${OLLAMA_URL}, internal=${USE_INTERNAL_OLLAMA}"
 
-# Check if Ollama is installed
+# ---------------------------------------------------------------------------
+# Ollama startup (only if using internal)
+# ---------------------------------------------------------------------------
+
+if [ "$USE_INTERNAL_OLLAMA" = "false" ]; then
+    echo "External Ollama configured — starting API directly"
+    exec python3 -u main.py
+fi
+
+# Check if Ollama binary is installed
 if ! command -v ollama >/dev/null 2>&1; then
     echo "WARNING: Ollama not found -- LLM features disabled, starting API only"
     exec python3 -u main.py
 fi
 
-# Start Ollama server in background
-echo "Starting Ollama service (models dir: $OLLAMA_MODELS)..."
+# Tell Ollama to bind on our internal port
+export OLLAMA_HOST="127.0.0.1:${INTERNAL_OLLAMA_PORT}"
+
+echo "Starting Ollama service on port ${INTERNAL_OLLAMA_PORT} (models dir: $OLLAMA_MODELS)..."
 ollama serve &
 OLLAMA_PID=$!
 
-# Cleanup on exit: kill Ollama when main process ends
+# Cleanup on exit
 cleanup() {
     echo "Shutting down Ollama (PID $OLLAMA_PID)..."
     kill "$OLLAMA_PID" 2>/dev/null || true
@@ -87,13 +129,13 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Wait for Ollama to be ready (max 60s with exponential backoff)
-echo "Waiting for Ollama..."
+echo "Waiting for Ollama on port ${INTERNAL_OLLAMA_PORT}..."
 READY=false
 WAIT=1
 TOTAL_WAIT=0
 MAX_WAIT=60
 while [ "$TOTAL_WAIT" -lt "$MAX_WAIT" ]; do
-    if curl -sf -m 3 http://localhost:11434/api/tags >/dev/null 2>&1; then
+    if curl -sf -m 3 "${INTERNAL_OLLAMA_URL}/api/tags" >/dev/null 2>&1; then
         echo "Ollama is ready! (after ${TOTAL_WAIT}s)"
         READY=true
         break
@@ -101,7 +143,6 @@ while [ "$TOTAL_WAIT" -lt "$MAX_WAIT" ]; do
     echo "    Waiting... (${TOTAL_WAIT}s/${MAX_WAIT}s)"
     sleep "$WAIT"
     TOTAL_WAIT=$((TOTAL_WAIT + WAIT))
-    # Exponential backoff: 1, 2, 4, 4, 4...
     [ "$WAIT" -lt 4 ] && WAIT=$((WAIT * 2))
 done
 
@@ -109,7 +150,7 @@ if [ "$READY" = "false" ]; then
     echo "WARNING: Ollama did not start within ${MAX_WAIT}s -- LLM features may be unavailable"
 fi
 
-# Model pull helper (idempotent, uses ollama pull which is safe to call multiple times)
+# Model pull (idempotent)
 pull_model() {
     TARGET_MODEL="$1"
     LABEL="$2"
@@ -123,12 +164,9 @@ pull_model() {
     fi
 }
 
-# Model pull strategy
 if [ "$READY" = "true" ]; then
-    # 1) OBLIGATORY: Always ensure fallback model is available
     pull_model "$FALLBACK_MODEL" "fallback" || true
 
-    # 2) RECOMMENDED: Pull configured model if different from fallback
     if [ "$MODEL" != "$FALLBACK_MODEL" ]; then
         if ! pull_model "$MODEL" "configured"; then
             echo "INFO: Falling back to $FALLBACK_MODEL"
