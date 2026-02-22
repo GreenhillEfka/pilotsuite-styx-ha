@@ -5,6 +5,11 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.8.1] - 2026-02-22
+- Hub-Sensoren fuer `modes/scenes/presence/notifications/integration/brain/energy/media/templates` repariert (wieder korrekte API-Calls mit Auth-Headern).
+- `CopilotBaseEntity._fetch()` als gemeinsamer, robuster Core-GET-Helper ergaenzt.
+- Syntax-Regression abgesichert durch neuen Source-Syntax-Test.
+
 ## [7.7.26] - 2026-02-22
 - Runtime-kompatible Lifecycle-Wrappers fuer `ops_runbook`, `mood_context`, `knowledge_graph_sync`, `person_tracking`.
 - Konstruktoren fuer Modul-Registry ohne Pflichtparameter vereinheitlicht.

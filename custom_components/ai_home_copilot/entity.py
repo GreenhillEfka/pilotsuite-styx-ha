@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import logging
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any, Mapping
 
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 if TYPE_CHECKING:
     from .coordinator import CopilotDataUpdateCoordinator
 from .const import DOMAIN, LEGACY_MAIN_DEVICE_IDENTIFIERS, MAIN_DEVICE_IDENTIFIER
 from .core_endpoint import DEFAULT_CORE_PORT, build_base_url
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def _load_integration_version() -> str:
@@ -76,6 +80,27 @@ class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
         if content_type:
             headers["Content-Type"] = content_type
         return headers
+
+    async def _fetch(self, path: str, *, timeout_s: float = 10.0) -> dict[str, Any] | None:
+        """Fetch JSON from Core API with configured auth and resilient URL handling."""
+        import aiohttp
+
+        normalized = path if path.startswith("/") else f"/{path}"
+        url = f"{self._core_base_url()}{normalized}"
+        headers = self._core_headers()
+        session = async_get_clientsession(self.hass)
+
+        try:
+            async with session.get(
+                url,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=timeout_s),
+            ) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Core fetch failed for %s: %s", normalized, err)
+        return None
 
     @property
     def device_info(self) -> DeviceInfo:

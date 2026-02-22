@@ -1,5 +1,15 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.1] - 2026-02-22
+- **Hub Sensor Fetch Stabilität**: 9 Hub-Sensoren repariert (`automation_templates`, `brain_architecture`, `energy_advisor`, `media_follow`, `notification_intelligence`, `presence_intelligence`, `scene_intelligence`, `system_integration`, `zone_modes`).
+- **Auth + Request-Flow korrigiert**: Requests nutzen wieder konsistent `_core_headers()` inkl. Token.
+- **Syntax/Indentation Regression beseitigt**: fehlerhafte Einrückungen entfernt; Sensor-Module sind wieder ladbar.
+- **Gemeinsamer Core-HTTP-Helper**: `CopilotBaseEntity._fetch()` ergänzt, damit alle sensorischen Core-Abfragen konsistent über denselben robusten Pfad laufen.
+- **Regressionstests erweitert**:
+  - `tests/test_source_syntax.py` (statischer Syntax-Guard für `custom_components/ai_home_copilot`)
+  - neue `_fetch()`-Tests in `tests/test_device_identity.py`
+- **Validierung**: `pytest -q` => **548 passed, 5 skipped**.
+
 ## [7.8.0]
 - **Zero-Config**: Vollständige Auto-Discovery von Core-Endpoint
 - **Entity Auto-Discovery**: Media-Player Erkennung (Sonos, Apple TV, Smart TV) bei Setup

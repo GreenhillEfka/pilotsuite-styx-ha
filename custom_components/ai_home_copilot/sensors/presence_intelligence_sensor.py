@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..entity import CopilotBaseEntity
 
@@ -28,14 +29,13 @@ class PresenceIntelligenceSensor(CopilotBaseEntity, SensorEntity):
 
     async def _fetch(self) -> dict | None:
         import aiohttp
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
         try:
             url = f"{self._core_base_url()}/api/v1/hub/presence"
+            headers = self._core_headers()
             session = async_get_clientsession(self.hass)
-            session = async_get_clientsession(self.hass)
-                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    if resp.status == 200:
-                        return await resp.json()
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status == 200:
+                    return await resp.json()
         except Exception:
             logger.debug("Failed to fetch presence intelligence data")
         return None
