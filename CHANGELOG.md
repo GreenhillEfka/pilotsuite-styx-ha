@@ -1,5 +1,26 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.24] - 2026-02-22 — DASHBOARD WIRING + V2 CLEANUP + ENTITY MINIMIZATION
+
+### Fixes
+- **Dashboard-Wiring automatisiert**
+  - neue Wiring-Logik erzeugt eine stabile Include-Datei: `ai_home_copilot/lovelace_pilotsuite_dashboards.yaml`.
+  - wenn `configuration.yaml` noch keinen `lovelace:`-Block hat, wird ein minimaler Include-Block automatisch ergänzt.
+  - wenn bereits ein `lovelace:`-Block existiert, wird eine klare Merge-Anleitung als Persistent Notification ausgegeben.
+- **Habitus-Dashboard v2-Hotfix**
+  - Generierung nutzt jetzt konsistent `async_get_zones_v2` (statt Legacy-Referenz).
+  - behebt fehlerhafte/ausfallende Habitus-Dashboard-Generierung.
+- **Auto-Generierung erweitert**
+  - bei Setup werden jetzt **beide** Dashboards erzeugt (PilotSuite + Habitus), nicht nur PilotSuite.
+  - bei Habitus-Zonen-Updates werden beide Dashboards automatisch regeneriert (ohne Notification-Spam).
+- **Dashboard-Entity-Referenzen aufgeräumt**
+  - Dashboard-Generator referenziert nur noch tatsächlich vorhandene Entities.
+  - reduziert tote/duplizierte Karteninhalte und verbessert UX bei Core-Profile-Setups.
+
+### Tests
+- Neue Tests: `tests/test_dashboard_wiring.py`.
+- Lokale Regressionen (gezielt): **21 passed, 1 skipped**.
+
 ## [7.7.23] - 2026-02-22 — DEVICE DEDUP CLEANUP HARDENING
 
 ### Fixes

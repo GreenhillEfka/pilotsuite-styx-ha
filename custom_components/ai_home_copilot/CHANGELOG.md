@@ -5,6 +5,12 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.24] - 2026-02-22
+- Dashboard-Wiring automatisiert (Include-Datei + Auto-Append bei fehlendem `lovelace:` Block, sonst Merge-Hinweis).
+- Habitus-Dashboard-Generierung auf konsistentes v2 (`async_get_zones_v2`) umgestellt.
+- Setup/Zone-Refresh erzeugt jetzt PilotSuite- und Habitus-Dashboard gemeinsam.
+- Dashboard-Generator referenziert nur noch vorhandene Entities (weniger tote Eintraege).
+
 ## [7.7.23] - 2026-02-22
 - Nach Device-Konsolidierung werden verwaiste Legacy-PilotSuite-Devices (ohne Entities) nun automatisch bereinigt.
 - Cleanup bleibt konservativ (nur reine `ai_home_copilot`-Devices) und bricht Setup bei Fehlern nicht.
