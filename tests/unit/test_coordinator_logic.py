@@ -206,8 +206,8 @@ class TestAPIEndpointLogic:
         """Test building evaluation context from HA states."""
         # Simulate HA states
         ha_states = {
-            "person.andreas": {"state": "home"},
-            "person.efka": {"state": "away"},
+            "person.user_a": {"state": "home"},
+            "person.user_b": {"state": "away"},
             "sensor.temperature_living": {"state": "22.5"},
             "light.living_room": {"state": "on"},
             "media_player.tv": {"state": "playing"},
@@ -237,8 +237,8 @@ class TestAPIEndpointLogic:
                     }
                     break
         
-        assert "person.andreas" in context["states"]
-        assert "person.efka" in context["states"]
+        assert "person.user_a" in context["states"]
+        assert "person.user_b" in context["states"]
         assert "light.living_room" in context["states"]
         assert "media_player.tv" in context["states"]
     

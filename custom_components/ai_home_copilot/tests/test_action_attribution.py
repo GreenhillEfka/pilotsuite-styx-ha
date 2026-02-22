@@ -27,24 +27,24 @@ class TestPresenceAttribution:
     @pytest.mark.asyncio
     async def test_single_user_present(self, hass):
         """Test attribution when only one user is home"""
-        presence_entities = {"efka": "person.efka", "andreas": "person.andreas"}
+        presence_entities = {"user_a": "person.user_a", "user_b": "person.user_b"}
         
         hass.states.get = Mock(side_effect=lambda entity_id: 
-            Mock(state="home") if entity_id == "person.efka" 
+            Mock(state="home") if entity_id == "person.user_a" 
             else Mock(state="away"))
         
         source = PresenceAttribution(hass, presence_entities)
         result = await source.get_attribution(hass, "light.test", "turn_on")
         
         assert result is not None
-        assert result.user_id == "efka"
+        assert result.user_id == "user_a"
         assert result.confidence == 0.4
         assert result.sources.get("presence") == 0.4
     
     @pytest.mark.asyncio
     async def test_multiple_users_present(self, hass):
         """Test attribution when multiple users are home"""
-        presence_entities = {"efka": "person.efka", "andreas": "person.andreas"}
+        presence_entities = {"user_a": "person.user_a", "user_b": "person.user_b"}
         
         hass.states.get = Mock(return_value=Mock(state="home"))
         
@@ -58,7 +58,7 @@ class TestPresenceAttribution:
     @pytest.mark.asyncio
     async def test_no_users_present(self, hass):
         """Test attribution when no one is home"""
-        presence_entities = {"efka": "person.efka"}
+        presence_entities = {"user_a": "person.user_a"}
         
         hass.states.get = Mock(return_value=Mock(state="away"))
         
@@ -78,19 +78,19 @@ class TestDeviceOwnershipAttribution:
     @pytest.mark.asyncio
     async def test_owned_device(self, hass):
         """Test attribution for owned device"""
-        device_owners = {"light.efka_desk": "efka", "light.andreas_desk": "andreas"}
+        device_owners = {"light.user_a_desk": "user_a", "light.user_b_desk": "user_b"}
         
         source = DeviceOwnershipAttribution(hass, device_owners)
-        result = await source.get_attribution(hass, "light.efka_desk", "turn_on")
+        result = await source.get_attribution(hass, "light.user_a_desk", "turn_on")
         
         assert result is not None
-        assert result.user_id == "efka"
+        assert result.user_id == "user_a"
         assert result.confidence == 0.3
     
     @pytest.mark.asyncio
     async def test_unowned_device(self, hass):
         """Test attribution for unowned device"""
-        device_owners = {"light.efka_desk": "efka"}
+        device_owners = {"light.user_a_desk": "user_a"}
         
         source = DeviceOwnershipAttribution(hass, device_owners)
         result = await source.get_attribution(hass, "light.kitchen", "turn_on")
@@ -110,8 +110,8 @@ class TestTimePatternAttribution:
         """Test attribution based on morning pattern"""
         time_patterns = {
             "light.bedroom": {
-                "morning": "efka",
-                "evening": "andreas"
+                "morning": "user_a",
+                "evening": "user_b"
             }
         }
         
@@ -122,13 +122,13 @@ class TestTimePatternAttribution:
             result = await source.get_attribution(hass, "light.bedroom", "turn_on")
             
             assert result is not None
-            assert result.user_id == "efka"
+            assert result.user_id == "user_a"
             assert result.sources.get("time_of_day") == "morning"
     
     @pytest.mark.asyncio
     async def test_no_pattern_for_entity(self, hass):
         """Test when no pattern exists for entity"""
-        time_patterns = {"light.other": {"morning": "efka"}}
+        time_patterns = {"light.other": {"morning": "user_a"}}
         
         source = TimePatternAttribution(hass, time_patterns)
         result = await source.get_attribution(hass, "light.bedroom", "turn_on")
@@ -150,8 +150,8 @@ class TestActionAttributor:
     async def test_combine_multiple_sources(self, hass):
         """Test combining attributions from multiple sources"""
         config = {
-            "presence_entities": {"efka": "person.efka"},
-            "device_owners": {"light.test": "efka"},
+            "presence_entities": {"user_a": "person.user_a"},
+            "device_owners": {"light.test": "user_a"},
             "max_history": 100
         }
         
@@ -163,7 +163,7 @@ class TestActionAttributor:
         result = await attributor.attribute_action("light.test", "turn_on")
         
         assert result is not None
-        assert result.user_id == "efka"
+        assert result.user_id == "user_a"
         # Combined confidence from presence + device ownership
         assert result.confidence >= 0.5
     
@@ -180,14 +180,14 @@ class TestActionAttributor:
             DeviceOwnershipAttribution
         )
         attributor.sources.append(
-            DeviceOwnershipAttribution(hass, {"light.test": "efka"})
+            DeviceOwnershipAttribution(hass, {"light.test": "user_a"})
         )
         
         await attributor.attribute_action("light.test", "turn_on")
         
         history = attributor.get_action_history()
         assert len(history) == 1
-        assert history[0].user_id == "efka"
+        assert history[0].user_id == "user_a"
         assert history[0].entity_id == "light.test"
     
     @pytest.mark.asyncio
@@ -203,7 +203,7 @@ class TestActionAttributor:
             DeviceOwnershipAttribution
         )
         attributor.sources.append(
-            DeviceOwnershipAttribution(hass, {f"light.{i}": "efka" for i in range(10)})
+            DeviceOwnershipAttribution(hass, {f"light.{i}": "user_a" for i in range(10)})
         )
         
         # Add 10 actions

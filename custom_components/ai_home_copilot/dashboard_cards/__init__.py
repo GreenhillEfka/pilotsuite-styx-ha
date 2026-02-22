@@ -11,7 +11,7 @@ Structure (by Feature):
 - interactive/: Detail views, filters, modals
 - overview/: Complete dashboard builders
 
-Path: /config/.openclaw/workspace/ai_home_copilot_hacs_repo/custom_components/ai_home_copilot/dashboard_cards/
+Path: custom_components/ai_home_copilot/dashboard_cards/
 """
 
 from __future__ import annotations

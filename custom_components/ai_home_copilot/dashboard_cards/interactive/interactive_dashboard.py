@@ -8,7 +8,7 @@ Interactive elements for the comprehensive dashboard:
 - Filter Cards
 - Modal Dialogs
 
-Path: /config/.openclaw/workspace/ai_home_copilot_hacs_repo/custom_components/ai_home_copilot/dashboard_cards/
+Path: custom_components/ai_home_copilot/dashboard_cards/
 """
 
 from __future__ import annotations

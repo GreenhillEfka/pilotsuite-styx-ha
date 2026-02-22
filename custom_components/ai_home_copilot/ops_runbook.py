@@ -34,9 +34,9 @@ _LOGGER = logging.getLogger(__name__)
 RUNBOOK_CONFIG = {
     "checks": {
         "gateway_status": {"cmd": ["openclaw", "gateway", "status"]},
-        "disk_space": {"cmd": ["df", "-h", "/config/.openclaw/workspace"]},
+        "disk_space": {"cmd": ["df", "-h", "/config/workspace"]},
         "nodes_status": {"timeout": 30},
-        "workspace_permissions": {"cmd": ["ls", "-la", "/config/.openclaw/workspace"]},
+        "workspace_permissions": {"cmd": ["ls", "-la", "/config/workspace"]},
     },
     "actions": {
         "gateway_restart": {"cmd": ["openclaw", "gateway", "restart"]},
@@ -130,7 +130,7 @@ async def async_run_preflight_check(hass: HomeAssistant) -> dict[str, Any]:
         }
         
         # 2. Workspace beschreibbar?
-        workspace_result = await _run_command(["ls", "-la", "/config/.openclaw/workspace"])
+        workspace_result = await _run_command(["ls", "-la", "/config/workspace"])
         results["checks"]["workspace_accessible"] = {
             "success": workspace_result["return_code"] == 0,
             "output": workspace_result["stdout"],
@@ -138,7 +138,7 @@ async def async_run_preflight_check(hass: HomeAssistant) -> dict[str, Any]:
         }
         
         # 3. Disk space
-        disk_result = await _run_command(["df", "-h", "/config/.openclaw/workspace"])
+        disk_result = await _run_command(["df", "-h", "/config/workspace"])
         results["checks"]["disk_space"] = {
             "success": disk_result["return_code"] == 0,
             "output": disk_result["stdout"],
@@ -200,7 +200,7 @@ async def async_run_smoke_test(hass: HomeAssistant) -> dict[str, Any]:
         }
         
         # Check workspace write permissions
-        test_file = "/config/.openclaw/workspace/.ops_runbook_test"
+        test_file = "/config/workspace/.ops_runbook_test"
         write_test = await _run_command(["touch", test_file])
         cleanup_test = await _run_command(["rm", "-f", test_file])
         results["checks"]["workspace_writable"] = {
@@ -379,7 +379,7 @@ async def _run_command(cmd: list[str], timeout: int = 30) -> dict[str, Any]:
 async def _create_emergency_backup(hass: HomeAssistant) -> dict[str, Any]:
     """Create an emergency backup of critical files."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    backup_dir = f"/config/.openclaw/workspace/.ops_runbook_backup_{timestamp}"
+    backup_dir = f"/config/workspace/.ops_runbook_backup_{timestamp}"
     
     result = {
         "success": False,
@@ -397,13 +397,13 @@ async def _create_emergency_backup(hass: HomeAssistant) -> dict[str, Any]:
         
         # Backup critical directories
         backup_paths = [
-            "/config/.openclaw/workspace/docs",
-            "/config/.openclaw/workspace/memory",
-            "/config/.openclaw/workspace/notes",
-            "/config/.openclaw/workspace/SOUL.md",
-            "/config/.openclaw/workspace/USER.md",
-            "/config/.openclaw/workspace/MEMORY.md",
-            "/config/.openclaw/workspace/TOOLS.md",
+            "/config/workspace/docs",
+            "/config/workspace/memory",
+            "/config/workspace/notes",
+            "/config/workspace/SOUL.md",
+            "/config/workspace/USER.md",
+            "/config/workspace/MEMORY.md",
+            "/config/workspace/TOOLS.md",
         ]
         
         for path in backup_paths:
@@ -441,7 +441,7 @@ def _get_checklist_items(checklist: str) -> list[dict[str, Any]]:
                 "description": "Disk space unkritisch",
                 "auto_check": True,
                 "check_type": "command",
-                "command": ["df", "-h", "/config/.openclaw/workspace"],
+                "command": ["df", "-h", "/config/workspace"],
             },
         ],
         "pre_update": [

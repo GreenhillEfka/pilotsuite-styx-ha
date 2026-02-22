@@ -48,8 +48,8 @@
 | OpenAPI Specification | v0.8.2 | ✅ |
 
 ## Related
-- Core Add-on: `/config/.openclaw/workspace/ha-copilot-repo`
-- Docs: `/config/.openclaw/workspace/docs/`
+- Core Add-on: https://github.com/GreenhillEfka/pilotsuite-styx-core
+- Docs: https://github.com/GreenhillEfka/pilotsuite-styx-ha#readme
 
 ---
 

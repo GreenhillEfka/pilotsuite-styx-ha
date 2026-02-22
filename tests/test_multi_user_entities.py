@@ -43,15 +43,15 @@ def mock_module():
     """Mock MultiUserPreferenceModule."""
     module = MagicMock()
     module.get_all_users.return_value = {
-        "person.andreas": MagicMock(name="Andreas"),
-        "person.steffi": MagicMock(name="Steffi"),
+        "person.user_a": MagicMock(name="User A"),
+        "person.user_b": MagicMock(name="User B"),
     }
     module.detect_active_users = AsyncMock(
-        return_value=["person.andreas", "person.steffi"]
+        return_value=["person.user_a", "person.user_b"]
     )
     module.get_user_name.side_effect = lambda uid: {
-        "person.andreas": "Andreas",
-        "person.steffi": "Steffi",
+        "person.user_a": "User A",
+        "person.user_b": "User B",
     }.get(uid, "Unknown")
     module.get_user_preferences.return_value = {
         "mood_weights": {"comfort": 0.8, "frugality": 0.3, "joy": 0.6},
@@ -106,7 +106,7 @@ class TestActiveUsersSensor:
 
 class TestUserMoodSensor:
 
-    def _make_sensor(self, module, user_id="person.andreas", user_name="Andreas"):
+    def _make_sensor(self, module, user_id="person.user_a", user_name="User A"):
         from custom_components.ai_home_copilot.multi_user_preferences_entities import (
             UserMoodSensor,
         )
@@ -151,14 +151,14 @@ class TestUserMoodSensor:
         sensor = self._make_sensor(mock_module)
         await sensor.async_update()
         attrs = sensor._attr_extra_state_attributes
-        assert attrs["user_id"] == "person.andreas"
-        assert attrs["user_name"] == "Andreas"
+        assert attrs["user_id"] == "person.user_a"
+        assert attrs["user_name"] == "User A"
 
     def test_unique_id_contains_user(self, mock_module):
-        sensor = self._make_sensor(mock_module, "person.andreas", "Andreas")
+        sensor = self._make_sensor(mock_module, "person.user_a", "User A")
         assert "mood" in sensor._attr_unique_id
-        assert "andreas" in sensor._attr_unique_id
+        assert "user_a" in sensor._attr_unique_id
 
     def test_name_contains_user(self, mock_module):
-        sensor = self._make_sensor(mock_module, "person.steffi", "Steffi")
-        assert "Steffi" in sensor._attr_name
+        sensor = self._make_sensor(mock_module, "person.user_b", "User B")
+        assert "User B" in sensor._attr_name
