@@ -1,5 +1,17 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.23] - 2026-02-22 — DEVICE DEDUP CLEANUP HARDENING
+
+### Fixes
+- **Legacy-Device Cleanup erweitert**
+  - Nach der Device-Konsolidierung werden jetzt verwaiste alte PilotSuite-Devices
+    (ohne verknuepfte Entities) automatisch aus der Registry entfernt.
+  - reduziert verbleibende "altes Gerät bleibt stehen"-Artefakte nach Migration/Update.
+- **Sicherheitsnetz fuer Cleanup**
+  - Cleanup ist konservativ: entfernt nur reine `ai_home_copilot`-Devices
+    ohne fremde Identifier.
+  - Fehler im Cleanup-Pfad beeinflussen Setup nicht (best-effort + debug logging).
+
 ## [7.7.22] - 2026-02-22 — RUNTIME RELOAD STABILITY + TOKEN FLOW HARDENING
 
 ### Fixes

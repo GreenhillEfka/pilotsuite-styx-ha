@@ -186,6 +186,39 @@ async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry)
             continue
         ent_reg.async_update_entity(entity_entry.entity_id, new_device_id=device.id)
 
+    # Remove stale legacy PilotSuite devices that no longer have entities attached.
+    # This keeps the device list stable across updates/migrations.
+    try:
+        attached_device_ids = {
+            e.device_id
+            for e in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+            if e.device_id
+        }
+        remove_device = getattr(dev_reg, "async_remove_device", None)
+        devices = getattr(dev_reg, "devices", None)
+        removed_orphans = 0
+        if callable(remove_device) and isinstance(devices, dict):
+            for probe in list(devices.values()):
+                if probe.id == device.id:
+                    continue
+                if probe.id in attached_device_ids:
+                    continue
+                config_entries = set(getattr(probe, "config_entries", set()) or set())
+                if entry.entry_id not in config_entries:
+                    continue
+                identifiers = set(getattr(probe, "identifiers", set()) or set())
+                if not identifiers or not any(ns == DOMAIN for ns, _ in identifiers):
+                    continue
+                # Be conservative: only auto-remove pure PilotSuite devices.
+                if any(ns != DOMAIN for ns, _ in identifiers):
+                    continue
+                if remove_device(probe.id):
+                    removed_orphans += 1
+        if removed_orphans:
+            _LOGGER.info("Removed %d orphaned PilotSuite legacy devices", removed_orphans)
+    except Exception:
+        _LOGGER.debug("Could not clean up orphaned legacy devices", exc_info=True)
+
 
 async def _async_migrate_legacy_sensor_unique_ids(
     hass: HomeAssistant, entry: ConfigEntry

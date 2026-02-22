@@ -5,6 +5,10 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.23] - 2026-02-22
+- Nach Device-Konsolidierung werden verwaiste Legacy-PilotSuite-Devices (ohne Entities) nun automatisch bereinigt.
+- Cleanup bleibt konservativ (nur reine `ai_home_copilot`-Devices) und bricht Setup bei Fehlern nicht.
+
 ## [7.7.22] - 2026-02-22
 - Runtime unload now coerces module unload results to strict boolean values.
 - Connection options flow now tolerates `test_light_entity_id: null` safely.
