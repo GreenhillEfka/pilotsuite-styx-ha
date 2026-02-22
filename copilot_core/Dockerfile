@@ -1,9 +1,20 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-# Install Python runtime and dependencies
-RUN apk add --no-cache python3 py3-pip graphviz curl bash libstdc++ libgcc && \
-    pip3 install --no-cache-dir \
+# ── Required Home Assistant add-on labels ────────────────────────────────────
+ARG BUILD_ARCH
+ARG BUILD_VERSION
+LABEL \
+    io.hass.version="${BUILD_VERSION}" \
+    io.hass.type="addon" \
+    io.hass.arch="${BUILD_ARCH}"
+
+# ── Install runtime + build deps, pip packages, then clean build deps ────────
+RUN apk add --no-cache \
+        python3 py3-pip graphviz curl bash libstdc++ libgcc \
+        # Build deps needed for psutil and numpy C extensions
+        gcc g++ musl-dev python3-dev linux-headers && \
+    pip3 install --no-cache-dir --break-system-packages --prefer-binary \
         flask==3.0.2 \
         flask-compress==1.14 \
         waitress==3.0.0 \
@@ -14,10 +25,12 @@ RUN apk add --no-cache python3 py3-pip graphviz curl bash libstdc++ libgcc && \
         pydantic==2.12.5 \
         requests==2.31.0 \
         qrcode==8.0 \
-        numpy
+        numpy && \
+    # Remove build deps to keep image small
+    apk del gcc g++ musl-dev python3-dev linux-headers
 
-# Install Ollama from Alpine edge/community (native musl build)
-# Falls back to binary download with gcompat if edge package unavailable
+# ── Ollama (optional — LLM features) ────────────────────────────────────────
+# Try Alpine edge package first, fall back to binary download
 RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
     (apk add --no-cache ollama@edge-community 2>/dev/null || \
      (echo "INFO: edge package unavailable, trying binary download..." && \
@@ -33,19 +46,17 @@ RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" 
     echo "WARNING: Ollama installation failed -- LLM features will be unavailable"
 
 # Persist Ollama models in /share/ (NOT /data/) to avoid bloating HA backups
-# /share/ is persistent, shared between addons, and can be excluded from backups
 ENV OLLAMA_MODELS=/share/pilotsuite/ollama/models
 
+# ── Application ──────────────────────────────────────────────────────────────
 WORKDIR /usr/src/app
 COPY rootfs/usr/src/app /usr/src/app
 
 EXPOSE 8909
 
-# Health check: verify the API server is responding
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -sf http://localhost:8909/health || exit 1
 
-# Start script that launches Ollama + PilotSuite
 COPY rootfs/usr/src/app/start_dual.sh /start.sh
 RUN chmod +x /start.sh
 CMD ["/start.sh"]
