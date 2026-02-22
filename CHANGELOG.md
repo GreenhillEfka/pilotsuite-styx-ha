@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.11] - 2026-02-22 — CONVERSATION ID + TOKEN + ZONE FORM HOTFIX
+
+### Fixes fuer gemeldete Restfehler
+- Conversation-Agent erzeugt jetzt strikt ULID-kompatible `conversation_id`-Werte (Crockford Base32, 26 Zeichen).
+  - behebt Assist/Frontend-Fehler wie: `The string did not match the expected pattern`.
+- Options-Flow (`connection`) behaelt API-Token jetzt robust aus `entry.data` **oder** `entry.options` bei.
+  - verhindert Token-Verlust bei leeren Token-Submits und nach Konfig-/Versionszyklen.
+- Habitus-Zonen-Form verwendet bei optionalen Single-Entity-Selects kein leeres `\"\"` mehr als Default.
+  - vermeidet Pattern-Fehler beim Rendern/Absenden der Zone-Form.
+- Device-Info-Naming vereinheitlicht auf `PilotSuite - Styx` fuer neue/aktualisierte Device-Metadaten.
+
+### Tests
+- HA Test-Suite: **511 passed, 5 skipped**
+- Neue Unit-Tests fuer Conversation-ID-Helper hinzugefuegt.
+
 ## [7.7.10] - 2026-02-22 — CHAT + ZONES + ENTITY SURFACE HARDENING
 
 ### Chat-/Endpoint-Robustheit

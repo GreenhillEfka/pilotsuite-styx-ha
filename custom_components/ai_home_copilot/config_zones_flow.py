@@ -16,18 +16,19 @@ def _build_zone_form_schema(
     *,
     zone_id: str,
     name: str,
-    motion_entity_id: str,
+    motion_entity_id: str | None,
     light_entity_ids: list[str],
     optional_entity_ids: list[str],
 ) -> vol.Schema:
     """Build schema for create/edit zone forms."""
+    motion_default = motion_entity_id if motion_entity_id else None
     return vol.Schema(
         {
             vol.Required("zone_id", default=zone_id): str,
             vol.Optional("name", default=name): str,
             vol.Optional(
                 "motion_entity_id",
-                default=motion_entity_id,
+                default=motion_default,
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"], multiple=False)
             ),
@@ -250,7 +251,7 @@ async def async_step_zone_form(
     schema = _build_zone_form_schema(
         zone_id=(z.zone_id if mode == "edit" else ""),
         name=(z.name if z.name else ""),
-        motion_entity_id=default_motion or "",
+        motion_entity_id=default_motion,
         light_entity_ids=default_lights,
         optional_entity_ids=default_optional,
     )

@@ -174,7 +174,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_PORT, default=default_port): int,
                 vol.Optional(CONF_TOKEN): str,
                 vol.Optional(CONF_ENTITY_PROFILE, default=DEFAULT_ENTITY_PROFILE): vol.In(ENTITY_PROFILES),
-                vol.Optional(CONF_TEST_LIGHT, default=""): selector.EntitySelector(
+                vol.Optional(CONF_TEST_LIGHT, default=None): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="light", multiple=False),
                 ),
             }

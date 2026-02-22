@@ -52,9 +52,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Network settings: host, port, token, webhook URL, test light."""
         if user_input is not None:
             user_input.pop(CONF_WEBHOOK_URL, None)
+            data = {**self._entry.data, **self._entry.options}
             host, port = normalize_host_port(
-                user_input.get(CONF_HOST, self._entry.data.get(CONF_HOST)),
-                user_input.get(CONF_PORT, self._entry.data.get(CONF_PORT)),
+                user_input.get(CONF_HOST, data.get(CONF_HOST)),
+                user_input.get(CONF_PORT, data.get(CONF_PORT)),
             )
             user_input[CONF_HOST] = host
             user_input[CONF_PORT] = port
@@ -65,7 +66,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             if clear_token:
                 user_input[CONF_TOKEN] = ""
             elif not new_token:
-                existing_token = self._entry.data.get(CONF_TOKEN, "")
+                existing_token = str(data.get(CONF_TOKEN, "") or "")
                 user_input[CONF_TOKEN] = existing_token
 
             if CONF_TOKEN in user_input:

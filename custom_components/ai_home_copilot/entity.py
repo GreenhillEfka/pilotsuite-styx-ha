@@ -36,8 +36,8 @@ class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={("ai_home_copilot", f"{self._host}:{self._port}")},
-            name="PilotSuite",
+            name="PilotSuite - Styx",
             manufacturer="PilotSuite",
-            model="HACS Integration",
+            model="Home Assistant Integration",
             sw_version=VERSION,
         )
