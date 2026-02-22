@@ -5,7 +5,7 @@ import asyncio
 from datetime import timedelta
 import logging
 from typing import Any
-from dataclasses import dataclass, field
+import re
 
 import aiohttp
 
@@ -15,6 +15,12 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_TOKEN
+from .api import (
+    CopilotApiClient as SharedCopilotApiClient,
+    CopilotApiError,
+    CopilotStatus,
+)
+from .core_endpoint import build_base_url, build_candidate_hosts, normalize_host_port
 from .camera_entities import (
     CameraState,
     CameraMotionEvent,
@@ -27,49 +33,157 @@ from .camera_entities import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class CopilotApiClient:
-    """Client for PilotSuite Core API with neural system support."""
-    
-    def __init__(self, session, base_url: str, token: str):
-        self._session = session
-        self._base_url = base_url.rstrip("/")
-        self._token = token
-    
-    async def async_get_status(self) -> dict[str, Any]:
-        """Get basic status."""
-        url = f"{self._base_url}/api/v1/status"
-        headers = {"Authorization": f"Bearer {self._token}"}
+def _extract_http_status(err: CopilotApiError) -> int | None:
+    match = re.match(r"^HTTP\s+(\d+)\s+for\s+", str(err))
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except (TypeError, ValueError):
+        return None
 
-        async with self._session.get(url, headers=headers, timeout=10) as resp:
-            if resp.status != 200:
-                raise CopilotApiError(f"API error: {resp.status}")
-            return await resp.json()
+
+def _should_failover(err: CopilotApiError) -> bool:
+    message = str(err)
+    if message.startswith("Timeout calling ") or message.startswith("Client error calling "):
+        return True
+
+    status = _extract_http_status(err)
+    if status is None:
+        return False
+
+    # Fail over only for upstream/server-side transport issues.
+    return status >= 500
+
+
+class CopilotApiClient(SharedCopilotApiClient):
+    """Coordinator-facing API client with endpoint failover + legacy helpers."""
+
+    def __init__(
+        self,
+        session: aiohttp.ClientSession,
+        *,
+        base_urls: list[str],
+        token: str,
+    ) -> None:
+        primary = (base_urls[0] if base_urls else "").rstrip("/")
+        super().__init__(session, primary, token)
+        self._base_urls = [u.rstrip("/") for u in base_urls if u]
+        if not self._base_urls:
+            self._base_urls = [primary]
+        self._active_base_url = self._base_urls[0]
+
+    async def _request_json(
+        self,
+        method: str,
+        path: str,
+        *,
+        payload: dict | None = None,
+        params: dict | None = None,
+        timeout_s: float = 10.0,
+    ) -> dict:
+        normalized_path = path if path.startswith("/") else f"/{path}"
+        last_err: CopilotApiError | None = None
+
+        for idx, base_url in enumerate(self._base_urls):
+            url = f"{base_url}{normalized_path}"
+            try:
+                async with self._session.request(
+                    method,
+                    url,
+                    json=payload,
+                    params=params,
+                    headers=self._headers(),
+                    timeout=aiohttp.ClientTimeout(total=timeout_s),
+                ) as resp:
+                    if resp.status >= 400:
+                        body = await resp.text()
+                        raise CopilotApiError(f"HTTP {resp.status} for {url}: {body[:200]}")
+
+                    ctype = resp.headers.get("Content-Type", "")
+                    if resp.status == 204:
+                        data: dict = {}
+                    elif "json" in ctype:
+                        data = await resp.json()
+                    else:
+                        data = {"text": (await resp.text())[:2000]}
+
+                    if base_url != self._active_base_url:
+                        _LOGGER.warning(
+                            "PilotSuite API failover: switched endpoint from %s to %s",
+                            self._active_base_url,
+                            base_url,
+                        )
+                    self._active_base_url = base_url
+                    self._base_url = base_url
+                    return data
+            except asyncio.TimeoutError as err:
+                last_err = CopilotApiError(f"Timeout calling {url}")
+                if idx < len(self._base_urls) - 1:
+                    continue
+                raise last_err from err
+            except aiohttp.ClientError as err:
+                last_err = CopilotApiError(f"Client error calling {url}: {err}")
+                if idx < len(self._base_urls) - 1:
+                    continue
+                raise last_err from err
+            except CopilotApiError as err:
+                last_err = err
+                if idx < len(self._base_urls) - 1 and _should_failover(err):
+                    continue
+                raise
+
+        raise last_err or CopilotApiError("No available Core API endpoint")
+
+    async def async_get(self, path: str, params: dict | None = None) -> dict:
+        return await self._request_json("GET", path, params=params, timeout_s=10.0)
+
+    async def async_post(self, path: str, payload: dict) -> dict:
+        return await self._request_json("POST", path, payload=payload, timeout_s=10.0)
+
+    async def async_put(self, path: str, payload: dict) -> dict:
+        return await self._request_json("PUT", path, payload=payload, timeout_s=10.0)
+
+    async def async_get_status(self) -> CopilotStatus:
+        health: dict | None = None
+        version: dict | None = None
+
+        ok: bool | None = None
+        ver: str | None = None
+
+        try:
+            health = await self.async_get("/health")
+            ok_val = health.get("ok")
+            ok = bool(ok_val) if ok_val is not None else None
+        except CopilotApiError:
+            ok = None
+
+        try:
+            version = await self.async_get("/version")
+            if isinstance(version.get("version"), str):
+                ver = version["version"]
+            elif isinstance(version.get("data"), dict) and isinstance(version["data"].get("version"), str):
+                ver = version["data"]["version"]
+        except CopilotApiError:
+            ver = None
+
+        return CopilotStatus(ok=ok, version=ver)
 
     async def async_get_mood(self) -> dict[str, Any]:
         """Get current mood from neural system."""
-        url = f"{self._base_url}/api/v1/neurons/mood"
-        headers = {"Authorization": f"Bearer {self._token}"}
-
         try:
-            async with self._session.get(url, headers=headers, timeout=5) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("data", data)
-        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            data = await self.async_get("/api/v1/neurons/mood")
+            return data.get("data", data)
+        except CopilotApiError as e:
             _LOGGER.debug("Mood API not available: %s", e)
         return {"mood": "unknown", "confidence": 0.0}
 
     async def async_get_neurons(self) -> dict[str, Any]:
         """Get all neuron states."""
-        url = f"{self._base_url}/api/v1/neurons"
-        headers = {"Authorization": f"Bearer {self._token}"}
-
         try:
-            async with self._session.get(url, headers=headers, timeout=5) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("data", data)
-        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            data = await self.async_get("/api/v1/neurons")
+            return data.get("data", data)
+        except CopilotApiError as e:
             _LOGGER.debug("Neurons API not available: %s", e)
         return {"neurons": {}}
 
@@ -77,45 +191,48 @@ class CopilotApiClient:
         self, messages: list[dict[str, str]], conversation_id: str | None = None
     ) -> dict[str, Any]:
         """Send a chat request to the Core Add-on via /v1/chat/completions."""
-        url = f"{self._base_url}/v1/chat/completions"
-        headers = {"Authorization": f"Bearer {self._token}"}
         payload: dict[str, Any] = {"model": "pilotsuite", "messages": messages}
         if conversation_id:
             payload["conversation_id"] = conversation_id
 
-        async with self._session.post(
-            url, json=payload, headers=headers, timeout=20
-        ) as resp:
-            if resp.status != 200:
-                body = await resp.text()
-                raise CopilotApiError(
-                    f"Chat API error {resp.status}: {body[:200]}"
-                )
-            data = await resp.json()
-            choices = data.get("choices", [])
-            content = ""
-            if choices:
-                content = choices[0].get("message", {}).get("content", "")
-            return {"content": content, "conversation_id": conversation_id}
+        data = await self._request_json(
+            "POST",
+            "/v1/chat/completions",
+            payload=payload,
+            timeout_s=20.0,
+        )
+        choices = data.get("choices", [])
+        content = ""
+        if choices:
+            content = choices[0].get("message", {}).get("content", "")
+        return {"content": content, "conversation_id": conversation_id}
 
     async def async_evaluate_neurons(self, context: dict[str, Any]) -> dict[str, Any]:
         """Evaluate neural pipeline with HA states."""
-        url = f"{self._base_url}/api/v1/neurons/evaluate"
-        headers = {"Authorization": f"Bearer {self._token}"}
-
         try:
-            async with self._session.post(url, json=context, headers=headers, timeout=10) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("data", data)
-        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            data = await self.async_post("/api/v1/neurons/evaluate", context)
+            return data.get("data", data)
+        except CopilotApiError as e:
             _LOGGER.warning("Neural evaluation failed: %s", e)
         return {}
 
+    @staticmethod
+    def _normalize_v1_path(path: str) -> str:
+        p = path.strip()
+        if p.startswith("/"):
+            return p
+        if p.startswith("api/") or p.startswith("v1/"):
+            return f"/{p}"
+        return f"/api/v1/{p}"
 
-class CopilotApiError(Exception):
-    """API error."""
-    pass
+    async def get_with_auth(self, path: str, params: dict | None = None) -> dict:
+        return await self.async_get(self._normalize_v1_path(path), params=params)
+
+    async def post_with_auth(self, path: str, data: dict | None = None) -> dict:
+        return await self.async_post(self._normalize_v1_path(path), payload=data or {})
+
+    async def put_with_auth(self, path: str, data: dict | None = None) -> dict:
+        return await self.async_put(self._normalize_v1_path(path), payload=data or {})
 
 
 class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
@@ -124,13 +241,27 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, config: dict):
         self._config = config
         session = async_get_clientsession(hass)
-        
-        host = str(config.get(CONF_HOST, ""))
-        port = int(config.get(CONF_PORT, 0) or 0)
-        base_url = f"http://{host}:{port}" if port else f"http://{host}"
-        
-        token = config.get(CONF_TOKEN, "")
-        self.api = CopilotApiClient(session, base_url, token)
+
+        host, port = normalize_host_port(
+            config.get(CONF_HOST, ""),
+            config.get(CONF_PORT, 0),
+        )
+        self._config[CONF_HOST] = host
+        self._config[CONF_PORT] = port
+
+        candidate_hosts = build_candidate_hosts(
+            host,
+            internal_url=getattr(hass.config, "internal_url", None),
+            external_url=getattr(hass.config, "external_url", None),
+        )
+        candidate_urls = [build_base_url(h, port) for h in candidate_hosts]
+
+        token = str(config.get(CONF_TOKEN, "") or "")
+        self.api = CopilotApiClient(
+            session,
+            base_urls=candidate_urls,
+            token=token,
+        )
         
         # Camera state management
         self.camera_state: dict[str, CameraState] = {}
@@ -161,8 +292,8 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 habit_data = await self._get_habit_learning_data()
 
                 return {
-                    "ok": status.get("ok", True),
-                    "version": status.get("version", "unknown"),
+                    "ok": bool(status.ok) if status.ok is not None else True,
+                    "version": status.version or "unknown",
                     "mood": mood_data,
                     "neurons": neurons_data.get("neurons", {}),
                     "dominant_mood": mood_data.get("mood", "unknown"),
@@ -171,17 +302,29 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     "predictions": habit_data.get("predictions", []),
                     "sequences": habit_data.get("sequences", []),
                 }
-            except (asyncio.TimeoutError, aiohttp.ClientError) as err:
+            except CopilotApiError as err:
                 last_err = err
                 if attempt < 2:
                     await asyncio.sleep(2 ** attempt)  # 1s, 2s backoff
                     _LOGGER.debug("Retrying PilotSuite API (attempt %d): %s", attempt + 1, err)
-            except CopilotApiError as err:
-                _LOGGER.error("PilotSuite API error: %s", err)
-                raise UpdateFailed(str(err)) from err
+                continue
+                # fallthrough prevented by continue
+            except Exception as err:  # noqa: BLE001
+                last_err = err
+                if attempt < 2:
+                    await asyncio.sleep(2 ** attempt)
+                    _LOGGER.debug(
+                        "Retrying PilotSuite API after unexpected error (attempt %d): %s",
+                        attempt + 1,
+                        err,
+                    )
+                    continue
+                break
 
+        if last_err is None:
+            last_err = RuntimeError("unknown API error")
         _LOGGER.warning("PilotSuite API unreachable after 3 attempts: %s", last_err)
-        raise UpdateFailed(f"API timeout after retries: {last_err}") from last_err
+        raise UpdateFailed(f"API unavailable after retries: {last_err}") from last_err
     
     async def _get_habit_learning_data(self) -> dict[str, Any]:
         """Get habit learning data from ML context."""

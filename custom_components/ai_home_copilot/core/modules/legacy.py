@@ -58,15 +58,27 @@ class LegacyModule:
                 "sequences": [],
             }
 
-        webhook_id = await async_register_webhook(hass, entry, coordinator)
+        webhook_id = None
+        try:
+            webhook_id = await async_register_webhook(hass, entry, coordinator)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to register webhook")
 
         # Optional dev tool: push sanitized HA log snippets to Copilot-Core.
-        unsub_devlog_push = await async_setup_devlog_push(
-            hass, entry, coordinator_api=coordinator.api
-        )
+        unsub_devlog_push = None
+        try:
+            unsub_devlog_push = await async_setup_devlog_push(
+                hass, entry, coordinator_api=coordinator.api
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to initialize devlog push")
 
         # Local HA log digest (opt-in): surfaces relevant warnings/errors via notifications.
-        unsub_ha_errors = await async_setup_ha_errors_digest(hass, entry)
+        unsub_ha_errors = None
+        try:
+            unsub_ha_errors = await async_setup_ha_errors_digest(hass, entry)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to initialize HA errors digest")
 
         hass.data[DOMAIN][entry.entry_id] = {
             "coordinator": coordinator,
@@ -77,16 +89,28 @@ class LegacyModule:
 
         # Core API v1: capabilities ping (best-effort, read-only).
         # Old cores will return 404; this is expected and shown in the sensor.
-        await async_fetch_core_capabilities(hass, entry, api=coordinator.api)
+        try:
+            await async_fetch_core_capabilities(hass, entry, api=coordinator.api)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to fetch core API capabilities")
 
         # Read-only media context (music vs TV/other).
-        await async_setup_media_context(hass, entry)
+        try:
+            await async_setup_media_context(hass, entry)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to setup media context")
         
         # Enhanced media context v2 (zone mapping + volume control).
-        await async_setup_media_context_v2(hass, entry)
+        try:
+            await async_setup_media_context_v2(hass, entry)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to setup media context v2")
 
         # Optional: ingest suggestion seeds from other sensor entities.
-        await async_setup_seed_adapter(hass, entry)
+        try:
+            await async_setup_seed_adapter(hass, entry)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to setup seed adapter")
 
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

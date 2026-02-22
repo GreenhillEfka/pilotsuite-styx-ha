@@ -2,7 +2,7 @@
 
 > Domain: `ai_home_copilot` | 303 Python-Dateien | 31 Runtime-Module | 94+ Sensoren
 >
-> Version: 7.7.8 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
+> Version: 7.7.9 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
 
 ---
 
@@ -100,7 +100,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
 ```python
 {
     "ok": True,                          # Core erreichbar?
-    "version": "7.7.8",                  # Core-Version
+    "version": "7.7.9",                  # Core-Version
     "mood": {                            # Aktuelle Stimmung
         "mood": "relaxed",
         "confidence": 0.85

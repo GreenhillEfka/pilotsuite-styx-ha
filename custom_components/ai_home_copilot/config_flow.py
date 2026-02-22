@@ -26,6 +26,7 @@ from .config_helpers import (
     STEP_NETWORK,
     STEP_REVIEW,
     validate_input,
+    discover_reachable_core_endpoint,
 )
 from .config_options_flow import OptionsFlowHandler  # noqa: F401 - used by HA via async_get_options_flow
 from .config_wizard_steps import (
@@ -93,9 +94,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         anyway (governance-first: the user can reconfigure later) but
         logs a clear warning so it shows up in the system log.
         """
+        resolved = await discover_reachable_core_endpoint(
+            self.hass,
+            preferred_host=DEFAULT_HOST,
+            preferred_port=DEFAULT_PORT,
+        )
+        host, port = resolved if resolved else (DEFAULT_HOST, DEFAULT_PORT)
+        if resolved is None:
+            _LOGGER.warning(
+                "Zero-config: no reachable Core endpoint auto-detected; using defaults %s:%s",
+                DEFAULT_HOST,
+                DEFAULT_PORT,
+            )
+
         config = {
-            CONF_HOST: DEFAULT_HOST,
-            CONF_PORT: DEFAULT_PORT,
+            CONF_HOST: host,
+            CONF_PORT: port,
             CONF_TOKEN: "",
             "assistant_name": "Styx",
         }
@@ -103,14 +117,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Best-effort connectivity check (non-blocking)
         try:
             await validate_input(self.hass, config)
-            _LOGGER.info("Zero-config: Core reachable at %s:%s", DEFAULT_HOST, DEFAULT_PORT)
+            _LOGGER.info("Zero-config: Core reachable at %s:%s", host, port)
         except Exception:
             _LOGGER.warning(
                 "Zero-config: Core Add-on not reachable at %s:%s — "
                 "integration will start anyway. Reconfigure via "
                 "Settings > Integrations > PilotSuite > Configure",
-                DEFAULT_HOST,
-                DEFAULT_PORT,
+                host,
+                port,
             )
 
         title = "Styx — PilotSuite"
@@ -141,11 +155,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
             return self.async_create_entry(title=title, data=user_input)
 
+        discovered = await discover_reachable_core_endpoint(
+            self.hass,
+            preferred_host=DEFAULT_HOST,
+            preferred_port=DEFAULT_PORT,
+        )
+        default_host, default_port = discovered if discovered else (DEFAULT_HOST, DEFAULT_PORT)
+
         schema = vol.Schema(
             {
                 vol.Optional("assistant_name", default="Styx"): str,
-                vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
-                vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
+                vol.Required(CONF_HOST, default=default_host): str,
+                vol.Required(CONF_PORT, default=default_port): int,
                 vol.Optional(CONF_TOKEN): str,
                 vol.Optional(CONF_TEST_LIGHT, default=""): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="light", multiple=False),
@@ -191,6 +212,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Final step: create entry
         if next_step is None:
             final_config, title = build_final_config(self._data)
+            try:
+                preferred_port = int(final_config.get(CONF_PORT, DEFAULT_PORT))
+            except (TypeError, ValueError):
+                preferred_port = DEFAULT_PORT
+            resolved = await discover_reachable_core_endpoint(
+                self.hass,
+                preferred_host=str(final_config.get(CONF_HOST, DEFAULT_HOST)),
+                preferred_port=preferred_port,
+            )
+            if resolved is not None:
+                final_config[CONF_HOST], final_config[CONF_PORT] = resolved
             return self.async_create_entry(title=title, data=final_config)
 
         self._wizard_step = next_step

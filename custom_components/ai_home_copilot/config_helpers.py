@@ -8,6 +8,9 @@ import aiohttp
 
 from homeassistant.core import HomeAssistant
 
+from .const import DEFAULT_HOST, DEFAULT_PORT
+from .core_endpoint import build_base_url, build_candidate_hosts, normalize_host_port
+
 _LOGGER = logging.getLogger(__name__)
 
 # Entity roles for zone configuration
@@ -53,18 +56,24 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
     """Validate config input: host, port, and critical numeric bounds."""
     from homeassistant.exceptions import HomeAssistantError
 
-    host = data.get("host", "")
-    if host and not isinstance(host, str):
+    host_raw = data.get("host", "")
+    if host_raw and not isinstance(host_raw, str):
         raise HomeAssistantError("host must be a string")
 
-    port = data.get("port")
-    if port is not None:
+    port_raw = data.get("port")
+    if port_raw is not None:
         try:
-            port_int = int(port)
+            port_int = int(port_raw)
         except (TypeError, ValueError):
             raise HomeAssistantError("port must be an integer")
         if not (1 <= port_int <= 65535):
             raise HomeAssistantError(f"port must be 1-65535, got {port_int}")
+
+    host, port = normalize_host_port(host_raw, port_raw, default_port=DEFAULT_PORT)
+    if host:
+        # Keep normalized values for downstream consumers in the same flow.
+        data["host"] = host
+        data["port"] = port
 
     # Validate critical numeric bounds
     _bounds = {
@@ -94,7 +103,7 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
     if host and port:
         from homeassistant.helpers.aiohttp_client import async_get_clientsession
         session = async_get_clientsession(hass)
-        url = f"http://{host}:{int(port)}/api/v1/status"
+        url = f"{build_base_url(host, port)}/api/v1/status"
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         try:
             async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=5)) as resp:
@@ -111,3 +120,43 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
             raise HomeAssistantError(
                 f"Cannot reach Core Add-on at {host}:{port}: {err}"
             )
+
+
+async def discover_reachable_core_endpoint(
+    hass: HomeAssistant,
+    *,
+    preferred_host: str = DEFAULT_HOST,
+    preferred_port: int = DEFAULT_PORT,
+    timeout_s: float = 2.5,
+) -> tuple[str, int] | None:
+    """Try multiple host candidates and return the first reachable Core endpoint."""
+    from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+    host, port = normalize_host_port(preferred_host, preferred_port, default_port=DEFAULT_PORT)
+    candidates = build_candidate_hosts(
+        host or DEFAULT_HOST,
+        internal_url=getattr(hass.config, "internal_url", None),
+        external_url=getattr(hass.config, "external_url", None),
+    )
+    session = async_get_clientsession(hass)
+
+    for candidate_host in candidates:
+        base = build_base_url(candidate_host, port)
+        try:
+            async with session.get(
+                f"{base}/health",
+                timeout=aiohttp.ClientTimeout(total=timeout_s),
+            ) as resp:
+                if resp.status < 500:
+                    _LOGGER.info(
+                        "Discovered reachable PilotSuite Core endpoint at %s:%s",
+                        candidate_host,
+                        port,
+                    )
+                    return candidate_host, port
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            continue
+        except Exception:
+            continue
+
+    return None

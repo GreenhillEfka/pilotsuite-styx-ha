@@ -87,10 +87,13 @@ _MODULES = [
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_all_services(hass)
-    
-    # Register Quick Search services
-    from .search_integration import async_register_services as register_search_services
-    await register_search_services(hass)
+
+    # Register Quick Search services (best-effort)
+    try:
+        from .search_integration import async_register_services as register_search_services
+        await register_search_services(hass)
+    except Exception:
+        _LOGGER.exception("Failed to register quick search services")
     
     return True
 
@@ -115,9 +118,16 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    await async_install_blueprints(hass)
+    try:
+        await async_install_blueprints(hass)
+    except Exception:
+        _LOGGER.exception("Failed to install blueprints during setup")
+
     runtime = _get_runtime(hass)
-    await runtime.async_setup_entry(entry, modules=_MODULES)
+    try:
+        await runtime.async_setup_entry(entry, modules=_MODULES)
+    except Exception:
+        _LOGGER.exception("Runtime setup failed")
     
     # Set up User Preference Module separately (not a CopilotModule)
     try:

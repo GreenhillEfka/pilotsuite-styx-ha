@@ -1,5 +1,25 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.9] - 2026-02-22 — BULLETPROOF SETUP FLOW PATCH
+
+### Kritischer Setup-Fix (Root Cause)
+- Coordinator nutzt jetzt denselben API-Client-Vertrag wie andere Module (Shared API Client als Basisklasse).
+- Dadurch sind `async_get/async_post/async_put` sowie `get_with_auth/post_with_auth/put_with_auth` auf `coordinator.api` verlässlich verfügbar.
+- Das verhindert Setup-/Modulausfälle durch inkonsistente API-Methoden und stabilisiert den kompletten HA↔Core Kommunikationspfad.
+
+### Netzwerk/Endpoint-Robustheit
+- Host/Port-Normalisierung fuer Eingaben wie `http://IP:PORT`, `IP:PORT` und reine Hostnamen.
+- Multi-Host-Fallback im Coordinator (konfigurierter Host + interne/externe HA-URL Hosts + `homeassistant.local`/`localhost`/`127.0.0.1`).
+- Bei Verbindungsproblemen/5xx wird automatisch auf den nächsten erreichbaren Endpoint gewechselt.
+
+### Setup-Flow Hardening
+- Zero-Config und Manual Setup versuchen jetzt aktiv einen erreichbaren Core-Endpoint zu entdecken.
+- Wizard-Finalisierung normalisiert/validiert den Ziel-Endpoint vor Entry-Erstellung.
+- Legacy-Modul initialisiert optionale Teilschritte jetzt strikt best-effort (webhook/devlog/media/capabilities), statt den gesamten Setup-Pfad zu brechen.
+
+### Version-Anzeige korrigiert
+- `entity.py` liest die Integrationsversion dynamisch aus `manifest.json`, damit die in HA angezeigte Version nicht mehr veraltet sein kann.
+
 ## [7.7.8] - 2026-02-22 — SETUP ROBUSTNESS PATCH
 
 ### Zero-Config / Setup-Resilienz
