@@ -1,5 +1,26 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.7] - 2026-02-22 — PRODUCTION READINESS PROGRAM
+
+### Kommunikationspipeline verstaerkt getestet
+- `tests/integration/test_full_flow.py` ersetzt Placeholder durch echte Roundtrip-Validierung:
+  - HA Event → N3 Envelope (Privacy/Redaction)
+  - Core Candidate → HA Repairs Payload
+  - User-Entscheidung → Sync zurueck an Core (`PUT /api/v1/candidates/:id`)
+
+### Konfigurierbarkeit / HA-Kompatibilitaet
+- `manifest.json` ergaenzt um `homeassistant: \"2024.1.0\"`.
+- Integration-Version auf `7.7.7` angehoben.
+
+### Dauerbetrieb / 15-Minuten Guardrail
+- Neuer GitHub-Workflow `production-guard.yml`:
+  - geplanter Lauf alle 15 Minuten
+  - Syntax-Check + kritische Integrationspfadtests
+  - fruehes Erkennen von Regressions im HA↔Core-Loop
+
+### Dokumentation
+- Vision und Projektstatus auf aktuellen Release-Stand aktualisiert.
+
 ## [7.7.6] - 2026-02-22 — CI RELIABILITY UPDATE
 
 ### CI-Workflow gehaertet

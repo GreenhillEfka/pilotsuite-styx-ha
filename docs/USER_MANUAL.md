@@ -28,7 +28,7 @@ Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. CoPilot lernt d
 
 | Komponente | Beschreibung | Port |
 |------------|-------------|------|
-| **Core Add-on** | Flask-basierter Backend-Server mit Brain Graph, Neuronen, Energy-Analyse | 8099 |
+| **Core Add-on** | Flask-basierter Backend-Server mit Brain Graph, Neuronen, Energy-Analyse | 8909 |
 | **HACS Integration** | Home Assistant Custom Component mit 80+ Sensoren, Zonen, Media Context | - |
 
 ```
@@ -37,7 +37,7 @@ Home Assistant
   +-- HACS Integration (custom_components/ai_home_copilot)
   |     Sensoren, Entities, Event-Forwarder, Zonen
   |     |
-  |     +--[ HTTP / Webhook ]--> Core Add-on (:8099)
+  |     +--[ HTTP / Webhook ]--> Core Add-on (:8909)
   |                                Brain Graph, Neuronen, Energy
   |                                Habitus Miner, Candidates, Tags
   +-- Lovelace Dashboard
@@ -51,7 +51,7 @@ Home Assistant
 - Home Assistant OS oder Supervised (>= 2024.1)
 - HACS installiert (fuer die Integration)
 - Min. 2 GB freier RAM (empfohlen: 4 GB)
-- Netzwerkzugang zwischen HA und Core Add-on (Port 8099)
+- Netzwerkzugang zwischen HA und Core Add-on (Port 8909)
 
 ---
 
@@ -76,12 +76,12 @@ Add-on Konfiguration bearbeiten:
 ```yaml
 log_level: info
 auth_token: dein-geheimes-token-hier-aendern
-port: 8099
+port: 8909
 ```
 
 | Parameter | Standard | Beschreibung |
 |-----------|----------|--------------|
-| `port` | `8099` | HTTP-Port fuer die API |
+| `port` | `8909` | HTTP-Port fuer die API |
 | `auth_token` | (Pflicht) | Geheimes Token fuer Authentifizierung |
 | `log_level` | `info` | Log-Level: debug, info, warning, error |
 | `storage_path` | `/data` | Pfad fuer persistente Daten |
@@ -95,12 +95,12 @@ port: 8099
 
 ```bash
 # Health Check
-curl http://homeassistant.local:8099/health
+curl http://homeassistant.local:8909/health
 # -> {"ok": true}
 
 # Version
-curl http://homeassistant.local:8099/version
-# -> {"version": "0.8.7"}
+curl http://homeassistant.local:8909/version
+# -> {"version": "7.7.7"}
 ```
 
 ---
@@ -118,7 +118,7 @@ curl http://homeassistant.local:8099/version
 1. **Einstellungen** -> **Geraete & Dienste** -> **Integration hinzufuegen**
 2. Nach **PilotSuite** suchen
 3. Konfigurieren:
-   - **Core URL:** `http://homeassistant.local:8099`
+   - **Core URL:** `http://homeassistant.local:8909`
    - **Auth Token:** (gleiches Token wie im Core Add-on)
 
 ### Schritt 3: Home Assistant neu starten
@@ -384,7 +384,7 @@ layout: dot
 
 ## API-Referenz
 
-Der Core Add-on stellt eine REST API auf Port 8099 bereit.
+Der Core Add-on stellt eine REST API auf Port 8909 bereit.
 
 ### Authentifizierung
 
@@ -416,7 +416,7 @@ Authorization: Bearer <auth_token>
 | `GET` | `/api/v1/dev/logs` | Dev-Logs |
 | `GET` | `/api/v1/dev/health` | System-Health |
 
-Vollstaendige API-Dokumentation: `http://homeassistant.local:8099/api/v1/docs/`
+Vollstaendige API-Dokumentation: `http://homeassistant.local:8909/api/v1/docs/`
 
 ---
 
@@ -427,15 +427,15 @@ Vollstaendige API-Dokumentation: `http://homeassistant.local:8099/api/v1/docs/`
 ```bash
 # Logs pruefen (in HA Add-on Ansicht)
 # Haeufige Probleme:
-# - Port 8099 bereits belegt
+# - Port 8909 bereits belegt
 # - Ungültiges Auth-Token
 # - Fehlende Abhaengigkeiten
 ```
 
 ### Integration findet Core nicht
 
-1. Core laeuft pruefen: `curl http://<HA_IP>:8099/health`
-2. Firewall erlaubt Port 8099
+1. Core laeuft pruefen: `curl http://<HA_IP>:8909/health`
+2. Firewall erlaubt Port 8909
 3. Auth-Token stimmt ueberein
 
 ### Entitaeten erscheinen nicht
