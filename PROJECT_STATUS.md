@@ -3,8 +3,8 @@
 Scope: dual-repo production audit (`pilotsuite-styx-core` + `pilotsuite-styx-ha`).
 
 Release baseline for this status:
-- Core add-on target: `7.7.7`
-- HA integration target: `7.7.7`
+- Core add-on target: `7.7.8`
+- HA integration target: `7.7.8`
 
 ## Executive summary
 System is release-ready with validated critical communication loops and continuous guardrails.

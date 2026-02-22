@@ -1,5 +1,15 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.8] - 2026-02-22 — SETUP ROBUSTNESS PATCH
+
+### Zero-Config / Setup-Resilienz
+- `__init__.py` entkoppelt von grossen statischen Top-Level-Imports, die bei einzelnen Modulproblemen die gesamte Integration blockieren konnten.
+- Modulregistrierung auf dynamischen Einzelimport umgestellt (`import_module` + `getattr`) mit granularer Fehlerisolierung pro Modul.
+- Fehlschlaege einzelner Module werden geloggt und uebersprungen; die Integration selbst bleibt ladbar.
+
+### Versionssync
+- Integration-Version auf `7.7.8` angehoben.
+
 ## [7.7.7] - 2026-02-22 — PRODUCTION READINESS PROGRAM
 
 ### Kommunikationspipeline verstaerkt getestet

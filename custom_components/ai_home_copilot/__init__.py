@@ -1,125 +1,53 @@
 from __future__ import annotations
 
+from importlib import import_module
 import logging
-from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN
-
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 from .blueprints import async_install_blueprints
+from .const import DOMAIN
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 from .core.runtime import CopilotRuntime
+from .services_setup import async_register_all_services
 
 _LOGGER = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from .core.modules.legacy import LegacyModule
-    from .core.modules.events_forwarder import EventsForwarderModule
-    from .core.modules.history_backfill import HistoryBackfillModule
-    from .core.modules.dev_surface import DevSurfaceModule
-    from .core.modules.performance_scaling import PerformanceScalingModule
-    from .core.modules.habitus_miner import HabitusMinerModule
-    from .core.modules.ops_runbook import OpsRunbookModule
-    from .core.modules.unifi_module import UniFiModule
-    from .core.modules.brain_graph_sync import BrainGraphSyncModule
-    from .core.modules.candidate_poller import CandidatePollerModule
-    from .core.modules.media_context_module import MediaContextModule
-    from .core.modules.mood_context_module import MoodContextModule
-    from .core.modules.mood_module import MoodModule
-    from .core.modules.energy_context_module import EnergyContextModule
-    from .core.modules.unifi_context_module import UnifiContextModule
-    from .core.modules.weather_context_module import WeatherContextModule
-    from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
-    from .core.modules.ml_context_module import MLContextModule
-    from .core.modules.camera_context_module import CameraContextModule
-    from .core.modules.quick_search import QuickSearchModule
-    from .core.modules.voice_context import VoiceContextModule
-else:
-    # Runtime imports - these are loaded lazily to avoid circular imports
-    LegacyModule = None
-    EventsForwarderModule = None
-    DevSurfaceModule = None
-    PerformanceScalingModule = None
-    HabitusMinerModule = None
-    OpsRunbookModule = None
-    UniFiModule = None
-    BrainGraphSyncModule = None
-    CandidatePollerModule = None
-    MediaContextModule = None
-    MoodContextModule = None
-    MoodModule = None
-    EnergyContextModule = None
-    UnifiContextModule = None
-    WeatherContextModule = None
-    KnowledgeGraphSyncModule = None
-    MLContextModule = None
-    CameraContextModule = None
-    QuickSearchModule = None
-    VoiceContextModule = None
-
-from .debug import DebugModeSensor
-from .services_setup import async_register_all_services
-from .button import (
-    CopilotToggleLightButton,
-    CopilotCreateDemoSuggestionButton,
-    CopilotAnalyzeLogsButton,
-    CopilotRollbackLastFixButton,
-    CopilotGenerateOverviewButton,
-    CopilotDownloadOverviewButton,
-    CopilotGenerateInventoryButton,
-    CopilotSystemHealthReportButton,
-    CopilotGenerateConfigSnapshotButton,
-    CopilotDownloadConfigSnapshotButton,
-    CopilotReloadConfigEntryButton,
-    CopilotDevLogTestPushButton,
-    CopilotDevLogPushLatestButton,
-    CopilotDevLogsFetchButton,
-    CopilotCoreCapabilitiesFetchButton,
-    CopilotCoreEventsFetchButton,
-    CopilotCoreGraphStateFetchButton,
-    CopilotCoreGraphCandidatesPreviewButton,
-    CopilotCoreGraphCandidatesOfferButton,
-    CopilotPublishBrainGraphVizButton,
-    CopilotPublishBrainGraphPanelButton,
-    CopilotBrainDashboardSummaryButton,
-    CopilotForwarderStatusButton,
-    CopilotHaErrorsFetchButton,
-    CopilotPingCoreButton,
-    CopilotEnableDebug30mButton,
-    CopilotDisableDebugButton,
-    CopilotClearErrorDigestButton,
-    CopilotClearAllLogsButton,
-    CopilotSafetyBackupCreateButton,
-    CopilotSafetyBackupStatusButton,
-    CopilotGenerateHabitusDashboardButton,
-    CopilotDownloadHabitusDashboardButton,
-    CopilotGeneratePilotSuiteDashboardButton,
-    CopilotDownloadPilotSuiteDashboardButton,
-    VolumeUpButton,
-    VolumeDownButton,
-    VolumeMuteButton,
-    ClearOverridesButton,
-)
-
-# Import remaining buttons from their respective files
-from .button_camera import (
-    CopilotGenerateCameraDashboardButton,
-    CopilotDownloadCameraDashboardButton,
-)
-
-# DEPRECATED: v1 - now using v2 only
-# v1 imports removed - use habitus_zones_entities_v2 instead
-# v2 is now the primary implementation
-from .habitus_zones_entities_v2 import (
-    HabitusZonesV2ValidateButton,
-    HabitusZonesV2SyncGraphButton,
-    HabitusZonesV2ReloadButton,
-)
-from .button_tag_registry import CopilotTagRegistrySyncLabelsNowButton
-from .button_update_rollback import CopilotUpdateRollbackReportButton
+_MODULE_IMPORTS = {
+    "legacy": (".core.modules.legacy", "LegacyModule"),
+    "performance_scaling": (".core.modules.performance_scaling", "PerformanceScalingModule"),
+    "events_forwarder": (".core.modules.events_forwarder", "EventsForwarderModule"),
+    "history_backfill": (".core.modules.history_backfill", "HistoryBackfillModule"),
+    "dev_surface": (".core.modules.dev_surface", "DevSurfaceModule"),
+    "habitus_miner": (".core.modules.habitus_miner", "HabitusMinerModule"),
+    "ops_runbook": (".core.modules.ops_runbook", "OpsRunbookModule"),
+    "unifi_module": (".core.modules.unifi_module", "UniFiModule"),
+    "brain_graph_sync": (".core.modules.brain_graph_sync", "BrainGraphSyncModule"),
+    "candidate_poller": (".core.modules.candidate_poller", "CandidatePollerModule"),
+    "media_zones": (".core.modules.media_context_module", "MediaContextModule"),
+    "mood": (".core.modules.mood_module", "MoodModule"),
+    "mood_context": (".core.modules.mood_context_module", "MoodContextModule"),
+    "energy_context": (".core.modules.energy_context_module", "EnergyContextModule"),
+    "network": (".core.modules.unifi_context_module", "UnifiContextModule"),
+    "weather_context": (".core.modules.weather_context_module", "WeatherContextModule"),
+    "knowledge_graph_sync": (".core.modules.knowledge_graph_sync", "KnowledgeGraphSyncModule"),
+    "ml_context": (".core.modules.ml_context_module", "MLContextModule"),
+    "camera_context": (".core.modules.camera_context_module", "CameraContextModule"),
+    "quick_search": (".core.modules.quick_search", "QuickSearchModule"),
+    "voice_context": (".core.modules.voice_context", "VoiceContextModule"),
+    "home_alerts": (".core.modules.home_alerts_module", "HomeAlertsModule"),
+    "character_module": (".core.modules.character_module", "CharacterModule"),
+    "waste_reminder": (".core.modules.waste_reminder_module", "WasteReminderModule"),
+    "birthday_reminder": (".core.modules.birthday_reminder_module", "BirthdayReminderModule"),
+    "entity_tags": (".core.modules.entity_tags_module", "EntityTagsModule"),
+    "person_tracking": (".core.modules.person_tracking_module", "PersonTrackingModule"),
+    "frigate_bridge": (".core.modules.frigate_bridge", "FrigateBridgeModule"),
+    "scene_module": (".core.modules.scene_module", "SceneModule"),
+    "homekit_bridge": (".core.modules.homekit_bridge", "HomeKitBridgeModule"),
+    "calendar_module": (".core.modules.calendar_module", "CalendarModule"),
+}
 
 _MODULES = [
     "legacy",
@@ -169,79 +97,20 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
     runtime = CopilotRuntime.get(hass)
-    
-    # Import modules at runtime to avoid circular imports
-    from .core.modules.legacy import LegacyModule
-    from .core.modules.events_forwarder import EventsForwarderModule
-    from .core.modules.history_backfill import HistoryBackfillModule
-    from .core.modules.dev_surface import DevSurfaceModule
-    from .core.modules.performance_scaling import PerformanceScalingModule
-    from .core.modules.habitus_miner import HabitusMinerModule
-    from .core.modules.ops_runbook import OpsRunbookModule
-    from .core.modules.unifi_module import UniFiModule
-    from .core.modules.brain_graph_sync import BrainGraphSyncModule
-    from .core.modules.candidate_poller import CandidatePollerModule
-    from .core.modules.media_context_module import MediaContextModule
-    from .core.modules.mood_context_module import MoodContextModule
-    from .core.modules.mood_module import MoodModule
-    from .core.modules.energy_context_module import EnergyContextModule
-    from .core.modules.unifi_context_module import UnifiContextModule
-    from .core.modules.weather_context_module import WeatherContextModule
-    from .core.modules.knowledge_graph_sync import KnowledgeGraphSyncModule
-    from .core.modules.ml_context_module import MLContextModule
-    from .core.modules.camera_context_module import CameraContextModule
-    from .core.modules.quick_search import QuickSearchModule
-    from .core.modules.voice_context import VoiceContextModule
-    from .core.modules.home_alerts_module import HomeAlertsModule
-    from .core.modules.character_module import CharacterModule
-    from .core.modules.waste_reminder_module import WasteReminderModule
-    from .core.modules.birthday_reminder_module import BirthdayReminderModule
-    from .core.modules.entity_tags_module import EntityTagsModule
-    from .core.modules.person_tracking_module import PersonTrackingModule
-    from .core.modules.frigate_bridge import FrigateBridgeModule
-    from .core.modules.scene_module import SceneModule
-    from .core.modules.homekit_bridge import HomeKitBridgeModule
-    from .core.modules.calendar_module import CalendarModule
 
-    _module_classes = {
-        "legacy": LegacyModule,
-        "performance_scaling": PerformanceScalingModule,
-        "events_forwarder": EventsForwarderModule,
-        "history_backfill": HistoryBackfillModule,
-        "dev_surface": DevSurfaceModule,
-        "habitus_miner": HabitusMinerModule,
-        "ops_runbook": OpsRunbookModule,
-        "unifi_module": UniFiModule,
-        "brain_graph_sync": BrainGraphSyncModule,
-        "candidate_poller": CandidatePollerModule,
-        "media_zones": MediaContextModule,
-        "mood": MoodModule,
-        "mood_context": MoodContextModule,
-        "energy_context": EnergyContextModule,
-        "network": UnifiContextModule,
-        "weather_context": WeatherContextModule,
-        "knowledge_graph_sync": KnowledgeGraphSyncModule,
-        "ml_context": MLContextModule,
-        "camera_context": CameraContextModule,
-        "quick_search": QuickSearchModule,
-        "voice_context": VoiceContextModule,
-        "home_alerts": HomeAlertsModule,
-        "character_module": CharacterModule,
-        "waste_reminder": WasteReminderModule,
-        "birthday_reminder": BirthdayReminderModule,
-        "entity_tags": EntityTagsModule,
-        "person_tracking": PersonTrackingModule,
-        "frigate_bridge": FrigateBridgeModule,
-        "scene_module": SceneModule,
-        "homekit_bridge": HomeKitBridgeModule,
-        "calendar_module": CalendarModule,
-    }
-    for name, cls in _module_classes.items():
+    for name, (module_path, class_name) in _MODULE_IMPORTS.items():
         if name not in runtime.registry.names():
             try:
+                module = import_module(module_path, package=__package__)
+                cls = getattr(module, class_name)
                 runtime.registry.register(name, cls)
             except Exception:
-                _LOGGER.exception("Failed to register module '%s' — skipping", name)
+                _LOGGER.exception(
+                    "Failed to register module '%s' (%s:%s) — skipping",
+                    name,
+                    module_path,
+                    class_name,
+                )
     return runtime
 
 
