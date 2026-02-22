@@ -35,13 +35,27 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         self._components: dict[str, str] = {}
         self._last_check: str | None = None
 
+    def _core_ok(self) -> bool:
+        if not self.coordinator.data:
+            return False
+        if isinstance(self.coordinator.data, dict):
+            return self.coordinator.data.get("ok") is True
+        return bool(getattr(self.coordinator.data, "ok", False))
+
+    def _core_version(self) -> str:
+        if not self.coordinator.data:
+            return "unknown"
+        if isinstance(self.coordinator.data, dict):
+            return str(self.coordinator.data.get("version", "unknown"))
+        return str(getattr(self.coordinator.data, "version", "unknown"))
+
     @property
     def native_value(self) -> str:
         """Return overall pipeline health state."""
         if not self.coordinator.data:
             return "offline"
 
-        if self.coordinator.data.ok is not True:
+        if not self._core_ok():
             return "offline"
 
         # If we have component details, evaluate them.
@@ -62,8 +76,8 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         attrs: dict[str, Any] = {}
 
         if self.coordinator.data:
-            attrs["core_ok"] = self.coordinator.data.ok
-            attrs["core_version"] = self.coordinator.data.version
+            attrs["core_ok"] = self._core_ok()
+            attrs["core_version"] = self._core_version()
 
         if self._components:
             attrs["components"] = dict(self._components)
@@ -78,7 +92,7 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         await super().async_update()
 
         # Only deep-check if Core is reachable.
-        if not self.coordinator.data or self.coordinator.data.ok is not True:
+        if not self.coordinator.data or not self._core_ok():
             self._components = {}
             return
 

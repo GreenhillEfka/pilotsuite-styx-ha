@@ -1,5 +1,19 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.13] - 2026-02-22 — STATUS ENTITY + AGENT API COMPAT
+
+### Fixes
+- `binary_sensor` Online-Status auf robustes Dict-Reading umgestellt (`coordinator.data["ok"]`) statt Attributzugriff.
+  - behebt Laufzeitfehler beim Entity-Setup (`binary_sensor.ai_home_copilot_online`).
+- `pipeline_health_entities` auf robustes Dict-Reading umgestellt (`ok`/`version`).
+  - behebt wiederholte Update-Fehler durch `coordinator.data.ok` / `.version` Attributzugriff.
+- Agent Auto-Config jetzt abwaertskompatibel:
+  - primaer `/api/v1/agent/*`
+  - Fallback auf `/chat/status`, falls Agent-Endpoints im Core noch nicht vorhanden sind.
+
+### Tests
+- Neue Tests fuer Status-Entities mit Dict-basiertem Coordinator-Payload hinzugefuegt.
+
 ## [7.7.12] - 2026-02-22 — HASSFEST/HACS CI FIX
 
 ### CI-Konformitaet wiederhergestellt

@@ -87,4 +87,10 @@ class CopilotOnlineBinarySensor(CopilotBaseEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.ok
+        if isinstance(self.coordinator.data, dict):
+            ok = self.coordinator.data.get("ok")
+            if ok is None:
+                return None
+            return bool(ok)
+        # Defensive fallback for unexpected coordinator payload types.
+        return bool(getattr(self.coordinator.data, "ok", False))

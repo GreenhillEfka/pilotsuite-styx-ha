@@ -43,14 +43,15 @@ async def async_verify_agent_connectivity(
     token = coordinator._config.get("token", "")
 
     session = async_get_clientsession(hass)
-    url = f"http://{host}:{port}/api/v1/agent/verify"
+    verify_url = f"http://{host}:{port}/api/v1/agent/verify"
+    status_url = f"http://{host}:{port}/chat/status"
     headers = {}
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
     try:
         async with session.post(
-            url,
+            verify_url,
             json={"message": "ha_handshake", "source": "ha_integration"},
             headers=headers,
             timeout=10,
@@ -71,7 +72,22 @@ async def async_verify_agent_connectivity(
                         "llm_model": data.get("llm_model"),
                         "features": data.get("features", []),
                     }
-            return {"ok": False, "error": f"Core returned status {resp.status}"}
+            if resp.status not in (404, 405):
+                return {"ok": False, "error": f"Core returned status {resp.status}"}
+
+        # Backward-compatible fallback for cores without /api/v1/agent/verify.
+        async with session.get(status_url, headers=headers, timeout=10) as resp:
+            if resp.status != 200:
+                return {"ok": False, "error": f"Core returned status {resp.status}"}
+            data = await resp.json()
+            return {
+                "ok": bool(data.get("available", False)),
+                "agent_name": data.get("assistant_name", "Styx"),
+                "agent_ready": bool(data.get("available", False)),
+                "llm_available": bool(data.get("available", False)),
+                "llm_model": data.get("model") or data.get("cloud_model"),
+                "features": data.get("characters", []),
+            }
     except TimeoutError:
         return {"ok": False, "error": "Connection to Core timed out"}
     except Exception as exc:
@@ -94,6 +110,7 @@ async def async_get_agent_status(
 
     session = async_get_clientsession(hass)
     url = f"http://{host}:{port}/api/v1/agent/status"
+    fallback_url = f"http://{host}:{port}/chat/status"
     headers = {}
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -102,7 +119,28 @@ async def async_get_agent_status(
         async with session.get(url, headers=headers, timeout=10) as resp:
             if resp.status == 200:
                 return await resp.json()
-            return {"ok": False, "error": f"Core returned status {resp.status}"}
+            if resp.status not in (404, 405):
+                return {"ok": False, "error": f"Core returned status {resp.status}"}
+
+        # Backward-compatible fallback for cores without /api/v1/agent/status.
+        async with session.get(fallback_url, headers=headers, timeout=10) as resp:
+            if resp.status != 200:
+                return {"ok": False, "error": f"Core returned status {resp.status}"}
+            data = await resp.json()
+            available = bool(data.get("available", False))
+            llm_backend = str(data.get("active_provider", "none"))
+            llm_model = data.get("model") or data.get("cloud_model") or ""
+            return {
+                "ok": True,
+                "agent_name": data.get("assistant_name", "Styx"),
+                "agent_version": data.get("version", "unknown"),
+                "status": "ready" if available else "degraded",
+                "llm_model": llm_model,
+                "llm_backend": llm_backend,
+                "character": data.get("character", "copilot"),
+                "features": data.get("characters", []),
+                "uptime_seconds": 0,
+            }
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
 
