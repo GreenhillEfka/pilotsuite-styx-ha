@@ -3,6 +3,13 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.2
+- **Onyx Bridge API**: neue Endpunkte unter `/api/v1/onyx/*` fuer produktive Agenten-Integration.
+- **Deterministische HA-Aktionen**: `POST /api/v1/onyx/ha/service-call` mit optionalem State-Readback.
+- **OpenAPI Actions aktualisiert**: `docs/integrations/onyx_styx_actions.openapi.yaml` erweitert (Onyx Bridge + Habitus-Zonen-Flow).
+- **Onyx Setup Guide**: konkrete Produktionsfelder fuer `192.168.30.18` in `docs/ONYX_INTEGRATION.md`.
+- **E2E Tooling**: `tools/onyx_styx_e2e.sh` fuer schnellen Live-Pipeline-Test.
+
 ## 7.8.0
 - **Zero-Config Enhancement**: Verbesserte Auto-Discovery fuer Core-Endpoint
 - **Entity Auto-Discovery**: Media-Player Erkennung (Sonos, Apple TV, Smart TV)

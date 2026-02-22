@@ -1,5 +1,30 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.2] - 2026-02-22 — ONYX PRODUCTION BRIDGE + E2E TOOLING
+
+### Added
+- **Onyx Bridge API** (`/api/v1/onyx/*`)
+  - `GET /api/v1/onyx/status`: Bridge-/HA-Reachability-Status fuer produktive Agent-Checks.
+  - `POST /api/v1/onyx/ha/service-call`: kontrollierter HA-Service-Call mit optionalem State-Readback (`readback_states`).
+- **E2E Script**: `tools/onyx_styx_e2e.sh`
+  - prueft in einem Lauf: Onyx-Bridge Status, HA Action, MCP Initialize, OpenAI-Chat Endpoint.
+
+### Changed
+- **Onyx OpenAPI Contract** (`docs/integrations/onyx_styx_actions.openapi.yaml`)
+  - produktive Server-Defaults (`192.168.30.18:8909`)
+  - neue Operation fuer deterministische HA-Aktionen via Onyx-Bridge
+  - Zonen-Rooms/Zone-Create fuer Habitus-Zonen-Flow
+- **Onyx Doku** (`docs/ONYX_INTEGRATION.md`)
+  - konkrete Feldwerte fuer Provider, OpenAPI-Action und MCP-Server.
+  - direkte Smoke-Test Befehle fuer Live-Verifikation.
+
+### Tests
+- Neue Tests: `tests/test_onyx_bridge_api.py`
+  - Status-Endpunkt
+  - erfolgreicher Service-Call mit Readback
+  - Domain-Allowlist Blockierung
+  - fehlender `SUPERVISOR_TOKEN` Fehlerpfad
+
 ## [7.8.1] - 2026-02-22 — ONYX BRIDGE + MCP VERSION SYNC
 
 ### Added

@@ -422,6 +422,41 @@ Fuehrt u. a. aus:
 }
 ```
 
+### Onyx Bridge (`/api/v1/onyx/*`)
+
+Token-protected Bruecke fuer Onyx-Agenten: deterministische HA-Service-Calls mit optionalem State-Rueckkanal.
+
+#### GET /api/v1/onyx/status
+
+Liefert den Bridge-Status und die HA-Reachability.
+
+```json
+{
+  "ok": true,
+  "bridge": "onyx",
+  "supervisor_api": "http://supervisor/core/api",
+  "has_supervisor_token": true,
+  "ha_reachable": true,
+  "allowed_domains": ["light", "switch", "scene"]
+}
+```
+
+#### POST /api/v1/onyx/ha/service-call
+
+Fuehrt einen kontrollierten HA-Service-Call aus.
+
+```json
+{
+  "domain": "light",
+  "service": "turn_on",
+  "entity_id": "light.retrolampe",
+  "service_data": {"brightness_pct": 45},
+  "readback": true
+}
+```
+
+Antwort enthaelt `readback_states` fuer den Rueckkanal (falls `readback=true`).
+
 ---
 
 ## 4. Brain Graph

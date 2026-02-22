@@ -61,6 +61,12 @@ Onyx laesst sich als zusaetzliche Chat-/RAG-Oberflaeche andocken.
 Empfohlenes Setup: Onyx fuer Connector-RAG, Styx fuer Home-Actions (OpenAPI/MCP).
 Details: `docs/ONYX_INTEGRATION.md`
 
+Produktive Action-Definition:
+- `docs/integrations/onyx_styx_actions.openapi.yaml`
+
+Schneller E2E-Check (Onyx -> Styx -> HA -> Rueckkanal):
+- `TOKEN=<styx_token> ./tools/onyx_styx_e2e.sh`
+
 ### Neural Pipeline
 
 ```
@@ -154,6 +160,7 @@ Authorization: Bearer <token>
 | [API_REFERENCE](docs/API_REFERENCE.md) | Alle Endpoints, Auth, Request/Response |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Services, Datenfluss, Persistenz |
 | [ONYX_INTEGRATION](docs/ONYX_INTEGRATION.md) | Onyx + Styx Zielarchitektur, Security, Setup |
+| [onyx_styx_actions.openapi](docs/integrations/onyx_styx_actions.openapi.yaml) | OpenAPI Actions fuer Onyx |
 | [ROADMAP](docs/ROADMAP.md) | Phase 5-6, Zukunftsplaene |
 | [CHANGELOG](CHANGELOG.md) | Release-Historie |
 | [HACS Integration](https://github.com/GreenhillEfka/pilotsuite-styx-ha) | Sensoren, Module, Dashboard |

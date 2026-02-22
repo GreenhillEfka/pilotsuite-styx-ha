@@ -2,48 +2,58 @@
 
 ## Zielbild
 
-Onyx passt sehr gut zu Styx, aber als **Ergaenzung**, nicht als Ersatz:
+Onyx und Styx haben getrennte Rollen:
 
-- **Styx (Core + HA Integration)** bleibt dein Home-Automation Control-Plane
-  mit Event-Pipeline, Habitus, Mood, Graph, sicheren Aktionen und HA-UI.
-- **Onyx** wird dein Knowledge-Plane fuer Dokumente, Connectoren und Team-Chat.
+- **Styx** steuert Home-Assistant-Aktionen, Habitus-Zonen und Runtime-Logik.
+- **Onyx** liefert Chat-UX, Wissensbasis/RAG, Connectoren und Team-Workflows.
 
-Kurz: **Styx steuert das Zuhause, Onyx erschliesst Wissen**.
+Damit bleibt Home-Automation stabil und Onyx kann als Wissens-/Agenten-Ebene wachsen.
 
-## Empfohlene Topologie
+## Produktiv-Konfig (Setup `192.168.30.18`)
 
-1. Onyx als Chat- und RAG-Oberflaeche betreiben.
-2. In Onyx LLM-Provider konfigurieren:
-   - lokal: Ollama
-   - oder cloud: Ollama Cloud/OpenAI-kompatibel
-3. Styx als Action-Layer anbinden:
-   - **OpenAPI Actions** mit `docs/integrations/onyx_styx_actions.openapi.yaml`
-   - optional **MCP Server** ueber `POST /mcp`
+### 1) LLM Provider in Onyx
 
-## Warum diese Aufteilung
+- Provider Type: `OpenAI Compatible`
+- Name: `Styx Local`
+- Base URL: `http://192.168.30.18:8909/v1`
+- API Key: dein Styx `auth_token` (Bearer)
+- Default Model: `pilotsuite` (empfohlen) oder `qwen3:0.6b`
 
-- Onyx bringt starke Connector-/RAG-Funktionen (Drive, Slack, Mail, etc.).
-- Styx bringt domain-spezifische Smart-Home-Intelligenz und sichere Aktionspfade.
-- So vermeidest du, dass Onyx direkt an HA intern „vorbei“ steuert.
+Hinweis: `pilotsuite` mappt intern auf das konfigurierte Styx/Ollama-Modell und ist update-stabil.
 
-## Sicherheitsregeln (wichtig)
+### 2) OpenAPI Action in Onyx
 
-- Verwende einen dedizierten Styx-Token fuer Onyx.
-- Starte mit read-only + klar begrenzten Action-Endpunkten.
-- Lege in Onyx Agent-Instruktionen fest: keine unbestaetigten riskanten Aktionen.
+- Action Name: `Styx Home Actions`
+- Schema: `docs/integrations/onyx_styx_actions.openapi.yaml`
+- Auth Type: `Bearer`
+- Bearer Token: derselbe Styx `auth_token`
+- Server URL im Schema: `http://192.168.30.18:8909`
 
-## RAG-Strategie ohne Doppelchaos
+Wichtige Actions:
+- `callHaServiceViaOnyxBridge` (`POST /api/v1/onyx/ha/service-call`) mit Rueckkanal (`readback_states`)
+- `createZone` + `getZoneRooms` fuer Habitus-Zonen-Flow
 
-- **Onyx indexiert externe Wissensquellen** (Dokumente, Apps, Unternehmenswissen).
-- **Styx haelt Smart-Home-Gedaechtnis** (Events, Patterns, Habitus, Mood-Kontext).
-- Nutze Onyx fuer Recherche/Erklaerung und Styx fuer Ausfuehrung im Zuhause.
+### 3) MCP Server in Onyx (optional, empfohlen)
 
-## Technischer Contract
+- Transport: `Streamable HTTP`
+- URL: `http://192.168.30.18:8909/mcp`
+- Header: `Authorization: Bearer <styx_auth_token>`
+- Initial Test: JSON-RPC `initialize`
 
-- Chat API: `/v1/chat/completions`
-- Modelle: `/v1/models`
-- MCP: `/mcp`
-- Action-Subset (OpenAPI): `docs/integrations/onyx_styx_actions.openapi.yaml`
+## E2E Smoke-Test
 
-Wenn du Onyx als primaeren Chat nutzt, sollte HA Assist trotzdem auf Styx bleiben,
-damit lokale Latenz, Token-Fluss und Automationskontext stabil bleiben.
+Mit einem Token pruefst du die komplette Kette:
+
+```bash
+TOKEN="<styx_auth_token>"
+BASE="http://192.168.30.18:8909"
+
+curl -sS -H "Authorization: Bearer $TOKEN" "$BASE/api/v1/onyx/status"
+curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -X POST "$BASE/api/v1/onyx/ha/service-call" \
+  -d '{"domain":"light","service":"turn_on","entity_id":"light.retrolampe","service_data":{"brightness_pct":45},"readback":true}'
+curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -X POST "$BASE/mcp" -d '{"jsonrpc":"2.0","id":"1","method":"initialize","params":{}}'
+```
+
+Wenn Onyx als Haupt-Chat dient, bleibt HA Assist trotzdem auf Styx sinnvoll (geringere Latenz, direkter HA-Kontext, robustere Aktionspfade).

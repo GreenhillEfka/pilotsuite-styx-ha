@@ -735,6 +735,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Sharing API")
 
+    # Register Onyx bridge API (deterministic action bridge)
+    try:
+        from copilot_core.api.v1.onyx_bridge import onyx_bridge_bp
+        app.register_blueprint(onyx_bridge_bp)
+        _LOGGER.info("Registered Onyx bridge API (/api/v1/onyx/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Onyx bridge API")
+
     # Register PilotSuite MCP Server (expose skills to external AI clients)
     from copilot_core.mcp_server import mcp_bp
     app.register_blueprint(mcp_bp)

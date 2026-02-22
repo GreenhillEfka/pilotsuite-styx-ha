@@ -145,6 +145,13 @@ def create_app() -> Flask:
     # Register API modules
     app.register_blueprint(api_v1)
 
+    # Standalone Onyx bridge endpoints (/api/v1/onyx/*)
+    try:
+        from copilot_core.api.v1.onyx_bridge import onyx_bridge_bp
+        app.register_blueprint(onyx_bridge_bp)
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to register Onyx bridge blueprint")
+
     # Initialize Tags API v2 (FIX: Flask Blueprint rewrite)
     from copilot_core.tags.api import init_tags_api
     from copilot_core.tags import TagRegistry
