@@ -1,5 +1,15 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.25] - 2026-02-22 — ML CONTEXT MODULE LIFECYCLE FIX
+
+### Fixes
+- **MLContextModule war effektiv nicht ladbar im Runtime-Registry-Flow**
+  - Konstruktor und Lifecycle-Signaturen waren nicht kompatibel mit `CopilotRuntime`/`ModuleContext`.
+  - Setup/Unload/Reload auf einheitliches `ModuleContext`-Pattern umgestellt.
+  - Hintergrundtask-Handling vereinheitlicht (`_periodic_task`), sauberer Cancel auf Unload.
+  - interne Referenzen auf `hass`/`entry` stabilisiert (`_hass`, `_entry`), state cleanup beim Unload.
+- Ergebnis: `ml_context` wird jetzt im Modul-Runtime-Flow tatsaechlich initialisiert statt still uebersprungen.
+
 ## [7.7.24] - 2026-02-22 — DASHBOARD WIRING + V2 CLEANUP + ENTITY MINIMIZATION
 
 ### Fixes

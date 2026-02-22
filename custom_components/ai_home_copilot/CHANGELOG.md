@@ -5,6 +5,10 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.25] - 2026-02-22
+- MLContextModule Lifecycle auf Runtime-v2 kompatibel gemacht (`ModuleContext` Signaturen, Task-Cancel auf Unload).
+- behebt stilles Skippen des Moduls bei Runtime-Setup.
+
 ## [7.7.24] - 2026-02-22
 - Dashboard-Wiring automatisiert (Include-Datei + Auto-Append bei fehlendem `lovelace:` Block, sonst Merge-Hinweis).
 - Habitus-Dashboard-Generierung auf konsistentes v2 (`async_get_zones_v2`) umgestellt.
