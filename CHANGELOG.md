@@ -1,5 +1,17 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.12] - 2026-02-22 — HASSFEST/HACS CI FIX
+
+### CI-Konformitaet wiederhergestellt
+- `manifest.json` fuer `ai_home_copilot` bereinigt:
+  - nicht akzeptiertes Feld `homeassistant` entfernt (hassfest Schema-Kompatibilitaet).
+- `strings.json` bereinigt:
+  - unzulaessigen `_comment`-Key im `settings_legacy`-Step entfernt.
+
+### Wirkung
+- HACS/hassfest Validation blockiert Releases nicht mehr durch Schemafehler.
+- Integration-Version auf `7.7.12` angehoben.
+
 ## [7.7.11] - 2026-02-22 — CONVERSATION ID + TOKEN + ZONE FORM HOTFIX
 
 ### Fixes fuer gemeldete Restfehler

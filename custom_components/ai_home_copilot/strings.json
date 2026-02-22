@@ -183,7 +183,6 @@
         }
       },
       "settings_legacy": {
-        "_comment": "Legacy settings step — kept for backwards compatibility, use connection + modules instead",
         "title": "PilotSuite settings",
         "description": "Configure PilotSuite.",
         "data": {

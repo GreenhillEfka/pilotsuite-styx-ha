@@ -100,7 +100,7 @@ curl http://homeassistant.local:8909/health
 
 # Version
 curl http://homeassistant.local:8909/version
-# -> {"version": "7.7.11"}
+# -> {"version": "7.7.12"}
 ```
 
 ---
