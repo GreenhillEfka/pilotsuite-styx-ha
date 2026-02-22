@@ -2,7 +2,7 @@
 
 > Domain: `ai_home_copilot` | 303 Python-Dateien | 31 Runtime-Module | 94+ Sensoren
 >
-> Version: 7.7.13 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
+> Version: 7.7.14 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
 
 ---
 
@@ -65,6 +65,10 @@ Home Assistant
 | Integration -> Core | Polling (120s Fallback) | Sicherstellen, dass Daten aktuell bleiben |
 
 Die Authentifizierung erfolgt ueber Token-basierte Header (`Authorization: Bearer <token>` bzw. `X-Auth-Token`). Ein leerer Token erlaubt alle Anfragen (First-Run-Experience).
+
+Identity-Hardening (ab `7.7.14`):
+- Config-Flow ist als Single-Instance abgesichert (keine neuen Doppel-Entries bei erneutem Hinzufuegen).
+- Haupt-Device nutzt stabile Identifier (`styx_hub`) mit Legacy-Alias (`host:port`) fuer Update-Kompatibilitaet.
 
 ---
 

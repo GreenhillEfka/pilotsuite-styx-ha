@@ -15,12 +15,12 @@ _LOGGER = logging.getLogger(__name__)
 
 # Entity roles for zone configuration
 ZONE_ENTITY_ROLES = {
-    "motion": {"icon": "mdi:motion-sensor", "label": "Bewegung"},
-    "lights": {"icon": "mdi:lightbulb", "label": "Lichter"},
-    "sensors": {"icon": "mdi:thermometer", "label": "Sensoren"},
-    "media": {"icon": "mdi:television", "label": "Media"},
-    "climate": {"icon": "mdi:thermostat", "label": "Klima"},
-    "covers": {"icon": "mdi:blinds", "label": "Jalousien"},
+    "motion": {"icon": "mdi:motion-sensor", "label": "Bewegung", "domain": ["binary_sensor", "sensor"]},
+    "lights": {"icon": "mdi:lightbulb", "label": "Lichter", "domain": ["light"]},
+    "sensors": {"icon": "mdi:thermometer", "label": "Sensoren", "domain": ["sensor"]},
+    "media": {"icon": "mdi:television", "label": "Media", "domain": ["media_player"]},
+    "climate": {"icon": "mdi:thermostat", "label": "Klima", "domain": ["climate"]},
+    "covers": {"icon": "mdi:blinds", "label": "Jalousien", "domain": ["cover"]},
 }
 
 # Wizard step constants

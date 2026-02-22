@@ -3,17 +3,24 @@
 Scope: dual-repo production audit (`pilotsuite-styx-core` + `pilotsuite-styx-ha`).
 
 Release baseline for this status:
-- Core add-on target: `7.7.13`
-- HA integration target: `7.7.13`
+- Core add-on target: `7.7.14`
+- HA integration target: `7.7.14`
 
 ## Executive summary
 System is release-ready with validated critical communication loops and continuous guardrails.
 
 Validated today:
-- Core tests: `1949 passed, 1 skipped`.
-- HA tests: `497 passed, 5 skipped`.
+- Core tests: `1958 passed, 1 skipped`.
+- HA tests: `524 passed, 5 skipped`.
 - Additional communication roundtrip integration test added and passing.
 - CI now complemented by 15-minute production guard workflows in both repos.
+
+Additional hardening completed:
+- Single-instance config flow guard to prevent duplicate devices/config entries.
+- Stable primary device identity (`styx_hub`) with legacy alias mapping.
+- Selector-first setup/options flow for entity selection (reduced free-text errors).
+- Zone creation flow repaired and now supports async area-based entity suggestions.
+- Agent auto-config now triggers Core self-heal on failed/degraded startup checks and exposes manual `repair_agent` service.
 
 ## What was audited
 - Vision consistency (design intent vs runtime behavior).

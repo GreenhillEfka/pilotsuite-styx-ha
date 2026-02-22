@@ -48,6 +48,19 @@ KNOWN_ROLES = {
     "power", "energy", "brightness", "other"
 }
 
+_MOTION_HINTS = (
+    "motion",
+    "presence",
+    "occupancy",
+    "bewegung",
+    "praesenz",
+    "präsenz",
+    "anwesenheit",
+    "pir",
+    "belegt",
+    "besetzt",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class HabitusZoneV2:
@@ -654,9 +667,27 @@ def _is_motion_or_presence_entity(hass: HomeAssistant, entity_id: str) -> bool:
     if device_class in ("motion", "presence", "occupancy"):
         return True
 
+    try:
+        from homeassistant.helpers import entity_registry
+
+        reg = entity_registry.async_get(hass)
+        reg_ent = reg.async_get(entity_id) if reg is not None else None
+        reg_dc = getattr(reg_ent, "device_class", None)
+        if isinstance(reg_dc, str) and reg_dc.lower() in ("motion", "presence", "occupancy"):
+            return True
+        labels = [entity_id.lower()]
+        if isinstance(getattr(reg_ent, "original_name", None), str):
+            labels.append(reg_ent.original_name.lower())
+        if st is not None and isinstance(st.attributes.get("friendly_name"), str):
+            labels.append(st.attributes["friendly_name"].lower())
+    except Exception:  # noqa: BLE001
+        labels = [entity_id.lower()]
+        if st is not None and isinstance(st.attributes.get("friendly_name"), str):
+            labels.append(st.attributes["friendly_name"].lower())
+
     # Fallback heuristic
-    eid_l = entity_id.lower()
-    return any(k in eid_l for k in ("motion", "presence", "occupancy"))
+    merged = " ".join(labels)
+    return any(k in merged for k in _MOTION_HINTS)
 
 
 def _validate_zone_v2(hass: HomeAssistant, z: HabitusZoneV2) -> None:
@@ -682,6 +713,10 @@ def _validate_zone_v2(hass: HomeAssistant, z: HabitusZoneV2) -> None:
         if motion_candidates
         else motion_scan
     )
+    if motion_candidates and not has_motion:
+        # Explicitly selected motion role: accept binary_sensor/sensor assignments
+        # even when device_class metadata is missing.
+        has_motion = any(_domain(eid) in ("binary_sensor", "sensor") for eid in motion_candidates)
     has_light = (
         any(_is_light_entity(eid) for eid in light_candidates) if light_candidates else light_scan
     )

@@ -47,10 +47,11 @@ class StyxConversationAgent(AbstractConversationAgent):
         entry_data = self.hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {})
         coordinator = entry_data.get("coordinator")
         conversation_id = normalize_conversation_id(user_input.conversation_id)
+        language = user_input.language or self.hass.config.language or "de"
 
         if coordinator is None:
             return self._error_result(
-                user_input, "PilotSuite coordinator not available.", conversation_id
+                language, "PilotSuite coordinator not available.", conversation_id
             )
 
         messages = [{"role": "user", "content": user_input.text}]
@@ -63,21 +64,21 @@ class StyxConversationAgent(AbstractConversationAgent):
         except CopilotApiError as err:
             _LOGGER.error("PilotSuite API error: %s", err)
             return self._error_result(
-                user_input, f"Core returned an error: {err}", conversation_id
+                language, f"Core returned an error: {err}", conversation_id
             )
         except TimeoutError:
             _LOGGER.error("PilotSuite conversation request timed out")
             return self._error_result(
-                user_input, "Request to PilotSuite Core timed out.", conversation_id
+                language, "Request to PilotSuite Core timed out.", conversation_id
             )
         except Exception as err:
             _LOGGER.error("PilotSuite conversation request failed: %s", err)
             return self._error_result(
-                user_input, "Could not reach PilotSuite Core.", conversation_id
+                language, "Could not reach PilotSuite Core.", conversation_id
             )
 
         reply = result.get("content", "")
-        response = intent.IntentResponse(language=user_input.language)
+        response = intent.IntentResponse(language=language)
         response.async_set_speech(reply or "No response from PilotSuite.")
         return ConversationResult(
             response=response,
@@ -86,12 +87,12 @@ class StyxConversationAgent(AbstractConversationAgent):
 
     @staticmethod
     def _error_result(
-        user_input: ConversationInput,
+        language: str,
         message: str,
         conversation_id: str,
     ) -> ConversationResult:
         """Build a ConversationResult for error cases."""
-        response = intent.IntentResponse(language=user_input.language)
+        response = intent.IntentResponse(language=language)
         response.async_set_speech(message)
         return ConversationResult(
             response=response,

@@ -87,6 +87,34 @@ class TestZoneEntityValidation:
         # Should not raise (only motion/light validation exists)
         _validate_zone_v2(mock_hass, zone)
 
+    def test_zone_validation_v2_explicit_motion_role_without_device_class(self):
+        """Explicitly assigned motion role should pass even without device_class metadata."""
+        from ai_home_copilot.habitus_zones_store_v2 import _validate_zone_v2, HabitusZoneV2
+
+        mock_hass = Mock()
+        mock_hass.states.get.return_value = None
+
+        zone = HabitusZoneV2(
+            zone_id="zone_1",
+            name="Hallway",
+            entity_ids=["light.hallway", "binary_sensor.flur_sensor"],
+            entities={
+                "lights": ["light.hallway"],
+                "motion": ["binary_sensor.flur_sensor"],
+            },
+        )
+
+        _validate_zone_v2(mock_hass, zone)
+
+    def test_zone_validation_v2_german_motion_keyword(self):
+        """German motion entity names should be detected as motion/presence sensors."""
+        from ai_home_copilot.habitus_zones_store_v2 import _is_motion_or_presence_entity
+
+        mock_hass = Mock()
+        mock_hass.states.get.return_value = None
+
+        assert _is_motion_or_presence_entity(mock_hass, "binary_sensor.bewegung_wohnzimmer")
+
 
 class TestZoneNormalization:
     """Tests for zone data normalization."""

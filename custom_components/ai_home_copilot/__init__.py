@@ -6,11 +6,13 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 
 from .blueprints import async_install_blueprints
-from .const import DOMAIN
+from .const import DOMAIN, INTEGRATION_UNIQUE_ID, MAIN_DEVICE_IDENTIFIER
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 from .core.runtime import CopilotRuntime
+from .entity import build_main_device_identifiers
 from .services_setup import async_register_all_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,6 +86,53 @@ _MODULES = [
 ]
 
 
+async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Migrate entry/device identity to a stable, single-instance setup."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    has_primary_unique = any(
+        e.entry_id != entry.entry_id and e.unique_id == INTEGRATION_UNIQUE_ID for e in entries
+    )
+    if not entry.unique_id and not has_primary_unique:
+        hass.config_entries.async_update_entry(entry, unique_id=INTEGRATION_UNIQUE_ID)
+    elif not entry.unique_id and has_primary_unique:
+        _LOGGER.warning(
+            "Multiple PilotSuite entries detected. Entry %s kept without unique_id to avoid collision.",
+            entry.entry_id,
+        )
+
+    cfg = entry.options or entry.data
+    identifiers = build_main_device_identifiers(cfg)
+    canonical_id = next((item for item in identifiers if item[1] == MAIN_DEVICE_IDENTIFIER), None)
+    if canonical_id is None:
+        return
+
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get_device(identifiers={canonical_id})
+    if device is None:
+        # Try legacy host:port identifier and add canonical alias when found.
+        legacy_ids = {ident for ident in identifiers if ident != canonical_id}
+        for legacy_id in legacy_ids:
+            device = dev_reg.async_get_device(identifiers={legacy_id})
+            if device is not None:
+                break
+
+    if device is None:
+        return
+
+    if canonical_id in device.identifiers and identifiers.issubset(set(device.identifiers)):
+        return
+
+    new_ids = set(device.identifiers)
+    new_ids.update(identifiers)
+    dev_reg.async_update_device(
+        device.id,
+        new_identifiers=new_ids,
+        manufacturer="PilotSuite",
+        model="Home Assistant Integration",
+        name_by_user=device.name_by_user,
+    )
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_all_services(hass)
@@ -118,6 +167,11 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    try:
+        await _async_migrate_entry_identity(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to migrate entry/device identity")
+
     try:
         await async_install_blueprints(hass)
     except Exception:

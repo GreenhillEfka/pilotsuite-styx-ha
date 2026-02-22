@@ -11,7 +11,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .config_helpers import as_csv, parse_csv
+from .config_helpers import parse_csv
 from .core_endpoint import normalize_host_port
 from .config_schema_builders import build_neuron_schema
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
@@ -30,9 +30,26 @@ from .const import (
     CONF_NEURON_CONTEXT_ENTITIES,
     CONF_NEURON_STATE_ENTITIES,
     CONF_NEURON_MOOD_ENTITIES,
+    CONF_WASTE_ENTITIES,
+    CONF_BIRTHDAY_CALENDAR_ENTITIES,
+    CONF_PRIMARY_USER,
+    CONF_WASTE_TTS_ENTITY,
+    CONF_BIRTHDAY_TTS_ENTITY,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_entity_list(value: object) -> list[str]:
+    """Normalize selector/csv values into list[str]."""
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        return parse_csv(value)
+    if value is None:
+        return []
+    item = str(value).strip()
+    return [item] if item else []
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
@@ -98,17 +115,23 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     async def async_step_modules(self, user_input: dict | None = None) -> FlowResult:
         """Module toggles and settings."""
         if user_input is not None:
-            # Normalize CSV fields
+            # Normalize entity-selection fields (selectors + backward-compatible csv).
             for field in (
                 CONF_SUGGESTION_SEED_ENTITIES,
                 CONF_MEDIA_MUSIC_PLAYERS,
                 CONF_MEDIA_TV_PLAYERS,
                 CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
                 CONF_TRACKED_USERS,
+                CONF_WASTE_ENTITIES,
+                CONF_BIRTHDAY_CALENDAR_ENTITIES,
             ):
-                csv_val = user_input.get(field)
-                if isinstance(csv_val, str):
-                    user_input[field] = parse_csv(csv_val)
+                if field in user_input:
+                    user_input[field] = _normalize_entity_list(user_input.get(field))
+
+            # Normalize optional single-entity selectors.
+            for field in (CONF_PRIMARY_USER, CONF_WASTE_TTS_ENTITY, CONF_BIRTHDAY_TTS_ENTITY):
+                if field in user_input and user_input[field] is None:
+                    user_input[field] = ""
 
             return self.async_create_entry(title="", data=user_input)
 
@@ -161,12 +184,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         from .habitus_zones_store_v2 import async_get_zones_v2
 
         zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
-        ids = [z.zone_id for z in zones]
-        if not ids:
+        if not zones:
             return self.async_abort(reason="no_zones")
 
         if user_input is None:
-            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            options = [
+                selector.SelectOptionDict(value=z.zone_id, label=f"{z.name} ({z.zone_id})")
+                for z in zones
+            ]
+            schema = vol.Schema(
+                {
+                    vol.Required("zone_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            multiple=False,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            )
             return self.async_show_form(step_id="edit_zone", data_schema=schema)
 
         zid = str(user_input.get("zone_id", ""))
@@ -176,12 +212,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2
 
         zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
-        ids = [z.zone_id for z in zones]
-        if not ids:
+        if not zones:
             return self.async_abort(reason="no_zones")
 
         if user_input is None:
-            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            options = [
+                selector.SelectOptionDict(value=z.zone_id, label=f"{z.name} ({z.zone_id})")
+                for z in zones
+            ]
+            schema = vol.Schema(
+                {
+                    vol.Required("zone_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            multiple=False,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            )
             return self.async_show_form(step_id="delete_zone", data_schema=schema)
 
         zid = str(user_input.get("zone_id", ""))
@@ -328,9 +377,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Configure neural system entities."""
         if user_input is not None:
             for field in (CONF_NEURON_CONTEXT_ENTITIES, CONF_NEURON_STATE_ENTITIES, CONF_NEURON_MOOD_ENTITIES):
-                csv_val = user_input.get(field, "")
-                if isinstance(csv_val, str):
-                    user_input[field] = parse_csv(csv_val)
+                if field in user_input:
+                    user_input[field] = _normalize_entity_list(user_input.get(field))
 
             return self.async_create_entry(title="", data=user_input)
 

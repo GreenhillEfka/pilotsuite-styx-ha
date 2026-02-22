@@ -1,5 +1,46 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.14] - 2026-02-22 — SETUP FLOW + ZONE RELIABILITY
+
+### Fixes
+- **Keine neuen Doppel-Instanzen mehr beim Neu-Hinzufuegen**
+  - Config Flow jetzt als Single-Instance abgesichert (`single_instance_allowed` + stabile `unique_id`).
+  - verhindert, dass bei wiederholtem Hinzufuegen neue Entry-/Device-Zweige entstehen.
+- **Stabile Device-Identitaet**
+  - zentrale Haupt-Device-ID (`styx_hub`) eingefuehrt, legacy `host:port` IDs bleiben als Alias erhalten.
+  - reduziert "neues Geraet pro Version"-Effekte bei Updates/Rekonfiguration.
+- **Habituszonen-Erstellung repariert**
+  - Create-Flow erzeugt keine invalide `HabitusZoneV2(zone_id=\"\")` mehr.
+  - Zone-ID wird jetzt automatisch aus Bereich/Name generiert und bei Kollision suffixiert.
+- **Asynchrone Bereichs-Suggestions fuer Zonen**
+  - optionaler `area_id`-Selector im Zone-Formular.
+  - Motion/Lichter werden bei Bedarf automatisch aus dem gewaehlten Bereich vorgeschlagen.
+- **Motion-Validierung robuster**
+  - deutsche Entitaets-Hinweise (`bewegung`, `praesenz`, `anwesenheit`, `pir`, ...) werden erkannt.
+  - explizit als `motion` zugewiesene `binary_sensor`/`sensor` passieren auch ohne saubere `device_class`.
+
+### UX / Setup
+- Setup/Options auf selector-basierte Entity-Auswahl erweitert:
+  - Media, Seed-Entities, Forwarder-Additional-Entities, Tracked Users, Waste, Birthday, Neurons.
+- Zone-Menues (Edit/Delete) nutzen Dropdown-Selector statt freier Texteingabe.
+- Wizard-Zonen-Schritt faellt bei leeren Optionen nicht mehr auf Freitext zurueck.
+
+### Zero-Config / Agent-Lifecycle
+- Agent Auto-Config kann jetzt Core-Self-Heal aktiv triggern:
+  - bei fehlgeschlagenem Connectivity-Check,
+  - bei degradiertem Agent-Status,
+  - zusaetzlich als verzogerter Post-Setup-Check (60s) fuer lange Modell-Downloads.
+- Neuer Service: `ai_home_copilot.repair_agent` fuer manuelles Self-Heal-Triggering aus HA.
+- Conversation-Agent nutzt robustes Sprach-Fallback (`user_input.language` -> HA-Default -> `de`).
+- Conversation-ID-Normalisierung ist jetzt kompatibler: vorhandene IDs werden beibehalten, statt strikt ersetzt zu werden.
+
+### Tests
+- Neue Tests:
+  - `tests/test_config_zones_flow.py`
+  - `tests/test_config_schema_builders_entities.py`
+- Erweiterte Validierungstests fuer Motion-Edgecases in `tests/test_entity_validation.py`.
+- Gesamtsuite lokal: **524 passed, 5 skipped**.
+
 ## [7.7.13] - 2026-02-22 — STATUS ENTITY + AGENT API COMPAT
 
 ### Fixes

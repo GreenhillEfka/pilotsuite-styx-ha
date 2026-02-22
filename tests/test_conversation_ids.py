@@ -21,7 +21,13 @@ def test_normalize_conversation_id_keeps_valid_ulid() -> None:
     assert normalize_conversation_id(ulid) == ulid
 
 
-def test_normalize_conversation_id_replaces_invalid_value() -> None:
-    normalized = normalize_conversation_id("not_valid")
+def test_normalize_conversation_id_preserves_non_empty_custom_id() -> None:
+    custom_id = "my-custom-conversation-id"
+    normalized = normalize_conversation_id(custom_id)
+    assert normalized == custom_id
+
+
+def test_normalize_conversation_id_generates_for_empty_value() -> None:
+    normalized = normalize_conversation_id("")
     assert len(normalized) == 26
     assert is_valid_conversation_id(normalized)

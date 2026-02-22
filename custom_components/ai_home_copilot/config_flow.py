@@ -57,6 +57,7 @@ from .const import (
     DEFAULT_HOST,
     DEFAULT_PORT,
     DOMAIN,
+    INTEGRATION_UNIQUE_ID,
 )
 from .setup_wizard import SetupWizard
 
@@ -76,6 +77,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Initial step - show main menu with Zero Config, Quick Start, or Manual."""
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+
         return self.async_show_menu(
             step_id="user",
             menu_options=["zero_config", "quick_start", "manual_setup"],
@@ -131,6 +135,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 port,
             )
 
+        await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+        self._abort_if_unique_id_configured()
+
         title = "Styx — PilotSuite"
         return self.async_create_entry(title=title, data=config)
 
@@ -155,9 +162,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     err,
                 )
 
+            if self.source == config_entries.SOURCE_REAUTH:
+                reauth_entry = self.hass.config_entries.async_get_entry(self.context.get("entry_id"))
+                if reauth_entry is not None:
+                    updated = {**reauth_entry.data, **user_input}
+                    updated.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+                    self.hass.config_entries.async_update_entry(reauth_entry, data=updated)
+                    await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
+
             name = user_input.get("assistant_name", "Styx")
             title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
             user_input.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+            await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(title=title, data=user_input)
 
         discovered = await discover_reachable_core_endpoint(
@@ -230,6 +248,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             if resolved is not None:
                 final_config[CONF_HOST], final_config[CONF_PORT] = resolved
+            await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(title=title, data=final_config)
 
         self._wizard_step = next_step

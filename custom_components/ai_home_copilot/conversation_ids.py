@@ -33,7 +33,9 @@ def is_valid_conversation_id(value: object) -> bool:
 
 
 def normalize_conversation_id(value: object) -> str:
-    """Return a valid conversation ID; generate one when input is invalid."""
-    if is_valid_conversation_id(value):
-        return str(value).strip()
+    """Return a stable conversation ID; generate one when missing."""
+    if isinstance(value, str):
+        candidate = value.strip()
+        if candidate:
+            return candidate
     return generate_ulid()

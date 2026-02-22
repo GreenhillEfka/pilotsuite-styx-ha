@@ -12,6 +12,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_call_later
 
 from .const import DOMAIN
 
@@ -22,6 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 SERVICE_SET_DEFAULT_AGENT = "set_default_agent"
 SERVICE_VERIFY_AGENT = "verify_agent"
 SERVICE_GET_AGENT_STATUS = "get_agent_status"
+SERVICE_REPAIR_AGENT = "repair_agent"
 
 
 async def async_verify_agent_connectivity(
@@ -145,6 +147,40 @@ async def async_get_agent_status(
         return {"ok": False, "error": str(exc)}
 
 
+async def async_attempt_agent_self_heal(
+    hass: HomeAssistant, entry: ConfigEntry, *, reason: str = "manual"
+) -> dict[str, Any]:
+    """Trigger Core-side self-heal flow (best effort)."""
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    coordinator = entry_data.get("coordinator")
+
+    if coordinator is None:
+        return {"ok": False, "error": "Coordinator not available"}
+
+    host = coordinator._config.get("host", "homeassistant.local")
+    port = coordinator._config.get("port", 8909)
+    token = coordinator._config.get("token", "")
+
+    session = async_get_clientsession(hass)
+    url = f"http://{host}:{port}/api/v1/agent/self-heal"
+    headers = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        async with session.post(
+            url,
+            json={"reason": reason, "source": "ha_integration"},
+            headers=headers,
+            timeout=20,
+        ) as resp:
+            if resp.status == 200:
+                return await resp.json()
+            return {"ok": False, "error": f"Core returned status {resp.status}"}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 async def async_set_default_conversation_agent(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> bool:
@@ -226,9 +262,36 @@ async def async_setup_agent_auto_config(
             "Agent will still be registered — verify Core Add-on is running.",
             connectivity.get("error", "unknown"),
         )
+        repair = await async_attempt_agent_self_heal(
+            hass, entry, reason="auto_setup_connectivity_failed"
+        )
+        if repair.get("ok"):
+            _LOGGER.info(
+                "Triggered Core self-heal after failed connectivity check (reason=%s)",
+                "auto_setup_connectivity_failed",
+            )
+        else:
+            _LOGGER.warning(
+                "Core self-heal request failed after connectivity issue: %s",
+                repair.get("error", "unknown"),
+            )
 
     # 2. Set Styx as default conversation agent
     await async_set_default_conversation_agent(hass, entry)
+
+    # 2b. If status says degraded/no provider, trigger one self-heal pass.
+    status = await async_get_agent_status(hass, entry)
+    if status.get("ok") and str(status.get("status", "")).lower() != "ready":
+        repair = await async_attempt_agent_self_heal(
+            hass, entry, reason="auto_setup_status_degraded"
+        )
+        if repair.get("ok"):
+            _LOGGER.info("Triggered Core self-heal because agent status was degraded")
+        else:
+            _LOGGER.warning(
+                "Core self-heal request failed for degraded status: %s",
+                repair.get("error", "unknown"),
+            )
 
     # 3. Register HA services
     async def handle_set_default(call: ServiceCall) -> None:
@@ -309,6 +372,34 @@ async def async_setup_agent_auto_config(
                 notification_id="pilotsuite_agent_status",
             )
 
+    async def handle_repair(call: ServiceCall) -> None:
+        """Service: ai_home_copilot.repair_agent."""
+        result = await async_attempt_agent_self_heal(hass, entry, reason="manual_service")
+        from homeassistant.components.persistent_notification import async_create
+
+        if result.get("ok"):
+            llm_backend = result.get("llm_backend", "unknown")
+            llm_model = result.get("llm_model", "n/a")
+            steps = result.get("steps", [])
+            async_create(
+                hass,
+                title="Styx — Self-Repair Triggered",
+                message=(
+                    f"Self-repair wurde ausgelöst.\n\n"
+                    f"**LLM:** {llm_model} ({llm_backend})\n"
+                    f"**Schritte:** {len(steps)}\n"
+                    "Hinweis: Modell-Downloads laufen ggf. im Hintergrund weiter."
+                ),
+                notification_id="pilotsuite_repair_agent",
+            )
+        else:
+            async_create(
+                hass,
+                title="Styx — Self-Repair fehlgeschlagen",
+                message=f"Self-repair konnte nicht gestartet werden: {result.get('error', 'unknown')}",
+                notification_id="pilotsuite_repair_agent",
+            )
+
     # Register services if not already registered
     if not hass.services.has_service(DOMAIN, SERVICE_SET_DEFAULT_AGENT):
         hass.services.async_register(DOMAIN, SERVICE_SET_DEFAULT_AGENT, handle_set_default)
@@ -316,10 +407,24 @@ async def async_setup_agent_auto_config(
         hass.services.async_register(DOMAIN, SERVICE_VERIFY_AGENT, handle_verify)
     if not hass.services.has_service(DOMAIN, SERVICE_GET_AGENT_STATUS):
         hass.services.async_register(DOMAIN, SERVICE_GET_AGENT_STATUS, handle_get_status)
+    if not hass.services.has_service(DOMAIN, SERVICE_REPAIR_AGENT):
+        hass.services.async_register(DOMAIN, SERVICE_REPAIR_AGENT, handle_repair)
+
+    # Delayed re-check: model pulls can take minutes; re-verify after startup.
+    async def _delayed_health_check(_now) -> None:
+        delayed_status = await async_get_agent_status(hass, entry)
+        if delayed_status.get("ok") and str(delayed_status.get("status", "")).lower() == "ready":
+            return
+        await async_attempt_agent_self_heal(hass, entry, reason="delayed_post_setup")
+
+    unsub_delayed = async_call_later(hass, 60, _delayed_health_check)
+    entry_store = hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})
+    if isinstance(entry_store, dict):
+        entry_store["_agent_auto_config_unsub"] = unsub_delayed
 
     _LOGGER.info(
         "Agent auto-config complete: services registered "
-        "(set_default_agent, verify_agent, get_agent_status)"
+        "(set_default_agent, verify_agent, get_agent_status, repair_agent)"
     )
 
 
@@ -327,6 +432,17 @@ async def async_unload_agent_auto_config(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
     """Unload agent auto-config services."""
-    for service in (SERVICE_SET_DEFAULT_AGENT, SERVICE_VERIFY_AGENT, SERVICE_GET_AGENT_STATUS):
+    entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    if isinstance(entry_store, dict):
+        unsub = entry_store.pop("_agent_auto_config_unsub", None)
+        if callable(unsub):
+            unsub()
+
+    for service in (
+        SERVICE_SET_DEFAULT_AGENT,
+        SERVICE_VERIFY_AGENT,
+        SERVICE_GET_AGENT_STATUS,
+        SERVICE_REPAIR_AGENT,
+    ):
         if hass.services.has_service(DOMAIN, service):
             hass.services.async_remove(DOMAIN, service)

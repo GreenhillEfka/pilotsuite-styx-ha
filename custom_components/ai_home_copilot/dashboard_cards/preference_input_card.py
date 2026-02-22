@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity, EntityCategory
 
 from ..const import DOMAIN
+from ..entity import build_main_device_identifiers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,8 +42,11 @@ class PreferenceInputCard(Entity):
         self._hass = hass
         self._entry_id = entry_id
         self._conflict_data: dict[str, Any] = {}
+        entry_data = hass.data.get(DOMAIN, {}).get(entry_id, {})
+        coordinator = entry_data.get("coordinator") if isinstance(entry_data, dict) else None
+        cfg = getattr(coordinator, "_config", {}) if coordinator is not None else {}
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry_id)},
+            "identifiers": build_main_device_identifiers(cfg),
             "name": "PilotSuite Core",
             "manufacturer": "PilotSuite",
             "model": "Core Add-on",
