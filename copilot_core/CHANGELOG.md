@@ -3,6 +3,17 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.7.14
+- **Self-Heal API**: `POST /api/v1/agent/self-heal` hinzugefuegt (LLM config reload + best-effort model pull).
+- **Zero-Config Hardening**: Agent-Status liest jetzt korrekt auch `conversation_*` Flat-Optionen.
+- **LLM Routing**: Cloud-Modelnamen ohne Cloud-Fallback werden direkt auf lokales Modell gemappt (weniger 404-Noise).
+- **API Wiring**: Vector API `/api/v1/vector/*` explizit registriert.
+
+## 7.7.13
+- **Agent API**: `/api/v1/agent/*` Blueprint registriert (kein 404 mehr bei Agent-Status/Verify).
+- **Model Alias**: `pilotsuite/default/auto/local/ollama` werden auf das konfigurierte Modell aufgeloest.
+- **Versioning**: Runtime-Version nutzt `COPILOT_VERSION/BUILD_VERSION` mit Datei-Fallback.
+
 ## 3.9.1
 - **HA Conformity** — Version sync with HACS integration
 - **Branding** — Port description updated to PilotSuite

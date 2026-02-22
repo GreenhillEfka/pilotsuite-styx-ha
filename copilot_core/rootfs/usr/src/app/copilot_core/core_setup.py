@@ -719,6 +719,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Shopping/Reminders API")
 
+    # Register Vector Store API (v3.5.0)
+    try:
+        from copilot_core.api.v1.vector import bp as vector_bp
+        app.register_blueprint(vector_bp, url_prefix="/api/v1")
+        _LOGGER.info("Registered Vector API (/api/v1/vector/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Vector API")
+
     # Register Sharing API (fix: was never wired)
     try:
         from copilot_core.sharing.api import sharing_bp

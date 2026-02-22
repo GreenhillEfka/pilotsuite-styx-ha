@@ -3,17 +3,22 @@
 Scope: dual-repo production audit (`pilotsuite-styx-core` + `pilotsuite-styx-ha`).
 
 Release baseline for this status:
-- Core add-on target: `7.7.13`
-- HA integration target: `7.7.13`
+- Core add-on target: `7.7.14`
+- HA integration target: `7.7.14`
 
 ## Executive summary
 System is release-ready with validated critical communication loops and continuous guardrails.
 
 Validated today:
-- Core tests: `1949 passed, 1 skipped`.
-- HA tests: `497 passed, 5 skipped`.
+- Core tests: `1958 passed, 1 skipped`.
+- HA tests: `524 passed, 5 skipped`.
 - Additional communication roundtrip integration test added and passing.
 - CI now complemented by 15-minute production guard workflows in both repos.
+
+Additional hardening completed:
+- Core `agent/self-heal` endpoint for post-setup LLM remediation.
+- Flat add-on option parsing (`conversation_*`) aligned with runtime status reporting.
+- Cloud-style model request handling without cloud fallback routed to local model.
 
 ## What was audited
 - Vision consistency (design intent vs runtime behavior).

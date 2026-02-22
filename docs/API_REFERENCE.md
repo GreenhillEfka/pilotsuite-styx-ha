@@ -374,6 +374,54 @@ Echo-Endpoint fuer Konnektivitaetstests. Erfordert Authentifizierung.
 }
 ```
 
+### Agent-Status und Self-Heal (`/api/v1/agent/*`)
+
+Token-protected Endpoints fuer HA-Zero-Config, Agent-Health und automatische Reparatur.
+
+#### GET /api/v1/agent/status
+
+Liefert den aktuellen Agent-/LLM-Status.
+
+```json
+{
+  "ok": true,
+  "agent_name": "Styx",
+  "agent_version": "7.7.14",
+  "status": "ready",
+  "llm_available": true,
+  "llm_model": "qwen3:4b",
+  "llm_backend": "ollama",
+  "features": ["conversation", "openai_compatible_api"]
+}
+```
+
+#### POST /api/v1/agent/verify
+
+Bidirektionaler Handshake fuer HA-Integration.
+
+```json
+{
+  "message": "ha_handshake",
+  "source": "ha_integration"
+}
+```
+
+#### POST /api/v1/agent/self-heal
+
+Best-effort Reparatur nach Setup/Update-Problemen.
+
+Fuehrt u. a. aus:
+- Provider-Konfiguration neu laden.
+- Installierte Ollama-Modelle pruefen.
+- Fehlende lokale Modelle im Hintergrund ziehen.
+
+```json
+{
+  "reason": "auto_setup_connectivity_failed",
+  "source": "ha_integration"
+}
+```
+
 ---
 
 ## 4. Brain Graph

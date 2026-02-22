@@ -44,7 +44,7 @@ def test_requested_model_falls_back_to_configured_ollama_model(monkeypatch: pyte
 
     assert result["provider"] == "ollama"
     assert result["content"] == "ok from qwen"
-    assert calls == ["gpt-4o-mini", "qwen3:4b"]
+    assert calls == ["qwen3:4b"]
 
 
 def test_offline_message_reports_missing_model(monkeypatch: pytest.MonkeyPatch) -> None:

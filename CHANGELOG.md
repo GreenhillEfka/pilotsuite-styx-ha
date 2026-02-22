@@ -1,5 +1,32 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.14] - 2026-02-22 — SELF-HEAL + ZERO-CONFIG HARDENING
+
+### Agent Self-Heal API
+- Neuer Endpoint: `POST /api/v1/agent/self-heal` (token-protected).
+- Fuehrt best-effort Reparaturschritte aus:
+  - LLM-Provider-Konfiguration neu laden
+  - installierte Ollama-Modelle pruefen
+  - fehlende Pflichtmodelle (`qwen3:0.6b` + konfiguriertes Modell) im Hintergrund nachziehen
+- Damit kann die HA-Integration nach Zero-Config/Restart aktiv eine Reparatur ausloesen, statt nur Fehlstatus zu melden.
+
+### LLM Routing Robustness
+- Cloud-typische Modellnamen (z. B. `gpt-4o-mini`) werden ohne Cloud-Fallback nicht mehr blind an Ollama gesendet.
+- Statt wiederholter 404 wird direkt auf das konfigurierte lokale Modell geroutet.
+
+### Agent Config Konsistenz
+- Agent-Status liest Conversation-Settings jetzt robust aus:
+  - verschachtelter Config (`conversation.*`)
+  - Flat Add-on Optionen (`conversation_*`)
+  - ENV-Fallbacks (`OLLAMA_*`, `CLOUD_*`)
+- verhindert Drift zwischen effektivem Runtime-Verhalten und gemeldetem Agent-Status.
+
+### API Wiring
+- Vector API Blueprint (`/api/v1/vector/*`) ist im Core-Setup explizit registriert.
+
+### Verifikation
+- Gesamte Core-Testsuite lokal: **1958 passed, 1 skipped**.
+
 ## [7.7.13] - 2026-02-22 — AGENT API + VERSION FALLBACK + MODEL ALIAS
 
 ### Agent API wiring

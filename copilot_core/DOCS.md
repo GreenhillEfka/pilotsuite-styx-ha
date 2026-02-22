@@ -44,6 +44,6 @@ The Core API runs on port 8909. Key endpoints:
 ## Troubleshooting
 
 - **Add-on won't start**: Check Supervisor logs for build errors
-- **LLM not responding**: Ollama needs 60s+ to start, check add-on logs
+- **LLM not responding**: Model pulls run in background; trigger `POST /api/v1/agent/self-heal` and re-check `/chat/status`
 - **Model not found (`gpt-4o-mini`)**: Set `conversation_cloud_*` fallback options or use an installed Ollama model (e.g. `qwen3:4b`)
 - **API returns 503**: Hub engine not initialized, check add-on logs for import errors

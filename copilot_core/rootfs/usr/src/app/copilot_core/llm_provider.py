@@ -25,6 +25,14 @@ logger = logging.getLogger(__name__)
 # Retry settings for transient failures
 _MAX_RETRIES = 2
 _RETRY_BASE_DELAY = 1.0  # seconds
+_CLOUD_MODEL_PREFIXES = (
+    "gpt-",
+    "o1",
+    "o3",
+    "claude",
+    "gemini",
+    "deepseek",
+)
 
 
 class LLMProvider:
@@ -114,7 +122,22 @@ class LLMProvider:
         requested_model = (model or self.ollama_model or "").strip()
         alias_models = {"", "pilotsuite", "default", "auto", "local", "ollama"}
         candidate_models: list[str] = []
-        if requested_model.lower() in alias_models:
+        explicit_cloud_model = self._is_cloud_model_name(requested_model)
+
+        # If a cloud-style model is requested but cloud fallback is unavailable,
+        # transparently map to configured local model to avoid repeated 404 noise.
+        if (
+            explicit_cloud_model
+            and not self.has_cloud_fallback
+            and self.ollama_model
+        ):
+            candidate_models.append(self.ollama_model)
+            logger.info(
+                "Requested model '%s' looks cloud-only; using local model '%s' instead",
+                requested_model,
+                self.ollama_model,
+            )
+        elif requested_model.lower() in alias_models:
             if self.ollama_model:
                 candidate_models.append(self.ollama_model)
         else:
@@ -199,6 +222,14 @@ class LLMProvider:
             if not should_try_next_model:
                 break
         return None
+
+    @staticmethod
+    def _is_cloud_model_name(model: str) -> bool:
+        """Best-effort detection for cloud-style model identifiers."""
+        value = str(model or "").strip().lower()
+        if not value:
+            return False
+        return value.startswith(_CLOUD_MODEL_PREFIXES)
 
     # ------------------------------------------------------------------
     # Cloud / OpenAI-compatible backend (OpenClaw, OpenAI, etc.)
