@@ -221,7 +221,7 @@ Listet alle verfuegbaren Modelle auf (von Ollama + konfiguriertes Default-Modell
       "owned_by": "ollama"
     },
     {
-      "id": "lfm2.5-thinking",
+      "id": "qwen3:0.6b",
       "object": "model",
       "created": 1700000000,
       "owned_by": "ollama"
@@ -249,9 +249,9 @@ Einzelnes Modell abrufen.
 
 | Modell | Groesse | Tool-Calling | Beschreibung |
 |--------|---------|-------------|--------------|
-| `lfm2.5-thinking` | 731 MB | Nein | Liquid AI 1.2B, Default fuer Konversation |
-| `qwen3:4b` | 2.5 GB | Ja | Empfohlen fuer Tool-Calling (Score 0.88) |
+| `qwen3:4b` | 2.5 GB | Ja | Default und empfohlen fuer Tool-Calling |
 | `qwen3:0.6b` | 400 MB | Ja | Ultra-leicht mit Tool-Calling |
+| `lfm2.5-thinking` | 731 MB | Nein | Optionales Legacy-Modell |
 | `llama3.2:3b` | 2 GB | Ja | Meta 3B, 128K Kontext |
 | `mistral:7b` | 4 GB | Ja | Bewaehrtes Function-Calling |
 | `fixt/home-3b-v3` | 2 GB | Ja | HA-optimiert, 97% Genauigkeit |
@@ -290,7 +290,7 @@ Version und Name des Add-ons.
 {
   "name": "Styx",
   "suite": "PilotSuite",
-  "version": "3.9.0",
+  "version": "7.7.7",
   "time": "2025-01-15T10:30:00+00:00"
 }
 ```
@@ -304,7 +304,7 @@ Tiefgehender Health-Check aller Services und externen Abhaengigkeiten.
 ```json
 {
   "healthy": true,
-  "version": "3.9.0",
+  "version": "7.7.7",
   "uptime_s": 7200,
   "checks": {
     "brain_graph_service": true,

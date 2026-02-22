@@ -1,5 +1,26 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.7] - 2026-02-22 — PRODUCTION READINESS PROGRAM
+
+### Validierung und Hardening
+- E2E-Pipeline-Test (`test_e2e_pipeline.py`) bereinigt:
+  - keine `PytestReturnNotNoneWarning` mehr
+  - keine versehentliche Testklassensammlung mehr
+- Kritischer Kommunikationspfad weiter verifiziert:
+  - Events Ingest → Brain Graph
+  - Habitus Mining → Candidates
+  - Candidate Lifecycle (pending/offered/accepted)
+
+### Dauerbetrieb / 15-Minuten Guardrail
+- Neuer GitHub-Workflow `production-guard.yml`:
+  - geplanter Lauf alle 15 Minuten
+  - Syntax-Check + kritische Pfadtests als fruehes Warnsystem
+  - Fokus auf Produktions-Stabilitaet statt nur Release-Checks
+
+### Dokumentation
+- Vision und Projektstatus auf aktuellen Release-Stand aktualisiert.
+- Architektur-/Modul-Dokumentation konsolidiert auf den verifizierten Zustand.
+
 ## [7.7.6] - 2026-02-22 — STABILITY + CI HARDENING
 
 ### Runtime-Stabilitaet ausserhalb des Add-on-Containers

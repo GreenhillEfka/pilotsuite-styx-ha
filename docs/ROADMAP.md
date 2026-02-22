@@ -193,7 +193,7 @@ Diese Prinzipien gelten fuer alle zukuenftigen Entwicklungen und werden nicht ve
 
 ### Local-First bleibt
 
-PilotSuite laeuft vollstaendig lokal. Keine Cloud-Abhaengigkeit, kein externer Server fuer Kernfunktionen. Das LLM (aktuell lfm2.5-thinking via Ollama) laeuft auf dem gleichen Geraet. Optionale Netzwerkfunktionen (Cross-Home Sharing, Web Search) sind immer opt-in und nie fuer den Basisbetrieb erforderlich.
+PilotSuite laeuft vollstaendig lokal. Keine Cloud-Abhaengigkeit, kein externer Server fuer Kernfunktionen. Das LLM (standardmaessig `qwen3:4b`, fallback `qwen3:0.6b` via Ollama) laeuft auf dem gleichen Geraet. Optionale Netzwerkfunktionen (Cross-Home Sharing, Web Search) sind immer opt-in und nie fuer den Basisbetrieb erforderlich.
 
 ### Privacy bleibt
 
