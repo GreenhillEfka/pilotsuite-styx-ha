@@ -303,11 +303,14 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
     <div id="hab-zones"><div class="loading"><div class="spinner"></div>Lade Zonen...</div></div>
     <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <div style="font-size:11px;color:var(--dim);margin-bottom:6px">Zone hinzufuegen</div>
-      <div style="display:flex;gap:6px">
-        <input type="text" id="new-zone-name" placeholder="Zonen-Name" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none">
-        <input type="text" id="new-zone-entities" placeholder="entity_id, entity_id, ..." style="flex:2;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input type="text" id="new-zone-name" placeholder="Zonen-Name" style="flex:1 1 180px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none">
+        <select id="new-zone-rooms" multiple size="4" style="flex:2 1 260px;min-height:94px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:11px;outline:none"></select>
+        <input type="text" id="new-zone-entities" placeholder="Optional: entity_id, entity_id, ..." style="flex:2 1 260px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;outline:none">
+        <button onclick="reloadZoneRoomOptions()" style="background:var(--surface);border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap">&#x21bb; Raeume</button>
         <button onclick="addZone()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap">+ Zone</button>
       </div>
+      <div id="new-zone-room-hint" style="margin-top:6px;font-size:10px;color:var(--dim)">Lade Raumliste...</div>
     </div>
   </div>
 </div>
@@ -540,6 +543,8 @@ let historyLog=[];
 let moduleStates=JSON.parse(localStorage.getItem('styx_module_states')||'{}');
 let _moduleHealth=null;
 let _healthTs=0;
+let _hubRoomsCache=[];
+let _roomsAutofilled=false;
 
 // -- Helpers --
 function $(id){return document.getElementById(id)}
@@ -1070,6 +1075,86 @@ function animateBrainEdge(fromEntity,toEntity){
 // ==================================================
 // HABITUS
 // ==================================================
+function _slugifyId(value){
+  const cleaned=String(value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  return cleaned||'zone';
+}
+
+async function _autoImportRoomsFromSuggestions(){
+  const suggestions=await api('/api/v1/entity-assignment/suggestions');
+  if(!suggestions?.ok||!Array.isArray(suggestions.suggestions)||!suggestions.suggestions.length)return 0;
+  let imported=0;
+  const touched=new Set();
+  for(const s of suggestions.suggestions.slice(0,12)){
+    const roomName=String(s.room_hint||s.suggested_zone_id||'raum').replace(/^zone:/,'').trim();
+    const entities=(s.entities||[]).map(e=>e?.entity_id).filter(Boolean);
+    if(!roomName||!entities.length)continue;
+    const roomId='room:'+_slugifyId(roomName);
+    if(touched.has(roomId))continue;
+    touched.add(roomId);
+    try{
+      const resp=await fetch(API+'/api/v1/hub/zones/rooms',withAuth({
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          room_id:roomId,
+          name:roomName,
+          entities,
+        }),
+      }));
+      if(resp.ok)imported++;
+    }catch(_e){}
+  }
+  return imported;
+}
+
+async function loadZoneRoomOptions(forceImport=false){
+  const sel=$('new-zone-rooms');
+  const hint=$('new-zone-room-hint');
+  if(!sel)return;
+
+  let roomsResp=await api('/api/v1/hub/zones/rooms');
+  let rooms=Array.isArray(roomsResp?.rooms)?roomsResp.rooms:[];
+
+  if(!rooms.length&&(forceImport||!_roomsAutofilled)){
+    const imported=await _autoImportRoomsFromSuggestions();
+    if(imported>0){
+      _roomsAutofilled=true;
+      roomsResp=await api('/api/v1/hub/zones/rooms');
+      rooms=Array.isArray(roomsResp?.rooms)?roomsResp.rooms:[];
+    }
+  }
+
+  _hubRoomsCache=rooms;
+  sel.innerHTML='';
+
+  if(!rooms.length){
+    const opt=document.createElement('option');
+    opt.value='';
+    opt.textContent='Keine Räume verfügbar';
+    opt.disabled=true;
+    sel.appendChild(opt);
+    if(hint)hint.textContent='Keine Räume registriert. Optional Entitäten unten eintragen.';
+    return;
+  }
+
+  rooms
+    .slice()
+    .sort((a,b)=>String(a.name||a.room_id).localeCompare(String(b.name||b.room_id),'de'))
+    .forEach(room=>{
+      const opt=document.createElement('option');
+      opt.value=String(room.room_id||'');
+      opt.textContent=`${room.name||room.room_id} (${room.entity_count||0})`;
+      sel.appendChild(opt);
+    });
+
+  if(hint)hint.textContent=`${rooms.length} Räume verfügbar. Mehrfachauswahl mit Ctrl/Cmd möglich.`;
+}
+
+async function reloadZoneRoomOptions(){
+  await loadZoneRoomOptions(true);
+}
+
 async function loadHabitus(){
   const data=await api('/api/v1/habitus/rules?limit=50');
   const rules=data?.rules||data?.data||[];
@@ -1087,26 +1172,50 @@ async function loadHabitus(){
     c.appendChild(el('div','pat',
       `<span>${ant}</span><span class="arr">\u2192</span><span>${cons}</span><span class="meta">${conf}% | ${supp}% Supp | Lift ${lift}</span>`));
   });
-  // Zones
-  const zones=await api('/api/v1/habitus/config');
+  // Zones (Hub Zone API)
+  const zones=await api('/api/v1/hub/zones');
   const zc=$('hab-zones');
-  if(zones&&zones.zones){
+  if(zones&&Array.isArray(zones.zones)){
     zc.innerHTML='';
-    Object.entries(zones.zones).forEach(([id,z])=>{
-      const ents=(z.entities||[]);
+    const zoneList=zones.zones;
+    const details=await Promise.allSettled(
+      zoneList.map(z=>api('/api/v1/hub/zones/'+encodeURIComponent(String(z.zone_id||''))))
+    );
+    const detailMap=new Map();
+    details.forEach((item,idx)=>{
+      if(item.status!=='fulfilled')return;
+      const zid=String(zoneList[idx]?.zone_id||'');
+      if(!zid)return;
+      detailMap.set(zid,item.value||{});
+    });
+
+    zoneList.forEach(z=>{
+      const zid=String(z.zone_id||'');
+      const detail=detailMap.get(zid)||{};
+      const zoneName=String(z.name||detail.name||zid||'Zone');
+      const ents=Array.isArray(detail.entities)?detail.entities:[];
+      const rooms=Array.isArray(detail.rooms)?detail.rooms:[];
+      const roomNames=rooms.map(r=>String(r?.name||r?.room_id||'')).filter(Boolean);
+      const roomSummary=roomNames.length>3?roomNames.slice(0,3).join(', ')+` +${roomNames.length-3}`:(roomNames.join(', ')||'keine Räume');
+      const zoneIdJson=JSON.stringify(zid);
+      const zoneNameJson=JSON.stringify(zoneName);
+      const entsJson=JSON.stringify(ents);
       const card=el('div','zone-card',
-        `<h3><span style="color:var(--cyan)">&#x1f3e0;</span> ${escapeHtml(z.name||id)}</h3>
-        <p style="font-size:11px;color:var(--dim)">${escapeHtml(z.description||'Zone: '+id)}</p>
+        `<h3><span style="color:var(--cyan)">&#x1f3e0;</span> ${escapeHtml(zoneName)}</h3>
+        <p style="font-size:11px;color:var(--dim)">Räume: ${escapeHtml(roomSummary)} · Entitäten: ${ents.length}</p>
         <div class="zone-entities">${ents.map(e=>`<span class="ze">${escapeHtml(e)}</span>`).join('')}</div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-          <button onclick="saveZoneScene('${escapeHtml(id)}','${escapeHtml(z.name||id)}',${JSON.stringify(ents).replace(/'/g,"\\'")})" class="btn-scene" title="Aktuelle Zustände als Szene speichern">&#x1f3ac; Szene speichern</button>
-          <button onclick="toggleHomeKit('${escapeHtml(id)}','${escapeHtml(z.name||id)}',${JSON.stringify(ents).replace(/'/g,"\\'")})" class="btn-scene" title="Zone zu HomeKit hinzufügen">&#x1f34e; HomeKit</button>
+          <button onclick='saveZoneScene(${zoneIdJson},${zoneNameJson},${entsJson})' class="btn-scene" title="Aktuelle Zustände als Szene speichern">&#x1f3ac; Szene speichern</button>
+          <button onclick='toggleHomeKit(${zoneIdJson},${zoneNameJson},${entsJson})' class="btn-scene" title="Zone zu HomeKit hinzufügen">&#x1f34e; HomeKit</button>
         </div>`);
       zc.appendChild(card);
     });
   }else{
-    zc.innerHTML='<div class="empty">Keine Zonen konfiguriert. Zonen werden in HA Options definiert.</div>';
+    zc.innerHTML='<div class="empty">Hub-Zonen API nicht erreichbar oder keine Zonen vorhanden.</div>';
   }
+
+  await loadZoneRoomOptions();
+
   // Trend from real rule confidence values
   const trendData=rules.map(r=>(r.metadata||r).confidence||0);
   drawTrend('hab-trend-canvas',rules.length,trendData.length>=2?trendData:null);
@@ -1115,19 +1224,68 @@ async function loadHabitus(){
 // -- Add Habitus Zone --
 async function addZone(){
   const name=$('new-zone-name').value.trim();
+  const roomSelect=$('new-zone-rooms');
   const ents=$('new-zone-entities').value.trim();
   if(!name){$('new-zone-name').style.borderColor='var(--red)';return}
+  $('new-zone-name').style.borderColor='var(--border)';
+
+  let roomIds=roomSelect?[...roomSelect.options].filter(o=>o.selected&&o.value).map(o=>o.value):[];
   const entities=ents?ents.split(',').map(e=>e.trim()).filter(Boolean):[];
+  if(!roomIds.length&&!entities.length){
+    const hint=$('new-zone-room-hint');
+    if(hint)hint.textContent='Bitte mindestens einen Raum auswählen oder Entitäten eintragen.';
+    return;
+  }
+
+  const zoneId='zone:'+_slugifyId(name);
+
   try{
-    const r=await fetch(API+'/api/v1/habitus/config',withAuth({
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({zones:{[name.toLowerCase().replace(/\s+/g,'_')]:{name,entities,description:'Zone: '+name}}})
+    // If no rooms are selected, register a synthetic room from explicit entities.
+    if(!roomIds.length&&entities.length){
+      const syntheticRoomId='room:'+_slugifyId(name)+'_'+Date.now().toString(36);
+      const regResp=await fetch(API+'/api/v1/hub/zones/rooms',withAuth({
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          room_id:syntheticRoomId,
+          name:`${name} (manuell)`,
+          entities,
+        }),
+      }));
+      if(!regResp.ok){
+        const body=(await regResp.text()).slice(0,180);
+        addHistory('Room-Fehler: '+regResp.status+' '+body);
+        return;
+      }
+      roomIds=[syntheticRoomId];
+    }
+
+    const existing=await api('/api/v1/hub/zones/'+encodeURIComponent(zoneId));
+    if(existing&&existing.ok){
+      await fetch(API+'/api/v1/hub/zones/'+encodeURIComponent(zoneId),withAuth({method:'DELETE'}));
+    }
+
+    const r=await fetch(API+'/api/v1/hub/zones',withAuth({
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        zone_id:zoneId,
+        name,
+        room_ids:roomIds,
+        icon:'mdi:home-floor-1',
+      }),
     }));
+
     if(r.ok){
-      $('new-zone-name').value='';$('new-zone-entities').value='';
-      addHistory('Zone erstellt: '+name);
-      loadHabitus();
-    }else{addHistory('Zone-Fehler: '+r.status)}
+      $('new-zone-name').value='';
+      $('new-zone-entities').value='';
+      if(roomSelect)[...roomSelect.options].forEach(o=>{o.selected=false;});
+      addHistory('Zone erstellt: '+name+' ('+zoneId+')');
+      await loadHabitus();
+    }else{
+      const body=(await r.text()).slice(0,180);
+      addHistory('Zone-Fehler: '+r.status+' '+body);
+    }
   }catch(e){addHistory('Zone-Fehler: '+e.message)}
 }
 

@@ -3,6 +3,12 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.7.19
+- Habitus-Dashboard nutzt jetzt die korrekten Hub-Zonen-Endpunkte (`/api/v1/hub/zones*`) statt Mining-Config.
+- Zonen lassen sich wieder anlegen (inkl. Mehrfach-Raumauswahl im Dropdown).
+- Falls keine Räume vorhanden sind: optionaler Fallback über manuelle Entitätsliste (synthetischer Raum wird automatisch registriert).
+- Raumliste im Dashboard ist jetzt aktualisierbar (Reload-Button) und kann initial aus Entity-Assignment-Vorschlägen vorbefüllt werden.
+
 ## 7.7.18
 - Dashboard nutzt jetzt automatisch den konfigurierten Auth-Token fuer alle API-Calls.
 - Chat/Suggestions/Szenen/HomeKit/Habitus/Module im Dashboard funktionieren damit auch bei aktivierter API-Authentifizierung (`auth_token` gesetzt).
@@ -31,6 +37,8 @@ For full history, see the repository-level `CHANGELOG.md`.
 - **Agent API**: `/api/v1/agent/*` Blueprint registriert (kein 404 mehr bei Agent-Status/Verify).
 - **Model Alias**: `pilotsuite/default/auto/local/ollama` werden auf das konfigurierte Modell aufgeloest.
 - **Versioning**: Runtime-Version nutzt `COPILOT_VERSION/BUILD_VERSION` mit Datei-Fallback.
+
+> Hinweis: Aeltere Eintraege unterhalb dieser Linie stammen aus Legacy-Historie vor der aktuellen `7.7.x` Release-Linie.
 
 ## 3.9.1
 - **HA Conformity** — Version sync with HACS integration

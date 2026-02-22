@@ -1,5 +1,19 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.19] - 2026-02-22 — HABITUS DASHBOARD ZONE FLOW FIXES
+
+### Fixes
+- **Habitus dashboard zone management now uses real Hub zone endpoints**
+  - Zone listing switched from the wrong miner config endpoint to `/api/v1/hub/zones`.
+  - Zone details now load from `/api/v1/hub/zones/<zone_id>` so entity/room rendering is consistent.
+- **Zone creation flow repaired**
+  - Dashboard now creates zones via `/api/v1/hub/zones` and supports multi-room selection.
+  - If no room is selected, dashboard can register a synthetic room from explicit entity IDs and still create the zone.
+- **Room selector UX improved**
+  - New multi-select room dropdown in Habitus page (`Ctrl/Cmd` multi-select).
+  - Room list reload action added.
+  - Best-effort auto-import from entity-assignment suggestions when no rooms are present.
+
 ## [7.7.18] - 2026-02-22 — DASHBOARD AUTH BRIDGE + CHAT UX RELIABILITY
 
 ### Fixes
