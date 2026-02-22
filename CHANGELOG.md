@@ -1,5 +1,18 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.6] - 2026-02-22 — INSTALL/UX DOCS HARDENING
+
+### Changed
+- Add-on info docs (`copilot_core/DOCS.md`) now contain an exact production install flow:
+  - Core + HACS integration order
+  - canonical Lovelace dashboard YAML
+  - where to configure cloud fallback API key (`conversation_cloud_api_key`)
+  - operational smoke checks (`/health`, `/chat/status`, `/v1/chat/completions`)
+- README clarifies that add-on info screen is authoritative for install instructions.
+
+### Fixed
+- Dashboard template no longer advertises a static internal UI version label.
+
 ## [7.8.5] - 2026-02-22 — VERSION LABEL CLARITY
 
 ### Fixed

@@ -30,6 +30,7 @@ Home Assistant
    ```
 3. **PilotSuite Core** installieren und starten
 4. Das Add-on laeuft auf Port **8909** mit bundled Ollama
+5. Im Add-on-Info-Screen findest du die exakte Schritt-fuer-Schritt-Anleitung (`DOCS.md`)
 
 ### HACS Integration
 
@@ -54,6 +55,7 @@ Im Add-on unter **Configuration**:
 
 Hinweis:
 - Wenn ein Client ein nicht lokal installiertes Modell anfragt (z. B. `gpt-4o-mini`), versucht Styx zuerst den konfigurierten lokalen Ollama-Standard und faellt danach optional auf Cloud zurueck.
+- Der externe API-Key wird ausschliesslich im Add-on Feld `conversation_cloud_api_key` gesetzt (nicht in der HACS-Integration).
 
 ### Optional: Onyx als Chat- und RAG-Frontend
 

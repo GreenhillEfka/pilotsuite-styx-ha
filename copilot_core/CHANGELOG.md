@@ -3,6 +3,12 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.6
+- Add-on-Info (`DOCS.md`) enthält jetzt eine exakte Produktions-Installationsanleitung
+  inklusive Lovelace-YAML, Cloud-Fallback-Setup und Smoke-Checks.
+- README verweist explizit auf den Add-on-Info-Screen als primäre Setup-Quelle.
+- Dashboard-Template entfernt statische interne UI-Versionsbeschriftung.
+
 ## 7.8.5
 - Dashboard zeigt keine feste `v1.0.0` Platzhalter-Version mehr.
 - Versionsanzeige ist jetzt strikt runtime-basiert (aus `/chat/status`) oder `--`.
