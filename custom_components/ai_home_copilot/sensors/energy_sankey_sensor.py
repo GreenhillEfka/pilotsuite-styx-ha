@@ -26,7 +26,7 @@ class EnergySankeySensor(CopilotBaseEntity):
 
     def __init__(self, coordinator: CopilotDataUpdateCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self._host}:{self._port}_energy_sankey_flow"
+        self._attr_unique_id = "copilot_energy_sankey_flow"
         self._flow_data: dict[str, Any] | None = None
 
     @property
@@ -42,8 +42,8 @@ class EnergySankeySensor(CopilotBaseEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return Sankey flow details."""
         attrs: dict[str, Any] = {
-            "sankey_svg_url": f"http://{self._host}:{self._port}/api/v1/energy/sankey.svg",
-            "sankey_json_url": f"http://{self._host}:{self._port}/api/v1/energy/sankey",
+            "sankey_svg_url": f"{self._core_base_url()}/api/v1/energy/sankey.svg",
+            "sankey_json_url": f"{self._core_base_url()}/api/v1/energy/sankey",
         }
 
         if self._flow_data and self._flow_data.get("ok"):
@@ -73,12 +73,8 @@ class EnergySankeySensor(CopilotBaseEntity):
             if session is None:
                 return
 
-            url = f"http://{self._host}:{self._port}/api/v1/energy/sankey"
-            headers = {}
-            token = self.coordinator._config.get("token") or self.coordinator._config.get("auth_token")
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-                headers["X-Auth-Token"] = token
+            url = f"{self._core_base_url()}/api/v1/energy/sankey"
+            headers = self._core_headers()
 
             async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status == 200:

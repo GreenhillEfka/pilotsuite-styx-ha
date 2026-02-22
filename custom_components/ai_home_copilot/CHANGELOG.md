@@ -5,6 +5,13 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.20] - 2026-02-22
+- Unified sensor Core endpoints to use coordinator active failover base URL.
+- Added shared Core auth header helper (`Authorization` + `X-Auth-Token`).
+- Coordinator startup now normalizes legacy `auth_token` into `token`.
+- Legacy host/port-based sensor unique_ids migrated to stable IDs at setup.
+- Added tests for new base entity endpoint/auth helper behavior.
+
 ## [7.7.19] - 2026-02-22
 - OptionsFlow merge fixed: token/host/port/module options persist across updates and step saves.
 - Habitus zones: multi-area selection (`area_ids`) for create/edit, merged auto-suggestions, metadata persistence.

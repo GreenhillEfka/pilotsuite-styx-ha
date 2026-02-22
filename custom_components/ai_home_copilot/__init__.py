@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_call_later
 
@@ -87,6 +88,15 @@ _MODULES = [
     "calendar_module",
 ]
 
+_LEGACY_SENSOR_UNIQUE_ID_MIGRATIONS: dict[str, str] = {
+    "_automation_suggestions": "copilot_automation_suggestions",
+    "_comfort_index": "copilot_comfort_index",
+    "_energy_cost": "copilot_energy_cost",
+    "_energy_schedule": "copilot_energy_schedule",
+    "_energy_sankey_flow": "copilot_energy_sankey_flow",
+    "_notifications": "copilot_notifications",
+}
+
 
 async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Migrate entry/device identity to a stable, single-instance setup."""
@@ -135,6 +145,50 @@ async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry)
     )
 
 
+async def _async_migrate_legacy_sensor_unique_ids(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Migrate legacy host:port based unique_ids to stable IDs."""
+    ent_reg = er.async_get(hass)
+    entries = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+
+    for entity_entry in entries:
+        current_unique_id = str(entity_entry.unique_id or "")
+        if not current_unique_id:
+            continue
+
+        replacement: str | None = None
+        for legacy_suffix, stable_unique_id in _LEGACY_SENSOR_UNIQUE_ID_MIGRATIONS.items():
+            if current_unique_id == stable_unique_id:
+                replacement = None
+                break
+            if current_unique_id.endswith(legacy_suffix):
+                replacement = stable_unique_id
+                break
+
+        if replacement is None:
+            continue
+
+        existing_entity_id = ent_reg.async_get_entity_id(
+            entity_entry.domain,
+            DOMAIN,
+            replacement,
+        )
+        if existing_entity_id and existing_entity_id != entity_entry.entity_id:
+            _LOGGER.warning(
+                "Skipping unique_id migration for %s -> %s (already used by %s)",
+                entity_entry.entity_id,
+                replacement,
+                existing_entity_id,
+            )
+            continue
+
+        ent_reg.async_update_entity(
+            entity_entry.entity_id,
+            new_unique_id=replacement,
+        )
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_all_services(hass)
@@ -173,6 +227,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _async_migrate_entry_identity(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to migrate entry/device identity")
+
+    try:
+        await _async_migrate_legacy_sensor_unique_ids(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to migrate legacy sensor unique_ids")
 
     try:
         await async_install_blueprints(hass)

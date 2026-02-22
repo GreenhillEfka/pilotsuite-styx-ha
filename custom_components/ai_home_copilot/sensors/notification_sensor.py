@@ -21,7 +21,7 @@ class NotificationSensor(CopilotBaseEntity):
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self._host}:{self._port}_notifications"
+        self._attr_unique_id = "copilot_notifications"
         self._notif_data: dict[str, Any] | None = None
         self._digest_data: dict[str, Any] | None = None
 
@@ -47,10 +47,10 @@ class NotificationSensor(CopilotBaseEntity):
         """Return notification details."""
         attrs: dict[str, Any] = {
             "notifications_url": (
-                f"http://{self._host}:{self._port}/api/v1/notifications"
+                f"{self._core_base_url()}/api/v1/notifications"
             ),
             "digest_url": (
-                f"http://{self._host}:{self._port}/api/v1/notifications/digest"
+                f"{self._core_base_url()}/api/v1/notifications/digest"
             ),
         }
 
@@ -73,13 +73,9 @@ class NotificationSensor(CopilotBaseEntity):
             if session is None:
                 return
 
-            headers = {}
-            token = self.coordinator._config.get("token") or self.coordinator._config.get("auth_token")
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-                headers["X-Auth-Token"] = token
+            headers = self._core_headers()
 
-            base = f"http://{self._host}:{self._port}"
+            base = f"{self._core_base_url()}"
 
             async with session.get(
                 f"{base}/api/v1/notifications?limit=10",

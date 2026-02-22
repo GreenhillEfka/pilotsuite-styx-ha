@@ -58,11 +58,8 @@ class DemandResponseSensor(CopilotBaseEntity, SensorEntity):
 
     async def async_update(self) -> None:
         session = async_get_clientsession(self.hass)
-        url = f"http://{self._host}:{self._port}/api/v1/energy/demand-response/status"
-        headers = {}
-        token = self.coordinator._config.get("token")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        url = f"{self._core_base_url()}/api/v1/energy/demand-response/status"
+        headers = self._core_headers()
         try:
             async with session.get(url, headers=headers, timeout=15) as resp:
                 if resp.status == 200:

@@ -6,7 +6,7 @@ This document is the active vision baseline for the dual-repo system:
 
 Version baseline:
 - Core add-on: `7.7.17`
-- HA integration: `7.7.19`
+- HA integration: `7.7.20`
 - Core API port: `8909`
 
 ## Mission
@@ -78,6 +78,7 @@ Current implementation direction:
 - Ingress dashboard with Brain/Mood/Module views.
 - Lovelace card resources for mood/neurons/habitus surfaces.
 - Repairs-based governance workflow for controlled application of candidates.
+- Unified module-to-core communication path (active failover endpoint + consistent auth headers).
 
 ## Production readiness definition
 A release is production-ready only if all are true:

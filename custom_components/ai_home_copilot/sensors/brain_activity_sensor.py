@@ -42,8 +42,8 @@ class BrainActivitySensor(CopilotBaseEntity, SensorEntity):
     async def _fetch(self) -> dict | None:
         import aiohttp
         try:
-            url = f"http://{self._host}:{self._port}/api/v1/hub/brain/activity"
-            headers = {"Authorization": f"Bearer {self.coordinator._config.get('token', '')}"}
+            url = f"{self._core_base_url()}/api/v1/hub/brain/activity"
+            headers = self._core_headers()
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     if resp.status == 200:

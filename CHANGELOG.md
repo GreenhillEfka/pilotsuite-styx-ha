@@ -1,5 +1,28 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.20] - 2026-02-22 — COMMUNICATION PIPELINE HARDENING + TOKEN COMPAT
+
+### Fixes
+- **Core endpoint unification across sensor modules**
+  - Sensor-API calls verwenden jetzt zentral die aktive Core-Base-URL (inkl. Coordinator-Failover-Endpoint statt statischem `host:port`).
+  - behebt Situationen, in denen Coordinator erreichbar war, einzelne Module/Sensoren aber weiterhin gegen einen toten Endpoint liefen.
+- **Auth-Header vereinheitlicht**
+  - zentrale Header-Bildung (`Authorization` + `X-Auth-Token`) fuer Sensor-Requests.
+  - reduziert 401/leer laufende Sensoren bei gemischten Token-Setups.
+- **Legacy-Token-Kompatibilitaet im Coordinator**
+  - alte Konfigurationen mit `auth_token` werden beim Start auf `token` normalisiert.
+  - verhindert stille Auth-Ausfaelle nach Updates/Migrationen.
+- **Legacy-Entity-Unique-IDs migriert**
+  - betroffene Sensoren wurden von `host:port`-basierten Unique-IDs auf stabile IDs umgestellt.
+  - automatische Migration beim Setup verhindert neue Duplikate bei Host/Port-Wechseln.
+- **BaseEntity erweitert**
+  - neue gemeinsame Helpers fuer Core-URL und Core-Auth-Header.
+  - reduziert Drift zwischen Modulen und stabilisiert die Rueckkanal-Kommunikation.
+
+### Tests
+- Lokale HA-Testsuite: **531 passed, 5 skipped**.
+- Neue Abdeckung fuer BaseEntity Core-URL/Auth-Helper in `tests/test_device_identity.py`.
+
 ## [7.7.19] - 2026-02-22 — FLOW RELIABILITY + HABITUS MULTI-AREA + API HARDENING
 
 ### Fixes

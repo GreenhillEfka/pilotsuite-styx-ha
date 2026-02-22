@@ -262,6 +262,13 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self._config[CONF_HOST] = host
         self._config[CONF_PORT] = port
+        # Backward compatibility: some older entries still use "auth_token".
+        token = str(
+            self._config.get(CONF_TOKEN)
+            or self._config.get("auth_token")
+            or ""
+        ).strip()
+        self._config[CONF_TOKEN] = token
 
         candidate_hosts = build_candidate_hosts(
             host,
@@ -278,7 +285,6 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 if url not in candidate_urls:
                     candidate_urls.append(url)
 
-        token = str(config.get(CONF_TOKEN, "") or "")
         self.api = CopilotApiClient(
             session,
             base_urls=candidate_urls,

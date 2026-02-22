@@ -11,6 +11,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 if TYPE_CHECKING:
     from .coordinator import CopilotDataUpdateCoordinator
 from .const import DOMAIN, LEGACY_MAIN_DEVICE_IDENTIFIERS, MAIN_DEVICE_IDENTIFIER
+from .core_endpoint import DEFAULT_CORE_PORT, build_base_url
 
 
 def _load_integration_version() -> str:
@@ -46,6 +47,35 @@ class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
         super().__init__(coordinator)
         self._host = coordinator._config.get("host")
         self._port = coordinator._config.get("port")
+
+    def _core_base_url(self) -> str:
+        """Return best available Core endpoint URL."""
+        api = getattr(self.coordinator, "api", None)
+        active_url = getattr(api, "_active_base_url", None)
+        if isinstance(active_url, str) and active_url.strip():
+            return active_url.rstrip("/")
+
+        host = str(self.coordinator._config.get("host") or self._host or "").strip()
+        try:
+            port = int(self.coordinator._config.get("port") or self._port or DEFAULT_CORE_PORT)
+        except (TypeError, ValueError):
+            port = DEFAULT_CORE_PORT
+        return build_base_url(host, port).rstrip("/")
+
+    def _core_headers(self, *, content_type: str | None = None) -> dict[str, str]:
+        """Return auth headers compatible with Core API."""
+        headers: dict[str, str] = {}
+        token = str(
+            self.coordinator._config.get("token")
+            or self.coordinator._config.get("auth_token")
+            or ""
+        ).strip()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+            headers["X-Auth-Token"] = token
+        if content_type:
+            headers["Content-Type"] = content_type
+        return headers
 
     @property
     def device_info(self) -> DeviceInfo:
