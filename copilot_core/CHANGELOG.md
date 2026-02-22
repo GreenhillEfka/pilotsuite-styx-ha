@@ -3,6 +3,26 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.0
+- **Zero-Config Enhancement**: Verbesserte Auto-Discovery fuer Core-Endpoint
+- **Entity Auto-Discovery**: Media-Player Erkennung (Sonos, Apple TV, Smart TV)
+- **Zone Inference**: Automatische Zonen-Erkennung aus Entity-Namen und HA Areas
+- **Self-Heal**: Erweiterte automatische Wiederherstellung bei Ausfaellen
+- **Vision Update**: Zero-Config und Maximaler-User-Comfort als Ziel
+
+## 7.7.27
+- **Version Sync**: auf v7.7.27 angehoben (Matching mit HA Integration)
+- **aiohttp Session Leak Fix**: HA Integration nutzt jetzt async_get_clientsession() statt direkte ClientSession
+
+## 7.7.26
+- **Version Sync**: auf v7.7.26 angehoben (Matching mit HA Integration)
+- **Module Registry Hardening**: Runtime-Modulregistrierung jetzt robust fuer alle _MODULES-Eintraege
+- **ML Context Lifecycle**: MLContextModule jetzt kompatibel mit CopilotRuntime Lifecycle-Schema
+- **Dashboard Wiring**: Automatische Lovelace-Dashboard-Registrierung inkl. Habitus v2
+- **Device Dedup**: Legacy-Device Cleanup erweitert, verwaiste Devices werden entfernt
+- **Runtime Stability**: Unload-Rueckgaben normalisiert, OptionsFlow stabilisiert
+- **Connection Normalization**: Host/Token-Persistenz ueber Updates stabilisiert
+
 ## 7.7.19
 - Habitus-Dashboard nutzt jetzt die korrekten Hub-Zonen-Endpunkte (`/api/v1/hub/zones*`) statt Mining-Config.
 - Zonen lassen sich wieder anlegen (inkl. Mehrfach-Raumauswahl im Dropdown).
