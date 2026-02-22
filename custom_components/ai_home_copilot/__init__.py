@@ -453,30 +453,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to register Lovelace card resources")
 
-    # Auto-generate PilotSuite dashboard on first setup
+    # Auto-generate dashboard YAML files on first setup.
     try:
+        from .dashboard_wiring import async_ensure_lovelace_dashboard_wiring
+        from .habitus_dashboard import async_generate_habitus_zones_dashboard
         from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+
         entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-        if isinstance(entry_store, dict) and not entry_store.get("_dashboard_generated"):
-            await async_generate_pilotsuite_dashboard(hass, entry)
-            entry_store["_dashboard_generated"] = True
-            _LOGGER.info("PilotSuite dashboard auto-generated on first setup")
+        if isinstance(entry_store, dict) and not entry_store.get("_dashboards_generated"):
+            await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
+            await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
+            wiring_state = await async_ensure_lovelace_dashboard_wiring(hass)
+            entry_store["_dashboards_generated"] = True
+            _LOGGER.info(
+                "PilotSuite dashboards auto-generated on first setup (wiring=%s)",
+                wiring_state,
+            )
     except Exception:
-        _LOGGER.exception("Failed to auto-generate PilotSuite dashboard")
+        _LOGGER.exception("Failed to auto-generate PilotSuite dashboards")
 
     # Keep dashboard YAML updated when Habitus zones change.
     try:
         from .habitus_zones_store_v2 import SIGNAL_HABITUS_ZONES_V2_UPDATED
+        from .habitus_dashboard import async_generate_habitus_zones_dashboard
         from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
 
         entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
         if isinstance(entry_store, dict):
             async def _async_refresh_dashboard(reason: str) -> None:
                 try:
-                    await async_generate_pilotsuite_dashboard(hass, entry)
-                    _LOGGER.info("PilotSuite dashboard auto-regenerated (%s)", reason)
+                    await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
+                    await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
+                    _LOGGER.info("PilotSuite dashboards auto-regenerated (%s)", reason)
                 except Exception:
-                    _LOGGER.exception("Failed to auto-regenerate PilotSuite dashboard (%s)", reason)
+                    _LOGGER.exception("Failed to auto-regenerate PilotSuite dashboards (%s)", reason)
 
             @callback
             def _schedule_dashboard_refresh(reason: str) -> None:

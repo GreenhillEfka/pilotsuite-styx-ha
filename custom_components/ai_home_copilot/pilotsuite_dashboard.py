@@ -41,26 +41,44 @@ def _copy(src: Path, dst: Path) -> None:
     shutil.copyfile(src, dst)
 
 
-def _resolve_entity(hass: HomeAssistant, candidates: list[str]) -> str:
-    """Pick first existing entity_id from candidates (fallback to first)."""
+def _resolve_entity(hass: HomeAssistant, candidates: list[str]) -> str | None:
+    """Pick first existing entity_id from candidates."""
     for entity_id in candidates:
         if hass.states.get(entity_id) is not None:
             return entity_id
-    return candidates[0]
+    return None
+
+
+def _compact_entities(values: list[str | None]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if not value:
+            continue
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
+def _existing_entities(hass: HomeAssistant, entity_ids: list[str]) -> list[str]:
+    return [entity_id for entity_id in entity_ids if hass.states.get(entity_id) is not None]
 
 
 def _entities_card(title: str, entities: list[str]) -> str:
+    clean_entities = [eid for eid in entities if isinstance(eid, str) and eid.strip()]
     lines = [
         "      - type: entities",
         f"        title: {title}",
         "        show_header_toggle: false",
         "        entities:",
     ]
-    if not entities:
+    if not clean_entities:
         lines.append("          - type: section")
         lines.append("            label: (no entities)")
     else:
-        for eid in entities:
+        for eid in clean_entities:
             lines.append(f"          - entity: {eid}")
     return "\n".join(lines)
 
@@ -116,7 +134,12 @@ def _view(title: str, path: str, icon: str, cards_yaml: str) -> str:
     )
 
 
-async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> Path:
+async def async_generate_pilotsuite_dashboard(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    *,
+    notify: bool = True,
+) -> Path:
     """Generate a governance-first Lovelace YAML dashboard.
 
     PilotSuite goal: give operators a ready-to-import dashboard *without* auto-modifying Lovelace.
@@ -134,7 +157,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     devlogs_enabled = bool(cfg.get(CONF_DEVLOG_PUSH_ENABLED, DEFAULT_DEVLOG_PUSH_ENABLED))
 
     # Known entity_ids from this integration (stable unique_ids).
-    overview_entities = [
+    overview_entities = _compact_entities([
         _resolve_entity(
             hass,
             ["binary_sensor.ai_home_copilot_online", "binary_sensor.pilotsuite_styx_online"],
@@ -151,7 +174,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
             hass,
             ["sensor.ai_home_copilot_habitus_zones_count", "sensor.pilotsuite_habitus_zones_count"],
         ),
-    ]
+    ])
 
     # Systemressourcen (optional; nur anzeigen, wenn vorhanden)
     resource_candidates = [
@@ -170,7 +193,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     ]
     resource_entities = [e for e in resource_candidates if hass.states.get(e) is not None]
 
-    operations_entities = [
+    operations_entities = _compact_entities([
         _resolve_entity(
             hass,
             ["button.ai_home_copilot_reload_config_entry", "button.pilotsuite_reload_config_entry"],
@@ -183,7 +206,7 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
             hass,
             ["button.ai_home_copilot_fetch_ha_errors", "button.pilotsuite_fetch_ha_errors"],
         ),
-    ]
+    ])
 
     show_safety_backup = bool(
         cfg.get(
@@ -193,10 +216,13 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     )
     if show_safety_backup:
         operations_entities.extend(
-            [
+            _existing_entities(
+                hass,
+                [
                 "button.ai_home_copilot_safety_backup_create",
                 "button.ai_home_copilot_safety_backup_status",
-            ]
+                ],
+            )
         )
 
     show_dev_surface = bool(
@@ -207,12 +233,15 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     )
     if show_dev_surface:
         operations_entities.extend(
-            [
+            _existing_entities(
+                hass,
+                [
                 "button.ai_home_copilot_ping_core",
                 "button.ai_home_copilot_enable_debug_30m",
                 "button.ai_home_copilot_disable_debug",
                 "button.ai_home_copilot_clear_error_digest",
-            ]
+                ],
+            )
         )
 
     show_graph_bridge = bool(
@@ -223,22 +252,29 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     )
     if show_graph_bridge:
         operations_entities.extend(
-            [
+            _existing_entities(
+                hass,
+                [
                 "button.ai_home_copilot_preview_graph_candidates",
                 "button.ai_home_copilot_offer_graph_candidates",
-            ]
+                ],
+            )
         )
 
     operations_entities.extend(
-        [
+        _existing_entities(
+            hass,
+            [
             "button.ai_home_copilot_generate_config_snapshot",
             "button.ai_home_copilot_download_config_snapshot",
-        ]
+            ],
+        )
     )
+    operations_entities = _compact_entities(operations_entities)
 
     # Generate reicht: die Dashboards referenzieren jeweils die stabile `*_latest.yaml` Datei.
     # Download/Publish ist nur für /local-Downloads nötig.
-    dashboards_entities = [
+    dashboards_entities = _compact_entities([
         _resolve_entity(
             hass,
             ["button.ai_home_copilot_generate_pilotsuite_dashboard", "button.pilotsuite_generate_pilotsuite_dashboard"],
@@ -247,9 +283,9 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
             hass,
             ["button.ai_home_copilot_generate_habitus_dashboard", "button.pilotsuite_generate_habitus_dashboard"],
         ),
-    ]
+    ])
 
-    core_entities = [
+    core_entities = _compact_entities([
         _resolve_entity(
             hass,
             ["button.ai_home_copilot_fetch_core_capabilities", "button.pilotsuite_fetch_core_capabilities"],
@@ -262,30 +298,39 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
             hass,
             ["button.ai_home_copilot_fetch_core_graph_state", "button.pilotsuite_fetch_core_graph_state"],
         ),
-    ]
+    ])
 
-    habitus_entities = [
+    habitus_entities = _existing_entities(
+        hass,
+        [
         "button.ai_home_copilot_validate_habitus_zones",
-    ]
+        ],
+    )
 
-    media_entities = [
+    media_entities = _existing_entities(
+        hass,
+        [
         "sensor.ai_home_copilot_music_now_playing",
         "sensor.ai_home_copilot_music_primary_area",
         "sensor.ai_home_copilot_music_active_count",
         "sensor.ai_home_copilot_tv_primary_area",
         "sensor.ai_home_copilot_tv_source",
         "sensor.ai_home_copilot_tv_active_count",
-    ]
+        ],
+    )
 
     # Dev push buttons are disabled-by-default; keep the read-only fetch visible.
     # Dev/Fehler-Surface: hier bündeln wir die "sichtbar machen" Buttons.
-    dev_entities = [
+    dev_entities = _existing_entities(
+        hass,
+        [
         "button.ai_home_copilot_fetch_ha_errors",
         "button.ai_home_copilot_devlogs_fetch",
         "button.ai_home_copilot_forwarder_status",
         "button.ai_home_copilot_fetch_core_events",
         "button.ai_home_copilot_fetch_core_capabilities",
-    ]
+        ],
+    )
 
     views: list[str] = []
 
@@ -454,16 +499,17 @@ Wenn `/api/v1/events` leer bleibt:
     st.last_path = str(out_path)
     await async_set_state(hass, st)
 
-    persistent_notification.async_create(
-        hass,
-        (
-            f"PilotSuite-Dashboard YAML generiert:\n{out_path}\n\n"
-            f"Latest (stabil):\n{latest_path}\n\n"
-            "Hinweis: In der Regel reicht **Generate** + Browser-Reload (das Dashboard referenziert die latest-Datei)."
-        ),
-        title="PilotSuite Dashboard",
-        notification_id="ai_home_copilot_pilotsuite_dashboard",
-    )
+    if notify:
+        persistent_notification.async_create(
+            hass,
+            (
+                f"PilotSuite-Dashboard YAML generiert:\n{out_path}\n\n"
+                f"Latest (stabil):\n{latest_path}\n\n"
+                "Hinweis: In der Regel reicht **Generate** + Browser-Reload (das Dashboard referenziert die latest-Datei)."
+            ),
+            title="PilotSuite Dashboard",
+            notification_id="ai_home_copilot_pilotsuite_dashboard",
+        )
 
     _LOGGER.info("Generated PilotSuite dashboard at %s", out_path)
     return out_path

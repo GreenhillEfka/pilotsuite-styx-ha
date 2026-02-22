@@ -126,7 +126,7 @@ def _entity_card_yaml(title: str, entity_id: str) -> str:
     )
 
 
-def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZone) -> str:
+def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     """Return a YAML snippet for one Lovelace view.
 
     UX goal: sensible, named sections for common "extra" entities:
@@ -320,8 +320,13 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZone) -> str:
     )
 
 
-async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: str) -> Path:
-    zones = await async_get_zones(hass, entry_id)
+async def async_generate_habitus_zones_dashboard(
+    hass: HomeAssistant,
+    entry_id: str,
+    *,
+    notify: bool = True,
+) -> Path:
+    zones = await async_get_zones_v2(hass, entry_id)
 
     now = dt_util.now()
     ts = now.strftime("%Y%m%d_%H%M%S")
@@ -350,15 +355,16 @@ async def async_generate_habitus_zones_dashboard(hass: HomeAssistant, entry_id: 
     st.last_path = str(out_path)
     await async_set_state(hass, st)
 
-    persistent_notification.async_create(
-        hass,
-        (
-            f"Generated Habitus zones dashboard YAML at:\n{out_path}\n\n"
-            f"Latest (stable):\n{latest_path}"
-        ),
-        title="PilotSuite Habitus dashboard",
-        notification_id="ai_home_copilot_habitus_dashboard",
-    )
+    if notify:
+        persistent_notification.async_create(
+            hass,
+            (
+                f"Generated Habitus zones dashboard YAML at:\n{out_path}\n\n"
+                f"Latest (stable):\n{latest_path}"
+            ),
+            title="PilotSuite Habitus dashboard",
+            notification_id="ai_home_copilot_habitus_dashboard",
+        )
 
     _LOGGER.info("Generated Habitus zones dashboard at %s", out_path)
     return out_path

@@ -29,6 +29,34 @@ Das **Core Add-on** muss installiert und gestartet sein:
 
 Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port/Token manuell).
 
+### Dashboards (Auto + Fallback)
+
+Beim ersten Start generiert PilotSuite automatisch:
+
+- `/config/ai_home_copilot/pilotsuite_dashboard_latest.yaml`
+- `/config/ai_home_copilot/habitus_zones_dashboard_latest.yaml`
+
+Die Integration versucht ausserdem, das Lovelace-Wiring automatisch vorzubereiten.
+Falls Home Assistant bereits einen eigenen `lovelace:`-Block hat, bekommst du eine
+Notification mit Merge-Hinweis. Manuelle YAML-Variante:
+
+```yaml
+lovelace:
+  dashboards:
+    copilot-pilotsuite:
+      mode: yaml
+      title: "PilotSuite - Styx"
+      icon: mdi:robot-outline
+      show_in_sidebar: true
+      filename: "ai_home_copilot/pilotsuite_dashboard_latest.yaml"
+    copilot-habitus-zones:
+      mode: yaml
+      title: "PilotSuite - Habitus Zones"
+      icon: mdi:layers-outline
+      show_in_sidebar: true
+      filename: "ai_home_copilot/habitus_zones_dashboard_latest.yaml"
+```
+
 ## 30 Module
 
 | Modul | Funktion |
