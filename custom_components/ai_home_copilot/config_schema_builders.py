@@ -131,6 +131,9 @@ from .const import (
     DEFAULT_BIRTHDAY_TTS_ENABLED,
     DEFAULT_BIRTHDAY_TTS_ENTITY,
     DEFAULT_BIRTHDAY_REMINDER_HOUR,
+    CONF_ENTITY_PROFILE,
+    DEFAULT_ENTITY_PROFILE,
+    ENTITY_PROFILES,
 )
 
 
@@ -454,6 +457,10 @@ def build_birthday_schema(data: dict) -> dict:
 def build_modules_schema(data: dict) -> dict:
     """Build schema for the modules options step (all module toggles + settings)."""
     fields: dict = {}
+    fields[vol.Optional(
+        CONF_ENTITY_PROFILE,
+        default=data.get(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE),
+    )] = vol.In(ENTITY_PROFILES)
     fields.update(build_media_schema(data))
     fields.update(build_seed_schema(data))
     fields.update(build_watchdog_schema(data))

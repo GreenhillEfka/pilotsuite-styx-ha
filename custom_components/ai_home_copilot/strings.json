@@ -18,6 +18,7 @@
           "host": "Host",
           "port": "Port",
           "token": "API Token",
+          "entity_profile": "Entity Profile",
           "test_light_entity_id": "Test Light (optional)"
         }
       }
@@ -90,6 +91,7 @@
         "title": "Modules",
         "description": "Enable and configure PilotSuite modules.",
         "data": {
+          "entity_profile": "Entity profile",
           "media_music_players": "Music players (csv)",
           "media_tv_players": "TV players (csv)",
           "suggestion_seed_entities": "Suggestion seed sensors (csv, optional)",

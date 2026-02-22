@@ -1,5 +1,28 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.10] - 2026-02-22 — CHAT + ZONES + ENTITY SURFACE HARDENING
+
+### Chat-/Endpoint-Robustheit
+- API-Client akzeptiert nur gueltige JSON-Antworten von Core-Endpunkten; HTML/Fremdantworten triggern jetzt klaren Failover statt stiller Fehldeutung.
+- Endpoint-Failover erweitert: bei 4xx/Transportfehlern wird auf alternative Kandidaten gewechselt.
+- Port-Fallback auf `8909` zusaetzlich zum konfigurierten Port, um Fehlkonfigurationen (z. B. versehentlich `8123`) automatisch abzufangen.
+- Conversation-Agent normalisiert `conversation_id` defensiv auf ein gueltiges, stabiles Format.
+
+### Habitus-Zonen-Flow repariert
+- Create/Edit-Form toleriert leere Selector-Eingaben ohne Frontend-Pattern-Blocker und validiert anschliessend serverseitig mit klaren Feldfehlern.
+- Persistenz-/Validierungsfehler werden als Formfehler zurueckgespielt statt den Flow hart abbrechen zu lassen.
+- Edit-Flow ersetzt bei geaenderter `zone_id` jetzt korrekt die alte Zone (kein versehentliches Duplikat mehr).
+
+### Entity-Flut eingedaemmt (Default)
+- Neues Entity-Profil (`core`/`full`) eingefuehrt; Default ist `core`.
+- `core` reduziert die standardmaessig erzeugten Sensor-/Button-/Binary-Sensor-Entitaeten auf eine schlanke, produktive Basis.
+- Profil ist in Setup und Optionen konfigurierbar.
+
+### Konfigurations-UX
+- Connection-Optionsflow normalisiert Host/Port konsistent.
+- Discovery/Validation prueft Endpunkte strenger auf echte PilotSuite-Core-API-Antworten.
+- Uebersetzungen fuer `connection`/`modules`-Steps und `entity_profile` vervollstaendigt.
+
 ## [7.7.9] - 2026-02-22 — BULLETPROOF SETUP FLOW PATCH
 
 ### Kritischer Setup-Fix (Root Cause)

@@ -12,6 +12,39 @@ from homeassistant.helpers import selector
 _LOGGER = logging.getLogger(__name__)
 
 
+def _build_zone_form_schema(
+    *,
+    zone_id: str,
+    name: str,
+    motion_entity_id: str,
+    light_entity_ids: list[str],
+    optional_entity_ids: list[str],
+) -> vol.Schema:
+    """Build schema for create/edit zone forms."""
+    return vol.Schema(
+        {
+            vol.Required("zone_id", default=zone_id): str,
+            vol.Optional("name", default=name): str,
+            vol.Optional(
+                "motion_entity_id",
+                default=motion_entity_id,
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"], multiple=False)
+            ),
+            vol.Optional(
+                "light_entity_ids",
+                default=light_entity_ids,
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="light", multiple=True)
+            ),
+            vol.Optional(
+                "optional_entity_ids",
+                default=optional_entity_ids,
+            ): selector.EntitySelector(selector.EntitySelectorConfig(multiple=True)),
+        }
+    )
+
+
 async def create_zone_tag(hass: HomeAssistant, zone_id: str, zone_name: str) -> None:
     """Auto-create tag when zone is created."""
     try:
@@ -110,6 +143,8 @@ async def async_step_zone_form(
     else:
         z = HabitusZoneV2(zone_id="", name="", entity_ids=(), entities=None)
 
+    step_id = "create_zone" if mode == "create" else "edit_zone_form"
+
     if user_input is not None:
         zid = str(user_input.get("zone_id") or "").strip()
         name = str(user_input.get("name") or zid).strip()
@@ -122,7 +157,27 @@ async def async_step_zone_form(
         if not isinstance(optional, list):
             optional = [optional]
 
-        entity_ids = [motion] + [str(x).strip() for x in lights] + [str(x).strip() for x in optional]
+        lights = [str(x).strip() for x in lights if str(x).strip()]
+        optional = [str(x).strip() for x in optional if str(x).strip()]
+
+        errors: dict[str, str] = {}
+        if not zid:
+            errors["zone_id"] = "required"
+        if not motion:
+            errors["motion_entity_id"] = "required"
+        if not lights:
+            errors["light_entity_ids"] = "required"
+        if errors:
+            schema = _build_zone_form_schema(
+                zone_id=zid,
+                name=name,
+                motion_entity_id=motion,
+                light_entity_ids=lights,
+                optional_entity_ids=optional,
+            )
+            return flow.async_show_form(step_id=step_id, data_schema=schema, errors=errors)
+
+        entity_ids = [motion] + lights + optional
         entity_ids = [e for e in entity_ids if e]
 
         seen: set[str] = set()
@@ -135,8 +190,8 @@ async def async_step_zone_form(
 
         ent_map = {
             "motion": [motion] if motion else [],
-            "lights": [str(x).strip() for x in lights if str(x).strip()],
-            "other": [str(x).strip() for x in optional if str(x).strip()],
+            "lights": lights,
+            "other": optional,
         }
         ent_map = {k: v for k, v in ent_map.items() if v}
 
@@ -144,9 +199,26 @@ async def async_step_zone_form(
             zone_id=zid, name=name or zid, entity_ids=tuple(uniq), entities=ent_map or None
         )
 
-        new_list = [zz for zz in zones if zz.zone_id != zid]
+        replace_zone_id = z.zone_id if mode == "edit" and z.zone_id else zid
+        new_list = [zz for zz in zones if zz.zone_id != replace_zone_id]
         new_list.append(new_zone)
-        await async_set_zones_v2(flow.hass, entry.entry_id, new_list)
+        try:
+            await async_set_zones_v2(flow.hass, entry.entry_id, new_list)
+        except ValueError as err:
+            _LOGGER.debug("Zone validation failed for %s: %s", zid, err)
+            schema = _build_zone_form_schema(
+                zone_id=zid,
+                name=name,
+                motion_entity_id=motion,
+                light_entity_ids=lights,
+                optional_entity_ids=optional,
+            )
+            return flow.async_show_form(
+                step_id=step_id,
+                data_schema=schema,
+                errors={"base": "invalid"},
+                description_placeholders={"hint": str(err)},
+            )
 
         await create_zone_tag(flow.hass, zid, name)
         await tag_zone_entities(flow.hass, zid, entity_ids)
@@ -175,28 +247,12 @@ async def async_step_zone_form(
             else:
                 default_optional.append(eid)
 
-    schema = vol.Schema(
-        {
-            vol.Required("zone_id", default=(z.zone_id if mode == "edit" else "")): str,
-            vol.Optional("name", default=(z.name if z.name else "")): str,
-            vol.Required(
-                "motion_entity_id",
-                default=default_motion or "",
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain=["binary_sensor", "sensor"], multiple=False)
-            ),
-            vol.Required(
-                "light_entity_ids",
-                default=default_lights,
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="light", multiple=True)
-            ),
-            vol.Optional(
-                "optional_entity_ids",
-                default=default_optional,
-            ): selector.EntitySelector(selector.EntitySelectorConfig(multiple=True)),
-        }
+    schema = _build_zone_form_schema(
+        zone_id=(z.zone_id if mode == "edit" else ""),
+        name=(z.name if z.name else ""),
+        motion_entity_id=default_motion or "",
+        light_entity_ids=default_lights,
+        optional_entity_ids=default_optional,
     )
 
-    step_id = "create_zone" if mode == "create" else "edit_zone_form"
     return flow.async_show_form(step_id=step_id, data_schema=schema)

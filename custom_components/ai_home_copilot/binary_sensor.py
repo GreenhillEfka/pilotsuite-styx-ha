@@ -10,6 +10,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 from .entity import CopilotBaseEntity
+from .entity_profile import is_full_entity_profile
 from .media_entities import MusicActiveBinarySensor, TvActiveBinarySensor
 from .forwarder_quality_entities import EventsForwarderConnectedBinarySensor
 from .mesh_monitoring import ZWaveMeshStatusBinarySensor, ZigbeeMeshStatusBinarySensor
@@ -24,6 +25,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     coordinator = data.get("coordinator")
     if coordinator is None:
         _LOGGER.error("Coordinator not available for %s, skipping binary_sensor setup", entry.entry_id)
+        return
+
+    if not is_full_entity_profile(entry):
+        async_add_entities([CopilotOnlineBinarySensor(coordinator)], True)
         return
 
     entities = [CopilotOnlineBinarySensor(coordinator)]

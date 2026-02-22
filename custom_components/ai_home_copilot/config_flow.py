@@ -51,6 +51,9 @@ from .const import (
     CONF_PORT,
     CONF_TEST_LIGHT,
     CONF_TOKEN,
+    CONF_ENTITY_PROFILE,
+    DEFAULT_ENTITY_PROFILE,
+    ENTITY_PROFILES,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DOMAIN,
@@ -111,6 +114,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_HOST: host,
             CONF_PORT: port,
             CONF_TOKEN: "",
+            CONF_ENTITY_PROFILE: DEFAULT_ENTITY_PROFILE,
             "assistant_name": "Styx",
         }
 
@@ -153,6 +157,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             name = user_input.get("assistant_name", "Styx")
             title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
+            user_input.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
             return self.async_create_entry(title=title, data=user_input)
 
         discovered = await discover_reachable_core_endpoint(
@@ -168,6 +173,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST, default=default_host): str,
                 vol.Required(CONF_PORT, default=default_port): int,
                 vol.Optional(CONF_TOKEN): str,
+                vol.Optional(CONF_ENTITY_PROFILE, default=DEFAULT_ENTITY_PROFILE): vol.In(ENTITY_PROFILES),
                 vol.Optional(CONF_TEST_LIGHT, default=""): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="light", multiple=False),
                 ),
@@ -212,6 +218,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Final step: create entry
         if next_step is None:
             final_config, title = build_final_config(self._data)
+            final_config.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
             try:
                 preferred_port = int(final_config.get(CONF_PORT, DEFAULT_PORT))
             except (TypeError, ValueError):

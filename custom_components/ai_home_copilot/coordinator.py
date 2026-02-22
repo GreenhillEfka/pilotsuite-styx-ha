@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
+import json
 import logging
 from typing import Any
 import re
@@ -14,7 +15,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_TOKEN
+from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_TOKEN, DEFAULT_PORT
 from .api import (
     CopilotApiClient as SharedCopilotApiClient,
     CopilotApiError,
@@ -47,13 +48,15 @@ def _should_failover(err: CopilotApiError) -> bool:
     message = str(err)
     if message.startswith("Timeout calling ") or message.startswith("Client error calling "):
         return True
+    if message.startswith("Unexpected content type ") or message.startswith("Invalid JSON from "):
+        return True
 
     status = _extract_http_status(err)
     if status is None:
         return False
 
-    # Fail over only for upstream/server-side transport issues.
-    return status >= 500
+    # Wrong endpoint or upstream transport issues should trigger fallback.
+    return status in {400, 401, 403, 404, 405, 408, 429} or status >= 500
 
 
 class CopilotApiClient(SharedCopilotApiClient):
@@ -100,13 +103,22 @@ class CopilotApiClient(SharedCopilotApiClient):
                         body = await resp.text()
                         raise CopilotApiError(f"HTTP {resp.status} for {url}: {body[:200]}")
 
-                    ctype = resp.headers.get("Content-Type", "")
+                    ctype = (resp.headers.get("Content-Type", "") or "").lower()
                     if resp.status == 204:
                         data: dict = {}
-                    elif "json" in ctype:
-                        data = await resp.json()
                     else:
-                        data = {"text": (await resp.text())[:2000]}
+                        body = await resp.text()
+                        if "json" not in ctype:
+                            raise CopilotApiError(
+                                f"Unexpected content type '{ctype or 'unknown'}' for {url}: {body[:200]}"
+                            )
+                        try:
+                            parsed = json.loads(body) if body else {}
+                        except json.JSONDecodeError as json_err:
+                            raise CopilotApiError(
+                                f"Invalid JSON from {url}: {body[:200]}"
+                            ) from json_err
+                        data = parsed if isinstance(parsed, dict) else {"data": parsed}
 
                     if base_url != self._active_base_url:
                         _LOGGER.warning(
@@ -254,7 +266,15 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
             internal_url=getattr(hass.config, "internal_url", None),
             external_url=getattr(hass.config, "external_url", None),
         )
-        candidate_urls = [build_base_url(h, port) for h in candidate_hosts]
+        port_candidates = [port]
+        if DEFAULT_PORT not in port_candidates:
+            port_candidates.append(DEFAULT_PORT)
+        candidate_urls: list[str] = []
+        for candidate_host in candidate_hosts:
+            for candidate_port in port_candidates:
+                url = build_base_url(candidate_host, candidate_port)
+                if url not in candidate_urls:
+                    candidate_urls.append(url)
 
         token = str(config.get(CONF_TOKEN, "") or "")
         self.api = CopilotApiClient(

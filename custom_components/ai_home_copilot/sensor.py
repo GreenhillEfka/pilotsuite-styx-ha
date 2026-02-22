@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .debug import DebugModeSensor
 from .entity import CopilotBaseEntity
+from .entity_profile import is_full_entity_profile
 from .media_entities import (
     MusicActiveCountSensor,
     MusicNowPlayingSensor,
@@ -171,6 +172,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         return
     coordinator = data.get("coordinator")
     if coordinator is None:
+        return
+
+    if not is_full_entity_profile(entry):
+        async_add_entities(
+            [
+                CopilotVersionSensor(coordinator),
+                CoreApiV1StatusSensor(coordinator, entry),
+                HabitusZonesSensor(coordinator, entry),
+                HabitusZonesV2CountSensor(coordinator, entry),
+                HabitusZonesV2StatesSensor(coordinator, entry),
+                HabitusZonesV2HealthSensor(coordinator, entry),
+                PipelineHealthSensor(coordinator),
+                MoodSensor(coordinator),
+                MoodConfidenceSensor(coordinator),
+                AgentStatusSensor(coordinator),
+            ],
+            True,
+        )
         return
 
     entities = [

@@ -12,6 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .config_helpers import as_csv, parse_csv
+from .core_endpoint import normalize_host_port
 from .config_schema_builders import build_neuron_schema
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
 from .config_zones_flow import async_step_zone_form
@@ -51,6 +52,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Network settings: host, port, token, webhook URL, test light."""
         if user_input is not None:
             user_input.pop(CONF_WEBHOOK_URL, None)
+            host, port = normalize_host_port(
+                user_input.get(CONF_HOST, self._entry.data.get(CONF_HOST)),
+                user_input.get(CONF_PORT, self._entry.data.get(CONF_PORT)),
+            )
+            user_input[CONF_HOST] = host
+            user_input[CONF_PORT] = port
 
             clear_token = user_input.pop("_clear_token", False)
             new_token = user_input.get(CONF_TOKEN, "")

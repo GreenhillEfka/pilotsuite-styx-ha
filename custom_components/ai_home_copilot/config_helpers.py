@@ -107,9 +107,20 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         try:
             async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=5)) as resp:
-                if resp.status >= 500:
+                if resp.status < 200 or resp.status >= 300:
                     raise HomeAssistantError(
-                        f"Core Add-on returned server error ({resp.status})"
+                        f"Core Add-on at {host}:{port} returned HTTP {resp.status} for /api/v1/status"
+                    )
+                ctype = (resp.headers.get("Content-Type", "") or "").lower()
+                if "json" not in ctype:
+                    preview = (await resp.text())[:120]
+                    raise HomeAssistantError(
+                        f"Endpoint {host}:{port} is not PilotSuite Core (unexpected response): {preview}"
+                    )
+                payload = await resp.json()
+                if not isinstance(payload, dict) or payload.get("ok") is not True:
+                    raise HomeAssistantError(
+                        f"Endpoint {host}:{port} does not expose a valid PilotSuite status API"
                     )
                 _LOGGER.debug("Core Add-on reachable at %s:%s (status=%s)", host, port, resp.status)
         except asyncio.TimeoutError:
@@ -139,24 +150,34 @@ async def discover_reachable_core_endpoint(
         external_url=getattr(hass.config, "external_url", None),
     )
     session = async_get_clientsession(hass)
+    port_candidates = [port]
+    if DEFAULT_PORT not in port_candidates:
+        port_candidates.append(DEFAULT_PORT)
 
     for candidate_host in candidates:
-        base = build_base_url(candidate_host, port)
-        try:
-            async with session.get(
-                f"{base}/health",
-                timeout=aiohttp.ClientTimeout(total=timeout_s),
-            ) as resp:
-                if resp.status < 500:
-                    _LOGGER.info(
-                        "Discovered reachable PilotSuite Core endpoint at %s:%s",
-                        candidate_host,
-                        port,
-                    )
-                    return candidate_host, port
-        except (aiohttp.ClientError, asyncio.TimeoutError):
-            continue
-        except Exception:
-            continue
+        for candidate_port in port_candidates:
+            base = build_base_url(candidate_host, candidate_port)
+            try:
+                async with session.get(
+                    f"{base}/api/v1/status",
+                    timeout=aiohttp.ClientTimeout(total=timeout_s),
+                ) as resp:
+                    if resp.status != 200:
+                        continue
+                    ctype = (resp.headers.get("Content-Type", "") or "").lower()
+                    if "json" not in ctype:
+                        continue
+                    payload = await resp.json()
+                    if isinstance(payload, dict) and payload.get("ok") is True:
+                        _LOGGER.info(
+                            "Discovered reachable PilotSuite Core endpoint at %s:%s",
+                            candidate_host,
+                            candidate_port,
+                        )
+                        return candidate_host, candidate_port
+            except (aiohttp.ClientError, asyncio.TimeoutError):
+                continue
+            except Exception:
+                continue
 
     return None

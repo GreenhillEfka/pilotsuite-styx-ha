@@ -18,7 +18,8 @@
           "host": "Host",
           "port": "Port",
           "token": "API Token",
-          "test_light_entity_id": "Test Light (optional)"
+          "test_light_entity_id": "Test Light (optional)",
+          "entity_profile": "Entity profile"
         }
       },
       "init": {
@@ -228,7 +229,9 @@
           "habitus_zones": "Habitus zones",
           "entity_tags": "Entity tags",
           "neurons": "Neurons",
-          "backup_restore": "Backup / restore"
+          "backup_restore": "Backup / restore",
+          "connection": "Connection",
+          "modules": "Modules"
         }
       },
       "entity_tags": {
@@ -445,6 +448,83 @@
         "description": "Copies the latest generated dashboard to the www/ai_home_copilot/ folder for easy download. This creates a stable URL for the dashboard YAML.",
         "data": {
           "confirm": "Publish dashboard"
+        }
+      },
+      "connection": {
+        "title": "Connection",
+        "description": "PilotSuite Core connection settings.",
+        "data": {
+          "webhook_url": "Webhook URL (copy into Core)",
+          "host": "Host",
+          "port": "Port",
+          "token": "API token",
+          "_clear_token": "Clear token",
+          "test_light_entity_id": "Test light (for toggle button)"
+        }
+      },
+      "modules": {
+        "title": "Modules",
+        "description": "Enable and configure PilotSuite modules.",
+        "data": {
+          "entity_profile": "Entity profile",
+          "webhook_url": "Webhook URL (copy into Copilot-Core)",
+          "host": "Host",
+          "port": "Port",
+          "token": "API token",
+          "test_light_entity_id": "Test light (for the toggle button)",
+          "media_music_players": "MediaContext: music players (csv)",
+          "media_tv_players": "MediaContext: TV/other players (csv)",
+          "suggestion_seed_entities": "Suggestion seed sensors (optional)",
+          "seed_allowed_domains": "Seed allowlist domains (comma-separated, optional)",
+          "seed_blocked_domains": "Seed blocklist domains (comma-separated, optional)",
+          "seed_max_offers_per_hour": "Seed limiter: max offers per hour",
+          "seed_min_seconds_between_offers": "Seed limiter: min seconds between offers",
+          "seed_max_offers_per_update": "Seed limiter: max offers per sensor update",
+          "watchdog_enabled": "Enable watchdog polling (fallback)",
+          "watchdog_interval_seconds": "Watchdog interval (seconds)",
+          "events_forwarder_enabled": "Core v1: forward Habitus zone events to Core (opt-in)",
+          "events_forwarder_flush_interval_seconds": "Core v1: forwarder flush interval (seconds)",
+          "events_forwarder_max_batch": "Core v1: forwarder max batch size",
+          "events_forwarder_forward_call_service": "Core v1: also forward call_service events (opt-in)",
+          "events_forwarder_idempotency_ttl_seconds": "Core v1: event idempotency TTL (seconds)",
+          "events_forwarder_persistent_queue_enabled": "Core v1: persistent forwarder queue (store unsent events across HA restarts)",
+          "events_forwarder_persistent_queue_max_size": "Core v1: persistent queue max size (drop-oldest)",
+          "events_forwarder_persistent_queue_flush_interval_seconds": "Core v1: persistent queue flush interval (seconds)",
+          "devlog_push_enabled": "Dev: push sanitized log snippets to Core",
+          "devlog_push_interval_seconds": "Dev: push interval (seconds)",
+          "devlog_push_path": "Dev: Core endpoint path",
+          "devlog_push_max_lines": "Dev: read last N log lines",
+          "devlog_push_max_chars": "Dev: max chars per snippet",
+          "ha_errors_digest_enabled": "Ops: HA error digest notifications (opt-in)",
+          "ha_errors_digest_interval_seconds": "Ops: HA error digest interval (seconds)",
+          "ha_errors_digest_max_lines": "Ops: HA error digest read last N lines",
+          "pilotsuite_show_safety_backup_buttons": "PilotSuite: show safety-backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "PilotSuite: show debug/dev surface buttons",
+          "pilotsuite_show_graph_bridge_buttons": "PilotSuite: show graph-to-candidates buttons",
+          "enable_user_preferences": "Enable user preferences module",
+          "events_forwarder_include_habitus_zones": "Core: include Habitus zone entities in forwarding",
+          "events_forwarder_include_media_players": "Core: include media players in forwarding",
+          "events_forwarder_additional_entities": "Core: additional entities to forward (csv)",
+          "user_preference_enabled": "Enable per-user preference tracking",
+          "tracked_users": "Tracked users (comma-separated person.entity_ids)",
+          "primary_user": "Primary user (person.entity_id)",
+          "user_learning_mode": "User learning mode (passive/active/hybrid)",
+          "mupl_enabled": "Enable Multi-User Preference Learning",
+          "mupl_privacy_mode": "MUPL privacy mode (standard/strict/anonymized)",
+          "mupl_min_interactions": "MUPL min interactions before learning",
+          "mupl_retention_days": "MUPL data retention (days)",
+          "waste_enabled": "Waste: enable waste collection reminders",
+          "waste_entities": "Waste: sensor entities (csv, auto-detect if empty)",
+          "waste_tts_enabled": "Waste: enable TTS announcements",
+          "waste_tts_entity": "Waste: TTS media player entity",
+          "waste_reminder_evening_hour": "Waste: evening reminder hour (0-23)",
+          "waste_reminder_morning_hour": "Waste: morning reminder hour (0-23)",
+          "birthday_enabled": "Birthday: enable birthday reminders",
+          "birthday_calendar_entities": "Birthday: calendar entities (csv, auto-detect if empty)",
+          "birthday_lookahead_days": "Birthday: lookahead days",
+          "birthday_tts_enabled": "Birthday: enable TTS announcements",
+          "birthday_tts_entity": "Birthday: TTS media player entity",
+          "birthday_reminder_hour": "Birthday: morning reminder hour (0-23)"
         }
       }
     },
