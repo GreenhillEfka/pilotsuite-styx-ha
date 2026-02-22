@@ -84,7 +84,9 @@ def build_candidate_hosts(
             continue
 
     _add("homeassistant.local")
+    _add("homeassistant")
+    _add("supervisor")
     _add("localhost")
     _add("127.0.0.1")
+    _add("host.docker.internal")
     return hosts
-

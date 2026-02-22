@@ -37,6 +37,9 @@ def test_build_candidate_hosts_includes_fallbacks() -> None:
     )
     assert hosts[0] == "192.168.30.18"
     assert "homeassistant.local" in hosts
+    assert "homeassistant" in hosts
+    assert "supervisor" in hosts
     assert "localhost" in hosts
     assert "127.0.0.1" in hosts
+    assert "host.docker.internal" in hosts
     assert "ha.example.com" in hosts

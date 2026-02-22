@@ -105,8 +105,9 @@ class EnergyScheduleSensor(CopilotBaseEntity):
                 "/api/v1/predict/schedule/daily"
             )
             headers = {}
-            token = self.coordinator._config.get("auth_token")
+            token = self.coordinator._config.get("token") or self.coordinator._config.get("auth_token")
             if token:
+                headers["Authorization"] = f"Bearer {token}"
                 headers["X-Auth-Token"] = token
 
             async with session.get(url, headers=headers, timeout=10) as resp:

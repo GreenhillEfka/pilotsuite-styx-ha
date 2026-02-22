@@ -2,6 +2,24 @@
 
 All notable changes to PilotSuite will be documented in this file.
 
+> Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
+> Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
+
+## [7.7.19] - 2026-02-22
+- OptionsFlow merge fixed: token/host/port/module options persist across updates and step saves.
+- Habitus zones: multi-area selection (`area_ids`) for create/edit, merged auto-suggestions, metadata persistence.
+- Tag edit flow: two-step prefilled entity editor.
+- API fallback hosts expanded (`homeassistant`, `supervisor`, `host.docker.internal`).
+- Token handling harmonized in affected sensors (`token` + `auth_token` fallback).
+- Deprecated CSV text entities for entity selection removed.
+
+## [7.7.18] - 2026-02-22
+- Deprecated CSV text entities for media player selection removed.
+
+## [7.7.17] - 2026-02-22
+- PilotSuite dashboard auto-refresh on Habitus zone changes.
+- Dashboard generate/download buttons enabled for core entity profile.
+
 ## [0.9.6] - 2026-02-16
 
 ### Added

@@ -40,6 +40,27 @@ def _normalize_entity_ids(raw: Any) -> list[str]:
     return [text] if text else []
 
 
+def _normalize_area_ids(raw: Any) -> list[str]:
+    """Normalize area selector payload to list[str]."""
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        result: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            value = str(item).strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            result.append(value)
+        return result
+    if isinstance(raw, str):
+        value = raw.strip()
+        return [value] if value else []
+    value = str(raw).strip()
+    return [value] if value else []
+
+
 def _slugify(value: str) -> str:
     normalized = unicodedata.normalize("NFKD", value)
     ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
@@ -125,6 +146,39 @@ async def _suggest_entities_for_area(hass: HomeAssistant, area_id: str) -> dict[
     return suggestions
 
 
+def _list_area_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
+    """Build deterministic area dropdown options."""
+    ar = area_registry.async_get(hass)
+    areas = sorted(
+        ar.areas.values(),
+        key=lambda area: (area.name or area.id or "").lower(),
+    )
+    return [
+        selector.SelectOptionDict(
+            value=area.id,
+            label=area.name or area.id,
+        )
+        for area in areas
+    ]
+
+
+async def _suggest_entities_for_areas(hass: HomeAssistant, area_ids: list[str]) -> dict[str, list[str]]:
+    """Merge suggestions for multiple areas."""
+    merged = {"motion": [], "lights": [], "optional": []}
+    seen: dict[str, set[str]] = {"motion": set(), "lights": set(), "optional": set()}
+
+    for area_id in area_ids:
+        suggestions = await _suggest_entities_for_area(hass, area_id)
+        for key in ("motion", "lights", "optional"):
+            for entity_id in suggestions.get(key, []):
+                if entity_id in seen[key]:
+                    continue
+                seen[key].add(entity_id)
+                merged[key].append(entity_id)
+
+    return merged
+
+
 def _area_name(hass: HomeAssistant, area_id: str | None) -> str:
     if not area_id:
         return ""
@@ -138,7 +192,8 @@ def _area_name(hass: HomeAssistant, area_id: str | None) -> str:
 def _build_zone_form_schema(
     *,
     mode: str,
-    area_id: str | None,
+    area_ids: list[str],
+    area_options: list[selector.SelectOptionDict],
     name: str,
     motion_entity_id: str | None,
     light_entity_ids: list[str],
@@ -146,9 +201,13 @@ def _build_zone_form_schema(
 ) -> vol.Schema:
     """Build schema for create/edit zone forms."""
     fields: dict[Any, Any] = {}
-    if mode == "create":
-        fields[vol.Optional("area_id", default=area_id)] = selector.AreaSelector(
-            selector.AreaSelectorConfig()
+    if area_options:
+        fields[vol.Optional("area_ids", default=area_ids)] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=area_options,
+                multiple=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
         )
 
     fields[vol.Optional("name", default=name)] = str
@@ -267,7 +326,8 @@ async def async_step_zone_form(
 
     step_id = "create_zone" if mode == "create" else "edit_zone_form"
 
-    default_area_id: str | None = None
+    area_options = _list_area_options(flow.hass)
+    default_area_ids: list[str] = []
     default_name = ""
     default_motion: str | None = None
     default_lights: list[str] = []
@@ -275,6 +335,10 @@ async def async_step_zone_form(
 
     if zone is not None:
         default_name = zone.name or ""
+        metadata = zone.metadata if isinstance(zone.metadata, dict) else {}
+        default_area_ids = _normalize_area_ids(metadata.get("ha_area_ids"))
+        if not default_area_ids and metadata.get("ha_area_id"):
+            default_area_ids = _normalize_area_ids(metadata.get("ha_area_id"))
         ent_map = getattr(zone, "entities", None)
         if isinstance(ent_map, dict):
             motion_list = _normalize_entity_ids(ent_map.get("motion"))
@@ -295,7 +359,8 @@ async def async_step_zone_form(
     if user_input is None:
         schema = _build_zone_form_schema(
             mode=mode,
-            area_id=default_area_id,
+            area_ids=default_area_ids,
+            area_options=area_options,
             name=default_name,
             motion_entity_id=default_motion,
             light_entity_ids=default_lights,
@@ -303,8 +368,12 @@ async def async_step_zone_form(
         )
         return flow.async_show_form(step_id=step_id, data_schema=schema)
 
-    area_id_raw = user_input.get("area_id") if mode == "create" else None
-    area_id = str(area_id_raw).strip() if isinstance(area_id_raw, str) and area_id_raw else None
+    area_ids = _normalize_area_ids(user_input.get("area_ids"))
+    if not area_ids:
+        # Backward compatibility for old payloads.
+        area_ids = _normalize_area_ids(user_input.get("area_id"))
+    if not area_ids and mode == "edit":
+        area_ids = list(default_area_ids)
 
     name = str(user_input.get("name") or "").strip()
     motion = str(user_input.get("motion_entity_id") or "").strip()
@@ -312,8 +381,8 @@ async def async_step_zone_form(
     optional = _normalize_entity_ids(user_input.get("optional_entity_ids"))
 
     auto_hint = ""
-    if area_id and (not motion or not lights):
-        suggestions = await _suggest_entities_for_area(flow.hass, area_id)
+    if area_ids and (not motion or not lights):
+        suggestions = await _suggest_entities_for_areas(flow.hass, area_ids)
         if not motion and suggestions["motion"]:
             motion = suggestions["motion"][0]
             auto_hint = "Motion wurde automatisch aus dem gewählten Bereich übernommen."
@@ -326,11 +395,14 @@ async def async_step_zone_form(
         if not optional:
             optional = suggestions["optional"][:8]
 
+    area_names = [name for name in (_area_name(flow.hass, aid) for aid in area_ids) if name]
+    area_name_summary = " + ".join(area_names) if area_names else ""
+
     if mode == "edit" and zone is not None:
         zid = zone.zone_id
         zone_name = name or zone.name or zid
     else:
-        base_name = name or _area_name(flow.hass, area_id) or "Zone"
+        base_name = name or area_name_summary or "Zone"
         zid = _zone_id_from_name(base_name)
         zid = _ensure_unique_zone_id(zid, set(existing))
         zone_name = base_name
@@ -343,7 +415,8 @@ async def async_step_zone_form(
     if errors:
         schema = _build_zone_form_schema(
             mode=mode,
-            area_id=area_id,
+            area_ids=area_ids,
+            area_options=area_options,
             name=name,
             motion_entity_id=motion or None,
             light_entity_ids=lights,
@@ -368,12 +441,19 @@ async def async_step_zone_form(
 
     ent_map = {"motion": [motion], "lights": lights, "other": optional}
     ent_map = {key: value for key, value in ent_map.items() if value}
+    base_metadata = dict(zone.metadata) if zone is not None and isinstance(zone.metadata, dict) else {}
+    if area_ids:
+        base_metadata["ha_area_ids"] = area_ids
+    else:
+        base_metadata.pop("ha_area_ids", None)
+    base_metadata.pop("ha_area_id", None)
 
     new_zone = HabitusZoneV2(
         zone_id=zid,
         name=zone_name or zid,
         entity_ids=tuple(uniq),
         entities=ent_map or None,
+        metadata=base_metadata or None,
     )
 
     replace_zone_id = zone.zone_id if zone is not None else zid
@@ -386,7 +466,8 @@ async def async_step_zone_form(
         _LOGGER.debug("Zone validation failed for %s: %s", zid, err)
         schema = _build_zone_form_schema(
             mode=mode,
-            area_id=area_id,
+            area_ids=area_ids,
+            area_options=area_options,
             name=name,
             motion_entity_id=motion or None,
             light_entity_ids=lights,

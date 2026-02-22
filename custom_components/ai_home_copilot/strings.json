@@ -295,9 +295,9 @@
       },
       "create_zone": {
         "title": "Create Habitus zone",
-        "description": "Pick an area (optional), then choose a motion/presence entity and at least one light. If area entities are available, motion and lights are auto-suggested.",
+        "description": "Pick one or more areas/rooms (optional), then choose a motion/presence entity and at least one light. If area entities are available, motion and lights are auto-suggested.",
         "data": {
-          "area_id": "Area (optional)",
+          "area_ids": "Areas / rooms (optional, multi-select)",
           "name": "Display name",
           "motion_entity_id": "Motion / presence entity",
           "light_entity_ids": "Lights (one or more)",
@@ -313,6 +313,7 @@
       "edit_zone_form": {
         "title": "Edit Habitus zone",
         "data": {
+          "area_ids": "Areas / rooms (optional, multi-select)",
           "name": "Display name",
           "motion_entity_id": "Motion / presence entity",
           "light_entity_ids": "Lights (one or more)",

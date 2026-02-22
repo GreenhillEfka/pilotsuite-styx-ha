@@ -1,5 +1,43 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.19] - 2026-02-22 — FLOW RELIABILITY + HABITUS MULTI-AREA + API HARDENING
+
+### Fixes
+- **OptionsFlow speichert jetzt stabil und vollstaendig**
+  - Optionen werden nicht mehr als Teilobjekt ueberschrieben, sondern sauber gemerged (`entry.data` + `entry.options` + Updates).
+  - behebt Konfig-Verluste zwischen Schritten (Connection/Modules/Neurons).
+  - API-Token, Host/Port und Modulkonfiguration bleiben damit ueber Updates/Option-Aenderungen erhalten.
+- **Habitus-Zonenflow substanziell repariert**
+  - Zone-Form unterstuetzt jetzt **Mehrfach-Raumauswahl** (`area_ids`, multi-select) fuer einen Habitusbereich ueber mehrere Zimmer.
+  - Edit-Form kann dieselbe Mehrfach-Raumauswahl anzeigen/bearbeiten.
+  - Auto-Suggestions (Motion/Lichter/optional) werden ueber mehrere Bereiche zusammengefuehrt.
+  - gewaehlte Bereiche werden in Zone-Metadaten persistiert (`metadata.ha_area_ids`).
+- **Tagging-Flow verbessert**
+  - `edit_tag` ist jetzt zweistufig mit vorbefuellter Entitaetsliste statt leerem Startwert.
+  - verhindert versehentliches Ueberschreiben bestehender Tag-Zuweisungen.
+- **API-Erreichbarkeit erweitert**
+  - Core-Host-Fallbacks ergaenzt: `homeassistant`, `supervisor`, `host.docker.internal`.
+  - robuster bei Container-/Dev-Topologien, in denen `homeassistant.local` nicht aufloest.
+- **Token-Header-Konsistenz**
+  - betroffene Sensoren nutzten teils nur `auth_token`; jetzt fallback auf `token` + Versand von `Authorization` und `X-Auth-Token`.
+  - reduziert 401/leer laufende Sensoren durch inkonsistente Tokenquellen.
+- **CSV-Altpfade fuer Entitaetsauswahl weiter bereinigt**
+  - veraltete Text-Entities fuer entitaetsbasierte Konfiguration entfernt:
+    - `text.ai_home_copilot_seed_sensors_csv`
+    - `text.ai_home_copilot_test_light_entity_id`
+  - selector-basierte Auswahl im Options-Flow ist jetzt der saubere Standard.
+
+### Versionierung / Historie
+- Versions- und Statusdateien auf `7.7.19` synchronisiert.
+- Update-Historie fuer diesen Fix-Block konsistent nachgezogen.
+
+### Tests
+- Lokale HA-Testsuite: **529 passed, 5 skipped**.
+- Neue Tests:
+  - `tests/test_config_options_flow_merge.py`
+  - erweiterte Assertions in `tests/unit/test_core_endpoint.py`
+  - Schema-Regressionen in `tests/test_config_zones_flow.py`
+
 ## [7.7.18] - 2026-02-22 — MEDIA PLAYER CONFIG UX CLEANUP
 
 ### Fixes

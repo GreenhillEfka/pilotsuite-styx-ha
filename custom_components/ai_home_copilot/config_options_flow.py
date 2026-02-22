@@ -11,7 +11,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .config_helpers import parse_csv
+from .config_helpers import merge_config_data, parse_csv
 from .core_endpoint import normalize_host_port
 from .config_schema_builders import build_neuron_schema
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
@@ -57,6 +57,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         self._entry = config_entry
         ConfigSnapshotOptionsFlow.__init__(self, config_entry)
 
+    def _effective_config(self) -> dict:
+        """Return merged live config (entry.data + entry.options)."""
+        return merge_config_data(self._entry.data, self._entry.options)
+
+    def _create_merged_entry(self, updates: dict) -> FlowResult:
+        """Persist options without dropping unrelated keys from previous steps."""
+        return self.async_create_entry(title="", data=merge_config_data(self._entry.data, self._entry.options, updates))
+
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="init",
@@ -69,7 +77,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Network settings: host, port, token, webhook URL, test light."""
         if user_input is not None:
             user_input.pop(CONF_WEBHOOK_URL, None)
-            data = {**self._entry.data, **self._entry.options}
+            data = self._effective_config()
             host, port = normalize_host_port(
                 user_input.get(CONF_HOST, data.get(CONF_HOST)),
                 user_input.get(CONF_PORT, data.get(CONF_PORT)),
@@ -91,9 +99,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 if not token:
                     user_input[CONF_TOKEN] = ""
 
-            return self.async_create_entry(title="", data=user_input)
+            return self._create_merged_entry(user_input)
 
-        data = {**self._entry.data, **self._entry.options}
+        data = self._effective_config()
 
         webhook_id = data.get("webhook_id")
         base = self.hass.config.internal_url or self.hass.config.external_url or ""
@@ -133,9 +141,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 if field in user_input and user_input[field] is None:
                     user_input[field] = ""
 
-            return self.async_create_entry(title="", data=user_input)
+            return self._create_merged_entry(user_input)
 
-        data = {**self._entry.data, **self._entry.options}
+        data = self._effective_config()
         from .config_schema_builders import build_modules_schema
         schema = vol.Schema(build_modules_schema(data))
         return self.async_show_form(step_id="modules", data_schema=schema)
@@ -380,8 +388,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 if field in user_input:
                     user_input[field] = _normalize_entity_list(user_input.get(field))
 
-            return self.async_create_entry(title="", data=user_input)
+            return self._create_merged_entry(user_input)
 
-        data = {**self._entry.data, **self._entry.options}
+        data = self._effective_config()
         schema = vol.Schema(build_neuron_schema(data))
         return self.async_show_form(step_id="neurons", data_schema=schema)

@@ -52,6 +52,22 @@ def parse_csv(value: str) -> list[str]:
     return [p for p in parts if p]
 
 
+def merge_config_data(
+    entry_data: dict | None,
+    entry_options: dict | None,
+    updates: dict | None = None,
+) -> dict:
+    """Merge entry data/options plus updates for stable options persistence."""
+    merged: dict = {}
+    if isinstance(entry_data, dict):
+        merged.update(entry_data)
+    if isinstance(entry_options, dict):
+        merged.update(entry_options)
+    if isinstance(updates, dict):
+        merged.update(updates)
+    return merged
+
+
 async def validate_input(hass: HomeAssistant, data: dict) -> None:
     """Validate config input: host, port, and critical numeric bounds."""
     from homeassistant.exceptions import HomeAssistantError

@@ -66,8 +66,9 @@ class EnergyCostSensor(CopilotBaseEntity):
                 return
 
             headers = {}
-            token = self.coordinator._config.get("auth_token")
+            token = self.coordinator._config.get("token") or self.coordinator._config.get("auth_token")
             if token:
+                headers["Authorization"] = f"Bearer {token}"
                 headers["X-Auth-Token"] = token
 
             base = f"http://{self._host}:{self._port}"

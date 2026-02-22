@@ -142,9 +142,9 @@
       },
       "create_zone": {
         "title": "Habituszone erstellen",
-        "description": "Waehle optional einen Bereich und dann eine Motion/Praesenz-Entitaet mit mindestens einem Licht. Wenn im Bereich passende Entitaeten gefunden werden, werden Motion und Lichter automatisch vorgeschlagen.",
+        "description": "Waehle optional einen oder mehrere Bereiche/Zimmer und dann eine Motion/Praesenz-Entitaet mit mindestens einem Licht. Wenn passende Entitaeten gefunden werden, werden Motion und Lichter automatisch vorgeschlagen.",
         "data": {
-          "area_id": "Bereich (optional)",
+          "area_ids": "Bereiche / Zimmer (optional, Mehrfachauswahl)",
           "name": "Anzeigename",
           "motion_entity_id": "Motion / Praesenz",
           "light_entity_ids": "Lichter (eins oder mehrere)",
@@ -160,6 +160,7 @@
       "edit_zone_form": {
         "title": "Habituszone bearbeiten",
         "data": {
+          "area_ids": "Bereiche / Zimmer (optional, Mehrfachauswahl)",
           "name": "Anzeigename",
           "motion_entity_id": "Motion / Praesenz",
           "light_entity_ids": "Lichter (eins oder mehrere)",
@@ -381,9 +382,9 @@
       },
       "create_zone": {
         "title": "Habituszone erstellen",
-        "description": "Waehle optional einen Bereich und dann eine Motion/Praesenz-Entitaet mit mindestens einem Licht. Wenn im Bereich passende Entitaeten gefunden werden, werden Motion und Lichter automatisch vorgeschlagen.",
+        "description": "Waehle optional einen oder mehrere Bereiche/Zimmer und dann eine Motion/Praesenz-Entitaet mit mindestens einem Licht. Wenn passende Entitaeten gefunden werden, werden Motion und Lichter automatisch vorgeschlagen.",
         "data": {
-          "area_id": "Bereich (optional)",
+          "area_ids": "Bereiche / Zimmer (optional, Mehrfachauswahl)",
           "name": "Anzeigename",
           "motion_entity_id": "Motion / Praesenz",
           "light_entity_ids": "Lichter (eins oder mehrere)",
@@ -399,6 +400,7 @@
       "edit_zone_form": {
         "title": "Habituszone bearbeiten",
         "data": {
+          "area_ids": "Bereiche / Zimmer (optional, Mehrfachauswahl)",
           "name": "Anzeigename",
           "motion_entity_id": "Motion / Praesenz",
           "light_entity_ids": "Lichter (eins oder mehrere)",
