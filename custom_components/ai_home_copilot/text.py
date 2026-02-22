@@ -9,8 +9,6 @@ from homeassistant.core import HomeAssistant
 _LOGGER = logging.getLogger(__name__)
 
 from .const import (
-    CONF_MEDIA_MUSIC_PLAYERS,
-    CONF_MEDIA_TV_PLAYERS,
     CONF_SEED_ALLOWED_DOMAINS,
     CONF_SEED_BLOCKED_DOMAINS,
     CONF_SUGGESTION_SEED_ENTITIES,
@@ -96,20 +94,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 key=CONF_TEST_LIGHT,
                 name="PilotSuite test light entity_id",
                 unique_id="ai_home_copilot_test_light_entity_id",
-            ),
-            _BaseConfigText(
-                coordinator,
-                entry,
-                key=CONF_MEDIA_MUSIC_PLAYERS,
-                name="PilotSuite media music players (csv)",
-                unique_id="ai_home_copilot_media_music_players_csv",
-            ),
-            _BaseConfigText(
-                coordinator,
-                entry,
-                key=CONF_MEDIA_TV_PLAYERS,
-                name="PilotSuite media TV players (csv)",
-                unique_id="ai_home_copilot_media_tv_players_csv",
             ),
             # v2 Entities
             HabitusZonesV2JsonText(coordinator, entry),

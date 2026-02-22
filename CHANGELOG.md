@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.18] - 2026-02-22 — MEDIA PLAYER CONFIG UX CLEANUP
+
+### Fixes
+- **CSV-Textfelder fuer Media-Player entfernt**
+  - Die veralteten Text-Entities
+    - `text.ai_home_copilot_media_music_players_csv`
+    - `text.ai_home_copilot_media_tv_players_csv`
+    wurden entfernt.
+  - Damit bleibt fuer Media-Player-Konfiguration nur noch der selector-basierte Weg ueber
+    **Integrations-Optionen → Modules** (Dropdown/EntitySelector, multiple=true).
+- Reduziert UI-Verwirrung zwischen altem CSV-Setup und aktuellem dropdown-basiertem Setupflow.
+
+### Tests
+- Lokale HA-Testsuite: **527 passed, 5 skipped**.
+
 ## [7.7.17] - 2026-02-22 — DASHBOARD AUTO-REFRESH + CORE PROFILE ACCESS
 
 ### Fixes
