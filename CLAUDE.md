@@ -1,19 +1,42 @@
-# CLAUDE.md -- PilotSuite HACS Integration
+# CLAUDE.md
 
-> Kontextdatei fuer KI-Assistenten. Beschreibt Projekt, Architektur, Konventionen und Status.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ---
 
 ## Projektueberblick
 
-**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 80+ Sensoren, 15+ Dashboard Cards und 22+ Module in Home Assistant bereit.
+**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 94+ Sensoren, 30 Module und Dashboard Cards in Home Assistant bereit.
 
-Das Projekt verfolgt einen **Privacy-first, Local-first** Ansatz: alle Daten bleiben lokal, keine Cloud-Abhaengigkeit, Human-in-the-Loop Governance.
+**Gegenstueck:** [pilotsuite-styx-core](../pilotsuite-styx-core) -- Core Add-on (Backend, Brain Graph, Habitus, Mood Engine)
 
-- **Repo:** HACS Integration (Frontend, Sensoren, Dashboard)
-- **Gegenstueck:** PilotSuite Core Add-on (Backend, Brain Graph, Habitus, Mood Engine)
+- **Domain:** `ai_home_copilot` ( technisch, nicht aendern)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Lizenz:** Privat, alle Rechte vorbehalten
+
+---
+
+## Entwicklungskommandos
+
+```bash
+# Syntax-Check
+python -m py_compile $(find custom_components/ai_home_copilot -name '*.py')
+
+# Tests ausfuehren
+python -m pytest tests/ -v --tb=short -x
+
+# Tests mit Coverage
+python -m pytest tests/ -v --tb=short --cov=custom_components/ai_home_copilot --cov-report=term-missing -x
+
+# Security Scan
+bandit -r custom_components/ai_home_copilot -ll --skip B101,B404,B603
+
+# JSON validieren
+python -c "import json; json.load(open('custom_components/ai_home_copilot/strings.json'))"
+
+# HACS validieren (lokal)
+hacs validate custom_components/ai_home_copilot
+```
 
 ---
 
@@ -117,44 +140,20 @@ custom_components/ai_home_copilot/
 
 ---
 
-## Wo kommen wir her
+## Aktueller Stand
 
-### Version v4.0.0 -- Official Release
+### Version v7.7.23
 
-- Repository umbenannt: `ai-home-copilot-ha` → `pilotsuite-styx-ha`
-- 30 Module vollstaendig implementiert und registriert
-- 110+ Entities (80+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
+- **Tests:** 538 passed, 5 skipped
+- 30+ Module vollstaendig implementiert und registriert
+- 110+ Entities (94+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
 - DeviceInfo Dataclass (HA Best Practice)
 - PilotSuite Branding durchgaengig
 - HA 2024.1.0+ Mindestversion
-- 338 Tests (HACS) + 566 Tests (Core) alle gruen
-
-### Wichtige Fixes in v3.9.x
-
-- **entity.py** — DeviceInfo statt dict, sw_version gemeldet
-- **coordinator.py** — `_hass` Bug (shadowed inherited `self.hass`)
-- **media_context.py** — Module-level `warnings.warn()` entfernt
-- **config_flow.py** — "OpenClaw Gateway" → "PilotSuite Core Add-on"
-- **manifest.json** — `homeassistant` Mindestversion hinzugefuegt
-- **Branding** — Komplett auf PilotSuite Styx vereinheitlicht
-- **Dead Code** — 8 tote Dateien, 1700+ Zeilen entfernt
-
----
-
-## Naechste Schritte
-
-### Performance
-
-- TTLCache und EntityStateCache Optimierung
-- DomainFilter fuer effiziente State-Queries
-- Background Task Supervision mit Cancel-on-Unload
-
-### ML Pipeline
-
-- TFLite/ONNX Integration fuer On-Device Inference
-- Anomaly Detection mit Isolation Forest
-- Habit Prediction mit Zeitreihen-Analyse
-- Energy Optimization mit Load Shifting
+- Connection-Normalisierung (Legacy-Token-Migration)
+- Core Endpoint Unification (Sensor-API-Calls)
+- Unique-ID-Migration (host:port → stabile IDs)
+- Legacy-Device Cleanup
 
 ---
 
@@ -167,3 +166,67 @@ custom_components/ai_home_copilot/
 - Alle unique_ids muessen global eindeutig sein (Prefix `ai_home_copilot_`)
 - Tests liegen in `/tests/` und verwenden pytest
 - Dokumentation in Deutsch bevorzugt
+
+### Module Lifecycle
+
+```python
+class MyModule:
+    @property
+    def name(self) -> str:
+        return "my_module"
+
+    async def async_setup_entry(self, ctx: ModuleContext) -> None:
+        # Listener registrieren, Background-Tasks starten
+        self._unsub = async_track_state_change_event(ctx.hass, ...)
+        self._task = asyncio.create_task(self._background_loop())
+
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+        # Listener entfernen, Tasks canceln
+        if self._unsub:
+            self._unsub()
+        if self._task and not self._task.done():
+            self._task.cancel()
+        return True
+```
+
+### Coordinator Pattern
+
+Der `CopilotDataUpdateCoordinator` (in `coordinator.py`) ist der zentrale Datenhub:
+- Polling-Intervall: 120s (Fallback)
+- Primaere Updates via Webhook Push (Echtzeit)
+- `coordinator.data` enthaelt: status, mood, neurons, habit_summary, predictions
+
+### Projektprinzipien
+
+| Prinzip | Bedeutung |
+|---------|-----------|
+| **Local-first** | Alles lokal, keine Cloud |
+| **Privacy-first** | PII-Redaktion, bounded Storage, opt-in |
+| **Governance-first** | Vorschlaege vor Aktionen, Human-in-the-Loop |
+| **Safe Defaults** | Sicherheitsrelevante Aktionen immer Manual Mode |
+
+### PR-Checkliste
+
+- [ ] Changelog updated (if user-visible)
+- [ ] Docs updated (if applicable)
+- [ ] Privacy-first (no secrets, no personal defaults)
+- [ ] Safe defaults (caps/limits; persistence off by default)
+- [ ] Governance-first (no silent actions)
+
+---
+
+## Wichtige Dateien
+
+| Datei | Beschreibung |
+|-------|-------------|
+| `custom_components/ai_home_copilot/__init__.py` | Integration Setup, Modul-Registrierung |
+| `custom_components/ai_home_copilot/coordinator.py` | DataUpdateCoordinator + API Client |
+| `custom_components/ai_home_copilot/entity.py` | CopilotBaseEntity Basisklasse |
+| `custom_components/ai_home_copilot/const.py` | Alle Konstanten und Defaults |
+| `custom_components/ai_home_copilot/core/runtime.py` | Modul-Lifecycle |
+| `custom_components/ai_home_copilot/core/module.py` | CopilotModule Protocol |
+| `custom_components/ai_home_copilot/forwarder_n3.py` | N3 Event Forwarder |
+| `custom_components/ai_home_copilot/habitus_zones_store_v2.py` | Zone Store |
+| `custom_components/ai_home_copilot/repairs.py` | Governance UI Flows |
+| `docs/ARCHITECTURE.md` | Vollstaendige Architektur-Dokumentation |
+| `docs/HANDBOOK.md` | Setup und Troubleshooting |
