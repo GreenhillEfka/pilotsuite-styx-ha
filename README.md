@@ -55,6 +55,12 @@ Im Add-on unter **Configuration**:
 Hinweis:
 - Wenn ein Client ein nicht lokal installiertes Modell anfragt (z. B. `gpt-4o-mini`), versucht Styx zuerst den konfigurierten lokalen Ollama-Standard und faellt danach optional auf Cloud zurueck.
 
+### Optional: Onyx als Chat- und RAG-Frontend
+
+Onyx laesst sich als zusaetzliche Chat-/RAG-Oberflaeche andocken.
+Empfohlenes Setup: Onyx fuer Connector-RAG, Styx fuer Home-Actions (OpenAPI/MCP).
+Details: `docs/ONYX_INTEGRATION.md`
+
 ### Neural Pipeline
 
 ```
@@ -147,6 +153,7 @@ Authorization: Bearer <token>
 |----------|--------|
 | [API_REFERENCE](docs/API_REFERENCE.md) | Alle Endpoints, Auth, Request/Response |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Services, Datenfluss, Persistenz |
+| [ONYX_INTEGRATION](docs/ONYX_INTEGRATION.md) | Onyx + Styx Zielarchitektur, Security, Setup |
 | [ROADMAP](docs/ROADMAP.md) | Phase 5-6, Zukunftsplaene |
 | [CHANGELOG](CHANGELOG.md) | Release-Historie |
 | [HACS Integration](https://github.com/GreenhillEfka/pilotsuite-styx-ha) | Sensoren, Module, Dashboard |

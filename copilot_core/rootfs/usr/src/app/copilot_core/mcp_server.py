@@ -24,6 +24,7 @@ import logging
 import time
 
 from flask import Blueprint, request, jsonify
+from copilot_core import __version__ as COPILOT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ mcp_bp = Blueprint('mcp', __name__, url_prefix='/mcp')
 # MCP Server info
 MCP_SERVER_INFO = {
     "name": "pilotsuite",
-    "version": "0.9.9",
+    "version": COPILOT_VERSION,
 }
 
 MCP_CAPABILITIES = {

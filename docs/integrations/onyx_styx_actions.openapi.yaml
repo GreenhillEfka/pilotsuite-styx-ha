@@ -1,0 +1,173 @@
+openapi: 3.1.0
+info:
+  title: PilotSuite Styx Actions (Onyx)
+  version: 1.0.0
+  description: >
+    Minimaler, kontrollierter Action-Contract fuer Onyx. Fokus auf
+    Smart-Home-Aktionen mit klaren Endpunkten.
+servers:
+  - url: http://localhost:8909
+security:
+  - bearerAuth: []
+tags:
+  - name: system
+  - name: zones
+  - name: scenes
+  - name: modes
+  - name: notifications
+paths:
+  /api/v1/status:
+    get:
+      operationId: getCoreStatus
+      tags: [system]
+      summary: Core-Status abrufen
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/hub/zones:
+    get:
+      operationId: getZonesOverview
+      tags: [zones]
+      summary: Habitus-Zonen Uebersicht
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/hub/scenes:
+    get:
+      operationId: getScenesDashboard
+      tags: [scenes]
+      summary: Scene-Intelligence Dashboard abrufen
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/hub/scenes/activate:
+    post:
+      operationId: activateScene
+      tags: [scenes]
+      summary: Szene aktivieren
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scene_id:
+                  type: string
+                zone_id:
+                  type: string
+              required: [scene_id]
+      responses:
+        "200":
+          description: Szene aktiviert/abgelehnt
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/hub/modes:
+    get:
+      operationId: getModesOverview
+      tags: [modes]
+      summary: Zonen-Modi Uebersicht
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/hub/modes/activate:
+    post:
+      operationId: activateZoneMode
+      tags: [modes]
+      summary: Modus in Zone aktivieren
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                zone_id:
+                  type: string
+                mode_id:
+                  type: string
+                duration_min:
+                  type: integer
+                activated_by:
+                  type: string
+                  default: onyx
+              required: [zone_id, mode_id]
+      responses:
+        "200":
+          description: Modus aktiviert/abgelehnt
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/v1/hub/notifications/send:
+    post:
+      operationId: sendNotification
+      tags: [notifications]
+      summary: Push-Benachrichtigung senden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+                priority:
+                  type: string
+                  enum: [low, normal, high, critical]
+                  default: normal
+                channel:
+                  type: string
+                  default: push
+                category:
+                  type: string
+                  default: general
+              required: [title, message]
+      responses:
+        "200":
+          description: Nachricht verarbeitet
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

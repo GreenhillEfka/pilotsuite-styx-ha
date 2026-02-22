@@ -1,5 +1,26 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.1] - 2026-02-22 — ONYX BRIDGE + MCP VERSION SYNC
+
+### Added
+- **Onyx Integrationsdokumentation** (`docs/ONYX_INTEGRATION.md`)
+  - klare Zielarchitektur: Onyx als Knowledge-/RAG-Frontend, Styx als Home-Action-Plane.
+  - Security-Leitlinien fuer Token, Scope und Agent-Guardrails.
+- **OpenAPI Action Contract fuer Onyx** (`docs/integrations/onyx_styx_actions.openapi.yaml`)
+  - minimales, kontrolliertes Endpoint-Set fuer Zonen/Modi/Szenen/Benachrichtigungen.
+
+### Fixed
+- **MCP Server Version jetzt runtime-synchron**
+  - `MCP_SERVER_INFO.version` nutzt jetzt `copilot_core.__version__`
+    statt veraltetem Hardcode.
+  - verhindert Versionsdrift in MCP-Clients und Dashboards.
+
+### Tests
+- Neue Tests: `tests/test_mcp_server.py`
+  - MCP version contract
+  - `initialize` Antwort inkl. `serverInfo`
+  - `tools/list` Basiskontrakt
+
 ## [7.7.19] - 2026-02-22 — HABITUS DASHBOARD ZONE FLOW FIXES
 
 ### Fixes
