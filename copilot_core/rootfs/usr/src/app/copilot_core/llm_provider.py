@@ -33,6 +33,7 @@ _CLOUD_MODEL_PREFIXES = (
     "gemini",
     "deepseek",
 )
+_DEFAULT_OLLAMA_MODEL = "qwen3:0.6b"
 
 
 class LLMProvider:
@@ -44,13 +45,30 @@ class LLMProvider:
     def _load_config(self):
         """Load config from environment (called once at init and on explicit refresh)."""
         self.ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-        self.ollama_model = os.environ.get("OLLAMA_MODEL", "qwen3:0.6b")
+        configured_ollama_model = str(os.environ.get("OLLAMA_MODEL", _DEFAULT_OLLAMA_MODEL) or "").strip()
+        if not configured_ollama_model:
+            configured_ollama_model = _DEFAULT_OLLAMA_MODEL
         self.cloud_api_url = os.environ.get("CLOUD_API_URL", "")
         self.cloud_api_key = os.environ.get("CLOUD_API_KEY", "")
         self.cloud_model = os.environ.get("CLOUD_MODEL", "")
         self.prefer_local = os.environ.get("PREFER_LOCAL", "true").lower() == "true"
         self.timeout = int(os.environ.get("LLM_TIMEOUT", "120"))
         self._last_ollama_issue = "unknown"
+        self.ollama_model_configured = configured_ollama_model
+        self.ollama_model_overridden = False
+        self.ollama_model = configured_ollama_model
+
+        # Guardrail: users sometimes set cloud-only model names (e.g. gpt-4o-mini)
+        # into the local Ollama model option. That creates endless local 404s and
+        # "no provider" errors despite a healthy Ollama runtime.
+        if self._is_cloud_model_name(configured_ollama_model):
+            self.ollama_model = _DEFAULT_OLLAMA_MODEL
+            self.ollama_model_overridden = True
+            logger.warning(
+                "Configured OLLAMA_MODEL '%s' looks cloud-only; forcing local fallback '%s'",
+                configured_ollama_model,
+                self.ollama_model,
+            )
 
     def reload_config(self):
         """Explicitly reload config from environment (e.g. after settings change)."""
@@ -100,6 +118,8 @@ class LLMProvider:
             "ollama_available": ollama_ok,
             "ollama_url": self.ollama_url,
             "ollama_model": self.ollama_model,
+            "ollama_model_configured": self.ollama_model_configured,
+            "ollama_model_overridden": self.ollama_model_overridden,
             "cloud_configured": self.has_cloud_fallback,
             "cloud_api_url": self.cloud_api_url or None,
             "cloud_model": self.cloud_model or None,

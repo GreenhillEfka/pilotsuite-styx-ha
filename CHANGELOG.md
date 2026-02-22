@@ -1,5 +1,21 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.16] - 2026-02-22 — LLM MISCONFIG GUARDRAIL
+
+### Fixes
+- **Fehlkonfiguration `OLLAMA_MODEL=gpt-4o-mini` abgefangen**
+  - Wenn im lokalen Ollama-Modellfeld versehentlich ein Cloud-Modellname steht,
+    wird jetzt automatisch auf ein sicheres lokales Fallback (`qwen3:0.6b`) gewechselt.
+  - Verhindert lokale 404-Schleifen und den Fehler:
+    `Kein LLM-Provider verfuegbar ... model 'gpt-4o-mini' not found`.
+- Provider-Status zeigt zusaetzlich:
+  - `ollama_model_configured`
+  - `ollama_model_overridden`
+  fuer klare Diagnose bei Setup-/Migrationsfaellen.
+
+### Verifikation
+- Gesamte Core-Testsuite lokal: **1959 passed, 1 skipped**.
+
 ## [7.7.15] - 2026-02-22 — DEFAULT MODEL SWITCH TO QWEN3:0.6B
 
 ### Default Model Strategy

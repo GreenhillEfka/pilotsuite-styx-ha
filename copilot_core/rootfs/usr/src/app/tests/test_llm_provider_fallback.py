@@ -140,3 +140,34 @@ def test_alias_model_maps_to_local_configured_model(monkeypatch: pytest.MonkeyPa
     assert result["provider"] == "ollama"
     assert result["content"] == "ok"
     assert calls == ["qwen3:4b"]
+
+
+def test_cloud_like_ollama_config_is_forced_to_local_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("OLLAMA_MODEL", "gpt-4o-mini")
+    monkeypatch.delenv("CLOUD_API_URL", raising=False)
+    monkeypatch.delenv("CLOUD_API_KEY", raising=False)
+
+    calls: list[str] = []
+
+    def _fake_post(url: str, json: dict[str, Any], timeout: int):  # noqa: A002
+        calls.append(str(json.get("model")))
+        model = str(json.get("model"))
+        if model == "qwen3:0.6b":
+            return _Resp(200, "", {"message": {"content": "ok fallback"}})
+        return _Resp(404, f'{{"error":"model \\"{model}\\" not found"}}')
+
+    monkeypatch.setattr("copilot_core.llm_provider.http_requests.post", _fake_post)
+
+    provider = LLMProvider()
+    result = provider.chat(messages=[{"role": "user", "content": "hi"}], model="pilotsuite")
+    status = provider.status()
+
+    assert result["provider"] == "ollama"
+    assert result["content"] == "ok fallback"
+    assert calls == ["qwen3:0.6b"]
+    assert status["ollama_model"] == "qwen3:0.6b"
+    assert status["ollama_model_configured"] == "gpt-4o-mini"
+    assert status["ollama_model_overridden"] is True

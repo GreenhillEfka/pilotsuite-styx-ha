@@ -3,6 +3,10 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.7.16
+- **LLM Guardrail**: cloud-typische Modellnamen im lokalen `OLLAMA_MODEL` werden automatisch auf `qwen3:0.6b` korrigiert.
+- **Status Diagnose**: neue Felder `ollama_model_configured` und `ollama_model_overridden` fuer einfacheres Troubleshooting.
+
 ## 7.7.15
 - **Default LLM**: `qwen3:0.6b` ist jetzt der Standard fuer neue Installationen.
 - **Runtime Fallbacks**: Startup-Skripte, Conversation-API, Agent-Status und LLM-Provider verwenden konsistent `qwen3:0.6b` als Default.
