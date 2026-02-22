@@ -33,7 +33,8 @@ from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.area_registry import AreaEntry
 
-from ..module import CopilotModule
+from ..module import CopilotModule, ModuleContext
+from ...connection_config import merged_entry_config
 from ...api.knowledge_graph import (
     KnowledgeGraphClient,
     KnowledgeGraphError,
@@ -78,8 +79,9 @@ class KnowledgeGraphSyncModule(CopilotModule):
 
     NAME = "knowledge_graph_sync"
 
-    def __init__(self, hass: HomeAssistant, config: dict):
-        super().__init__(hass, config)
+    def __init__(self) -> None:
+        self._hass: HomeAssistant | None = None
+        self._entry_id: str | None = None
         self._client: Optional[KnowledgeGraphClient] = None
         self._entity_registry: Optional[er.EntityRegistry] = None
         self._area_registry: Optional[ar.AreaRegistry] = None
@@ -89,10 +91,29 @@ class KnowledgeGraphSyncModule(CopilotModule):
         self._synced_entities: dict[str, int] = {}  # entity_id -> last_sync_time
         self._synced_areas: dict[str, int] = {}
         self._known_capabilities: set[str] = set()
-        self._enabled: bool = config.get("knowledge_graph_enabled", True)
-        self._full_sync_interval: int = config.get("knowledge_graph_sync_interval", FULL_SYNC_INTERVAL)
+        self._enabled: bool = True
+        self._full_sync_interval: int = FULL_SYNC_INTERVAL
         self._last_full_sync: float = 0
         self._sync_lock = asyncio.Lock()
+
+    @property
+    def name(self) -> str:
+        return self.NAME
+
+    async def async_setup_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible setup entry."""
+        self._hass = ctx.hass
+        self._entry_id = ctx.entry.entry_id
+        cfg = merged_entry_config(ctx.entry)
+        self._enabled = bool(cfg.get("knowledge_graph_enabled", True))
+        self._full_sync_interval = int(cfg.get("knowledge_graph_sync_interval", FULL_SYNC_INTERVAL))
+        await self.async_setup()
+        return True
+
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible unload entry."""
+        await self.async_unload()
+        return True
 
     @property
     def client(self) -> KnowledgeGraphClient:
@@ -158,6 +179,9 @@ class KnowledgeGraphSyncModule(CopilotModule):
 
     async def async_setup(self) -> None:
         """Set up the module."""
+        if self._hass is None:
+            _LOGGER.warning("Knowledge Graph sync: no hass context")
+            return
         if not self._enabled:
             _LOGGER.info("Knowledge Graph sync disabled")
             return

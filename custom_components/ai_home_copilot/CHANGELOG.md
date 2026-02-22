@@ -5,6 +5,11 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.26] - 2026-02-22
+- Runtime-kompatible Lifecycle-Wrappers fuer `ops_runbook`, `mood_context`, `knowledge_graph_sync`, `person_tracking`.
+- Konstruktoren fuer Modul-Registry ohne Pflichtparameter vereinheitlicht.
+- verhindert stilles Skippen dieser Module beim Runtime-Setup.
+
 ## [7.7.25] - 2026-02-22
 - MLContextModule Lifecycle auf Runtime-v2 kompatibel gemacht (`ModuleContext` Signaturen, Task-Cancel auf Unload).
 - behebt stilles Skippen des Moduls bei Runtime-Setup.

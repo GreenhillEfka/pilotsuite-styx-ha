@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.26] - 2026-02-22 — MODULE REGISTRATION CLEANUP (RUNTIME-COMPAT)
+
+### Fixes
+- **Runtime-Registrierung jetzt sauber fuer alle `_MODULES`-Eintraege**
+  - `ops_runbook`, `mood_context`, `knowledge_graph_sync`, `person_tracking` auf
+    das Runtime-Lifecycle-Schema (`async_setup_entry(ctx)`, `async_unload_entry(ctx)`) angepasst.
+  - Konstruktoren kompatibel gemacht (keine Pflichtargumente mehr fuer Registry-Factory).
+  - verhindert stilles Skippen von Modulen durch Signatur-/Factory-Fehler im Runtime-Setup.
+- **Lifecycle-Hygiene verbessert**
+  - saubere Task-/State-Cleanup-Pfade bei Unload (insb. mood/person tracking wrapper paths).
+- **Registrierungs-Validierung**
+  - statischer Check ueber `_MODULES` vs `_MODULE_IMPORTS` sowie Lifecycle-Signaturen: ohne Befund.
+
 ## [7.7.25] - 2026-02-22 — ML CONTEXT MODULE LIFECYCLE FIX
 
 ### Fixes

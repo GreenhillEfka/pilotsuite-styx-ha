@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from ..module import CopilotModule
+from ..module import CopilotModule, ModuleContext
 from ...ops_runbook import async_setup_ops_runbook
 from ...ops_runbook_store import OpsRunbookStore
 from ...ops_runbook_entities import async_setup_ops_runbook_entities
@@ -50,8 +50,8 @@ class OpsRunbookModule(CopilotModule):
             entities = await async_setup_ops_runbook_entities(hass)
             
             # Store entities for platform registration
-            if not hasattr(hass.data[self.domain], "ops_runbook_entities"):
-                hass.data[self.domain]["ops_runbook_entities"] = entities
+            domain_data = hass.data.setdefault(entry.domain, {})
+            domain_data["ops_runbook_entities"] = entities
             
             _LOGGER.info(f"Ops Runbook module setup complete with {len(entities)} entities")
             return True
@@ -65,15 +65,24 @@ class OpsRunbookModule(CopilotModule):
         _LOGGER.info("Unloading Ops Runbook module v0.1")
         
         # Clean up entities
-        if hasattr(hass.data[self.domain], "ops_runbook_entities"):
-            del hass.data[self.domain]["ops_runbook_entities"]
+        domain_data = hass.data.get(entry.domain, {})
+        if isinstance(domain_data, dict) and "ops_runbook_entities" in domain_data:
+            del domain_data["ops_runbook_entities"]
         
         # Clean up store reference
-        if hasattr(hass.data[self.domain], "ops_runbook_store"):
-            del hass.data[self.domain]["ops_runbook_store"]
+        if isinstance(domain_data, dict) and "ops_runbook_store" in domain_data:
+            del domain_data["ops_runbook_store"]
         
         self._store = None
         return True
+
+    async def async_setup_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible setup entry."""
+        return await self.async_setup(ctx.hass, ctx.entry)
+
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible unload entry."""
+        return await self.async_unload(ctx.hass, ctx.entry)
 
     async def async_get_status(self, hass: HomeAssistant) -> dict[str, Any]:
         """Get module status."""
