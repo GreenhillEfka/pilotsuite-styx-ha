@@ -1,5 +1,15 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.6] - 2026-02-22 — CI RELIABILITY UPDATE
+
+### CI-Workflow gehaertet
+- Test-Dependencies im CI erweitert (u.a. `numpy`, `pyyaml`), damit die Suite in GitHub Actions vollständig aufloest.
+- Pytest-Job faellt bei Fehlern jetzt korrekt durch (kein `|| true` mehr).
+
+### Verifikation
+- Syntax- und JSON-Checks lokal erfolgreich.
+- Integration bleibt kompatibel mit Core `7.7.6`.
+
 ## [7.7.0] - 2026-02-21 — HA CONFORMITY RELEASE
 
 ### Kompletter HA-Konformitaets-Audit — alle Stolperstellen gefixt
