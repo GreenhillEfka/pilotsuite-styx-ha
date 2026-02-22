@@ -1,5 +1,34 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.4] - 2026-02-22 — DASHBOARD UX: PERSISTENT CHAT + MODULE CONFIG PANEL
+
+### Added
+- **Persistent Chat History im Styx-Dashboard**
+  - Chat lädt nun Verlauf aus `/api/v1/hub/brain/activity/chat`.
+  - User-/Assistant-Nachrichten werden nach jedem Chat-Call in den Brain-Activity-Verlauf geschrieben.
+  - Neuer Chat-Clear-Button (`/api/v1/hub/brain/activity/chat/clear`).
+- **Modul-Konfigurationspanel im Dashboard**
+  - Neue UI unter `Module -> Modul-Konfiguration`.
+  - Runtime-Config für unterstützte Module:
+    - `habitus_miner` über `/api/v1/habitus/config`
+    - `brain_graph` (Brain Activity Timeouts) über `/api/v1/hub/brain/activity` + `/api/v1/hub/brain/activity/config`
+
+### Changed
+- **Health-Checks robuster gemacht (API v1/v2/legacy tolerant)**
+  - Dashboard nutzt Fallback-Requests (`apiTry`) für Endpunkt-Varianten.
+  - Mood-Ansicht verarbeitet jetzt mehrere Antwortformate (`moods`, `zones`, `mood`).
+
+### Fixed
+- **Frontend/Backend Handshake im Dashboard**
+  - Modul- und Mood-Ansichten brechen nicht mehr sofort bei Endpoint-Drift.
+  - Chat-UX zeigt nicht nur lokalen Verlauf, sondern den echten backend-seitigen Verlauf.
+
+### Tests
+- Dashboard-Template-Tests erweitert:
+  - Ingress-Erkennung
+  - Modul-Konfigurationspanel
+  - Persistente Brain-Chat-History Hooks
+
 ## [7.8.3] - 2026-02-22 — DASHBOARD API RECONNECT + MODULE CONFIG SYNC
 
 ### Fixed

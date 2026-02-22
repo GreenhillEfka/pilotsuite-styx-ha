@@ -3,6 +3,12 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.4
+- Styx Dashboard nutzt jetzt persistente Chat-History via `/api/v1/hub/brain/activity/chat`.
+- Neuer Chat-Clear-Button im Dashboard.
+- Neue Modul-Konfigurationsoberfläche im Module-Tab (Habitus Miner + Brain Activity Timeouts).
+- Dashboard-Health/Mood-Routing robuster für unterschiedliche API-Antwortformate.
+
 ## 7.8.3
 - Dashboard erkennt HA-Ingress-Pfade jetzt korrekt und routed API-Calls nicht mehr ins HA-Root.
 - Modul-Toggles synchronisieren mit dem Backend (`/api/v1/modules/`) als Source-of-Truth.

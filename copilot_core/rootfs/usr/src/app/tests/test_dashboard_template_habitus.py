@@ -12,7 +12,7 @@ def _dashboard_template() -> str:
 def test_habitus_template_uses_hub_zone_api_routes() -> None:
     text = _dashboard_template()
     assert "/api/v1/hub/zones" in text
-    assert "/api/v1/habitus/config" not in text
+    assert "api('/api/v1/hub/zones')" in text
 
 
 def test_habitus_template_exposes_room_multiselect() -> None:
@@ -26,3 +26,17 @@ def test_dashboard_template_detects_ingress_base_for_api_calls() -> None:
     assert "detectIngressBasePath" in text
     assert "hassio_ingress" in text
     assert "const API=detectIngressBasePath()" in text
+
+
+def test_dashboard_template_includes_module_config_panel() -> None:
+    text = _dashboard_template()
+    assert 'id="module-config-select"' in text
+    assert "MODULE_CONFIG_SPECS" in text
+    assert "loadSelectedModuleConfig" in text
+
+
+def test_dashboard_template_uses_persistent_brain_chat_history() -> None:
+    text = _dashboard_template()
+    assert "/api/v1/hub/brain/activity/chat?limit=40" in text
+    assert "/api/v1/hub/brain/activity/chat/clear" in text
+    assert "persistChatMessage" in text
