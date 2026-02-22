@@ -1,6 +1,6 @@
 # PilotSuite - Benutzerhandbuch
 
-> **Version:** Integration v7.7.15 + Core Add-on v7.7.14
+> **Version:** Integration v7.7.16 + Core Add-on v7.7.15
 > **Letzte Aktualisierung:** 2026-02-22
 
 ---
@@ -77,7 +77,7 @@ Add-on Konfiguration bearbeiten:
 log_level: info
 auth_token: dein-geheimes-token-hier-aendern
 conversation_enabled: true
-conversation_ollama_model: qwen3:4b
+conversation_ollama_model: qwen3:0.6b
 conversation_cloud_api_url: ""
 conversation_cloud_api_key: ""
 conversation_cloud_model: gpt-4o-mini
@@ -90,7 +90,7 @@ conversation_prefer_local: true
 | `auth_token` | (Pflicht) | Geheimes Token fuer Authentifizierung |
 | `log_level` | `info` | Log-Level: debug, info, warning, error |
 | `conversation_enabled` | `true` | Chat-API/LLM aktivieren |
-| `conversation_ollama_model` | `qwen3:4b` | Lokales Hauptmodell |
+| `conversation_ollama_model` | `qwen3:0.6b` | Lokales Hauptmodell (Default) |
 | `conversation_cloud_api_url` | `""` | Optionaler Cloud-Fallback Endpoint (`/v1`) |
 | `conversation_cloud_api_key` | `""` | API-Key fuer Cloud-Fallback |
 | `conversation_cloud_model` | `gpt-4o-mini` | Modellname fuer Cloud-Fallback |
@@ -108,7 +108,7 @@ curl http://homeassistant.local:8909/health
 
 # Version
 curl http://homeassistant.local:8909/version
-# -> {"version": "7.7.14"}
+# -> {"version": "7.7.15"}
 ```
 
 ---

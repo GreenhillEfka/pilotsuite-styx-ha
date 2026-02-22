@@ -1,5 +1,20 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.16] - 2026-02-22 — CONVERSATION ID + DEVICE IDENTITY HARDENING
+
+### Fixes
+- **Assist-Chat Pattern-Fehler behoben**
+  - `conversation_id` wird jetzt immer auf ein ULID-kompatibles Format normalisiert.
+  - Ungueltige/non-ULID IDs werden deterministisch auf eine stabile 26-char ID gemappt.
+  - Verhindert Frontend/API-Fehler wie `The string did not match the expected pattern`.
+- **Main-Device-Identitaet weiter gehaertet**
+  - Legacy Haupt-Identifiers (`ai_home_copilot`, `copilot_hub`, `pilotsuite_hub`) werden jetzt zentral als Alias gefuehrt.
+  - Debug-Sensor haengt jetzt am gleichen Hauptgeraet (`PilotSuite - Styx`) statt ein separates Legacy-Geraet zu erzeugen.
+
+### Tests
+- Neue/aktualisierte Tests fuer Conversation-ID-Normalisierung und Device-Identity.
+- Gesamtsuite lokal: **527 passed, 5 skipped**.
+
 ## [7.7.15] - 2026-02-22 — CHAT TIMEOUT HOTFIX
 
 ### Fixes

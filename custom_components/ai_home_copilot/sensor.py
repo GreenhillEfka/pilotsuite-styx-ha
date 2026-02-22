@@ -218,7 +218,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
         PipelineHealthSensor(coordinator),
-        DebugModeSensor(hass),
+        DebugModeSensor(hass, entry),
         # Mood Sensors (Neural System)
         MoodSensor(coordinator),
         MoodConfidenceSensor(coordinator),

@@ -21,10 +21,17 @@ def test_normalize_conversation_id_keeps_valid_ulid() -> None:
     assert normalize_conversation_id(ulid) == ulid
 
 
-def test_normalize_conversation_id_preserves_non_empty_custom_id() -> None:
+def test_normalize_conversation_id_accepts_lowercase_ulid() -> None:
+    ulid = generate_ulid()
+    assert normalize_conversation_id(ulid.lower()) == ulid
+
+
+def test_normalize_conversation_id_maps_custom_id_to_stable_ulid() -> None:
     custom_id = "my-custom-conversation-id"
     normalized = normalize_conversation_id(custom_id)
-    assert normalized == custom_id
+    assert len(normalized) == 26
+    assert is_valid_conversation_id(normalized)
+    assert normalize_conversation_id(custom_id) == normalized
 
 
 def test_normalize_conversation_id_generates_for_empty_value() -> None:

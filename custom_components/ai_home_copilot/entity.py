@@ -10,7 +10,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 if TYPE_CHECKING:
     from .coordinator import CopilotDataUpdateCoordinator
-from .const import DOMAIN, MAIN_DEVICE_IDENTIFIER
+from .const import DOMAIN, LEGACY_MAIN_DEVICE_IDENTIFIERS, MAIN_DEVICE_IDENTIFIER
 
 
 def _load_integration_version() -> str:
@@ -29,6 +29,8 @@ VERSION = _load_integration_version()
 def build_main_device_identifiers(config: Mapping[str, Any]) -> set[tuple[str, str]]:
     """Build stable + backward-compatible device identifiers."""
     identifiers: set[tuple[str, str]] = {(DOMAIN, MAIN_DEVICE_IDENTIFIER)}
+    for legacy_id in LEGACY_MAIN_DEVICE_IDENTIFIERS:
+        identifiers.add((DOMAIN, legacy_id))
     host = str(config.get("host", "") or "").strip()
     port = str(config.get("port", "") or "").strip()
     if host and port:

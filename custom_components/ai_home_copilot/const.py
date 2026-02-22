@@ -1,6 +1,11 @@
 DOMAIN = "ai_home_copilot"
 INTEGRATION_UNIQUE_ID = "pilotsuite_styx"
 MAIN_DEVICE_IDENTIFIER = "styx_hub"
+LEGACY_MAIN_DEVICE_IDENTIFIERS = (
+    "ai_home_copilot",
+    "copilot_hub",
+    "pilotsuite_hub",
+)
 
 # Internal hass.data keys (namespaced to avoid entry_id collisions).
 DATA_CORE = "_core"
