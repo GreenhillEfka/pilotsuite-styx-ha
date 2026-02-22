@@ -162,7 +162,7 @@ copilot_core/
 - Cross-Home Sync und Collective Intelligence (Phase 5)
 - System Health Checks (Zigbee, Z-Wave, Recorder, etc.)
 - Performance: GZIP Compression, Connection Pooling, Caching
-- Ollama LLM Integration (Styx Chat-Assistent mit 26 Tools, Standard: qwen3:4b)
+- Ollama LLM Integration (Styx Chat-Assistent mit 26 Tools, Standard: qwen3:0.6b, optional: qwen3:4b)
 
 ---
 

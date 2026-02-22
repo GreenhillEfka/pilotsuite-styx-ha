@@ -1,5 +1,20 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.15] - 2026-02-22 — DEFAULT MODEL SWITCH TO QWEN3:0.6B
+
+### Default Model Strategy
+- Add-on Default fuer `conversation_ollama_model` auf `qwen3:0.6b` gesetzt.
+- Runtime-Fallbacks in Startup-Skripten und LLM-Komponenten ebenfalls auf `qwen3:0.6b` vereinheitlicht.
+- Ergebnis: schnellere erste Antworten und geringerer RAM-Druck auf typischer HA-Hardware.
+
+### Konsistenz in Runtime und API
+- OpenAI-kompatible Conversation-API nutzt jetzt `qwen3:0.6b` als internen Default.
+- Agent-Status/Self-Heal greifen bei fehlender Modellkonfiguration ebenfalls auf `qwen3:0.6b` zurueck.
+
+### Dokumentation
+- README, Add-on-Doku und Architektur/API-Dokumente auf neue Default-Strategie aktualisiert.
+- `qwen3:4b` bleibt als optionales Qualitätsmodell fuer staerkere Systeme dokumentiert.
+
 ## [7.7.14] - 2026-02-22 — SELF-HEAL + ZERO-CONFIG HARDENING
 
 ### Agent Self-Heal API

@@ -5,7 +5,7 @@
 #
 # Model strategy:
 #   - qwen3:0.6b (400MB) is ALWAYS pulled (obligatory, guarantees offline AI)
-#   - qwen3:4b (2.5GB) is the recommended default (pulled if configured)
+#   - qwen3:4b (2.5GB) is optional for higher quality (pulled if configured)
 
 set -e
 
@@ -114,8 +114,8 @@ fi
 # Obligatory minimum model (always available, 400MB)
 FALLBACK_MODEL="qwen3:0.6b"
 
-# Recommended model (configurable via addon options)
-MODEL=${OLLAMA_MODEL:-qwen3:4b}
+# Configured default model (fast startup and low RAM footprint)
+MODEL=${OLLAMA_MODEL:-qwen3:0.6b}
 
 # Ensure model persistence directory exists
 export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/pilotsuite/ollama/models}

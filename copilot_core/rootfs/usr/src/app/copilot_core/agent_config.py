@@ -152,7 +152,7 @@ def _conversation_config() -> dict:
             conv[conv_key] = env_value
 
     conv.setdefault("ollama_url", "http://localhost:11434")
-    conv.setdefault("ollama_model", "qwen3:4b")
+    conv.setdefault("ollama_model", "qwen3:0.6b")
     conv.setdefault("assistant_name", "Styx")
     conv.setdefault("character", "copilot")
     conv["prefer_local"] = _as_bool(conv.get("prefer_local"), True)
@@ -249,7 +249,7 @@ def _check_llm_available() -> tuple[bool, str, str]:
 
     prefer_local = _as_bool(conv_config.get("prefer_local"), True)
     if prefer_local:
-        model = str(conv_config.get("ollama_model", "qwen3:4b"))
+        model = str(conv_config.get("ollama_model", "qwen3:0.6b"))
         return True, model, "ollama"
 
     cloud_url = str(conv_config.get("cloud_api_url", "") or "").strip()
@@ -473,7 +473,7 @@ def self_heal_agent():
             provider_status = {}
 
     ollama_url = str(provider_status.get("ollama_url") or conv_config.get("ollama_url") or "http://localhost:11434")
-    model = str(provider_status.get("ollama_model") or conv_config.get("ollama_model") or "qwen3:4b")
+    model = str(provider_status.get("ollama_model") or conv_config.get("ollama_model") or "qwen3:0.6b")
     fallback_model = "qwen3:0.6b"
 
     installed_models = _ollama_installed_models(ollama_url)

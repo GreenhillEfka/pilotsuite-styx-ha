@@ -565,7 +565,7 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     app.register_blueprint(energy_bp)
     app.register_blueprint(performance_bp)  # Performance monitoring
 
-    # Register Conversation/LLM API (Ollama, default qwen3:4b)
+    # Register Conversation/LLM API (Ollama, default qwen3:0.6b)
     try:
         from copilot_core.api.v1.conversation import conversation_bp, openai_compat_bp
         app.register_blueprint(conversation_bp)

@@ -10,7 +10,7 @@ configuration:
     description: URL of the Ollama server for local LLM inference
   conversation_ollama_model:
     name: Ollama Model
-    description: Which Ollama model to use (e.g. qwen3:4b, llama3:8b)
+    description: Which Ollama model to use (e.g. qwen3:0.6b, qwen3:4b, llama3:8b)
   conversation_cloud_api_url:
     name: Cloud API URL (Fallback)
     description: Optional OpenAI-compatible endpoint URL for cloud fallback (e.g. https://api.openai.com/v1)

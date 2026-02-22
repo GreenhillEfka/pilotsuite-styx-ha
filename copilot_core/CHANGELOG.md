@@ -3,6 +3,11 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.7.15
+- **Default LLM**: `qwen3:0.6b` ist jetzt der Standard fuer neue Installationen.
+- **Runtime Fallbacks**: Startup-Skripte, Conversation-API, Agent-Status und LLM-Provider verwenden konsistent `qwen3:0.6b` als Default.
+- **Docs Sync**: README/DOCS/API/Architektur auf die neue Modellstrategie aktualisiert.
+
 ## 7.7.14
 - **Self-Heal API**: `POST /api/v1/agent/self-heal` hinzugefuegt (LLM config reload + best-effort model pull).
 - **Zero-Config Hardening**: Agent-Status liest jetzt korrekt auch `conversation_*` Flat-Optionen.

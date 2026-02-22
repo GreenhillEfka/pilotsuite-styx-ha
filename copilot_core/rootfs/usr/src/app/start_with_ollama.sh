@@ -14,7 +14,7 @@ export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/pilotsuite/ollama/models}
 mkdir -p "$OLLAMA_MODELS"
 
 FALLBACK_MODEL="qwen3:0.6b"
-MODEL=${OLLAMA_MODEL:-qwen3:4b}
+MODEL=${OLLAMA_MODEL:-qwen3:0.6b}
 NEED_OLLAMA=${CONVERSATION_ENABLED:-true}
 case "${NEED_OLLAMA}" in
     1|true|yes|on|TRUE|YES|ON) NEED_OLLAMA="true" ;;

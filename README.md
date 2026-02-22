@@ -16,7 +16,7 @@ Home Assistant
 |     HTTP REST API (Token-Auth)
 |     v
 +-- Core Add-on (copilot_core) Port 8909    <-- Brain Graph, Habitus, Mood, LLM
-      + Ollama (bundled, qwen3:4b)
+      + Ollama (bundled, qwen3:0.6b default)
 ```
 
 ## Installation
@@ -39,8 +39,8 @@ Siehe: [pilotsuite-styx-ha Installation](https://github.com/GreenhillEfka/pilots
 
 ### LLM (Ollama bundled)
 
-- Standard-Modell: `qwen3:4b` (Qwen 3, 4B Parameter, Tool-Calling)
-- Fallback-Modell: `qwen3:0.6b` (fuer schwache Hardware)
+- Standard-Modell: `qwen3:0.6b` (schnell, low-RAM, Tool-Calling)
+- Optionales Qualitaets-Modell: `qwen3:4b` (staerkere Hardware)
 - OpenAI-kompatible API (`/v1/chat/completions`, `/v1/models`)
 - Telegram Bot Integration mit Server-side Tool Loop
 

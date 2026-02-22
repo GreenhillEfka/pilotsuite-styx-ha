@@ -18,7 +18,7 @@ def test_model_alias_local_maps_to_default_when_not_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-    assert _normalize_requested_model("local") == "qwen3:4b"
+    assert _normalize_requested_model("local") == "qwen3:0.6b"
 
 
 def test_non_alias_model_is_preserved() -> None:

@@ -9,7 +9,7 @@ Provides /v1/chat/completions and /v1/models endpoints compatible with:
 Integration with HA:
   Base URL: http://<addon-host>:8909/v1
   API Key:  (your auth_token or any non-empty string)
-  Model:    qwen3:4b (default, best tool-calling) or any installed Ollama model
+  Model:    qwen3:0.6b (default, fast) or any installed Ollama model
 
 LLM Provider Chain:
   1. Ollama (local, default, privacy-first)
@@ -20,7 +20,7 @@ Features:
 - Character presets (copilot, butler, energy_manager, security_guard, friendly, minimal)
 - Ollama + Cloud fallback for offline/online AI
 - Tool-calling with server-side HA execution (9 tools)
-- Selectable models (qwen3:4b, qwen3:0.6b, lfm2.5-thinking, llama3.2:3b, mistral:7b)
+- Selectable models (qwen3:0.6b, qwen3:4b, lfm2.5-thinking, llama3.2:3b, mistral:7b)
 - Streaming SSE support
 - User habit/context injection for individualization
 """
@@ -70,23 +70,23 @@ RECOMMENDED_MODELS = [
         "name": "LFM 2.5 Thinking (1.2B)",
         "size_mb": 731,
         "description": "Liquid AI reasoning model. Ultra-light (731MB), 32K context. Good for simple conversation.",
-        "tags": ["default", "lightweight", "reasoning"],
+        "tags": ["lightweight", "reasoning"],
         "supports_tools": False,
     },
     {
         "id": "qwen3:4b",
         "name": "Qwen 3 (4B)",
         "size_mb": 2500,
-        "description": "Best for tool-calling (score 0.88). Native MCP support. Recommended for HA control.",
-        "tags": ["recommended", "tool-calling"],
+        "description": "Higher-quality tool-calling model. Recommended on stronger hardware.",
+        "tags": ["high-quality", "tool-calling"],
         "supports_tools": True,
     },
     {
         "id": "qwen3:0.6b",
         "name": "Qwen 3 (0.6B)",
         "size_mb": 400,
-        "description": "Ultra-lightweight with tool-calling (score 0.88). Smallest capable model.",
-        "tags": ["ultra-lightweight", "tool-calling"],
+        "description": "Ultra-lightweight with tool-calling. Fast startup and low memory footprint.",
+        "tags": ["default", "recommended", "ultra-lightweight", "tool-calling"],
         "supports_tools": True,
     },
     {
@@ -115,7 +115,7 @@ RECOMMENDED_MODELS = [
     },
 ]
 
-DEFAULT_MODEL = "qwen3:4b"
+DEFAULT_MODEL = "qwen3:0.6b"
 MODEL_ALIASES = {"pilotsuite", "default", "auto", "local", "ollama"}
 
 

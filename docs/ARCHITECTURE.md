@@ -1,7 +1,7 @@
 # PilotSuite Core Add-on -- Architektur
 
 > Technisches Architekturdokument fuer das PilotSuite Core Add-on (ehemals PilotSuite Core).
-> Stand: v7.7.13 (2026-02-22)
+> Stand: v7.7.15 (2026-02-22)
 > Hinweis: Dieses Dokument beschreibt die Architekturprinzipien. Fuer den verifizierten Produktionszustand siehe `PROJECT_STATUS.md` und `docs/MODULE_INVENTORY.md`.
 
 ---
@@ -17,8 +17,8 @@ Das PilotSuite Core Add-on ist das zentrale Backend der PilotSuite-Plattform. Es
 | Deployment       | Docker-Container, registriert als HA Add-on      |
 | Port             | 8909                                             |
 | LLM-Runtime      | Ollama (im Dockerfile gebundelt)                 |
-| Standard-Modell  | `qwen3:4b`                                       |
-| Fallback-Modell  | `qwen3:0.6b`                                     |
+| Standard-Modell  | `qwen3:0.6b`                                     |
+| Optional-Modell  | `qwen3:4b`                                       |
 | Tool-Calling     | OpenAI-kompatibel ueber `/v1/chat/completions`  |
 | Persistenz       | SQLite (WAL-Modus) unter `/data/`                |
 
@@ -417,7 +417,7 @@ CLOSED (normal) --> OPEN (fehlerhaft) --> HALF_OPEN (testet Recovery)
 
 ### Ollama im Dockerfile
 
-Ollama wird direkt im Docker-Container gebundelt und beim Container-Start als Hintergrundprozess gestartet. Standard ist `qwen3:4b`; bei schwacher Hardware kann auf `qwen3:0.6b` gefallen werden.
+Ollama wird direkt im Docker-Container gebundelt und beim Container-Start als Hintergrundprozess gestartet. Standard ist `qwen3:0.6b`; fuer mehr Qualitaet auf staerkerer Hardware kann `qwen3:4b` verwendet werden.
 
 ### LLM Provider Chain
 

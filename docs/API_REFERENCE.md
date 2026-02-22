@@ -99,7 +99,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "model": "qwen3:4b",
+  "model": "qwen3:0.6b",
   "messages": [
     {"role": "system", "content": "Du bist ein hilfreicher Assistent."},
     {"role": "user", "content": "Schalte das Licht im Wohnzimmer ein."}
@@ -129,7 +129,7 @@ Content-Type: application/json
   "id": "chatcmpl-a1b2c3d4e5f6",
   "object": "chat.completion",
   "created": 1700000000,
-  "model": "qwen3:4b",
+  "model": "qwen3:0.6b",
   "choices": [
     {
       "index": 0,
@@ -215,7 +215,7 @@ Listet alle verfuegbaren Modelle auf (von Ollama + konfiguriertes Default-Modell
   "object": "list",
   "data": [
     {
-      "id": "qwen3:4b",
+      "id": "qwen3:0.6b",
       "object": "model",
       "created": 1700000000,
       "owned_by": "ollama"
@@ -238,7 +238,7 @@ Einzelnes Modell abrufen.
 
 ```json
 {
-  "id": "qwen3:4b",
+  "id": "qwen3:0.6b",
   "object": "model",
   "created": 1700000000,
   "owned_by": "ollama"
@@ -249,8 +249,8 @@ Einzelnes Modell abrufen.
 
 | Modell | Groesse | Tool-Calling | Beschreibung |
 |--------|---------|-------------|--------------|
-| `qwen3:4b` | 2.5 GB | Ja | Default und empfohlen fuer Tool-Calling |
-| `qwen3:0.6b` | 400 MB | Ja | Ultra-leicht mit Tool-Calling |
+| `qwen3:0.6b` | 400 MB | Ja | Default: schnell, low-RAM, Tool-Calling |
+| `qwen3:4b` | 2.5 GB | Ja | Optional fuer hoehere Antwortqualitaet |
 | `lfm2.5-thinking` | 731 MB | Nein | Optionales Legacy-Modell |
 | `llama3.2:3b` | 2 GB | Ja | Meta 3B, 128K Kontext |
 | `mistral:7b` | 4 GB | Ja | Bewaehrtes Function-Calling |
@@ -386,10 +386,10 @@ Liefert den aktuellen Agent-/LLM-Status.
 {
   "ok": true,
   "agent_name": "Styx",
-  "agent_version": "7.7.14",
+  "agent_version": "7.7.15",
   "status": "ready",
   "llm_available": true,
-  "llm_model": "qwen3:4b",
+  "llm_model": "qwen3:0.6b",
   "llm_backend": "ollama",
   "features": ["conversation", "openai_compatible_api"]
 }

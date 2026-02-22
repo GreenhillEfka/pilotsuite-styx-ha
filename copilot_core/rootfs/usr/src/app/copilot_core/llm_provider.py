@@ -7,7 +7,7 @@ Supports multiple backends with automatic fallback:
 
 Config (addon options -> conversation section):
   ollama_url:       http://localhost:11434
-  ollama_model:     qwen3:4b
+  ollama_model:     qwen3:0.6b
   cloud_api_url:    https://api.openai.com/v1  (or OpenClaw URL)
   cloud_api_key:    sk-...
   cloud_model:      gpt-4o-mini  (or openclaw model)
@@ -44,7 +44,7 @@ class LLMProvider:
     def _load_config(self):
         """Load config from environment (called once at init and on explicit refresh)."""
         self.ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-        self.ollama_model = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+        self.ollama_model = os.environ.get("OLLAMA_MODEL", "qwen3:0.6b")
         self.cloud_api_url = os.environ.get("CLOUD_API_URL", "")
         self.cloud_api_key = os.environ.get("CLOUD_API_KEY", "")
         self.cloud_model = os.environ.get("CLOUD_MODEL", "")
