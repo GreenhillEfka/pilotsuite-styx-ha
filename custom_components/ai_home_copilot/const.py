@@ -7,6 +7,12 @@ LEGACY_MAIN_DEVICE_IDENTIFIERS = (
     "pilotsuite_hub",
 )
 
+# Dashboard file layout:
+# - primary branded path for new installs
+# - legacy ai_home_copilot path kept for backwards compatibility
+PRIMARY_DASHBOARD_DIR = "pilotsuite-styx"
+LEGACY_DASHBOARD_DIR = DOMAIN
+
 # Internal hass.data keys (namespaced to avoid entry_id collisions).
 DATA_CORE = "_core"
 DATA_RUNTIME = "runtime"

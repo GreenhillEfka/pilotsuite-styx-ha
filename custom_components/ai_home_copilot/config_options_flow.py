@@ -346,7 +346,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             description_placeholders={
                 "description": (
                     "Creates a Lovelace YAML dashboard file for all Habitus zones. "
-                    "The file is saved in the `ai_home_copilot/` configuration folder."
+                    "The file is saved in the `pilotsuite-styx/` configuration folder "
+                    "(with legacy mirror in `ai_home_copilot/`)."
                 )
             },
         )
@@ -383,8 +384,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             data_schema=schema,
             description_placeholders={
                 "description": (
-                    "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder "
-                    "for easy download. This creates a stable URL for the dashboard YAML."
+                    "Copies the latest generated dashboard to `www/pilotsuite-styx/` "
+                    "(plus legacy mirror in `www/ai_home_copilot/`) for easy download."
                 )
             },
         )

@@ -5,6 +5,11 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.8.2] - 2026-02-22
+- Primäre Dashboard-Dateipfade auf `pilotsuite-styx/` umgestellt, inklusive Legacy-Mirror nach `ai_home_copilot/`.
+- Habitus-Dashboard-Generator robust gemacht (tuple/list/set Rollen, sichere Zone-Paths, YAML-quoting).
+- Dashboard-Wiring akzeptiert und schreibt jetzt sowohl branded als auch legacy Include-Pfade.
+
 ## [7.8.1] - 2026-02-22
 - Hub-Sensoren fuer `modes/scenes/presence/notifications/integration/brain/energy/media/templates` repariert (wieder korrekte API-Calls mit Auth-Headern).
 - `CopilotBaseEntity._fetch()` als gemeinsamer, robuster Core-GET-Helper ergaenzt.

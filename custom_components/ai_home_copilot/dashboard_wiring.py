@@ -1,7 +1,7 @@
 """Lovelace dashboard wiring helper for PilotSuite.
 
 This module keeps dashboard YAML files and Lovelace wiring aligned:
-- writes a stable include snippet file under `ai_home_copilot/`
+- writes a stable include snippet file under `pilotsuite-styx/`
 - auto-appends a minimal Lovelace block only when `configuration.yaml` has no `lovelace:` section
 - falls back to a clear manual instruction when merge is required
 """
@@ -12,6 +12,8 @@ import logging
 from pathlib import Path
 import re
 from typing import Any
+
+from .const import LEGACY_DASHBOARD_DIR, PRIMARY_DASHBOARD_DIR
 
 try:
     from homeassistant.components import persistent_notification
@@ -29,10 +31,15 @@ except ImportError:  # pragma: no cover - test fallback when HA runtime is not i
 
 _LOGGER = logging.getLogger(__name__)
 
-SNIPPET_REL_PATH = "ai_home_copilot/lovelace_pilotsuite_dashboards.yaml"
+SNIPPET_REL_PATH = f"{PRIMARY_DASHBOARD_DIR}/lovelace_pilotsuite_dashboards.yaml"
+_LEGACY_SNIPPET_REL_PATH = f"{LEGACY_DASHBOARD_DIR}/lovelace_pilotsuite_dashboards.yaml"
 _DASHBOARD_FILE_MARKERS = (
-    "ai_home_copilot/pilotsuite_dashboard_latest.yaml",
-    "ai_home_copilot/habitus_zones_dashboard_latest.yaml",
+    f"{PRIMARY_DASHBOARD_DIR}/pilotsuite_dashboard_latest.yaml",
+    f"{PRIMARY_DASHBOARD_DIR}/habitus_zones_dashboard_latest.yaml",
+)
+_LEGACY_DASHBOARD_FILE_MARKERS = (
+    f"{LEGACY_DASHBOARD_DIR}/pilotsuite_dashboard_latest.yaml",
+    f"{LEGACY_DASHBOARD_DIR}/habitus_zones_dashboard_latest.yaml",
 )
 _AUTOMATED_BLOCK_MARKER = "# PilotSuite dashboard wiring (managed by ai_home_copilot)"
 _NOTIFICATION_ID = "ai_home_copilot_dashboard_wiring"
@@ -45,14 +52,14 @@ def _snippet_content() -> str:
         "  title: \"PilotSuite - Styx\"\n"
         "  icon: mdi:robot-outline\n"
         "  show_in_sidebar: true\n"
-        "  filename: \"ai_home_copilot/pilotsuite_dashboard_latest.yaml\"\n"
+        f"  filename: \"{PRIMARY_DASHBOARD_DIR}/pilotsuite_dashboard_latest.yaml\"\n"
         "\n"
         "copilot-habitus-zones:\n"
         "  mode: yaml\n"
         "  title: \"PilotSuite - Habitus Zones\"\n"
         "  icon: mdi:layers-outline\n"
         "  show_in_sidebar: true\n"
-        "  filename: \"ai_home_copilot/habitus_zones_dashboard_latest.yaml\"\n"
+        f"  filename: \"{PRIMARY_DASHBOARD_DIR}/habitus_zones_dashboard_latest.yaml\"\n"
     )
 
 
@@ -88,9 +95,11 @@ def _has_lovelace_root(config_text: str) -> bool:
 
 def _is_dashboard_wired(config_text: str) -> bool:
     lowered = config_text.lower()
-    if SNIPPET_REL_PATH.lower() in lowered:
+    if SNIPPET_REL_PATH.lower() in lowered or _LEGACY_SNIPPET_REL_PATH.lower() in lowered:
         return True
-    return all(marker.lower() in lowered for marker in _DASHBOARD_FILE_MARKERS)
+    if all(marker.lower() in lowered for marker in _DASHBOARD_FILE_MARKERS):
+        return True
+    return all(marker.lower() in lowered for marker in _LEGACY_DASHBOARD_FILE_MARKERS)
 
 
 def _read_text(path: Path) -> str:
@@ -124,10 +133,12 @@ async def async_ensure_lovelace_dashboard_wiring(hass: HomeAssistant) -> str:
 
     config_path = Path(hass.config.path("configuration.yaml"))
     snippet_path = Path(hass.config.path(SNIPPET_REL_PATH))
+    legacy_snippet_path = Path(hass.config.path(_LEGACY_SNIPPET_REL_PATH))
     include_block = _include_block()
 
     try:
         await hass.async_add_executor_job(_write_text, snippet_path, _snippet_content())
+        await hass.async_add_executor_job(_write_text, legacy_snippet_path, _snippet_content())
 
         config_text = await hass.async_add_executor_job(_read_text, config_path)
         if _is_dashboard_wired(config_text):

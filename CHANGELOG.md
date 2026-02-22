@@ -1,5 +1,23 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.2] - 2026-02-22
+- **Dashboard-Pfade auf Branding umgestellt**: Neue Primärpfade unter `pilotsuite-styx/` für
+  `pilotsuite_dashboard_latest.yaml` und `habitus_zones_dashboard_latest.yaml`.
+- **Legacy-Kompatibilität bleibt aktiv**: Dateien werden weiterhin unter `ai_home_copilot/` gespiegelt
+  (Config + www), damit bestehende Lovelace-Setups nicht brechen.
+- **Habitus-Dashboard-Generierung gehärtet**:
+  - Rollen-Mapping akzeptiert jetzt `tuple/list/set`.
+  - Zonenpfade werden URL-/YAML-sicher normalisiert.
+  - Dynamische Titel/Paths werden YAML-sicher gequotet.
+- **Lovelace-Wiring erweitert**:
+  - Snippet wird in neuem und legacy Pfad geschrieben.
+  - Wiring-Erkennung akzeptiert beide Dateipfade.
+- **Neue Tests**:
+  - `tests/test_habitus_dashboard_generation.py`
+  - `tests/test_pilotsuite_dashboard_generation.py`
+  - `tests/test_dashboard_wiring.py` erweitert (legacy + branded Pfade)
+- **Validierung**: `pytest -q` => **553 passed, 5 skipped**.
+
 ## [7.8.1] - 2026-02-22
 - **Hub Sensor Fetch Stabilität**: 9 Hub-Sensoren repariert (`automation_templates`, `brain_architecture`, `energy_advisor`, `media_follow`, `notification_intelligence`, `presence_intelligence`, `scene_intelligence`, `system_integration`, `zone_modes`).
 - **Auth + Request-Flow korrigiert**: Requests nutzen wieder konsistent `_core_headers()` inkl. Token.

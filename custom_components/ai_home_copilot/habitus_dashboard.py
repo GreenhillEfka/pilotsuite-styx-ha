@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+import re
 import shutil
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from .const import LEGACY_DASHBOARD_DIR, PRIMARY_DASHBOARD_DIR
 from .habitus_dashboard_store import HabitusDashboardState, async_get_state, async_set_state
 # DEPRECATED: v1 - prefer v2
 # from .habitus_zones_store import async_get_zones, HabitusZone
@@ -24,6 +26,16 @@ def _write_text(path: Path, content: str) -> None:
 def _copy(src: Path, dst: Path) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(src, dst)
+
+
+def _safe_zone_path(zone_id: str) -> str:
+    slug = re.sub(r"[^a-z0-9_-]+", "-", str(zone_id).lower()).strip("-")
+    return slug or "zone"
+
+
+def _yaml_q(value: str) -> str:
+    escaped = str(value).replace("\\", "\\\\").replace("\"", "\\\"")
+    return f"\"{escaped}\""
 
 
 def _domain(entity_id: str) -> str:
@@ -142,7 +154,7 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     roles: dict[str, list[str]] = {}
     if isinstance(getattr(z, "entities", None), dict):
         for k, v in z.entities.items():
-            if isinstance(v, list) and v:
+            if isinstance(v, (list, tuple, set)) and v:
                 roles[str(k)] = [str(x) for x in v if str(x)]
 
     assigned: set[str] = set()
@@ -311,8 +323,8 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     cards.append(_logbook_yaml("Übersicht — Logbuch (24h)", key_signals))
 
     return (
-        f"  - title: {zone_name}\n"
-        f"    path: hz-{zone_id}\n"
+        f"  - title: {_yaml_q(zone_name)}\n"
+        f"    path: {_yaml_q('hz-' + _safe_zone_path(zone_id))}\n"
         f"    icon: mdi:home-circle\n"
         f"    cards:\n"
         + "\n\n".join(cards)
@@ -344,12 +356,15 @@ async def async_generate_habitus_zones_dashboard(
         + ("\n".join(views) if views else "  - title: Habitus Zones\n    path: habitus-zones\n    icon: mdi:layers-outline\n    cards: []\n")
     )
 
-    out_dir = Path(hass.config.path("ai_home_copilot"))
-    out_path = out_dir / f"habitus_zones_dashboard_{ts}.yaml"
-    latest_path = out_dir / "habitus_zones_dashboard_latest.yaml"
+    primary_out_dir = Path(hass.config.path(PRIMARY_DASHBOARD_DIR))
+    legacy_out_dir = Path(hass.config.path(LEGACY_DASHBOARD_DIR))
+    out_path = primary_out_dir / f"habitus_zones_dashboard_{ts}.yaml"
+    latest_path = primary_out_dir / "habitus_zones_dashboard_latest.yaml"
+    legacy_latest_path = legacy_out_dir / "habitus_zones_dashboard_latest.yaml"
 
     await hass.async_add_executor_job(_write_text, out_path, content)
     await hass.async_add_executor_job(_write_text, latest_path, content)
+    await hass.async_add_executor_job(_write_text, legacy_latest_path, content)
 
     st = await async_get_state(hass)
     st.last_path = str(out_path)
@@ -360,7 +375,8 @@ async def async_generate_habitus_zones_dashboard(
             hass,
             (
                 f"Generated Habitus zones dashboard YAML at:\n{out_path}\n\n"
-                f"Latest (stable):\n{latest_path}"
+                f"Latest (stable):\n{latest_path}\n\n"
+                f"Legacy mirror:\n{legacy_latest_path}"
             ),
             title="PilotSuite Habitus dashboard",
             notification_id="ai_home_copilot_habitus_dashboard",
@@ -378,28 +394,38 @@ async def async_publish_last_habitus_dashboard(hass: HomeAssistant) -> str:
         raise FileNotFoundError("No Habitus dashboard generated yet")
 
     # Publish stable latest file, and keep timestamped archive locally.
-    out_dir = Path(hass.config.path("ai_home_copilot"))
-    latest_src = out_dir / "habitus_zones_dashboard_latest.yaml"
-    if latest_src.exists():
-        src = latest_src
+    primary_dir = Path(hass.config.path(PRIMARY_DASHBOARD_DIR))
+    legacy_dir = Path(hass.config.path(LEGACY_DASHBOARD_DIR))
+    primary_latest = primary_dir / "habitus_zones_dashboard_latest.yaml"
+    legacy_latest = legacy_dir / "habitus_zones_dashboard_latest.yaml"
+    if primary_latest.exists():
+        src = primary_latest
+    elif legacy_latest.exists():
+        src = legacy_latest
     else:
         src = Path(st.last_path)
 
     if not src.exists():
         raise FileNotFoundError(str(src))
 
-    www_dir = Path(hass.config.path("www")) / "ai_home_copilot"
-    dst = www_dir / "habitus_zones_dashboard_latest.yaml"
+    www_primary_dir = Path(hass.config.path("www")) / PRIMARY_DASHBOARD_DIR
+    www_legacy_dir = Path(hass.config.path("www")) / LEGACY_DASHBOARD_DIR
+    dst = www_primary_dir / "habitus_zones_dashboard_latest.yaml"
+    legacy_dst = www_legacy_dir / "habitus_zones_dashboard_latest.yaml"
 
     await hass.async_add_executor_job(_copy, src, dst)
+    await hass.async_add_executor_job(_copy, src, legacy_dst)
 
     st.last_published_path = str(dst)
     await async_set_state(hass, st)
 
-    url = f"/local/ai_home_copilot/{dst.name}"
+    url = f"/local/{PRIMARY_DASHBOARD_DIR}/{dst.name}"
     persistent_notification.async_create(
         hass,
-        f"Habitus dashboard published (stable). Open: {url}",
+        (
+            f"Habitus dashboard published (stable). Open: {url}\n\n"
+            f"Legacy URL: /local/{LEGACY_DASHBOARD_DIR}/{dst.name}"
+        ),
         title="PilotSuite Habitus dashboard download",
         notification_id="ai_home_copilot_habitus_dashboard_download",
     )

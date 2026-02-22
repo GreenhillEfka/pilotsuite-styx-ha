@@ -31,6 +31,23 @@ def test_is_dashboard_wired_with_direct_dashboard_files() -> None:
         "lovelace:\n"
         "  dashboards:\n"
         "    copilot-pilotsuite:\n"
+        "      filename: pilotsuite-styx/pilotsuite_dashboard_latest.yaml\n"
+        "    copilot-habitus-zones:\n"
+        "      filename: pilotsuite-styx/habitus_zones_dashboard_latest.yaml\n"
+    )
+    assert _is_dashboard_wired(config)
+
+
+def test_is_dashboard_wired_requires_both_dashboards() -> None:
+    partial = "filename: pilotsuite-styx/pilotsuite_dashboard_latest.yaml\n"
+    assert not _is_dashboard_wired(partial)
+
+
+def test_is_dashboard_wired_accepts_legacy_dashboard_paths() -> None:
+    config = (
+        "lovelace:\n"
+        "  dashboards:\n"
+        "    copilot-pilotsuite:\n"
         "      filename: ai_home_copilot/pilotsuite_dashboard_latest.yaml\n"
         "    copilot-habitus-zones:\n"
         "      filename: ai_home_copilot/habitus_zones_dashboard_latest.yaml\n"
@@ -38,13 +55,7 @@ def test_is_dashboard_wired_with_direct_dashboard_files() -> None:
     assert _is_dashboard_wired(config)
 
 
-def test_is_dashboard_wired_requires_both_dashboards() -> None:
-    partial = "filename: ai_home_copilot/pilotsuite_dashboard_latest.yaml\n"
-    assert not _is_dashboard_wired(partial)
-
-
 def test_snippet_contains_both_dashboard_entries() -> None:
     snippet = _snippet_content()
     assert "copilot-pilotsuite:" in snippet
     assert "copilot-habitus-zones:" in snippet
-

@@ -33,8 +33,11 @@ Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port
 
 Beim ersten Start generiert PilotSuite automatisch:
 
-- `/config/ai_home_copilot/pilotsuite_dashboard_latest.yaml`
-- `/config/ai_home_copilot/habitus_zones_dashboard_latest.yaml`
+- `/config/pilotsuite-styx/pilotsuite_dashboard_latest.yaml`
+- `/config/pilotsuite-styx/habitus_zones_dashboard_latest.yaml`
+
+Legacy-Kompatibilitaet bleibt erhalten: Die Dateien werden weiterhin auch unter
+`/config/ai_home_copilot/` gespiegelt.
 
 Die Integration versucht ausserdem, das Lovelace-Wiring automatisch vorzubereiten.
 Falls Home Assistant bereits einen eigenen `lovelace:`-Block hat, bekommst du eine
@@ -48,13 +51,13 @@ lovelace:
       title: "PilotSuite - Styx"
       icon: mdi:robot-outline
       show_in_sidebar: true
-      filename: "ai_home_copilot/pilotsuite_dashboard_latest.yaml"
+      filename: "pilotsuite-styx/pilotsuite_dashboard_latest.yaml"
     copilot-habitus-zones:
       mode: yaml
       title: "PilotSuite - Habitus Zones"
       icon: mdi:layers-outline
       show_in_sidebar: true
-      filename: "ai_home_copilot/habitus_zones_dashboard_latest.yaml"
+      filename: "pilotsuite-styx/habitus_zones_dashboard_latest.yaml"
 ```
 
 ## 30 Module

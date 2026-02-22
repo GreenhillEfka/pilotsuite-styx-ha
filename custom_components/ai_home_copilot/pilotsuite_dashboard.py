@@ -22,6 +22,8 @@ from .const import (
     DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
     DEFAULT_PILOTSUITE_SHOW_DEV_SURFACE_BUTTONS,
     DEFAULT_PILOTSUITE_SHOW_GRAPH_BRIDGE_BUTTONS,
+    LEGACY_DASHBOARD_DIR,
+    PRIMARY_DASHBOARD_DIR,
 )
 # DEPRECATED: v1 - prefer v2
 # from .habitus_zones_store import async_get_zones
@@ -70,7 +72,7 @@ def _entities_card(title: str, entities: list[str]) -> str:
     clean_entities = [eid for eid in entities if isinstance(eid, str) and eid.strip()]
     lines = [
         "      - type: entities",
-        f"        title: {title}",
+        f"        title: {_yaml_q(title)}",
         "        show_header_toggle: false",
         "        entities:",
     ]
@@ -86,7 +88,7 @@ def _entities_card(title: str, entities: list[str]) -> str:
 def _markdown_card(title: str, content: str) -> str:
     return (
         "      - type: markdown\n"
-        f"        title: {title}\n"
+        f"        title: {_yaml_q(title)}\n"
         "        content: |\n"
         + "\n".join(["          " + ln for ln in content.strip().splitlines()])
         + "\n"
@@ -126,12 +128,17 @@ def _grid_card(cards: list[str], *, columns: int = 2) -> str:
 
 def _view(title: str, path: str, icon: str, cards_yaml: str) -> str:
     return (
-        f"  - title: {title}\n"
-        f"    path: {path}\n"
+        f"  - title: {_yaml_q(title)}\n"
+        f"    path: {_yaml_q(path)}\n"
         f"    icon: {icon}\n"
         f"    cards:\n"
         f"{cards_yaml}\n"
     )
+
+
+def _yaml_q(value: str) -> str:
+    escaped = str(value).replace("\\", "\\\\").replace("\"", "\\\"")
+    return f"\"{escaped}\""
 
 
 async def async_generate_pilotsuite_dashboard(
@@ -488,12 +495,15 @@ Wenn `/api/v1/events` leer bleibt:
         + "\n".join(views)
     )
 
-    out_dir = Path(hass.config.path("ai_home_copilot"))
-    out_path = out_dir / f"pilotsuite_dashboard_{ts}.yaml"
-    latest_path = out_dir / "pilotsuite_dashboard_latest.yaml"
+    primary_out_dir = Path(hass.config.path(PRIMARY_DASHBOARD_DIR))
+    legacy_out_dir = Path(hass.config.path(LEGACY_DASHBOARD_DIR))
+    out_path = primary_out_dir / f"pilotsuite_dashboard_{ts}.yaml"
+    latest_path = primary_out_dir / "pilotsuite_dashboard_latest.yaml"
+    legacy_latest_path = legacy_out_dir / "pilotsuite_dashboard_latest.yaml"
 
     await hass.async_add_executor_job(_write_text, out_path, content)
     await hass.async_add_executor_job(_write_text, latest_path, content)
+    await hass.async_add_executor_job(_write_text, legacy_latest_path, content)
 
     st = await async_get_state(hass)
     st.last_path = str(out_path)
@@ -505,6 +515,7 @@ Wenn `/api/v1/events` leer bleibt:
             (
                 f"PilotSuite-Dashboard YAML generiert:\n{out_path}\n\n"
                 f"Latest (stabil):\n{latest_path}\n\n"
+                f"Legacy mirror:\n{legacy_latest_path}\n\n"
                 "Hinweis: In der Regel reicht **Generate** + Browser-Reload (das Dashboard referenziert die latest-Datei)."
             ),
             title="PilotSuite Dashboard",
@@ -522,28 +533,38 @@ async def async_publish_last_pilotsuite_dashboard(hass: HomeAssistant) -> str:
         raise FileNotFoundError("No PilotSuite dashboard generated yet")
 
     # Publish stable latest file, and keep timestamped archive locally.
-    out_dir = Path(hass.config.path("ai_home_copilot"))
-    latest_src = out_dir / "pilotsuite_dashboard_latest.yaml"
-    if latest_src.exists():
-        src = latest_src
+    primary_dir = Path(hass.config.path(PRIMARY_DASHBOARD_DIR))
+    legacy_dir = Path(hass.config.path(LEGACY_DASHBOARD_DIR))
+    primary_latest = primary_dir / "pilotsuite_dashboard_latest.yaml"
+    legacy_latest = legacy_dir / "pilotsuite_dashboard_latest.yaml"
+    if primary_latest.exists():
+        src = primary_latest
+    elif legacy_latest.exists():
+        src = legacy_latest
     else:
         src = Path(st.last_path)
 
     if not src.exists():
         raise FileNotFoundError(str(src))
 
-    www_dir = Path(hass.config.path("www")) / "ai_home_copilot"
-    dst = www_dir / "pilotsuite_dashboard_latest.yaml"
+    www_primary_dir = Path(hass.config.path("www")) / PRIMARY_DASHBOARD_DIR
+    www_legacy_dir = Path(hass.config.path("www")) / LEGACY_DASHBOARD_DIR
+    dst = www_primary_dir / "pilotsuite_dashboard_latest.yaml"
+    legacy_dst = www_legacy_dir / "pilotsuite_dashboard_latest.yaml"
 
     await hass.async_add_executor_job(_copy, src, dst)
+    await hass.async_add_executor_job(_copy, src, legacy_dst)
 
     st.last_published_path = str(dst)
     await async_set_state(hass, st)
 
-    url = f"/local/ai_home_copilot/{dst.name}"
+    url = f"/local/{PRIMARY_DASHBOARD_DIR}/{dst.name}"
     persistent_notification.async_create(
         hass,
-        f"PilotSuite dashboard published (stable). Open: {url}",
+        (
+            f"PilotSuite dashboard published (stable). Open: {url}\n\n"
+            f"Legacy URL: /local/{LEGACY_DASHBOARD_DIR}/{dst.name}"
+        ),
         title="PilotSuite Dashboard Download",
         notification_id="ai_home_copilot_pilotsuite_dashboard_download",
     )
