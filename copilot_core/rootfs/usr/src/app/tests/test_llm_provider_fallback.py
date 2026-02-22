@@ -118,3 +118,25 @@ def test_cloud_url_without_key_returns_offline_dict(monkeypatch: pytest.MonkeyPa
     assert isinstance(result, dict)
     assert result["provider"] == "none"
     assert "Cloud-API nicht konfiguriert" in result["content"]
+
+
+def test_alias_model_maps_to_local_configured_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3:4b")
+    monkeypatch.delenv("CLOUD_API_URL", raising=False)
+    monkeypatch.delenv("CLOUD_API_KEY", raising=False)
+
+    calls: list[str] = []
+
+    def _fake_post(url: str, json: dict[str, Any], timeout: int):  # noqa: A002
+        calls.append(str(json.get("model")))
+        return _Resp(200, "", {"message": {"content": "ok"}})
+
+    monkeypatch.setattr("copilot_core.llm_provider.http_requests.post", _fake_post)
+
+    provider = LLMProvider()
+    result = provider.chat(messages=[{"role": "user", "content": "hi"}], model="pilotsuite")
+
+    assert result["provider"] == "ollama"
+    assert result["content"] == "ok"
+    assert calls == ["qwen3:4b"]

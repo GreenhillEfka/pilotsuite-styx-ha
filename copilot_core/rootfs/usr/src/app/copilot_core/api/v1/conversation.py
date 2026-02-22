@@ -36,6 +36,7 @@ import requests as http_requests
 
 from copilot_core.api.security import require_token
 from copilot_core.llm_provider import LLMProvider
+from copilot_core.versioning import get_runtime_version
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,17 @@ RECOMMENDED_MODELS = [
 ]
 
 DEFAULT_MODEL = "qwen3:4b"
+MODEL_ALIASES = {"pilotsuite", "default", "auto", "local", "ollama"}
+
+
+def _normalize_requested_model(model: str | None) -> str | None:
+    """Normalize external model aliases to a real configured model."""
+    requested = str(model or "").strip()
+    if not requested:
+        return None
+    if requested.lower() in MODEL_ALIASES:
+        return os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
+    return requested
 
 
 # ---------------------------------------------------------------------------
@@ -596,6 +608,15 @@ def list_models():
             "owned_by": "ollama",
         })
 
+    # Stable alias used by PilotSuite clients.
+    if not any(m["id"] == "pilotsuite" for m in models):
+        models.insert(0, {
+            "id": "pilotsuite",
+            "object": "model",
+            "created": int(time.time()),
+            "owned_by": "pilotsuite",
+        })
+
     return jsonify({
         "object": "list",
         "data": models,
@@ -653,7 +674,7 @@ def _handle_chat_completions():
 
         messages = data.get('messages', [])
         stream = data.get('stream', False)
-        model_override = data.get('model')
+        model_override = _normalize_requested_model(data.get('model'))
         temperature = data.get('temperature')
         max_tokens = data.get('max_tokens') or data.get('max_completion_tokens')
         tools = data.get('tools')  # Client-specified tools (e.g. from extended_openai_conversation)
@@ -797,7 +818,7 @@ def llm_status():
         "assistant_name": ASSISTANT_NAME,
         "version": os.environ.get("COPILOT_VERSION")
         or os.environ.get("BUILD_VERSION")
-        or "0.0.0",
+        or get_runtime_version(),
         "character": os.environ.get("CONVERSATION_CHARACTER", "copilot"),
         "characters": list(CONVERSATION_CHARACTERS.keys()),
         "integration_url": "http://[HOST]:8909/v1",

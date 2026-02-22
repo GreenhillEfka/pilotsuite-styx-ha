@@ -19,8 +19,9 @@ from waitress import serve
 from copilot_core.api.security import require_token, validate_token
 from copilot_core.api.api_version import API_VERSION, parse_accept_version, get_deprecation_info
 from copilot_core.core_setup import init_services, register_blueprints
+from copilot_core.versioning import get_runtime_version
 
-APP_VERSION = os.environ.get("COPILOT_VERSION") or os.environ.get("BUILD_VERSION") or "0.0.0"
+APP_VERSION = get_runtime_version()
 
 _main_logger = _logging.getLogger(__name__)
 

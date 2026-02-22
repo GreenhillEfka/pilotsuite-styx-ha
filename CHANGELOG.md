@@ -1,5 +1,24 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.13] - 2026-02-22 — AGENT API + VERSION FALLBACK + MODEL ALIAS
+
+### Agent API wiring
+- `/api/v1/agent/*` Blueprint wird jetzt im Core registriert.
+- Agent-Status/Verify-Endpunkte sind damit fuer HA-Integration erreichbar (kein 404 mehr bei aktivem Modul).
+
+### Modellalias & OpenAI-Kompatibilitaet
+- OpenAI Chat-Handler normalisiert Modellalias (`pilotsuite`, `default`, `auto`, `local`, `ollama`) auf das konfigurierte Ollama-Modell.
+- `/v1/models` listet jetzt zusaetzlich das stabile Alias-Modell `pilotsuite`.
+
+### Version-Robustheit
+- Neue Runtime-Versionauflosung mit Fallback-Datei:
+  - `COPILOT_VERSION` / `BUILD_VERSION` bevorzugt
+  - sonst `/usr/src/app/VERSION`
+- Betrifft u. a. `main.py` (`/version`) und weitere Version-Exporte, um `0.0.0`-Artefakte zu vermeiden.
+
+### Tests
+- Neue Tests fuer Modellalias-Normalisierung und LLM-Alias-Routing hinzugefuegt.
+
 ## [7.7.12] - 2026-02-22 — LLM FALLBACK + CLOUD CONFIG UX
 
 ### Chat provider robustness

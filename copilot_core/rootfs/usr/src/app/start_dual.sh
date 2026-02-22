@@ -13,7 +13,7 @@ set -e
 export HOME="${HOME:-/tmp}"
 mkdir -p "$HOME" 2>/dev/null || true
 
-CORE_VERSION="${COPILOT_VERSION:-${BUILD_VERSION:-0.0.0}}"
+CORE_VERSION="${COPILOT_VERSION:-${BUILD_VERSION:-$(cat /usr/src/app/VERSION 2>/dev/null || echo 0.0.0)}}"
 export COPILOT_VERSION="$CORE_VERSION"
 
 echo "============================================"

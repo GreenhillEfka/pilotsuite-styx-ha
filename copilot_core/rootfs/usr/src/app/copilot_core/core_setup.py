@@ -71,7 +71,10 @@ def init_services(hass=None, config: dict = None):
     Each service block is wrapped in try/except so a single failure does not
     prevent the remaining services from starting.
     """
+    config = config or {}
+
     services: dict = {
+        "config": config,
         "system_health_service": None,
         "unifi_service": None,
         "energy_service": None,
@@ -570,6 +573,15 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered conversation API (/chat/* and /v1/*)")
     except Exception:
         _LOGGER.exception("Failed to register conversation blueprint")
+
+    # Register Styx Agent Config API (/api/v1/agent/*)
+    try:
+        from copilot_core.agent_config import agent_config_bp, init_agent_config
+        init_agent_config(config=services.get("config", {}) if services else {})
+        app.register_blueprint(agent_config_bp)
+        _LOGGER.info("Registered agent config API (/api/v1/agent/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register agent config API")
 
     # Register Tag System v0.2 blueprint (Decision Matrix 2026-02-14)
     # init_tags_api sets the global registry; the bp is already defined in tags/api.py
