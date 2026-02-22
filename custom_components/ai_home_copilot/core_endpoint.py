@@ -59,6 +59,7 @@ def build_candidate_hosts(
     *,
     internal_url: str | None = None,
     external_url: str | None = None,
+    include_docker_internal: bool = False,
 ) -> list[str]:
     """Return ordered host candidates (primary first, then safe fallbacks)."""
     hosts: list[str] = []
@@ -88,5 +89,6 @@ def build_candidate_hosts(
     _add("supervisor")
     _add("localhost")
     _add("127.0.0.1")
-    _add("host.docker.internal")
+    if include_docker_internal:
+        _add("host.docker.internal")
     return hosts

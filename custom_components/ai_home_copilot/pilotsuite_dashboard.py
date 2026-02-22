@@ -41,6 +41,14 @@ def _copy(src: Path, dst: Path) -> None:
     shutil.copyfile(src, dst)
 
 
+def _resolve_entity(hass: HomeAssistant, candidates: list[str]) -> str:
+    """Pick first existing entity_id from candidates (fallback to first)."""
+    for entity_id in candidates:
+        if hass.states.get(entity_id) is not None:
+            return entity_id
+    return candidates[0]
+
+
 def _entities_card(title: str, entities: list[str]) -> str:
     lines = [
         "      - type: entities",
@@ -127,10 +135,22 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
 
     # Known entity_ids from this integration (stable unique_ids).
     overview_entities = [
-        "binary_sensor.ai_home_copilot_online",
-        "sensor.ai_home_copilot_version",
-        "sensor.ai_home_copilot_core_api_v1",
-        "sensor.ai_home_copilot_habitus_zones_count",
+        _resolve_entity(
+            hass,
+            ["binary_sensor.ai_home_copilot_online", "binary_sensor.pilotsuite_styx_online"],
+        ),
+        _resolve_entity(
+            hass,
+            ["sensor.ai_home_copilot_version", "sensor.pilotsuite_styx_version"],
+        ),
+        _resolve_entity(
+            hass,
+            ["sensor.ai_home_copilot_core_api_v1", "sensor.pilotsuite_core_api_v1"],
+        ),
+        _resolve_entity(
+            hass,
+            ["sensor.ai_home_copilot_habitus_zones_count", "sensor.pilotsuite_habitus_zones_count"],
+        ),
     ]
 
     # Systemressourcen (optional; nur anzeigen, wenn vorhanden)
@@ -151,9 +171,18 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     resource_entities = [e for e in resource_candidates if hass.states.get(e) is not None]
 
     operations_entities = [
-        "button.ai_home_copilot_reload_config_entry",
-        "button.ai_home_copilot_forwarder_status",
-        "button.ai_home_copilot_fetch_ha_errors",
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_reload_config_entry", "button.pilotsuite_reload_config_entry"],
+        ),
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_forwarder_status", "button.pilotsuite_forwarder_status"],
+        ),
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_fetch_ha_errors", "button.pilotsuite_fetch_ha_errors"],
+        ),
     ]
 
     show_safety_backup = bool(
@@ -210,14 +239,29 @@ async def async_generate_pilotsuite_dashboard(hass: HomeAssistant, entry: Config
     # Generate reicht: die Dashboards referenzieren jeweils die stabile `*_latest.yaml` Datei.
     # Download/Publish ist nur für /local-Downloads nötig.
     dashboards_entities = [
-        "button.ai_home_copilot_generate_pilotsuite_dashboard",
-        "button.ai_home_copilot_generate_habitus_dashboard",
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_generate_pilotsuite_dashboard", "button.pilotsuite_generate_pilotsuite_dashboard"],
+        ),
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_generate_habitus_dashboard", "button.pilotsuite_generate_habitus_dashboard"],
+        ),
     ]
 
     core_entities = [
-        "button.ai_home_copilot_fetch_core_capabilities",
-        "button.ai_home_copilot_fetch_core_events",
-        "button.ai_home_copilot_fetch_core_graph_state",
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_fetch_core_capabilities", "button.pilotsuite_fetch_core_capabilities"],
+        ),
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_fetch_core_events", "button.pilotsuite_fetch_core_events"],
+        ),
+        _resolve_entity(
+            hass,
+            ["button.ai_home_copilot_fetch_core_graph_state", "button.pilotsuite_fetch_core_graph_state"],
+        ),
     ]
 
     habitus_entities = [

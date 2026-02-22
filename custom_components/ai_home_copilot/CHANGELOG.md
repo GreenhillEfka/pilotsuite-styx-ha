@@ -5,6 +5,14 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.7.21] - 2026-02-22
+- Connection config normalization added (host/port/token) incl. legacy key migration.
+- Failover no longer switches hosts on 401/403 auth errors.
+- `host.docker.internal` fallback made opt-in instead of always-on.
+- Brain Graph/HomeKit/Core-v1/Lovelace/N3 service paths now resolve merged entry config.
+- Legacy CSV/testlight text entities cleaned up during setup.
+- Added regression tests for connection normalization and host candidate behavior.
+
 ## [7.7.20] - 2026-02-22
 - Unified sensor Core endpoints to use coordinator active failover base URL.
 - Added shared Core auth header helper (`Authorization` + `X-Auth-Token`).

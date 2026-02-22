@@ -14,7 +14,8 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, CONF_HOST, CONF_PORT
+from .connection_config import resolve_core_connection
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,9 +26,7 @@ async def async_register_card_resources(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
     """Register PilotSuite Lovelace card resources."""
-    config = entry.options or entry.data
-    host = config.get(CONF_HOST, "")
-    port = config.get(CONF_PORT, 8909)
+    host, port, _token = resolve_core_connection(entry)
 
     if not host:
         _LOGGER.debug("No host configured, skipping Lovelace resource registration")

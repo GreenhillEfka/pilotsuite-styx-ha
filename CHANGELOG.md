@@ -1,5 +1,36 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.21] - 2026-02-22 — CONNECTION NORMALIZATION + LEGACY CLEANUP
+
+### Fixes
+- **Connection-Konfiguration wird beim Setup jetzt kanonisch normalisiert**
+  - `host`/`port`/`token` werden aus `entry.data + entry.options` konsistent aufgeloest und in `entry.data` gespiegelt.
+  - Legacy-Schluessel (`core_url`, `auth_token`, `access_token`, `api_token`) werden auf den Standardpfad migriert.
+  - stabilisiert Token/Host-Persistenz ueber Updates und verhindert Drift zwischen Modulen.
+- **Core-Failover haertet Auth-Szenarien**
+  - Endpoint-Failover springt nicht mehr bei 401/403 auf alternative Hosts.
+  - verhindert Fehlschwenks auf ungeeignete Fallback-Hosts bei Tokenproblemen.
+- **Docker-Internal nur noch explizit**
+  - `host.docker.internal` wird nicht mehr automatisch in allgemeine Fallback-Listen gemischt.
+  - kann weiter gezielt aktiviert werden, wenn wirklich benoetigt.
+- **Module auf gemergte Connection-Quelle umgestellt**
+  - Brain Graph Sync, HomeKit Bridge/Entities, Lovelace Resource Registration, Core v1 API-Calls und N3-Forwarder-Start verwenden jetzt die normalisierte Connection-Aufloesung.
+  - beseitigt veraltete `entry.data`-Lesepfade, die zuvor alte Host/Token-Werte verwendeten.
+- **Legacy-Text-Entitaeten werden bereinigt**
+  - obsolete CSV-/Testlight-Text-Entitaeten werden beim Setup aus der Entity Registry entfernt.
+  - reduziert Entitaetsmuell und verhindert UI-Verwirrung.
+- **Main-Device-Konsolidierung erweitert**
+  - PilotSuite-bezogene Legacy-Devices werden auf das kanonische Hub-Device zusammengefuehrt.
+  - reduziert "neues Geraet pro Update"-Effekte.
+- **Dashboard-Generator robuster**
+  - zentrale Entities/Buttons werden mit Fallback-Kandidaten aufgeloest (`ai_home_copilot_*` und `pilotsuite_*`), damit generierte YAML-Dashboards trotz umbenannter Entity IDs funktionieren.
+
+### Tests
+- Lokale HA-Testsuite: **538 passed, 5 skipped**.
+- Neue Regressionen:
+  - `tests/test_connection_config_migration.py`
+  - erweiterte Assertions in `tests/unit/test_core_endpoint.py`
+
 ## [7.7.20] - 2026-02-22 — COMMUNICATION PIPELINE HARDENING + TOKEN COMPAT
 
 ### Fixes

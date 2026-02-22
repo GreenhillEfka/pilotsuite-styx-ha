@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later
 
+from .connection_config import build_core_headers
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,9 +48,7 @@ async def async_verify_agent_connectivity(
     session = async_get_clientsession(hass)
     verify_url = f"http://{host}:{port}/api/v1/agent/verify"
     status_url = f"http://{host}:{port}/chat/status"
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    headers = build_core_headers(token)
 
     try:
         async with session.post(
@@ -113,9 +112,7 @@ async def async_get_agent_status(
     session = async_get_clientsession(hass)
     url = f"http://{host}:{port}/api/v1/agent/status"
     fallback_url = f"http://{host}:{port}/chat/status"
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    headers = build_core_headers(token)
 
     try:
         async with session.get(url, headers=headers, timeout=10) as resp:
@@ -163,9 +160,7 @@ async def async_attempt_agent_self_heal(
 
     session = async_get_clientsession(hass)
     url = f"http://{host}:{port}/api/v1/agent/self-heal"
-    headers = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    headers = build_core_headers(token)
 
     try:
         async with session.post(

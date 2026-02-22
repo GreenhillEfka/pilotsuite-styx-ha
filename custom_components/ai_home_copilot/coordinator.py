@@ -21,7 +21,8 @@ from .api import (
     CopilotApiError,
     CopilotStatus,
 )
-from .core_endpoint import build_base_url, build_candidate_hosts, normalize_host_port
+from .connection_config import resolve_core_connection_from_mapping
+from .core_endpoint import build_base_url, build_candidate_hosts
 from .camera_entities import (
     CameraState,
     CameraMotionEvent,
@@ -56,8 +57,10 @@ def _should_failover(err: CopilotApiError) -> bool:
     if status is None:
         return False
 
-    # Wrong endpoint or upstream transport issues should trigger fallback.
-    return status in {400, 401, 403, 404, 405, 408, 429} or status >= 500
+    # Wrong endpoint or transport issues should trigger fallback.
+    # Do not fail over on auth failures: that usually indicates token issues,
+    # and trying random hosts (e.g. host.docker.internal) only adds noise.
+    return status in {404, 405, 408, 429} or status >= 500
 
 
 class CopilotApiClient(SharedCopilotApiClient):
@@ -256,24 +259,16 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         self._config = config
         session = async_get_clientsession(hass)
 
-        host, port = normalize_host_port(
-            config.get(CONF_HOST, ""),
-            config.get(CONF_PORT, 0),
-        )
+        host, port, token = resolve_core_connection_from_mapping(config)
         self._config[CONF_HOST] = host
         self._config[CONF_PORT] = port
-        # Backward compatibility: some older entries still use "auth_token".
-        token = str(
-            self._config.get(CONF_TOKEN)
-            or self._config.get("auth_token")
-            or ""
-        ).strip()
         self._config[CONF_TOKEN] = token
 
         candidate_hosts = build_candidate_hosts(
             host,
             internal_url=getattr(hass.config, "internal_url", None),
             external_url=getattr(hass.config, "external_url", None),
+            include_docker_internal=host == "host.docker.internal",
         )
         port_candidates = [port]
         if DEFAULT_PORT not in port_candidates:

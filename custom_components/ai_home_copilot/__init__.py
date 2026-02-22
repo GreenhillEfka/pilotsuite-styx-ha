@@ -12,13 +12,29 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_call_later
 
 from .blueprints import async_install_blueprints
-from .const import DOMAIN, INTEGRATION_UNIQUE_ID, MAIN_DEVICE_IDENTIFIER
+from .connection_config import merged_entry_config, resolve_core_connection_from_mapping
+from .const import (
+    CONF_HOST,
+    CONF_PORT,
+    CONF_TOKEN,
+    DOMAIN,
+    INTEGRATION_UNIQUE_ID,
+    MAIN_DEVICE_IDENTIFIER,
+)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 from .core.runtime import CopilotRuntime
 from .entity import build_main_device_identifiers
 from .services_setup import async_register_all_services
 
 _LOGGER = logging.getLogger(__name__)
+
+_LEGACY_CONNECTION_KEYS = ("core_url", "auth_token", "access_token", "api_token")
+_LEGACY_TEXT_ENTITY_SUFFIXES = (
+    "media_music_players_csv",
+    "media_tv_players_csv",
+    "seed_sensors_csv",
+    "test_light_entity_id",
+)
 
 _MODULE_IMPORTS = {
     "legacy": (".core.modules.legacy", "LegacyModule"),
@@ -112,13 +128,14 @@ async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry)
             entry.entry_id,
         )
 
-    cfg = entry.options or entry.data
+    cfg = merged_entry_config(entry)
     identifiers = build_main_device_identifiers(cfg)
     canonical_id = next((item for item in identifiers if item[1] == MAIN_DEVICE_IDENTIFIER), None)
     if canonical_id is None:
         return
 
     dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
     device = dev_reg.async_get_device(identifiers={canonical_id})
     if device is None:
         # Try legacy host:port identifier and add canonical alias when found.
@@ -126,6 +143,20 @@ async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry)
         for legacy_id in legacy_ids:
             device = dev_reg.async_get_device(identifiers={legacy_id})
             if device is not None:
+                break
+
+    if device is None:
+        # Last-resort: pick an existing PilotSuite-related device from this entry's entities.
+        for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+            if not entity_entry.device_id:
+                continue
+            probe = dev_reg.async_get(entity_entry.device_id)
+            if probe is None:
+                continue
+            has_domain_identifier = any(ns == DOMAIN for ns, _val in probe.identifiers)
+            manufacturer = str(probe.manufacturer or "").lower()
+            if has_domain_identifier or manufacturer in ("pilotsuite", "ai home copilot"):
+                device = probe
                 break
 
     if device is None:
@@ -143,6 +174,17 @@ async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry)
         model="Home Assistant Integration",
         name_by_user=device.name_by_user,
     )
+
+    # Consolidate entities from legacy PilotSuite devices into the canonical hub.
+    for entity_entry in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
+        if not entity_entry.device_id or entity_entry.device_id == device.id:
+            continue
+        probe = dev_reg.async_get(entity_entry.device_id)
+        if probe is None:
+            continue
+        if not any(ns == DOMAIN for ns, _val in probe.identifiers):
+            continue
+        ent_reg.async_update_entity(entity_entry.entity_id, new_device_id=device.id)
 
 
 async def _async_migrate_legacy_sensor_unique_ids(
@@ -189,6 +231,63 @@ async def _async_migrate_legacy_sensor_unique_ids(
         )
 
 
+async def _async_migrate_connection_config(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Normalize host/port/token from data+options into canonical keys."""
+    merged = merged_entry_config(entry)
+    host, port, token = resolve_core_connection_from_mapping(merged)
+
+    new_data = dict(entry.data) if isinstance(entry.data, dict) else {}
+    changed = False
+
+    if new_data.get(CONF_HOST) != host:
+        new_data[CONF_HOST] = host
+        changed = True
+    if new_data.get(CONF_PORT) != port:
+        new_data[CONF_PORT] = port
+        changed = True
+    if str(new_data.get(CONF_TOKEN, "") or "").strip() != token:
+        new_data[CONF_TOKEN] = token
+        changed = True
+
+    for legacy_key in _LEGACY_CONNECTION_KEYS:
+        if legacy_key in new_data:
+            new_data.pop(legacy_key, None)
+            changed = True
+
+    if not changed:
+        return
+
+    hass.config_entries.async_update_entry(entry, data=new_data)
+    _LOGGER.info(
+        "Normalized PilotSuite connection config for %s to %s:%s",
+        entry.entry_id,
+        host,
+        port,
+    )
+
+
+async def _async_cleanup_legacy_config_text_entities(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Remove obsolete config text entities that were replaced by selectors."""
+    ent_reg = er.async_get(hass)
+    entries = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
+    removed = 0
+
+    for entity_entry in entries:
+        if entity_entry.domain != "text":
+            continue
+        uid = str(entity_entry.unique_id or "").lower()
+        eid = str(entity_entry.entity_id or "").lower()
+        if not any(uid.endswith(suffix) or eid.endswith(suffix) for suffix in _LEGACY_TEXT_ENTITY_SUFFIXES):
+            continue
+        ent_reg.async_remove(entity_entry.entity_id)
+        removed += 1
+
+    if removed:
+        _LOGGER.info("Removed %d obsolete PilotSuite legacy text entities", removed)
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_all_services(hass)
@@ -224,6 +323,11 @@ def _get_runtime(hass: HomeAssistant) -> CopilotRuntime:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
+        await _async_migrate_connection_config(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to normalize connection config")
+
+    try:
         await _async_migrate_entry_identity(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to migrate entry/device identity")
@@ -232,6 +336,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _async_migrate_legacy_sensor_unique_ids(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to migrate legacy sensor unique_ids")
+
+    try:
+        await _async_cleanup_legacy_config_text_entities(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to clean up legacy config text entities")
 
     try:
         await async_install_blueprints(hass)
@@ -249,7 +358,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .user_preference_module import UserPreferenceModule
         from .const import CONF_USER_PREFERENCE_ENABLED
 
-        config = entry.options or entry.data
+        config = merged_entry_config(entry)
         if config.get(CONF_USER_PREFERENCE_ENABLED, False):
             user_pref_module = UserPreferenceModule(hass, entry)
             await user_pref_module.async_setup()
@@ -267,7 +376,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .multi_user_preferences import MultiUserPreferenceModule, set_mupl_module
         from .const import CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED
 
-        config = entry.options or entry.data
+        config = merged_entry_config(entry)
         if config.get(CONF_MUPL_ENABLED, DEFAULT_MUPL_ENABLED):
             mupl_module = MultiUserPreferenceModule(hass, entry)
             await mupl_module.async_setup()

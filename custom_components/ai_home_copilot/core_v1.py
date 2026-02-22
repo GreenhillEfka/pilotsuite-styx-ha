@@ -12,6 +12,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import CopilotApiClient, CopilotApiError
+from .connection_config import build_core_headers, resolve_core_connection
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -125,12 +126,10 @@ async def async_call_core_api(
         JSON response dict or None on error
     """
     session = async_get_clientsession(hass)
-    host = entry.data.get("host", "homeassistant.local")
-    port = entry.data.get("port", 8909)
-    token = entry.data.get("token", "")
+    host, port, token = resolve_core_connection(entry)
     
     url = f"http://{host}:{port}{path}"
-    headers = {"X-Auth-Token": token} if token else {}
+    headers = build_core_headers(token)
     
     try:
         if method == "GET":

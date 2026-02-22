@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
 from .module import CopilotModule, ModuleContext
+from ...connection_config import merged_entry_config
 from ...ml_context import MLContext, initialize_ml_context, get_ml_context
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class MLContextModule(CopilotModule):
         
     async def async_setup_entry(self, entry: ConfigEntry) -> bool:
         """Set up ML context module."""
-        config = entry.options or entry.data
+        config = merged_entry_config(entry)
         
         # Enable ML by default (previously disabled)
         self._enabled = config.get("ml_enabled", True)

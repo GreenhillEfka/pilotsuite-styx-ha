@@ -12,6 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 from homeassistant.core import HomeAssistant, ServiceCall
 
+from .connection_config import resolve_core_connection
 from .const import DOMAIN
 from .media_context_v2_setup import MediaContextV2ConfigManager
 from .tag_registry import (
@@ -208,9 +209,10 @@ def _register_forwarder_n3_services(hass: HomeAssistant) -> None:
                 return
             for entry in hass.config_entries.async_entries(DOMAIN):
                 if entry.entry_id == entry_id:
+                    host, port, token = resolve_core_connection(entry)
                     config = {
-                        "core_url": entry.data.get("core_url", "http://localhost:8909"),
-                        "api_token": entry.data.get("api_token", ""),
+                        "core_url": f"http://{host}:{port}",
+                        "api_token": token,
                         "enabled_domains": [
                             "light", "climate", "media_player", "binary_sensor",
                             "sensor", "cover", "lock", "person", "device_tracker",

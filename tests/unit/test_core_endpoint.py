@@ -41,5 +41,13 @@ def test_build_candidate_hosts_includes_fallbacks() -> None:
     assert "supervisor" in hosts
     assert "localhost" in hosts
     assert "127.0.0.1" in hosts
-    assert "host.docker.internal" in hosts
+    assert "host.docker.internal" not in hosts
     assert "ha.example.com" in hosts
+
+
+def test_build_candidate_hosts_can_include_docker_internal() -> None:
+    hosts = build_candidate_hosts(
+        "192.168.30.18",
+        include_docker_internal=True,
+    )
+    assert "host.docker.internal" in hosts

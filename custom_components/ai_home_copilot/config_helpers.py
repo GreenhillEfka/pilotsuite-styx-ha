@@ -164,6 +164,7 @@ async def discover_reachable_core_endpoint(
         host or DEFAULT_HOST,
         internal_url=getattr(hass.config, "internal_url", None),
         external_url=getattr(hass.config, "external_url", None),
+        include_docker_internal=(host or "").strip() == "host.docker.internal",
     )
     session = async_get_clientsession(hass)
     port_candidates = [port]

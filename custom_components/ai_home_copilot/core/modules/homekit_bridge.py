@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.storage import Store
 
+from ...connection_config import build_core_headers, resolve_core_connection
 from .module import CopilotModule, ModuleContext
 
 _LOGGER = logging.getLogger(__name__)
@@ -178,17 +179,15 @@ class HomeKitBridgeModule(CopilotModule):
             return
 
         try:
-            from ...const import CONF_HOST, CONF_PORT, CONF_TOKEN, DOMAIN
+            from ...const import DOMAIN
             entries = self._hass.config_entries.async_entries(DOMAIN)
             if not entries:
                 return
             entry = entries[0]
-            host = entry.data.get(CONF_HOST, "homeassistant.local")
-            port = entry.data.get(CONF_PORT, 8909)
-            token = entry.data.get(CONF_TOKEN, "")
+            host, port, token = resolve_core_connection(entry)
 
             import aiohttp
-            headers = {"X-Auth-Token": token} if token else {}
+            headers = build_core_headers(token)
             url = f"http://{host}:{port}/api/v1/homekit/all-zones-info"
 
             async with aiohttp.ClientSession() as session:
