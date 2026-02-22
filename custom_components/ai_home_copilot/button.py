@@ -49,6 +49,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 HabitusZonesV2ValidateButton(coordinator, entry),
                 CopilotGenerateHabitusDashboardButton(coordinator, entry),
                 CopilotDownloadHabitusDashboardButton(coordinator, entry),
+                CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
+                CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
             ],
             True,
         )

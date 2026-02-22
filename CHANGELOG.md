@@ -1,5 +1,22 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.17] - 2026-02-22 — DASHBOARD AUTO-REFRESH + CORE PROFILE ACCESS
+
+### Fixes
+- **PilotSuite Dashboard aktualisiert sich jetzt bei Zonen-Aenderungen automatisch**
+  - Bei `Habitus Zones v2` Updates wird `pilotsuite_dashboard_latest.yaml` automatisch neu generiert (debounced).
+  - Damit bleiben neu erstellte/geaenderte Zonen ohne manuelles Re-Generate im YAML-Dashboard sichtbar.
+- **Core-Entity-Profile hat jetzt ebenfalls PilotSuite-Dashboard-Buttons**
+  - Auch im `entity_profile=core` sind jetzt verfuegbar:
+    - `button.ai_home_copilot_generate_pilotsuite_dashboard`
+    - `button.ai_home_copilot_download_pilotsuite_dashboard`
+  - Vorher war das nur im `full`-Profil sichtbar.
+- **Sauberes Unload**
+  - Auto-Refresh Listener/Timer werden beim Unload sauber entfernt (kein Listener-Leak).
+
+### Tests
+- Lokale HA-Testsuite: **527 passed, 5 skipped**.
+
 ## [7.7.16] - 2026-02-22 — CONVERSATION ID + DEVICE IDENTITY HARDENING
 
 ### Fixes

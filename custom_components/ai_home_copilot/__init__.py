@@ -4,9 +4,11 @@ from importlib import import_module
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.event import async_call_later
 
 from .blueprints import async_install_blueprints
 from .const import DOMAIN, INTEGRATION_UNIQUE_ID, MAIN_DEVICE_IDENTIFIER
@@ -261,6 +263,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to auto-generate PilotSuite dashboard")
 
+    # Keep dashboard YAML updated when Habitus zones change.
+    try:
+        from .habitus_zones_store_v2 import SIGNAL_HABITUS_ZONES_V2_UPDATED
+        from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_store, dict):
+            async def _async_refresh_dashboard(reason: str) -> None:
+                try:
+                    await async_generate_pilotsuite_dashboard(hass, entry)
+                    _LOGGER.info("PilotSuite dashboard auto-regenerated (%s)", reason)
+                except Exception:
+                    _LOGGER.exception("Failed to auto-regenerate PilotSuite dashboard (%s)", reason)
+
+            @callback
+            def _schedule_dashboard_refresh(reason: str) -> None:
+                cancel = entry_store.pop("_dashboard_refresh_cancel", None)
+                if callable(cancel):
+                    cancel()
+
+                @callback
+                def _run_refresh(_now) -> None:
+                    entry_store.pop("_dashboard_refresh_cancel", None)
+                    hass.async_create_task(_async_refresh_dashboard(reason))
+
+                # Debounce rapid zone edits to a single regen.
+                entry_store["_dashboard_refresh_cancel"] = async_call_later(hass, 2.0, _run_refresh)
+
+            @callback
+            def _on_zones_updated(updated_entry_id: str) -> None:
+                if str(updated_entry_id) != entry.entry_id:
+                    return
+                _schedule_dashboard_refresh("habitus_zones_updated")
+
+            unsub = async_dispatcher_connect(
+                hass,
+                SIGNAL_HABITUS_ZONES_V2_UPDATED,
+                _on_zones_updated,
+            )
+            entry_store["_dashboard_zones_unsub"] = unsub
+    except Exception:
+        _LOGGER.exception("Failed to set up dashboard auto-refresh listener")
+
     # Show onboarding notification on first setup (v3.12.0)
     try:
         entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
@@ -291,6 +336,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Unload User Preference Module
     entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+
+    cancel_dashboard_refresh = entry_data.pop("_dashboard_refresh_cancel", None)
+    if callable(cancel_dashboard_refresh):
+        cancel_dashboard_refresh()
+
+    unsub_dashboard_listener = entry_data.pop("_dashboard_zones_unsub", None)
+    if callable(unsub_dashboard_listener):
+        unsub_dashboard_listener()
+
     user_pref_module = entry_data.get("user_preference_module")
     if user_pref_module:
         await user_pref_module.async_unload()
