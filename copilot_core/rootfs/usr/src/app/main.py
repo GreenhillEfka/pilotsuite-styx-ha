@@ -12,11 +12,11 @@ import time
 import threading as _threading
 import uuid
 
-from flask import Flask, request, jsonify, send_from_directory, g
+from flask import Flask, request, jsonify, send_from_directory, g, render_template
 from flask_compress import Compress
 from waitress import serve
 
-from copilot_core.api.security import require_token, validate_token
+from copilot_core.api.security import require_token, validate_token, get_auth_token
 from copilot_core.api.api_version import API_VERSION, parse_accept_version, get_deprecation_info
 from copilot_core.core_setup import init_services, register_blueprints
 from copilot_core.versioning import get_runtime_version
@@ -235,7 +235,10 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 @app.get("/")
 def index():
     """Serve PilotSuite Dashboard (ingress panel)."""
-    return send_from_directory(TEMPLATE_DIR, 'dashboard.html')
+    return render_template(
+        "dashboard.html",
+        dashboard_auth_token=get_auth_token() or "",
+    )
 
 
 @app.get("/api/v1/cards/<path:filename>")

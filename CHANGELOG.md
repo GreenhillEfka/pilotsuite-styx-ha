@@ -1,5 +1,17 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.18] - 2026-02-22 — DASHBOARD AUTH BRIDGE + CHAT UX RELIABILITY
+
+### Fixes
+- **Dashboard requests now reuse configured auth token automatically**
+  - Dashboard root is now rendered with the configured Core auth token injected
+    (server-side) and reused by all frontend API calls.
+  - behebt 401-Fehler im Dashboard bei gesetztem `auth_token`.
+- **Chat in Core dashboard stabilized**
+  - Chat-Requests (`/v1/chat/completions`) senden nun automatisch den Auth-Header.
+  - gleiches gilt fuer Suggestion-, Szene-, HomeKit-, Habitus-, Modul- und Haushalts-Aktionen.
+  - Ergebnis: Dashboard-Funktionen laufen konsistent auch bei aktivierter API-Authentifizierung.
+
 ## [7.7.17] - 2026-02-22 — OLLAMA CLOUD ENDPOINT HARDENING
 
 ### Fixes

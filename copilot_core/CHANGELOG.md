@@ -3,6 +3,10 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.7.18
+- Dashboard nutzt jetzt automatisch den konfigurierten Auth-Token fuer alle API-Calls.
+- Chat/Suggestions/Szenen/HomeKit/Habitus/Module im Dashboard funktionieren damit auch bei aktivierter API-Authentifizierung (`auth_token` gesetzt).
+
 ## 7.7.17
 - **Ollama Cloud URL Hardening**: `ollama.com` Eingaben werden robust auf `https://ollama.com/v1` normalisiert.
 - **Cloud Model Mapping**: unpassende OpenAI-Modelnamen (z. B. `gpt-4o-mini`) werden fuer Ollama Cloud automatisch auf `gpt-oss:20b` korrigiert.

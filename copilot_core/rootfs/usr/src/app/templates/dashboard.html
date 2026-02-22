@@ -504,6 +504,7 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 // XSS-safe | Resilient | Real Module Health | Module Control API
 // ==================================================
 const API='';
+const DASHBOARD_AUTH_TOKEN={{ dashboard_auth_token|tojson }};
 let currentModel='';
 const DOMAIN_COLORS={
   sensor:'#34d399',light:'#fbbf24',switch:'#7c6aef',binary_sensor:'#60a5fa',
@@ -543,7 +544,22 @@ let _healthTs=0;
 // -- Helpers --
 function $(id){return document.getElementById(id)}
 function escapeHtml(s){if(s===null||s===undefined)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-async function api(path){try{const r=await fetch(API+path);if(!r.ok)return null;return await r.json()}catch(e){return null}}
+function withAuth(init={}){
+  const headers={...(init.headers||{})};
+  if(DASHBOARD_AUTH_TOKEN&&!headers.Authorization&&!headers['X-Auth-Token']){
+    headers.Authorization='Bearer '+DASHBOARD_AUTH_TOKEN;
+  }
+  return {...init,headers};
+}
+async function api(path){
+  try{
+    const r=await fetch(API+path,withAuth());
+    if(!r.ok)return null;
+    return await r.json();
+  }catch(e){
+    return null;
+  }
+}
 function badge(t,c){return`<span class="b b-${c}">${escapeHtml(t)}</span>`}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e}
 
@@ -808,10 +824,10 @@ async function sendChat(){
   const typing=el('div','msg a','<div class="spinner" style="display:inline-block;width:12px;height:12px;margin-right:6px"></div>Denkt nach...');
   msgs.appendChild(typing);msgs.scrollTop=msgs.scrollHeight;
   try{
-    const r=await fetch(API+'/v1/chat/completions',{
+    const r=await fetch(API+'/v1/chat/completions',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:currentModel,messages:chatHistory.slice(-10),stream:false})
-    });
+    }));
     const data=await r.json();
     const reply=data?.choices?.[0]?.message?.content||data?.error?.message||'Keine Antwort.';
     // XSS-safe: escape first, then convert newlines to <br>
@@ -944,21 +960,24 @@ async function acceptSuggestion(idx){
   addHistory('Vorschlag angenommen: '+s.antecedent+(s.consequent?' \u2192 '+s.consequent:''));
   // 1. Create hint in backend
   try{
-    const hintRes=await fetch(API+'/api/v1/hints',{
+    const hintRes=await fetch(API+'/api/v1/hints',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({text:s.antecedent+(s.consequent?' -> '+s.consequent:''),type:'automation'})
-    });
+    }));
     const hintData=await hintRes.json();
     const hintId=hintData?.hint?.id||s.id;
     // 2. Accept the hint
-    await fetch(API+'/api/v1/hints/'+hintId+'/accept',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    await fetch(
+      API+'/api/v1/hints/'+hintId+'/accept',
+      withAuth({method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    );
   }catch(e){console.warn('Hint accept error:',e)}
   // 3. Create HA Automation via Automation Creator API (v1.3.0)
   try{
-    const autoRes=await fetch(API+'/api/v1/automations/create',{
+    const autoRes=await fetch(API+'/api/v1/automations/create',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({antecedent:s.antecedent,consequent:s.consequent,confidence:s.confidence,zone:s.zone,source:s.source,type:s.type})
-    });
+    }));
     const autoData=await autoRes.json();
     if(autoData?.ok){
       addHistory('\u2705 HA-Automation erstellt: '+escapeHtml(autoData.alias||s.antecedent));
@@ -969,10 +988,10 @@ async function acceptSuggestion(idx){
     const fromNode=s.raw?.data?.from||'ha.entity:'+s.antecedent;
     const toNode=s.raw?.data?.to||'ha.entity:'+s.consequent;
     try{
-      await fetch(API+'/api/v1/graph/ops',{
+      await fetch(API+'/api/v1/graph/ops',withAuth({
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({op:'touch_edge',from:fromNode,to:toNode,type:s.edgeType||'controls',delta:1.0})
-      });
+      }));
     }catch(e){console.warn('Graph ops error:',e)}
     // 4. Animate edge in Brain SVG
     animateBrainEdge(s.antecedent,s.consequent);
@@ -990,7 +1009,12 @@ async function rejectSuggestion(idx){
   addHistory('Vorschlag abgelehnt: '+s.antecedent);
   // Backend reject if it's a hint
   if(s.type==='hint'){
-    try{await fetch(API+'/api/v1/hints/'+s.id+'/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}catch(e){}
+    try{
+      await fetch(
+        API+'/api/v1/hints/'+s.id+'/reject',
+        withAuth({method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+      )
+    }catch(e){}
   }
   renderSuggestionInbox();
 }
@@ -1095,10 +1119,10 @@ async function addZone(){
   if(!name){$('new-zone-name').style.borderColor='var(--red)';return}
   const entities=ents?ents.split(',').map(e=>e.trim()).filter(Boolean):[];
   try{
-    const r=await fetch(API+'/api/v1/habitus/config',{
+    const r=await fetch(API+'/api/v1/habitus/config',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({zones:{[name.toLowerCase().replace(/\s+/g,'_')]:{name,entities,description:'Zone: '+name}}})
-    });
+    }));
     if(r.ok){
       $('new-zone-name').value='';$('new-zone-entities').value='';
       addHistory('Zone erstellt: '+name);
@@ -1380,7 +1404,10 @@ async function loadHaushaltData(){
 }
 async function haushaltRemind(type){
   try{
-    const r=await fetch(API+'/api/v1/haushalt/remind/'+type,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const r=await fetch(
+      API+'/api/v1/haushalt/remind/'+type,
+      withAuth({method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    );
     const d=await r.json();
     addHistory((d?.ok?'✅':'⚠️')+' Erinnerung: '+(d?.message||d?.error||type));
   }catch(e){addHistory('⚠️ Fehler: '+e.message)}
@@ -1469,10 +1496,10 @@ async function toggleModule(btn,modId){
   localStorage.setItem('styx_module_states',JSON.stringify(moduleStates));
   // Call Module Control API (v1.3.0)
   try{
-    const res=await fetch(API+'/api/v1/modules/'+encodeURIComponent(modId)+'/configure',{
+    const res=await fetch(API+'/api/v1/modules/'+encodeURIComponent(modId)+'/configure',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({state:newState})
-    });
+    }));
     const data=await res.json();
     if(data?.ok){
       addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+newState+' (Backend sync)');
@@ -1606,7 +1633,12 @@ async function loadBirthdayPanel(){
 async function loadNewsWarnings(){
   const c=$('news-warnings-panel');if(!c)return;
   try{
-    const [newsRes,warnRes]=await Promise.allSettled([api('/api/v1/capabilities'),fetch(API+'/api/v1/media/proactive/zone-entry',{method:'GET'}).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    const [newsRes,warnRes]=await Promise.allSettled([
+      api('/api/v1/capabilities'),
+      fetch(API+'/api/v1/media/proactive/zone-entry',withAuth({method:'GET'}))
+        .then(r=>r.ok?r.json():null)
+        .catch(()=>null)
+    ]);
     const caps=(newsRes.status==='fulfilled'?newsRes.value:null);
     let html='<div style="font-size:11px;color:var(--dim)">';
     html+='<p><strong>DuckDuckGo-Suche:</strong> Styx kann das Web durchsuchen (kein API-Key noetig)</p>';
@@ -1782,10 +1814,10 @@ async function loadScenes(){
 async function saveZoneScene(zoneId,zoneName,entityIds){
   const name=prompt('Szenen-Name (optional):','');
   try{
-    const r=await fetch(API+'/api/v1/scenes/create',{
+    const r=await fetch(API+'/api/v1/scenes/create',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({zone_id:zoneId,zone_name:zoneName,name:name||undefined,entity_ids:entityIds})
-    });
+    }));
     const d=await r.json();
     if(d.success){
       addHistory('Szene gespeichert: '+(d.scene?.name||zoneId));
@@ -1796,7 +1828,10 @@ async function saveZoneScene(zoneId,zoneName,entityIds){
 
 async function applyScene(sceneId){
   try{
-    const r=await fetch(API+'/api/v1/scenes/'+sceneId+'/apply',{method:'POST',headers:{'Content-Type':'application/json'}});
+    const r=await fetch(
+      API+'/api/v1/scenes/'+sceneId+'/apply',
+      withAuth({method:'POST',headers:{'Content-Type':'application/json'}})
+    );
     const d=await r.json();
     if(d.success){
       addHistory('Szene angewendet: '+(d.scene?.name||sceneId));
@@ -1808,7 +1843,7 @@ async function applyScene(sceneId){
 async function deleteScene(sceneId){
   if(!confirm('Szene wirklich löschen?'))return;
   try{
-    const r=await fetch(API+'/api/v1/scenes/'+sceneId,{method:'DELETE'});
+    const r=await fetch(API+'/api/v1/scenes/'+sceneId,withAuth({method:'DELETE'}));
     const d=await r.json();
     if(d.success){addHistory('Szene gelöscht');loadScenes()}
     else{addHistory('Lösch-Fehler: '+(d.error||'unbekannt'))}
@@ -1821,10 +1856,10 @@ async function deleteScene(sceneId){
 async function toggleHomeKit(zoneId,zoneName,entityIds){
   const action=confirm(`Zone "${zoneName}" zu HomeKit hinzufügen?\n\n${entityIds.length} Entitäten werden exponiert.\nAbbrechen = HomeKit für Zone deaktivieren.`);
   try{
-    const r=await fetch(API+'/api/v1/homekit/toggle',{
+    const r=await fetch(API+'/api/v1/homekit/toggle',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({zone_id:zoneId,zone_name:zoneName,entity_ids:entityIds,enabled:action})
-    });
+    }));
     const d=await r.json();
     if(d.success){
       const msg=action?`HomeKit aktiviert: ${zoneName} (${d.entities_exposed} Entitäten)`:`HomeKit deaktiviert: ${zoneName}`;
