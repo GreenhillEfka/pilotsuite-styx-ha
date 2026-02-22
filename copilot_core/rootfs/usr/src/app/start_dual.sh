@@ -10,7 +10,7 @@
 set -e
 
 echo "============================================"
-echo "  PilotSuite v7.6.4 -- Styx"
+echo "  PilotSuite v7.7.2 -- Styx"
 echo "  Die Verbindung beider Welten"
 echo "  Local AI for your Smart Home"
 echo "============================================"
@@ -63,7 +63,7 @@ MODEL=${OLLAMA_MODEL:-qwen3:4b}
 
 # Ensure model persistence directory exists
 export OLLAMA_MODELS=${OLLAMA_MODELS:-/share/pilotsuite/ollama/models}
-mkdir -p "$OLLAMA_MODELS"
+mkdir -p "$OLLAMA_MODELS" 2>/dev/null || echo "WARNING: Cannot create $OLLAMA_MODELS (is /share mounted?)"
 
 echo "Configuration: model=$MODEL, ollama_url=${OLLAMA_URL:-http://localhost:11434}"
 
