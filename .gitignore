@@ -3,5 +3,32 @@
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+*.so
 venv_test/
+.venv/
+
+# Build / Test
+build/
+dist/
+*.egg-info/
+.coverage
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+
+# Editor / IDE
+.idea/
+.vscode/
+
+# Secrets & credentials (defensive)
+.env
+.env.*
+*.pem
+*.key
+*.cert
+*.p12
+secrets.yaml
+credentials.json

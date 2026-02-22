@@ -77,8 +77,10 @@ def _sanitize_traceback(tb_lines: list[str]) -> list[str]:
     
     for line in tb_lines:
         # Replace absolute paths with relative ones
-        if "/config/.openclaw/workspace" in line:
-            line = line.replace("/config/.openclaw/workspace", ".")
+        if "/custom_components/" in line:
+            idx = line.find("/custom_components/")
+            if idx >= 0:
+                line = line[:0] + "." + line[idx:]
         
         # Remove other sensitive paths
         line = line.replace("/usr/lib/python", "[python]")

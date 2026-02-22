@@ -8,11 +8,12 @@ import pytest
 # Mark as integration test - requires HA installation
 pytestmark = pytest.mark.integration
 
+import os
 import sys
 from unittest.mock import MagicMock, AsyncMock
 
 # Import the module under test (requires HA to be available)
-sys.path.insert(0, '/config/.openclaw/workspace/ai_home_copilot_hacs_repo/custom_components/ai_home_copilot')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'custom_components', 'ai_home_copilot'))
 
 # Skip entire module if HA not installed
 try:
