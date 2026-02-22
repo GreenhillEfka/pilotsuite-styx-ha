@@ -3,6 +3,11 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.7.17
+- **Ollama Cloud URL Hardening**: `ollama.com` Eingaben werden robust auf `https://ollama.com/v1` normalisiert.
+- **Cloud Model Mapping**: unpassende OpenAI-Modelnamen (z. B. `gpt-4o-mini`) werden fuer Ollama Cloud automatisch auf `gpt-oss:20b` korrigiert.
+- **Regression-Tests**: neue Tests fuer URL-Normalisierung und Modell-Mapping.
+
 ## 7.7.16
 - **LLM Guardrail**: cloud-typische Modellnamen im lokalen `OLLAMA_MODEL` werden automatisch auf `qwen3:0.6b` korrigiert.
 - **Status Diagnose**: neue Felder `ollama_model_configured` und `ollama_model_overridden` fuer einfacheres Troubleshooting.

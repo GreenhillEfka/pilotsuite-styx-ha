@@ -1,5 +1,24 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.17] - 2026-02-22 — OLLAMA CLOUD ENDPOINT HARDENING
+
+### Fixes
+- **Ollama Cloud URL fest normalisiert**
+  - `https://ollama.com`, `https://ollama.com/api` und `https://ollama.com/v1`
+    werden intern auf `https://ollama.com/v1` vereinheitlicht.
+  - Dadurch nutzt Styx fuer Cloud-Fallback immer den korrekten
+    OpenAI-kompatiblen Endpoint (`/v1/chat/completions`).
+- **Modell-Mapping fuer Ollama Cloud**
+  - Inkompatible OpenAI-Defaults wie `gpt-4o-mini`, `gpt-4o`, `gpt-4.1`, `gpt-5`, `o1`, `o3`
+    werden bei Ollama Cloud automatisch auf `gpt-oss:20b` umgebogen.
+  - Verhindert `404 model not found` bei funktionierender Cloud-Verbindung.
+- **Provider-spezifischer Cloud-Default**
+  - Ollama Cloud: Default `gpt-oss:20b`
+  - Andere OpenAI-kompatible Endpoints: Default bleibt `gpt-4o-mini`
+
+### Verifikation
+- Gesamte Core-Testsuite lokal: **1962 passed, 1 skipped**.
+
 ## [7.7.16] - 2026-02-22 — LLM MISCONFIG GUARDRAIL
 
 ### Fixes

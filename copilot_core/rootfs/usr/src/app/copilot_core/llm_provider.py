@@ -8,15 +8,16 @@ Supports multiple backends with automatic fallback:
 Config (addon options -> conversation section):
   ollama_url:       http://localhost:11434
   ollama_model:     qwen3:0.6b
-  cloud_api_url:    https://api.openai.com/v1  (or OpenClaw URL)
+  cloud_api_url:    https://ollama.com/v1  (or another OpenAI-compatible /v1 endpoint)
   cloud_api_key:    sk-...
-  cloud_model:      gpt-4o-mini  (or openclaw model)
+  cloud_model:      gpt-oss:20b / gpt-4o-mini (provider specific)
   prefer_local:     true  (try Ollama first, fall back to cloud)
 """
 
 import logging
 import os
 import time
+from urllib.parse import urlparse
 
 import requests as http_requests
 
@@ -34,6 +35,8 @@ _CLOUD_MODEL_PREFIXES = (
     "deepseek",
 )
 _DEFAULT_OLLAMA_MODEL = "qwen3:0.6b"
+_DEFAULT_CLOUD_MODEL = "gpt-4o-mini"
+_DEFAULT_OLLAMA_CLOUD_MODEL = "gpt-oss:20b"
 
 
 class LLMProvider:
@@ -48,7 +51,7 @@ class LLMProvider:
         configured_ollama_model = str(os.environ.get("OLLAMA_MODEL", _DEFAULT_OLLAMA_MODEL) or "").strip()
         if not configured_ollama_model:
             configured_ollama_model = _DEFAULT_OLLAMA_MODEL
-        self.cloud_api_url = os.environ.get("CLOUD_API_URL", "")
+        self.cloud_api_url = str(os.environ.get("CLOUD_API_URL", "") or "").strip()
         self.cloud_api_key = os.environ.get("CLOUD_API_KEY", "")
         self.cloud_model = os.environ.get("CLOUD_MODEL", "")
         self.prefer_local = os.environ.get("PREFER_LOCAL", "true").lower() == "true"
@@ -251,6 +254,46 @@ class LLMProvider:
             return False
         return value.startswith(_CLOUD_MODEL_PREFIXES)
 
+    @staticmethod
+    def _is_ollama_cloud_host(url: str) -> bool:
+        """Return True if URL targets ollama.com's hosted API."""
+        value = str(url or "").strip()
+        if not value:
+            return False
+        try:
+            parsed = urlparse(value if "://" in value else f"https://{value}")
+        except Exception:
+            return False
+        host = (parsed.hostname or "").lower()
+        return host in {"ollama.com", "www.ollama.com"}
+
+    @classmethod
+    def _normalize_cloud_base_url(cls, raw_url: str) -> str:
+        """Normalize cloud base URL for OpenAI-style /chat/completions calls."""
+        url = str(raw_url or "").strip().rstrip("/")
+        if not url:
+            return ""
+        if not cls._is_ollama_cloud_host(url):
+            return url
+
+        # Accept common user inputs for Ollama Cloud and normalize to /v1.
+        parsed = urlparse(url if "://" in url else f"https://{url}")
+        path = parsed.path.rstrip("/")
+        if path in ("", "/api", "/v1"):
+            return "https://ollama.com/v1"
+        return url
+
+    @classmethod
+    def _coerce_cloud_model_for_ollama_cloud(cls, model: str, base_url: str) -> str:
+        """Map obviously incompatible OpenAI model names to an Ollama Cloud default."""
+        selected = str(model or "").strip()
+        if not cls._is_ollama_cloud_host(base_url):
+            return selected
+        lowered = selected.lower()
+        if lowered in {"gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-5", "o1", "o3"}:
+            return _DEFAULT_OLLAMA_CLOUD_MODEL
+        return selected
+
     # ------------------------------------------------------------------
     # Cloud / OpenAI-compatible backend (OpenClaw, OpenAI, etc.)
     # ------------------------------------------------------------------
@@ -259,12 +302,21 @@ class LLMProvider:
         if not self.cloud_api_url or not self.cloud_api_key:
             return None
 
-        model = model or self.cloud_model or "gpt-4o-mini"
+        base_url = self._normalize_cloud_base_url(self.cloud_api_url)
+        if model:
+            selected_model = model
+        elif self.cloud_model:
+            selected_model = self.cloud_model
+        elif self._is_ollama_cloud_host(base_url):
+            selected_model = _DEFAULT_OLLAMA_CLOUD_MODEL
+        else:
+            selected_model = _DEFAULT_CLOUD_MODEL
+        selected_model = self._coerce_cloud_model_for_ollama_cloud(selected_model, base_url)
         headers = {
             "Authorization": f"Bearer {self.cloud_api_key}",
             "Content-Type": "application/json",
         }
-        payload = {"model": model, "messages": messages, "stream": False}
+        payload = {"model": selected_model, "messages": messages, "stream": False}
         if temperature is not None:
             payload["temperature"] = temperature
         if max_tokens is not None:
@@ -272,7 +324,7 @@ class LLMProvider:
         if tools:
             payload["tools"] = tools
 
-        url = self.cloud_api_url.rstrip("/")
+        url = base_url
         if not url.endswith("/chat/completions"):
             url = f"{url}/chat/completions"
 
@@ -280,12 +332,12 @@ class LLMProvider:
             resp = http_requests.post(url, json=payload, headers=headers, timeout=self.timeout)
             if resp.status_code != 200:
                 # Sanitize: don't log full response which might echo the API key
-                logger.warning("Cloud API %s (model=%s)", resp.status_code, model)
+                logger.warning("Cloud API %s (model=%s)", resp.status_code, selected_model)
                 return None
             data = resp.json()
             choice = data.get("choices", [{}])[0]
             msg = choice.get("message", {})
-            logger.info("LLM response via cloud/%s", model)
+            logger.info("LLM response via cloud/%s", selected_model)
             return {
                 "content": msg.get("content", ""),
                 "tool_calls": msg.get("tool_calls"),

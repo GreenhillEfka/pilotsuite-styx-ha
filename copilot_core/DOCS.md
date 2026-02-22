@@ -24,9 +24,9 @@ PilotSuite Core is the backend engine for the PilotSuite Home Assistant integrat
 | Auth Token | _(empty)_ | Optional API auth token |
 | Ollama URL | `http://localhost:11435` | Ollama server URL |
 | Ollama Model | `qwen3:0.6b` | LLM model name (default) |
-| Cloud API URL (Fallback) | _(empty)_ | Optional OpenAI-compatible fallback URL |
+| Cloud API URL (Fallback) | _(empty)_ | Optional OpenAI-compatible fallback URL (z. B. `https://ollama.com/v1`) |
 | Cloud API Key (Fallback) | _(empty)_ | API key for fallback cloud endpoint |
-| Cloud Model (Fallback) | `gpt-4o-mini` | Fallback cloud model name |
+| Cloud Model (Fallback) | `gpt-4o-mini` | Fallback cloud model name (auf Ollama Cloud automatisch auf kompatibles Modell gemappt) |
 | Prefer Local Ollama | `true` | Try local first, then cloud fallback |
 | Assistant Name | `Styx` | AI assistant display name |
 | Conversation Enabled | `true` | Enable chat feature |
@@ -45,5 +45,5 @@ The Core API runs on port 8909. Key endpoints:
 
 - **Add-on won't start**: Check Supervisor logs for build errors
 - **LLM not responding**: Model pulls run in background; trigger `POST /api/v1/agent/self-heal` and re-check `/chat/status`
-- **Model not found (`gpt-4o-mini`)**: Set `conversation_cloud_*` fallback options or use an installed Ollama model (e.g. `qwen3:0.6b` or `qwen3:4b`)
+- **Model not found (`gpt-4o-mini`)**: Set `conversation_cloud_*` fallback options and use the right endpoint (`https://ollama.com/v1` for Ollama Cloud), or use an installed local model (`qwen3:0.6b` / `qwen3:4b`)
 - **API returns 503**: Hub engine not initialized, check add-on logs for import errors

@@ -100,6 +100,78 @@ def test_cloud_used_for_explicit_external_model_when_configured(
     assert cloud_calls == ["gpt-4o-mini"]
 
 
+def test_ollama_cloud_url_is_normalized_to_v1(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("CLOUD_API_URL", "https://ollama.com/")
+    monkeypatch.setenv("CLOUD_API_KEY", "sk-test")
+    monkeypatch.delenv("CLOUD_MODEL", raising=False)
+    monkeypatch.setenv("PREFER_LOCAL", "false")
+
+    cloud_urls: list[str] = []
+    cloud_models: list[str] = []
+
+    def _fake_post(url: str, json: dict[str, Any], timeout: int, headers=None):  # noqa: A002
+        cloud_urls.append(url)
+        cloud_models.append(str(json.get("model", "")))
+        return _Resp(200, "", {"choices": [{"message": {"content": "ok from cloud"}}]})
+
+    monkeypatch.setattr("copilot_core.llm_provider.http_requests.post", _fake_post)
+
+    provider = LLMProvider()
+    result = provider.chat(messages=[{"role": "user", "content": "hi"}])
+
+    assert result["provider"] == "cloud"
+    assert result["content"] == "ok from cloud"
+    assert cloud_urls == ["https://ollama.com/v1/chat/completions"]
+    assert cloud_models == ["gpt-oss:20b"]
+
+
+def test_ollama_cloud_coerces_openai_model_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("CLOUD_API_URL", "https://ollama.com/v1")
+    monkeypatch.setenv("CLOUD_API_KEY", "sk-test")
+    monkeypatch.setenv("CLOUD_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("PREFER_LOCAL", "false")
+
+    cloud_models: list[str] = []
+
+    def _fake_post(url: str, json: dict[str, Any], timeout: int, headers=None):  # noqa: A002
+        cloud_models.append(str(json.get("model", "")))
+        return _Resp(200, "", {"choices": [{"message": {"content": "ok from cloud"}}]})
+
+    monkeypatch.setattr("copilot_core.llm_provider.http_requests.post", _fake_post)
+
+    provider = LLMProvider()
+    result = provider.chat(messages=[{"role": "user", "content": "hi"}], model="gpt-4o-mini")
+
+    assert result["provider"] == "cloud"
+    assert result["content"] == "ok from cloud"
+    assert cloud_models == ["gpt-oss:20b"]
+
+
+def test_non_ollama_cloud_keeps_generic_default_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("CLOUD_API_URL", "https://api.example.com/v1")
+    monkeypatch.setenv("CLOUD_API_KEY", "sk-test")
+    monkeypatch.delenv("CLOUD_MODEL", raising=False)
+    monkeypatch.setenv("PREFER_LOCAL", "false")
+
+    cloud_models: list[str] = []
+
+    def _fake_post(url: str, json: dict[str, Any], timeout: int, headers=None):  # noqa: A002
+        cloud_models.append(str(json.get("model", "")))
+        return _Resp(200, "", {"choices": [{"message": {"content": "ok from cloud"}}]})
+
+    monkeypatch.setattr("copilot_core.llm_provider.http_requests.post", _fake_post)
+
+    provider = LLMProvider()
+    result = provider.chat(messages=[{"role": "user", "content": "hi"}])
+
+    assert result["provider"] == "cloud"
+    assert result["content"] == "ok from cloud"
+    assert cloud_models == ["gpt-4o-mini"]
+
+
 def test_cloud_url_without_key_returns_offline_dict(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3:4b")
