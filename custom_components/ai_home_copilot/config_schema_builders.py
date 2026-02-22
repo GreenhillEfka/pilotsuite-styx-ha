@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import voluptuous as vol
+from homeassistant.helpers import selector
 
 from .config_helpers import as_csv
 from .const import (
@@ -141,8 +142,15 @@ def build_network_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
         vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
         vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
         vol.Optional("_clear_token"): bool,
-        vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): str,
+        vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="light", multiple=False),
+        ),
     }
+
+
+def build_connection_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
+    """Build schema for the connection options step (network only)."""
+    return build_network_schema(data, webhook_url, token_hint)
 
 
 def build_media_schema(data: dict) -> dict:
@@ -443,10 +451,9 @@ def build_birthday_schema(data: dict) -> dict:
     }
 
 
-def build_settings_schema(data: dict, webhook_url: str, token_hint: str) -> vol.Schema:
-    """Build the complete settings schema from all builder functions."""
+def build_modules_schema(data: dict) -> dict:
+    """Build schema for the modules options step (all module toggles + settings)."""
     fields: dict = {}
-    fields.update(build_network_schema(data, webhook_url, token_hint))
     fields.update(build_media_schema(data))
     fields.update(build_seed_schema(data))
     fields.update(build_watchdog_schema(data))
@@ -457,4 +464,12 @@ def build_settings_schema(data: dict, webhook_url: str, token_hint: str) -> vol.
     fields.update(build_user_prefs_schema(data))
     fields.update(build_waste_schema(data))
     fields.update(build_birthday_schema(data))
+    return fields
+
+
+def build_settings_schema(data: dict, webhook_url: str, token_hint: str) -> vol.Schema:
+    """Build the complete settings schema (legacy, combines all)."""
+    fields: dict = {}
+    fields.update(build_network_schema(data, webhook_url, token_hint))
+    fields.update(build_modules_schema(data))
     return vol.Schema(fields)
