@@ -1,5 +1,16 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.7.15] - 2026-02-22 — CHAT TIMEOUT HOTFIX
+
+### Fixes
+- **Conversation-Timeout deutlich erhoeht**
+  - `coordinator.api.async_chat_completions()` nutzt jetzt `90s` statt `20s`.
+  - Hintergrund: lokale 4B-Modelle (`qwen3:4b`) brauchen auf HA-Hardware haeufig >20s.
+- Verhindert falsche Chat-Fehler durch zu kurze Client-Timeouts direkt nach Modellstart/Warmup.
+
+### Validierung
+- Test-Suite unveraendert gruen: **524 passed, 5 skipped**.
+
 ## [7.7.14] - 2026-02-22 — SETUP FLOW + ZONE RELIABILITY
 
 ### Fixes

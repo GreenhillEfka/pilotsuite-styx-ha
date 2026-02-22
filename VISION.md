@@ -6,7 +6,7 @@ This document is the active vision baseline for the dual-repo system:
 
 Version baseline:
 - Core add-on: `7.7.14`
-- HA integration: `7.7.14`
+- HA integration: `7.7.15`
 - Core API port: `8909`
 
 ## Mission

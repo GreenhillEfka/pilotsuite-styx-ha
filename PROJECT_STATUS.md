@@ -4,7 +4,7 @@ Scope: dual-repo production audit (`pilotsuite-styx-core` + `pilotsuite-styx-ha`
 
 Release baseline for this status:
 - Core add-on target: `7.7.14`
-- HA integration target: `7.7.14`
+- HA integration target: `7.7.15`
 
 ## Executive summary
 System is release-ready with validated critical communication loops and continuous guardrails.
@@ -21,6 +21,7 @@ Additional hardening completed:
 - Selector-first setup/options flow for entity selection (reduced free-text errors).
 - Zone creation flow repaired and now supports async area-based entity suggestions.
 - Agent auto-config now triggers Core self-heal on failed/degraded startup checks and exposes manual `repair_agent` service.
+- Conversation API timeout in HA bridge increased to `90s` (avoids false timeouts on local 4B models).
 
 ## What was audited
 - Vision consistency (design intent vs runtime behavior).

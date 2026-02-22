@@ -1,6 +1,6 @@
 # PilotSuite - Benutzerhandbuch
 
-> **Version:** Integration v7.7.14 + Core Add-on v7.7.14
+> **Version:** Integration v7.7.15 + Core Add-on v7.7.14
 > **Letzte Aktualisierung:** 2026-02-22
 
 ---

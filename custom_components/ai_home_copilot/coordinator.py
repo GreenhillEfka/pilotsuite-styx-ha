@@ -32,6 +32,7 @@ from .camera_entities import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+CHAT_COMPLETIONS_TIMEOUT_S = 90.0
 
 
 def _extract_http_status(err: CopilotApiError) -> int | None:
@@ -211,7 +212,8 @@ class CopilotApiClient(SharedCopilotApiClient):
             "POST",
             "/v1/chat/completions",
             payload=payload,
-            timeout_s=20.0,
+            # qwen3:4b on HA-class hardware often needs >20s for first tokens.
+            timeout_s=CHAT_COMPLETIONS_TIMEOUT_S,
         )
         choices = data.get("choices", [])
         content = ""
