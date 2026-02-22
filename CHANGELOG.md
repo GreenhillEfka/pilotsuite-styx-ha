@@ -1,5 +1,16 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.9] - 2026-02-22 — OLLAMA GUARANTEE + NETWORK FAILSAFE
+
+### Setup/Runtime Hardening
+- Externe Ollama-URL wird beim Start aktiv geprueft; bei Unerreichbarkeit wird automatisch auf interne Container-Ollama (`127.0.0.1:11435`) zurueckgefallen.
+- Wenn `conversation_enabled=true` und Ollama-Binary fehlt oder `ollama serve` sofort abstuerzt, startet das Add-on nicht mehr still degradiert, sondern bricht mit klarer Fehlermeldung ab.
+- Alternative Startskript-Variante (`start_with_ollama.sh`) auf dieselbe "Ollama required"-Semantik angehoben.
+
+### Readiness verbessert
+- `/ready` beruecksichtigt jetzt explizit Ollama-Verfuegbarkeit, wenn Conversation aktiv ist.
+- Readiness-Response erweitert um `ollama_required`, `ollama` und `ollama_url` zur klaren Diagnose im Betrieb.
+
 ## [7.7.8] - 2026-02-22 — STARTUP + VERSION RELIABILITY PATCH
 
 ### Ollama Startup Hardening

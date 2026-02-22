@@ -67,6 +67,11 @@ INTERNAL_OLLAMA_URL="http://127.0.0.1:${INTERNAL_OLLAMA_PORT}"
 
 # Determine Ollama URL: user-configured external, or internal bundled
 CONFIGURED_URL="${OLLAMA_URL:-}"
+CONV_ENABLED="${CONVERSATION_ENABLED:-true}"
+case "${CONV_ENABLED}" in
+    1|true|yes|on|TRUE|YES|ON) CONV_ENABLED="true" ;;
+    *) CONV_ENABLED="false" ;;
+esac
 
 # Detect if user points to an external Ollama server
 USE_INTERNAL_OLLAMA=true
@@ -84,8 +89,17 @@ if [ -n "$CONFIGURED_URL" ]; then
             ;;
         *)
             # Points to external server (e.g. NAS, other machine)
-            echo "INFO: Using external Ollama at $CONFIGURED_URL — skipping internal Ollama"
-            USE_INTERNAL_OLLAMA=false
+            EXTERNAL_URL="${CONFIGURED_URL%/}"
+            echo "INFO: External Ollama configured at $EXTERNAL_URL — testing reachability..."
+            if curl -sf -m 3 "${EXTERNAL_URL}/api/tags" >/dev/null 2>&1; then
+                echo "INFO: External Ollama is reachable"
+                export OLLAMA_URL="$EXTERNAL_URL"
+                USE_INTERNAL_OLLAMA=false
+            else
+                echo "WARNING: External Ollama unreachable at $EXTERNAL_URL — falling back to internal Ollama"
+                export OLLAMA_URL="$INTERNAL_OLLAMA_URL"
+                USE_INTERNAL_OLLAMA=true
+            fi
             ;;
     esac
 else
@@ -116,6 +130,10 @@ fi
 
 # Check if Ollama binary is installed
 if ! command -v ollama >/dev/null 2>&1; then
+    if [ "$CONV_ENABLED" = "true" ]; then
+        echo "ERROR: Ollama binary not found while conversation is enabled. Aborting startup."
+        exit 1
+    fi
     echo "WARNING: Ollama not found -- LLM features disabled, starting API only"
     exec python3 -u main.py
 fi
@@ -127,6 +145,17 @@ echo "Starting Ollama service on port ${INTERNAL_OLLAMA_PORT} (models dir: $OLLA
 ollama serve &
 OLLAMA_PID=$!
 MODEL_PULL_PID=""
+
+# Verify Ollama process did not exit immediately.
+sleep 1
+if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
+    if [ "$CONV_ENABLED" = "true" ]; then
+        echo "ERROR: Ollama failed to start while conversation is enabled. Aborting startup."
+        exit 1
+    fi
+    echo "WARNING: Ollama failed to start, continuing without local LLM runtime"
+    exec python3 -u main.py
+fi
 
 # Cleanup on exit
 cleanup() {

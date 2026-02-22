@@ -16,6 +16,10 @@ mkdir -p "$OLLAMA_MODELS"
 FALLBACK_MODEL="qwen3:0.6b"
 MODEL=${OLLAMA_MODEL:-qwen3:4b}
 NEED_OLLAMA=${CONVERSATION_ENABLED:-true}
+case "${NEED_OLLAMA}" in
+    1|true|yes|on|TRUE|YES|ON) NEED_OLLAMA="true" ;;
+    *) NEED_OLLAMA="false" ;;
+esac
 OLLAMA_PID=""
 MODEL_PULL_PID=""
 
@@ -58,11 +62,21 @@ pull_models_worker() {
 if [ "$NEED_OLLAMA" = "true" ]; then
     echo "Checking Ollama..."
 
+    if ! command -v ollama >/dev/null 2>&1; then
+        echo "ERROR: Ollama binary missing while conversation is enabled"
+        exit 1
+    fi
+
     if ! curl -sf -m 3 http://localhost:11434/api/tags > /dev/null 2>&1; then
         echo "Starting Ollama service..."
 
         ollama serve &
         OLLAMA_PID=$!
+        sleep 1
+        if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
+            echo "ERROR: Ollama failed to start while conversation is enabled"
+            exit 1
+        fi
     else
         echo "Ollama already running"
     fi

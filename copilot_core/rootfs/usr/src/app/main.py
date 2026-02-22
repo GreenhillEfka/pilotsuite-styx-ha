@@ -263,12 +263,31 @@ def readiness():
     services = app.config.get("COPILOT_SERVICES", {})
     brain_ok = services.get("brain_graph_service") is not None
     memory_ok = services.get("conversation_memory") is not None
-    ready = brain_ok and memory_ok
+    conv_enabled = str(os.environ.get("CONVERSATION_ENABLED", "true")).lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+    ollama_ok = True
+    if conv_enabled:
+        try:
+            import requests as http_req
+            r = http_req.get(f"{ollama_url}/api/tags", timeout=2)
+            ollama_ok = bool(r.ok)
+        except Exception:
+            ollama_ok = False
+
+    ready = brain_ok and memory_ok and ollama_ok
     status = 200 if ready else 503
     return jsonify({
         "ready": ready,
         "brain_graph": brain_ok,
         "conversation_memory": memory_ok,
+        "ollama_required": conv_enabled,
+        "ollama": ollama_ok,
+        "ollama_url": ollama_url,
         "vector_store": services.get("vector_store") is not None,
         "uptime_s": int(time.time() - _STARTUP_TIME),
     }), status
