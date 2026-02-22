@@ -1,5 +1,16 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.0]
+- **Zero-Config**: Vollständige Auto-Discovery von Core-Endpoint
+- **Entity Auto-Discovery**: Media-Player Erkennung (Sonos, Apple TV, Smart TV) bei Setup
+- **Zone Inference**: Automatische Zonen-Erkennung aus Entity-Namen und HA Areas
+- **SETUP.md**: Vollständige deutsche Einrichtungsanleitung erstellt
+- **Self-Heal**: Erweiterte automatische Wiederherstellung
+- **Vision Update**: Zero-Config und Maximaler-User-Comfort als Ziel
+
+## [7.7.27]
+- **aiohttp Session Leak behoben**: Sensoren und Module erstellen keine separaten ClientSessions mehr, sondern verwenden die HA-Session via `async_get_clientsession()`. Behebt Ressourcen-Lecks und Connection-Pool-Erschöpfung.
+
 ## [7.7.26] - 2026-02-22 — MODULE REGISTRATION CLEANUP (RUNTIME-COMPAT)
 
 ### Fixes

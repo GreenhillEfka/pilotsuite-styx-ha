@@ -28,10 +28,11 @@ class SystemIntegrationSensor(CopilotBaseEntity, SensorEntity):
 
     async def _fetch(self) -> dict | None:
         import aiohttp
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
         try:
             url = f"{self._core_base_url()}/api/v1/hub/integration"
-            headers = self._core_headers()
-            async with aiohttp.ClientSession() as session:
+            session = async_get_clientsession(self.hass)
+            session = async_get_clientsession(self.hass)
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     if resp.status == 200:
                         return await resp.json()

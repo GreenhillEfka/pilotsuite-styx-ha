@@ -5,8 +5,8 @@ This document is the active vision baseline for the dual-repo system:
 - HACS integration repo: `pilotsuite-styx-ha`
 
 Version baseline:
-- Core add-on: `7.7.18`
-- HA integration: `7.7.20`
+- Core add-on: `7.8.0`
+- HA integration: `7.8.0`
 - Core API port: `8909`
 
 ## Mission
@@ -18,6 +18,24 @@ Build a local-first AI co-pilot for Home Assistant that learns household pattern
 - Governance-first: recommendation before action, user remains decider.
 - Safety defaults: fail safe under uncertainty, degraded mode over crash.
 - Explainability: every recommendation has traceable evidence.
+
+## Zero-Config Vision
+PilotSuite aims for **maximum user comfort** with zero configuration:
+- Auto-discovery of Core add-on (localhost:8909)
+- Auto-discovery of media entities (Sonos, Apple TV, Smart TV)
+- Zone inference from entity names and HA areas
+- Automatic Ollama Cloud fallback when local Ollama unavailable
+- Smart weather/fallback without mandatory API keys
+- Predictive maintenance with graceful degradation
+
+### Auto-Discovery Features
+| Feature | Implementation |
+|---------|---------------|
+| Core Endpoint | mDNS/UDP discovery + smart host candidates |
+| Media Players | Sonos, Apple TV, Smart TV detection |
+| Zone Inference | Entity name + HA Area parsing |
+| Model Fallback | Local Ollama → Ollama Cloud → graceful degradation |
+| Weather | Open-Meteo (free) as default, personal-weather-station fallback |
 
 ## Normative loop
 `HA states -> Neuron context -> Mood/Intent weighting -> Pattern mining -> Candidate -> User decision -> Feedback`
@@ -43,6 +61,14 @@ Return path (Core -> HA):
 Realtime path:
 - Core webhook push -> HA coordinator merge -> entity refresh.
 
+## Self-Heal Capabilities
+PilotSuite automatically recovers from common failure scenarios:
+- **Ollama unavailable**: Falls back to Ollama Cloud automatically
+- **Module load failure**: Skips failed module, logs error, continues with others
+- **Entity unavailable**: Uses fallback/default values
+- **Network issues**: Retry with exponential backoff
+- **Manual trigger**: `POST /api/v1/agent/self-heal` endpoint
+
 ## Module intent map
 Core subsystems:
 - Ingest and event store: reliable intake with idempotency.
@@ -59,6 +85,14 @@ HA integration runtime modules (31 active) are grouped as:
 - Domain context: `energy_context`, `weather_context`, `media_zones`, `network`, `camera_context`.
 - User/governance: `character_module`, `entity_tags`, `quick_search`, `voice_context`, `ops_runbook`.
 - Home operations: `home_alerts`, `waste_reminder`, `birthday_reminder`, `person_tracking`, `scene_module`, `calendar_module`, `homekit_bridge`, `frigate_bridge`, `unifi_module`, `performance_scaling`.
+
+## Model Strategy
+Default: `qwen3:0.6b` (fast, local, privacy-first)
+
+Available alternatives:
+- `qwen3:4b` - Better reasoning, still local
+- `llama3.2:3b` - Alternative reasoning model
+- `ollama.com/v1` - Cloud fallback (automatic)
 
 ## Configurability goals
 - Zero-config first run works out of the box.
@@ -95,7 +129,9 @@ Purpose:
 - keep dual-repo contract healthy,
 - provide a stable base for iterative feature work.
 
-## Beyond 7.7.x
-- Deeper explainability and policy controls per risk class.
-- Stronger cross-module contract tests and mutation-based hardening.
-- UX refinement for recommendation triage and large-home scalability.
+## Beyond 7.8.x
+- Enhanced entity auto-discovery with ML-based zone inference
+- Deeper RAG integration for household knowledge
+- Cross-home pattern sharing (federated learning)
+- Policy controls per risk class
+- Large-home scalability improvements
