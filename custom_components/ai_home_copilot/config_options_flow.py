@@ -12,7 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .config_helpers import as_csv, parse_csv
-from .config_schema_builders import build_settings_schema, build_neuron_schema
+from .config_schema_builders import build_neuron_schema
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
 from .config_zones_flow import async_step_zone_form
 from .config_tags_flow import async_step_add_tag, async_step_edit_tag, async_step_delete_tag
@@ -42,10 +42,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="init",
-            menu_options=["settings", "habitus_zones", "entity_tags", "neurons", "backup_restore"],
+            menu_options=["connection", "modules", "habitus_zones", "entity_tags", "neurons", "backup_restore"],
         )
 
-    async def async_step_settings(self, user_input: dict | None = None) -> FlowResult:
+    # ── Connection ───────────────────────────────────────────────────
+
+    async def async_step_connection(self, user_input: dict | None = None) -> FlowResult:
+        """Network settings: host, port, token, webhook URL, test light."""
         if user_input is not None:
             user_input.pop(CONF_WEBHOOK_URL, None)
 
@@ -57,18 +60,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             elif not new_token:
                 existing_token = self._entry.data.get(CONF_TOKEN, "")
                 user_input[CONF_TOKEN] = existing_token
-
-            # Normalize CSV fields
-            for field in (
-                CONF_SUGGESTION_SEED_ENTITIES,
-                CONF_MEDIA_MUSIC_PLAYERS,
-                CONF_MEDIA_TV_PLAYERS,
-                CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
-                CONF_TRACKED_USERS,
-            ):
-                csv_val = user_input.get(field)
-                if isinstance(csv_val, str):
-                    user_input[field] = parse_csv(csv_val)
 
             if CONF_TOKEN in user_input:
                 token = user_input.get(CONF_TOKEN, "").strip()
@@ -88,10 +79,35 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         )
 
         current_token = data.get(CONF_TOKEN, "")
-        token_hint = "** AKTUELL GESETZT **" if current_token else "Leer lassen um Token zu löschen"
+        token_hint = "** SET **" if current_token else ""
 
-        schema = build_settings_schema(data, webhook_url, token_hint)
-        return self.async_show_form(step_id="settings", data_schema=schema)
+        from .config_schema_builders import build_connection_schema
+        schema = vol.Schema(build_connection_schema(data, webhook_url, token_hint))
+        return self.async_show_form(step_id="connection", data_schema=schema)
+
+    # ── Modules ──────────────────────────────────────────────────────
+
+    async def async_step_modules(self, user_input: dict | None = None) -> FlowResult:
+        """Module toggles and settings."""
+        if user_input is not None:
+            # Normalize CSV fields
+            for field in (
+                CONF_SUGGESTION_SEED_ENTITIES,
+                CONF_MEDIA_MUSIC_PLAYERS,
+                CONF_MEDIA_TV_PLAYERS,
+                CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
+                CONF_TRACKED_USERS,
+            ):
+                csv_val = user_input.get(field)
+                if isinstance(csv_val, str):
+                    user_input[field] = parse_csv(csv_val)
+
+            return self.async_create_entry(title="", data=user_input)
+
+        data = {**self._entry.data, **self._entry.options}
+        from .config_schema_builders import build_modules_schema
+        schema = vol.Schema(build_modules_schema(data))
+        return self.async_show_form(step_id="modules", data_schema=schema)
 
     # ── Habitus zones ────────────────────────────────────────────────
 

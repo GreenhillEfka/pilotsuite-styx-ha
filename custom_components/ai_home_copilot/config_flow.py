@@ -15,6 +15,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from .config_helpers import (
     STEP_DISCOVERY,
@@ -124,21 +125,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Best-effort connectivity check — warn but always create entry
             try:
                 await validate_input(self.hass, user_input)
             except Exception as err:  # noqa: BLE001
-                _LOGGER.error(
-                    "Config validation failed for %s:%s - %s",
+                _LOGGER.warning(
+                    "Core not reachable at %s:%s (%s) — "
+                    "creating entry anyway, will retry automatically",
                     user_input.get(CONF_HOST),
                     user_input.get(CONF_PORT),
-                    str(err),
+                    err,
                 )
-                _LOGGER.debug("Config validation error details", exc_info=True)
-                errors["base"] = "cannot_connect"
-            else:
-                name = user_input.get("assistant_name", "Styx")
-                title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
-                return self.async_create_entry(title=title, data=user_input)
+
+            name = user_input.get("assistant_name", "Styx")
+            title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
+            return self.async_create_entry(title=title, data=user_input)
 
         schema = vol.Schema(
             {
@@ -146,7 +147,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Optional(CONF_TOKEN): str,
-                vol.Optional(CONF_TEST_LIGHT, default=""): str,
+                vol.Optional(CONF_TEST_LIGHT, default=""): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="light", multiple=False),
+                ),
             }
         )
 

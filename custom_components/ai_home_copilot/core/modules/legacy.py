@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -15,6 +17,7 @@ from ...coordinator import CopilotDataUpdateCoordinator
 from ...core_v1 import async_fetch_core_capabilities
 from ..module import ModuleContext
 
+_LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = ["binary_sensor", "sensor", "button", "text", "number", "select"]
 
@@ -33,8 +36,27 @@ class LegacyModule:
         # Ship blueprints with the integration (no automations are created).
         await async_install_blueprints(hass)
 
-        # Webhook push mode (primary). We still do one initial refresh for baseline state.
-        await coordinator.async_config_entry_first_refresh()
+        # Best-effort first refresh — do NOT crash if Core isn't reachable yet.
+        # The coordinator retries on its 120s polling interval.
+        # Entities are created regardless and show "unavailable" until Core responds.
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning(
+                "PilotSuite Core not reachable at startup — "
+                "entities will update automatically when Core comes online"
+            )
+            coordinator.data = {
+                "ok": False,
+                "version": "unknown",
+                "mood": {"mood": "unknown", "confidence": 0.0},
+                "neurons": {},
+                "dominant_mood": "unknown",
+                "mood_confidence": 0.0,
+                "habit_summary": {},
+                "predictions": [],
+                "sequences": [],
+            }
 
         webhook_id = await async_register_webhook(hass, entry, coordinator)
 
