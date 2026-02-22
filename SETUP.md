@@ -118,6 +118,9 @@ Für erfahrene Benutzer:
 
 **Einstellungen** → **Geräte & Dienste** → **PilotSuite** → **Konfigurieren**
 
+Exakte Schritt-für-Schritt-Anleitung in HA anzeigen:
+- Service: `ai_home_copilot.show_installation_guide`
+
 | Option | Beschreibung |
 |--------|-------------|
 | Host / Port | Core Add-on Adresse |
@@ -153,8 +156,11 @@ Für erfahrene Benutzer:
 ### Automatisch (Standard)
 
 Beim ersten Start generiert Styx:
-- `/config/ai_home_copilot/pilotsuite_dashboard_latest.yaml`
-- `/config/ai_home_copilot/habitus_zones_dashboard_latest.yaml`
+- `/config/pilotsuite-styx/pilotsuite_dashboard_latest.yaml`
+- `/config/pilotsuite-styx/habitus_zones_dashboard_latest.yaml`
+
+Legacy-Kompatibilitaet:
+- Spiegelung weiterhin unter `/config/ai_home_copilot/...`
 
 Lovelace-Wiring wird automatisch hinzugefügt (Notification bei Erfolg).
 
@@ -170,13 +176,13 @@ lovelace:
       title: "PilotSuite - Styx"
       icon: mdi:robot-outline
       show_in_sidebar: true
-      filename: "ai_home_copilot/pilotsuite_dashboard_latest.yaml"
+      filename: "pilotsuite-styx/pilotsuite_dashboard_latest.yaml"
     copilot-habitus-zones:
       mode: yaml
       title: "PilotSuite - Habitus Zones"
       icon: mdi:layers-outline
       show_in_sidebar: true
-      filename: "ai_home_copilot/habitus_zones_dashboard_latest.yaml"
+      filename: "pilotsuite-styx/habitus_zones_dashboard_latest.yaml"
 ```
 
 ---

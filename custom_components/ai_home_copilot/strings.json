@@ -351,14 +351,14 @@
       },
       "generate_dashboard": {
         "title": "Generate dashboard YAML",
-        "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in the ai_home_copilot/ configuration folder.",
+        "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in the pilotsuite-styx/ configuration folder (with legacy mirror in ai_home_copilot/).",
         "data": {
           "confirm": "Generate dashboard"
         }
       },
       "publish_dashboard": {
         "title": "Publish dashboard to www",
-        "description": "Copies the latest generated dashboard to the www/ai_home_copilot/ folder for easy download. This creates a stable URL for the dashboard YAML.",
+        "description": "Copies the latest generated dashboard to www/pilotsuite-styx/ for easy download (with legacy mirror in www/ai_home_copilot/).",
         "data": {
           "confirm": "Publish dashboard"
         }

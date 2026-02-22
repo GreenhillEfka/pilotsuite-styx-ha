@@ -438,14 +438,14 @@
       },
       "generate_dashboard": {
         "title": "Dashboard YAML generieren",
-        "description": "Erstellt eine Lovelace-YAML-Dashboard-Datei fuer alle Habituszonen. Die Datei wird im ai_home_copilot/ Konfigurationsordner gespeichert.",
+        "description": "Erstellt eine Lovelace-YAML-Dashboard-Datei fuer alle Habituszonen. Die Datei wird im pilotsuite-styx/ Konfigurationsordner gespeichert (mit Legacy-Spiegel in ai_home_copilot/).",
         "data": {
           "confirm": "Dashboard generieren"
         }
       },
       "publish_dashboard": {
         "title": "Dashboard in www veroeffentlichen",
-        "description": "Kopiert das zuletzt generierte Dashboard in den www/ai_home_copilot/ Ordner zum einfachen Download. Erstellt eine stabile URL fuer die Dashboard-YAML.",
+        "description": "Kopiert das zuletzt generierte Dashboard nach www/pilotsuite-styx/ fuer einfachen Download (mit Legacy-Spiegel in www/ai_home_copilot/).",
         "data": {
           "confirm": "Dashboard veroeffentlichen"
         }

@@ -29,6 +29,10 @@ Das **Core Add-on** muss installiert und gestartet sein:
 
 Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port/Token manuell).
 
+Wenn du eine exakte Schritt-fuer-Schritt-Anleitung direkt in HA willst:
+- Service aufrufen: `ai_home_copilot.show_installation_guide`
+- Ergebnis erscheint als persistente Notification mit Host/Port/Token-Check und Dashboard-YAML.
+
 ### Dashboards (Auto + Fallback)
 
 Beim ersten Start generiert PilotSuite automatisch:
@@ -41,7 +45,7 @@ Legacy-Kompatibilitaet bleibt erhalten: Die Dateien werden weiterhin auch unter
 
 Die Integration versucht ausserdem, das Lovelace-Wiring automatisch vorzubereiten.
 Falls Home Assistant bereits einen eigenen `lovelace:`-Block hat, bekommst du eine
-Notification mit Merge-Hinweis. Manuelle YAML-Variante:
+Notification oder Auto-Merge in den bestehenden `dashboards:`-Block. Manuelle YAML-Variante:
 
 ```yaml
 lovelace:

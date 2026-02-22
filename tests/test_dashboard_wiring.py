@@ -11,6 +11,7 @@ from ai_home_copilot.dashboard_wiring import (  # noqa: E402
     SNIPPET_REL_PATH,
     _has_lovelace_root,
     _is_dashboard_wired,
+    _merge_dashboards_into_existing_lovelace,
     _snippet_content,
 )
 
@@ -59,3 +60,36 @@ def test_snippet_contains_both_dashboard_entries() -> None:
     snippet = _snippet_content()
     assert "copilot-pilotsuite:" in snippet
     assert "copilot-habitus-zones:" in snippet
+
+
+def test_merge_dashboards_into_existing_lovelace_dashboards_block() -> None:
+    config = (
+        "default_config:\n"
+        "lovelace:\n"
+        "  mode: storage\n"
+        "  dashboards:\n"
+        "    existing:\n"
+        "      mode: yaml\n"
+        "      title: Existing\n"
+        "      filename: dashboards/existing.yaml\n"
+    )
+
+    merged, changed = _merge_dashboards_into_existing_lovelace(config)
+
+    assert changed is True
+    assert "copilot-pilotsuite:" in merged
+    assert "copilot-habitus-zones:" in merged
+    assert "existing:" in merged
+
+
+def test_merge_dashboards_skips_include_dashboards_block() -> None:
+    config = (
+        "lovelace:\n"
+        "  mode: storage\n"
+        "  dashboards: !include dashboards.yaml\n"
+    )
+
+    merged, changed = _merge_dashboards_into_existing_lovelace(config)
+
+    assert changed is False
+    assert merged == config

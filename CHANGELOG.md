@@ -1,5 +1,18 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.6] - 2026-02-22
+- **Habitus-Zonen UX entschaerft**:
+  - Zone-Create/Edit blockiert nicht mehr auf hartes `motion + light`.
+  - Neue Mindestregel: mindestens eine gueltige `domain.object`-Entitaet.
+  - Mehrfach-Raum-Auswahl (`area_ids`) bleibt voll unterstuetzt.
+- **Dashboard-Wiring robuster**:
+  - Bei vorhandenem `lovelace:` + `dashboards:` Block werden fehlende PilotSuite-Dashboards jetzt automatisch in den bestehenden Block gemergt (statt nur manueller Hinweis).
+  - Include-basierte `dashboards: !include ...` Setups bleiben unveraendert und bekommen weiterhin klaren Merge-Hinweis.
+- **Installationsanleitung direkt in HA**:
+  - Neuer Service `ai_home_copilot.show_installation_guide` zeigt eine exakte Schritt-fuer-Schritt-Anleitung inkl. Dashboard-YAML als persistente Notification.
+- **Dokumentations-Sync**:
+  - README/SETUP/Options-Texte auf primären Pfad `pilotsuite-styx/` aktualisiert (Legacy-Mirror bleibt aktiv).
+
 ## [7.8.2] - 2026-02-22
 - **Dashboard-Pfade auf Branding umgestellt**: Neue Primärpfade unter `pilotsuite-styx/` für
   `pilotsuite_dashboard_latest.yaml` und `habitus_zones_dashboard_latest.yaml`.

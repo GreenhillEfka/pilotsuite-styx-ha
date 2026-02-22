@@ -408,10 +408,8 @@ async def async_step_zone_form(
         zone_name = base_name
 
     errors: dict[str, str] = {}
-    if not motion:
-        errors["motion_entity_id"] = "required"
-    if not lights:
-        errors["light_entity_ids"] = "required"
+    if not motion and not lights and not optional:
+        errors["base"] = "invalid"
     if errors:
         schema = _build_zone_form_schema(
             mode=mode,
@@ -422,7 +420,9 @@ async def async_step_zone_form(
             light_entity_ids=lights,
             optional_entity_ids=optional,
         )
-        placeholders = {"hint": auto_hint} if auto_hint else None
+        missing_hint = "Bitte mindestens eine Entitaet auswaehlen (Motion, Licht oder optional)."
+        combined_hint = f"{auto_hint} {missing_hint}".strip() if auto_hint else missing_hint
+        placeholders = {"hint": combined_hint}
         return flow.async_show_form(
             step_id=step_id,
             data_schema=schema,

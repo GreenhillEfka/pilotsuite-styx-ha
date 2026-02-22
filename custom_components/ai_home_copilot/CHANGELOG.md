@@ -5,6 +5,15 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.8.6] - 2026-02-22
+- Habitus-Zonen-Validierung auf UX-freundliches Minimum umgestellt:
+  - nicht mehr hart `motion + lights`
+  - mindestens eine gueltige Entity-ID reicht
+- Zone-Formular zeigt klare Fehlermeldung bei leerer Entitaetsauswahl.
+- Dashboard-Wiring kann fehlende PilotSuite-Dashboard-Keys in bestehenden `lovelace: dashboards:` Block automatisch einpflegen.
+- Neuer Service `show_installation_guide` (persistente Notification mit exakter Setup-Anleitung).
+- Optionen/Übersetzungen aktualisiert auf primäre `pilotsuite-styx/` Dashboard-Pfade.
+
 ## [7.8.2] - 2026-02-22
 - Primäre Dashboard-Dateipfade auf `pilotsuite-styx/` umgestellt, inklusive Legacy-Mirror nach `ai_home_copilot/`.
 - Habitus-Dashboard-Generator robust gemacht (tuple/list/set Rollen, sichere Zone-Paths, YAML-quoting).

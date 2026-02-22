@@ -25,6 +25,92 @@ from .tag_sync import async_pull_tag_system_snapshot
 
 
 # ---------------------------------------------------------------------------
+# Installation Guide service
+# ---------------------------------------------------------------------------
+
+def _installation_guide_markdown(host: str, port: int, token_set: bool) -> str:
+    token_note = "gesetzt" if token_set else "nicht gesetzt"
+    return (
+        "## PilotSuite Installationsanleitung (exakt)\n\n"
+        "1. **Core Add-on installieren**\n"
+        "   - Add-on: `PilotSuite Core`\n"
+        "   - Starten und auf `running` warten\n"
+        "   - Core API: `http://"
+        + f"{host}:{port}`\n\n"
+        "2. **Core Add-on konfigurieren**\n"
+        "   - `conversation_ollama_model`: `qwen3:0.6b` (Default)\n"
+        "   - Optional Cloud-Fallback: `conversation_cloud_api_url`, `conversation_cloud_api_key`, `conversation_cloud_model`\n"
+        "   - `auth_token`: aktuell **"
+        + token_note
+        + "**\n\n"
+        "3. **HA Integration konfigurieren**\n"
+        "   - `Settings -> Devices & Services -> PilotSuite -> Configure`\n"
+        "   - `Connection`: Host/Port/Token pruefen\n"
+        "   - `Habitus Zones`: Zonen anlegen/bearbeiten\n\n"
+        "4. **Dashboards in `configuration.yaml`**\n"
+        "```yaml\n"
+        "lovelace:\n"
+        "  dashboards:\n"
+        "    copilot-pilotsuite:\n"
+        "      mode: yaml\n"
+        "      title: \"PilotSuite - Styx\"\n"
+        "      icon: mdi:robot-outline\n"
+        "      show_in_sidebar: true\n"
+        "      filename: \"pilotsuite-styx/pilotsuite_dashboard_latest.yaml\"\n"
+        "    copilot-habitus-zones:\n"
+        "      mode: yaml\n"
+        "      title: \"PilotSuite - Habitus Zones\"\n"
+        "      icon: mdi:layers-outline\n"
+        "      show_in_sidebar: true\n"
+        "      filename: \"pilotsuite-styx/habitus_zones_dashboard_latest.yaml\"\n"
+        "```\n\n"
+        "5. **Neustart + Smoke Test**\n"
+        "   - Home Assistant neu starten\n"
+        "   - `/chat/status` muss `available=true` zeigen\n"
+        "   - Im Styx Dashboard eine Testnachricht senden\n"
+    )
+
+
+def _register_installation_guide_service(hass: HomeAssistant) -> None:
+    """Register service that shows exact install/runbook steps in HA UI."""
+    if hass.services.has_service(DOMAIN, "show_installation_guide"):
+        return
+
+    async def _handle_show_installation_guide(call: ServiceCall) -> None:
+        from homeassistant.components import persistent_notification
+
+        entry_id = str(call.data.get("entry_id") or "").strip()
+        selected_entry = None
+        if entry_id:
+            selected_entry = hass.config_entries.async_get_entry(entry_id)
+        if selected_entry is None:
+            entries = hass.config_entries.async_entries(DOMAIN)
+            selected_entry = entries[0] if entries else None
+
+        host = "homeassistant.local"
+        port = 8909
+        token_set = False
+
+        if selected_entry is not None:
+            host, port, token = resolve_core_connection(selected_entry)
+            token_set = bool(str(token or "").strip())
+
+        persistent_notification.async_create(
+            hass,
+            _installation_guide_markdown(host, port, token_set),
+            title="PilotSuite Installationsanleitung",
+            notification_id="pilotsuite_installation_guide",
+        )
+
+    hass.services.async_register(
+        DOMAIN,
+        "show_installation_guide",
+        _handle_show_installation_guide,
+        schema=vol.Schema({vol.Optional("entry_id"): str}),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Tag Registry services
 # ---------------------------------------------------------------------------
 
@@ -1153,6 +1239,7 @@ def _register_homekit_services(hass: HomeAssistant) -> None:
 
 def async_register_all_services(hass: HomeAssistant) -> None:
     """Register all domain-level services (called from async_setup)."""
+    _register_installation_guide_service(hass)
     _register_tag_registry_services(hass)
     _register_media_context_v2_services(hass)
     _register_forwarder_n3_services(hass)

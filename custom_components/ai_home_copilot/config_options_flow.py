@@ -312,7 +312,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             data_schema=schema,
             description_placeholders={
                 "hint": (
-                    "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires motion/presence + light.\n\n"
+                    "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires at least one valid entity_id.\n\n"
                     "Optional: use a categorized structure via `entities:` (role -> list of entity_ids), e.g.\n"
                     "- entities: {motion: [...], lights: [...], brightness: [...], heating: [...], humidity: [...], co2: [...], cover: [...], door: [...], window: [...], lock: [...], media: [...], other: [...]}"
                 ),

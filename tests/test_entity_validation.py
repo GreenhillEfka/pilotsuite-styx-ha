@@ -27,7 +27,7 @@ class TestZoneEntityValidation:
         
         mock_hass = Mock()
         
-        # Zone must have at least one motion/presence entity AND one light entity
+        # Zone with categorized signals remains valid
         valid_zone = HabitusZoneV2(
             zone_id="zone_1",
             name="Living Room",
@@ -44,13 +44,12 @@ class TestZoneEntityValidation:
         _validate_zone_v2(mock_hass, valid_zone)
 
     def test_zone_validation_v2_empty_name(self):
-        """Test validation passes with empty name (implementation only checks motion/light)."""
+        """Test validation passes with empty name."""
         from ai_home_copilot.habitus_zones_store_v2 import _validate_zone_v2, HabitusZoneV2
         
         mock_hass = Mock()
         
-        # Implementation only validates motion/presence and light entities
-        # Empty name is allowed (no validation for name in current implementation)
+        # Empty name is allowed (no dedicated name validation in current implementation)
         zone = HabitusZoneV2(
             zone_id="zone_1",
             name="",  # Empty name - allowed
@@ -62,7 +61,7 @@ class TestZoneEntityValidation:
             }
         )
         
-        # Should not raise (only motion/light validation exists)
+        # Should not raise
         _validate_zone_v2(mock_hass, zone)
 
     def test_zone_validation_v2_duplicate_ids(self):
@@ -71,7 +70,6 @@ class TestZoneEntityValidation:
         
         mock_hass = Mock()
         
-        # Implementation only validates motion/presence and light entities
         # Duplicate IDs are allowed (no duplicate validation in current implementation)
         zone = HabitusZoneV2(
             zone_id="zone_1",
@@ -84,8 +82,38 @@ class TestZoneEntityValidation:
             }
         )
         
-        # Should not raise (only motion/light validation exists)
+        # Should not raise
         _validate_zone_v2(mock_hass, zone)
+
+    def test_zone_validation_v2_allows_optional_only_entities(self):
+        """Zones may contain only optional entities (motion/light are recommended but optional)."""
+        from ai_home_copilot.habitus_zones_store_v2 import _validate_zone_v2, HabitusZoneV2
+
+        mock_hass = Mock()
+
+        zone = HabitusZoneV2(
+            zone_id="zone_1",
+            name="Storage",
+            entity_ids=["sensor.storage_temperature"],
+            entities={"other": ["sensor.storage_temperature"]},
+        )
+
+        _validate_zone_v2(mock_hass, zone)
+
+    def test_zone_validation_v2_requires_at_least_one_valid_entity_id(self):
+        """Zone must include at least one valid domain.object entity id."""
+        from ai_home_copilot.habitus_zones_store_v2 import _validate_zone_v2, HabitusZoneV2
+
+        mock_hass = Mock()
+        zone = HabitusZoneV2(
+            zone_id="zone_1",
+            name="Broken",
+            entity_ids=["invalid_entity_id"],
+            entities={"other": ["invalid_entity_id"]},
+        )
+
+        with pytest.raises(ValueError, match="at least 1 valid entity_id"):
+            _validate_zone_v2(mock_hass, zone)
 
     def test_zone_validation_v2_explicit_motion_role_without_device_class(self):
         """Explicitly assigned motion role should pass even without device_class metadata."""

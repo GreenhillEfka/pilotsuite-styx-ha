@@ -1,6 +1,18 @@
 # PilotSuite – Service Definitions
 # Auto-discovered by HA Developer Tools → Services
 
+# ─── Installation Guide ──────────────────────────────────────────────────────
+
+show_installation_guide:
+  name: PilotSuite – Show Installation Guide
+  description: Zeigt die exakte Installations- und Startanleitung als persistente Benachrichtigung an.
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: Optional. Falls gesetzt, wird die Anleitung auf diese Instanz bezogen.
+      selector:
+        text:
+
 # ─── Tag Registry ────────────────────────────────────────────────────────────
 
 tag_registry_upsert_tag:
@@ -675,4 +687,3 @@ homekit_disable_zone:
       example: "zone:wohnzimmer"
       selector:
         text:
-
