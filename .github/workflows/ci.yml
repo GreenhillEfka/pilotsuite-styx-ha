@@ -49,16 +49,21 @@ jobs:
       - name: Install dependencies
         run: |
           pip install flask flask-compress waitress requests pyyaml \
-            pydantic psutil python-ulid numpy pytest pytest-cov
+            pydantic psutil python-ulid numpy pytest pytest-cov pytest-asyncio
 
       - name: Run full test suite
         env:
           PYTHONPATH: copilot_core/rootfs/usr/src/app
+          COPILOT_DEV_LOG_DIR: /tmp
+          COPILOT_TX_LOG_DIR: /tmp
+          COPILOT_BRAIN_GRAPH_DB_DIR: /tmp
+          COPILOT_MOOD_DB_DIR: /tmp
+          COPILOT_VECTOR_DB_DIR: /tmp
         run: |
-          python -m pytest tests/ -v --tb=short \
+          python -m pytest copilot_core/rootfs/usr/src/app/tests -v --tb=short \
             --cov=copilot_core/rootfs/usr/src/app/copilot_core \
             --cov-report=term-missing \
-            -x || true
+            -x
 
   security:
     runs-on: ubuntu-latest

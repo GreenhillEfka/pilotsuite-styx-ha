@@ -1,5 +1,32 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.7.6] - 2026-02-22 — STABILITY + CI HARDENING
+
+### Runtime-Stabilitaet ausserhalb des Add-on-Containers
+- Persistenz-Fallbacks fuer nicht beschreibbares `/data` hinzugefuegt:
+  - Dev Surface Logs
+  - Transaction Log (`log_fixer_tx`)
+  - Brain Graph SQLite
+  - Mood SQLite
+  - Vector Store SQLite
+- Dev-Logs und Vector-API-Endpunkte schlagen lokal/CI nicht mehr mit 500 fehl.
+
+### Fachliche Korrekturen
+- Comfort Grade Mapping korrigiert (`50` => `C` statt `D`).
+- Regionserkennung verbessert (u.a. Muenchen korrekt `DE`, Wien-Region korrekt erkannt).
+- Energy-Service Timestamp auf `Z`-Format vereinheitlicht.
+- Report-Empfehlungen bei moderater Solarabdeckung sinnvoller priorisiert.
+- Sankey-Fallback bei fehlenden Baselines/Zone-Daten korrigiert.
+- Schedule Planner:
+  - leere Device-Listen werden korrekt als leer behandelt
+  - PV-priorisierte Slot-Bewertung (effektiver Preis mit PV-Korrektur)
+
+### Test- und CI-Fixes
+- Core CI-Testpfad korrigiert (`copilot_core/rootfs/usr/src/app/tests`).
+- `pytest-asyncio` in Test-Dependencies aufgenommen.
+- CI-Testjob bricht bei Fehlern wieder korrekt ab (kein `|| true` mehr).
+- Lokale Core-Suite verifiziert: `1949 passed, 1 skipped`.
+
 ## [7.7.0] - 2026-02-21 — HA CONFORMITY RELEASE
 
 ### Kompletter HA-Konformitaets-Audit — alle Stolperstellen gefixt
