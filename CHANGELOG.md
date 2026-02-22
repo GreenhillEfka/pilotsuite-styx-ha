@@ -1,5 +1,23 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.3] - 2026-02-22 — DASHBOARD API RECONNECT + MODULE CONFIG SYNC
+
+### Fixed
+- **Ingress API routing in Styx dashboard**
+  - Dashboard erkennt jetzt HA-Ingress-Pfade automatisch (`/api/hassio_ingress/<slug>`),
+    statt API-Calls immer an den Host-Root zu senden.
+  - behebt `API offline`/404 im Sidebar-Panel trotz laufendem Core.
+- **Module-Konfiguration verlässlich**
+  - Dashboard synchronisiert Modulstatus mit `/api/v1/modules/` als Backend-Source-of-Truth.
+  - Toggle-Flow speichert nur noch bei erfolgreichem Backend-Write.
+  - Bei Fehler wird der UI-Toggle sauber auf den vorherigen Zustand zurückgesetzt
+    (kein irreführender „lokal-only“ Zustand mehr).
+- **Settings-Diagnose**
+  - neue Anzeige `API Route` (Ingress vs Direct) im Settings-Tab für schnellere Fehleranalyse.
+
+### Tests
+- Template-Regression ergänzt: Ingress-Base-Erkennung im Dashboard verifiziert.
+
 ## [7.8.2] - 2026-02-22 — ONYX PRODUCTION BRIDGE + E2E TOOLING
 
 ### Added

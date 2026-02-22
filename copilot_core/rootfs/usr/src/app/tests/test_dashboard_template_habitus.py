@@ -19,3 +19,10 @@ def test_habitus_template_exposes_room_multiselect() -> None:
     text = _dashboard_template()
     assert 'id="new-zone-rooms"' in text
     assert "Mehrfachauswahl" in text
+
+
+def test_dashboard_template_detects_ingress_base_for_api_calls() -> None:
+    text = _dashboard_template()
+    assert "detectIngressBasePath" in text
+    assert "hassio_ingress" in text
+    assert "const API=detectIngressBasePath()" in text

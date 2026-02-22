@@ -506,8 +506,17 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 // PilotSuite Dashboard — Styx v1.3.0
 // XSS-safe | Resilient | Real Module Health | Module Control API
 // ==================================================
-const API='';
 const DASHBOARD_AUTH_TOKEN={{ dashboard_auth_token|tojson }};
+function detectIngressBasePath(){
+  try{
+    const p=(window.location&&window.location.pathname)||'';
+    const m=p.match(/^(.*\/api\/hassio_ingress\/[^/]+)(?:\/.*)?$/);
+    if(m&&m[1])return m[1];
+  }catch(_err){}
+  return '';
+}
+const API=detectIngressBasePath();
+const API_MODE=API?'ingress':'direct';
 let currentModel='';
 const DOMAIN_COLORS={
   sensor:'#34d399',light:'#fbbf24',switch:'#7c6aef',binary_sensor:'#60a5fa',
@@ -545,6 +554,7 @@ let _moduleHealth=null;
 let _healthTs=0;
 let _hubRoomsCache=[];
 let _roomsAutofilled=false;
+let _moduleStatesSyncedAt=0;
 
 // -- Helpers --
 function $(id){return document.getElementById(id)}
@@ -564,6 +574,17 @@ async function api(path){
   }catch(e){
     return null;
   }
+}
+async function syncModuleStates(force=false){
+  const now=Date.now();
+  if(!force&&(now-_moduleStatesSyncedAt)<15000)return moduleStates;
+  const remote=await api('/api/v1/modules/');
+  if(remote&&remote.ok&&remote.modules&&typeof remote.modules==='object'){
+    moduleStates={...moduleStates,...remote.modules};
+    localStorage.setItem('styx_module_states',JSON.stringify(moduleStates));
+    _moduleStatesSyncedAt=now;
+  }
+  return moduleStates;
 }
 function badge(t,c){return`<span class="b b-${c}">${escapeHtml(t)}</span>`}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e}
@@ -682,6 +703,7 @@ async function loadStyx(){
       $('assistant-name').textContent=escapeHtml(name);
       $('app-title').textContent=escapeHtml(name)+' \u2014 PilotSuite';
       document.title='PilotSuite \u2014 '+escapeHtml(name);
+      addHistory('API-Modus: '+API_MODE+(API?(' ('+API+')'):''));
     }else{
       dot.className='dot dot-red';txt.textContent='API offline';
       addHistory('\u26a0\ufe0f Core API nicht erreichbar');
@@ -705,14 +727,12 @@ async function loadPipelines(){
   const c=$('pipelines');if(!c)return;
   c.innerHTML='<div style="font-size:10px;color:var(--dim);padding:5px 0">Module pruefen...</div>';
   try{
+    await syncModuleStates();
     const health=await fetchModuleHealth();
     c.innerHTML='';
     MODULE_DEFS.forEach(m=>{
-      // User override from localStorage takes priority over detected health
       const detected=health[m.id]||'unknown';
-      const userSt=moduleStates[m.id];
-      const st=userSt||detected;
-      if(!moduleStates[m.id])moduleStates[m.id]=detected;
+      const st=moduleStates[m.id]||detected;
       const detail=health._details?.[m.id]||'';
       const d=el('div','pipe pipe-'+st,`<span class="pd"></span><span>${escapeHtml(m.name)}</span>`);
       if(detail)d.title=detail;
@@ -1609,15 +1629,14 @@ async function loadModules(){
   const c=$('module-list');if(!c)return;
   c.innerHTML='<div class="loading"><div class="spinner"></div>Lade Modul-Status...</div>';
   try{
+    await syncModuleStates();
     const health=await fetchModuleHealth();
     c.innerHTML='';
     MODULE_DEFS.forEach(m=>{
       // Detected state from APIs
       const detected=health[m.id]||'unknown';
       const detail=health._details?.[m.id]||'Status unbekannt';
-      // User toggle override stored in localStorage
       const st=moduleStates[m.id]||detected;
-      if(!moduleStates[m.id])moduleStates[m.id]=detected;
       const toggleCls=st==='active'?'on':st==='learning'?'learn':'off';
       const badgeCls=st==='active'?'g':st==='learning'?'y':st==='off'?'r':'b';
       const stTitles={active:'Aktiv: Auto-Apply (wenn beide Module aktiv)',learning:'Learning: Vorschlaege zur manuellen Uebernahme',off:'Deaktiviert'};
@@ -1628,7 +1647,7 @@ async function loadModules(){
         <div class="mod-status">
           <button class="mod-toggle ${toggleCls}" data-mod="${m.id}" title="${stTitles[st]||st}"></button>
           <span class="mod-st-label" style="font-size:9px;color:var(--dim)">${escapeHtml(st)}</span>
-          ${detected!==st?`<span style="font-size:8px;color:var(--yellow)" title="Nutzer-Override aktiv">\u270f</span>`:''}
+          ${detected!==st?`<span style="font-size:8px;color:var(--yellow)" title="Konfigurierter Modulstatus">\u2699</span>`:''}
         </div>`);
       card.querySelector('.mod-toggle').addEventListener('click',function(){toggleModule(this,m.id)});
       c.appendChild(card);
@@ -1643,6 +1662,7 @@ async function toggleModule(btn,modId){
   const states=['on','learn','off'];
   const labels=['active','learning','off'];
   const current=[...btn.classList].find(c=>states.includes(c))||'off';
+  const previousState=labels[Math.max(0,states.indexOf(current))]||'off';
   let idx=states.indexOf(current);
   idx=(idx+1)%3;
   const newState=labels[idx];
@@ -1650,23 +1670,31 @@ async function toggleModule(btn,modId){
   btn.title=newState;
   const stLabel=btn.parentElement.querySelector('.mod-st-label');
   if(stLabel)stLabel.textContent=newState;
-  moduleStates[modId]=newState;
-  localStorage.setItem('styx_module_states',JSON.stringify(moduleStates));
+
   // Call Module Control API (v1.3.0)
   try{
     const res=await fetch(API+'/api/v1/modules/'+encodeURIComponent(modId)+'/configure',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({state:newState})
     }));
-    const data=await res.json();
-    if(data?.ok){
-      addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+newState+' (Backend sync)');
-    }else{
-      addHistory('\u26a0\ufe0f Modul-API Fehler: '+(data?.error||'unbekannt'));
+    const data=await res.json().catch(()=>null);
+    if(!res.ok||!data?.ok){
+      throw new Error(data?.error||('HTTP '+res.status));
     }
+    const persistedState=data?.state||newState;
+    moduleStates[modId]=persistedState;
+    localStorage.setItem('styx_module_states',JSON.stringify(moduleStates));
+    _moduleStatesSyncedAt=Date.now();
+    if(stLabel)stLabel.textContent=persistedState;
+    addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+persistedState+' (Backend)');
   }catch(e){
-    // API might not be available yet - still works via localStorage
-    addHistory('Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' \u2192 '+newState+' (lokal)');
+    // Roll back optimistic UI change when backend write failed
+    const rollbackClass=states[labels.indexOf(previousState)]||'off';
+    btn.className='mod-toggle '+rollbackClass;
+    btn.title=previousState;
+    if(stLabel)stLabel.textContent=previousState;
+    addHistory('\u26a0\ufe0f Modul '+escapeHtml(MODULE_DEFS.find(m=>m.id===modId)?.name||modId)+' konnte nicht gespeichert werden: '+escapeHtml(e.message||'API offline'));
+    return;
   }
   // Invalidate health cache so next load re-evaluates
   _moduleHealth=null;_healthTs=0;
@@ -1844,6 +1872,7 @@ async function loadSettings(){
     const mcpOk=caps?.ok===true;
     $('set-system').innerHTML=
       `<tr><td>Version</td><td>${badge('v'+(status.version||'1.2.0'),'p')}</td></tr>`+
+      `<tr><td>API Route</td><td><code>${escapeHtml(API||'(direct)')}</code> ${badge(API_MODE==='ingress'?'Ingress':'Direct','b')}</td></tr>`+
       `<tr><td>Ollama URL</td><td><code>${escapeHtml(status.ollama_url||'localhost:11434')}</code></td></tr>`+
       `<tr><td>Cloud URL</td><td><code>${escapeHtml(status.cloud_api_url||'--')}</code></td></tr>`+
       `<tr><td>Telegram</td><td>${tg?.running?badge('Aktiv','g'):badge('Aus','y')}</td></tr>`+

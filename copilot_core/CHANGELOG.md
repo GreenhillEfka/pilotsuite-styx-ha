@@ -3,6 +3,12 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.3
+- Dashboard erkennt HA-Ingress-Pfade jetzt korrekt und routed API-Calls nicht mehr ins HA-Root.
+- Modul-Toggles synchronisieren mit dem Backend (`/api/v1/modules/`) als Source-of-Truth.
+- Fehlgeschlagene Modul-Konfigurationen rollen den UI-Zustand automatisch zurück.
+- Settings zeigt neue `API Route` Diagnose (Ingress/Direct).
+
 ## 7.8.2
 - **Onyx Bridge API**: neue Endpunkte unter `/api/v1/onyx/*` fuer produktive Agenten-Integration.
 - **Deterministische HA-Aktionen**: `POST /api/v1/onyx/ha/service-call` mit optionalem State-Readback.
