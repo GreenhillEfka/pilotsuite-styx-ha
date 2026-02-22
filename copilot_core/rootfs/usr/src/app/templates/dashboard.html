@@ -222,7 +222,7 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 <div class="logo">&#x2726;</div>
 <h1 id="app-title">Styx — PilotSuite</h1>
 <span class="status-pill" id="provider-status"><span class="dot dot-yellow" id="status-dot"></span><span id="status-text">Verbinde...</span></span>
-<span class="ver" id="ver-badge">v1.0.0</span>
+<span class="ver" id="ver-badge">--</span>
 </div>
 
 <!-- Navigation -->
@@ -785,7 +785,7 @@ async function loadStyx(){
       else{dot.className='dot dot-yellow';txt.textContent='Bereit'}
       currentModel=status.model||'';
       $('chat-model').textContent=escapeHtml(currentModel)||'--';
-      $('ver-badge').textContent='v'+(status.version||'1.2.0');
+      $('ver-badge').textContent=status.version?('v'+status.version):'--';
       const name=status.assistant_name||'Styx';
       $('assistant-name').textContent=escapeHtml(name);
       $('app-title').textContent=escapeHtml(name)+' \u2014 PilotSuite';
@@ -2133,7 +2133,7 @@ async function loadSettings(){
     // System (real MCP status from capabilities)
     const mcpOk=caps?.ok===true;
     $('set-system').innerHTML=
-      `<tr><td>Version</td><td>${badge('v'+(status.version||'1.2.0'),'p')}</td></tr>`+
+      `<tr><td>Version</td><td>${status.version?badge('v'+status.version,'p'):badge('--','y')}</td></tr>`+
       `<tr><td>API Route</td><td><code>${escapeHtml(API||'(direct)')}</code> ${badge(API_MODE==='ingress'?'Ingress':'Direct','b')}</td></tr>`+
       `<tr><td>Ollama URL</td><td><code>${escapeHtml(status.ollama_url||'localhost:11434')}</code></td></tr>`+
       `<tr><td>Cloud URL</td><td><code>${escapeHtml(status.cloud_api_url||'--')}</code></td></tr>`+

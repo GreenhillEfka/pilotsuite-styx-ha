@@ -40,3 +40,8 @@ def test_dashboard_template_uses_persistent_brain_chat_history() -> None:
     assert "/api/v1/hub/brain/activity/chat?limit=40" in text
     assert "/api/v1/hub/brain/activity/chat/clear" in text
     assert "persistChatMessage" in text
+
+
+def test_dashboard_template_has_no_hardcoded_core_version_badge() -> None:
+    text = _dashboard_template()
+    assert 'id="ver-badge">v1.0.0<' not in text

@@ -1,5 +1,15 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.5] - 2026-02-22 — VERSION LABEL CLARITY
+
+### Fixed
+- Dashboard version badge no longer starts with a misleading hardcoded `v1.0.0`.
+- Version badge now shows `--` until `/chat/status` returns the real runtime version.
+- Settings version row no longer falls back to an unrelated static version string.
+
+### Notes
+- `X-API-Version: 1.0` remains the API contract/schema version (not the add-on release version).
+
 ## [7.8.4] - 2026-02-22 — DASHBOARD UX: PERSISTENT CHAT + MODULE CONFIG PANEL
 
 ### Added

@@ -3,6 +3,11 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.5
+- Dashboard zeigt keine feste `v1.0.0` Platzhalter-Version mehr.
+- Versionsanzeige ist jetzt strikt runtime-basiert (aus `/chat/status`) oder `--`.
+- Klarstellung: `X-API-Version` ist die API-Schema-Version, nicht die Add-on-Release-Version.
+
 ## 7.8.4
 - Styx Dashboard nutzt jetzt persistente Chat-History via `/api/v1/hub/brain/activity/chat`.
 - Neuer Chat-Clear-Button im Dashboard.
