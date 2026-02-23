@@ -25,6 +25,7 @@ def test_dashboard_template_detects_ingress_base_for_api_calls() -> None:
     text = _dashboard_template()
     assert "detectIngressBasePath" in text
     assert "hassio_ingress" in text
+    assert "hassio\\/ingress" in text
     assert "const API=detectIngressBasePath()" in text
 
 
@@ -45,3 +46,10 @@ def test_dashboard_template_uses_persistent_brain_chat_history() -> None:
 def test_dashboard_template_has_no_hardcoded_core_version_badge() -> None:
     text = _dashboard_template()
     assert 'id="ver-badge">v1.0.0<' not in text
+
+
+def test_dashboard_template_exposes_chat_model_selector() -> None:
+    text = _dashboard_template()
+    assert 'id="chat-model-select"' in text
+    assert "CHAT_MODEL_STORAGE_KEY" in text
+    assert "_renderChatModelSelector" in text

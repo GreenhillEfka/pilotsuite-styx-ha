@@ -86,6 +86,7 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 /* Chat panel */
 .chat-panel{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .chat-hd{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--accent2);flex-shrink:0}
+.chat-hd select{margin-left:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:2px 6px;max-width:180px}
 .chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0}
 .msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;word-wrap:break-word}
 .msg.u{align-self:flex-end;background:linear-gradient(135deg,var(--accent),#5b4cd4);color:#fff;border-bottom-right-radius:3px}
@@ -276,6 +277,7 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
         <span>&#x2726;</span>
         <span id="assistant-name">Styx</span>
         <span class="b b-p" id="chat-model">--</span>
+        <select id="chat-model-select" title="Chat-Modell waehlen"></select>
         <button onclick="clearChatHistory()" title="Chatverlauf loeschen" style="margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px">&#x1f5d1;</button>
       </div>
       <div class="chat-msgs" id="chat-msgs">
@@ -525,8 +527,15 @@ const DASHBOARD_AUTH_TOKEN={{ dashboard_auth_token|tojson }};
 function detectIngressBasePath(){
   try{
     const p=(window.location&&window.location.pathname)||'';
-    const m=p.match(/^(.*\/api\/hassio_ingress\/[^/]+)(?:\/.*)?$/);
-    if(m&&m[1])return m[1];
+    const patterns=[
+      /^(.*\/api\/hassio_ingress\/[^/]+)(?:\/.*)?$/,
+      /^(.*\/hassio\/ingress\/[^/]+)(?:\/.*)?$/,
+      /^(.*\/ingress\/[^/]+)(?:\/.*)?$/,
+    ];
+    for(const pattern of patterns){
+      const m=p.match(pattern);
+      if(m&&m[1])return m[1];
+    }
   }catch(_err){}
   return '';
 }
@@ -605,6 +614,7 @@ let _hubRoomsCache=[];
 let _roomsAutofilled=false;
 let _moduleStatesSyncedAt=0;
 let _selectedModuleConfig='habitus_miner';
+const CHAT_MODEL_STORAGE_KEY='styx_chat_model';
 
 // -- Helpers --
 function $(id){return document.getElementById(id)}
@@ -671,6 +681,48 @@ function _parseConfigInput(input,field){
 }
 function badge(t,c){return`<span class="b b-${c}">${escapeHtml(t)}</span>`}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e}
+function _modelSetFrom(status){
+  const out=[];
+  const seen=new Set();
+  const installed=Array.isArray(status?.installed_models)?status.installed_models:[];
+  installed.forEach((m)=>{
+    const v=String(m||'').trim();
+    if(!v||seen.has(v))return;
+    seen.add(v);out.push(v);
+  });
+  const primary=String(status?.model||'').trim();
+  if(primary&&!seen.has(primary)){seen.add(primary);out.unshift(primary);}
+  return out;
+}
+function _restoreChatModel(defaultModel){
+  const preferred=String(localStorage.getItem(CHAT_MODEL_STORAGE_KEY)||'').trim();
+  if(preferred)return preferred;
+  return String(defaultModel||'').trim();
+}
+function _setChatModel(model,{persist=true,announce=false}={}){
+  const next=String(model||'').trim();
+  currentModel=next;
+  $('chat-model').textContent=escapeHtml(next)||'--';
+  if(persist){
+    if(next)localStorage.setItem(CHAT_MODEL_STORAGE_KEY,next);
+    else localStorage.removeItem(CHAT_MODEL_STORAGE_KEY);
+  }
+  if(announce&&next)addHistory('Chat-Modell gesetzt: '+next);
+}
+function _renderChatModelSelector(models,activeModel){
+  const sel=$('chat-model-select');
+  if(!sel)return;
+  sel.innerHTML='';
+  if(!Array.isArray(models)||!models.length){
+    sel.disabled=true;
+    sel.appendChild(new Option('kein Modell',''));
+    return;
+  }
+  sel.disabled=false;
+  models.forEach((model)=>{
+    sel.appendChild(new Option(model,model,false,model===activeModel));
+  });
+}
 
 // -- Real Module Health (cached 30s) --
 async function fetchModuleHealth(){
@@ -783,8 +835,13 @@ async function loadStyx(){
     if(status){
       if(status.available){dot.className='dot dot-green';txt.textContent='Online'}
       else{dot.className='dot dot-yellow';txt.textContent='Bereit'}
-      currentModel=status.model||'';
-      $('chat-model').textContent=escapeHtml(currentModel)||'--';
+      const availableModels=_modelSetFrom(status);
+      const preferredModel=_restoreChatModel(status.model||availableModels[0]||'');
+      const selectedModel=availableModels.includes(preferredModel)
+        ?preferredModel
+        :(status.model||availableModels[0]||preferredModel);
+      _setChatModel(selectedModel,{persist:true,announce:false});
+      _renderChatModelSelector(availableModels,selectedModel);
       $('ver-badge').textContent=status.version?('v'+status.version):'--';
       const name=status.assistant_name||'Styx';
       $('assistant-name').textContent=escapeHtml(name);
@@ -925,6 +982,12 @@ function renderLegend(){
 // -- Chat --
 const chatInput=$('chat-input');
 chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}});
+const chatModelSelect=$('chat-model-select');
+chatModelSelect?.addEventListener('change',(ev)=>{
+  const next=String(ev?.target?.value||'').trim();
+  if(!next)return;
+  _setChatModel(next,{persist:true,announce:true});
+});
 function renderChatMessages(messages){
   const msgs=$('chat-msgs');
   if(!msgs)return;
@@ -993,7 +1056,7 @@ async function sendChat(){
   try{
     const r=await fetch(API+'/v1/chat/completions',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:currentModel,messages:chatHistory.slice(-10),stream:false})
+      body:JSON.stringify({model:currentModel||'pilotsuite',messages:chatHistory.slice(-10),stream:false})
     }));
     const data=await r.json();
     const reply=data?.choices?.[0]?.message?.content||data?.error?.message||'Keine Antwort.';
@@ -2118,7 +2181,7 @@ async function loadSettings(){
   if(status){
     $('set-llm').innerHTML=
       `<tr><td>Provider</td><td>${badge(status.active_provider||'--','p')}</td></tr>`+
-      `<tr><td>Modell</td><td><strong>${escapeHtml(status.model||'--')}</strong></td></tr>`+
+      `<tr><td>Modell</td><td><strong>${escapeHtml(currentModel||status.model||'--')}</strong></td></tr>`+
       `<tr><td>Assistent</td><td><strong>${escapeHtml(status.assistant_name||'Styx')}</strong></td></tr>`+
       `<tr><td>Ollama</td><td>${status.ollama_available?badge('Online','g'):badge('Offline','r')}</td></tr>`+
       `<tr><td>Cloud API</td><td>${status.cloud_configured?badge('Konfiguriert','b'):badge('Nicht konfiguriert','y')}</td></tr>`+
@@ -2129,7 +2192,7 @@ async function loadSettings(){
     const models=status.installed_models||[];
     const mc=$('set-models');
     if(!models.length){mc.innerHTML='<div class="empty">Keine Modelle installiert</div>'}
-    else{mc.innerHTML='';models.forEach(m=>{mc.appendChild(el('div','pat',`<span>${escapeHtml(m)}</span><span class="meta">${m===status.model?badge('Aktiv','g'):''}</span>`))})}
+    else{mc.innerHTML='';models.forEach(m=>{mc.appendChild(el('div','pat',`<span>${escapeHtml(m)}</span><span class="meta">${m===currentModel?badge('Aktiv','g'):''}</span>`))})}
     // System (real MCP status from capabilities)
     const mcpOk=caps?.ok===true;
     $('set-system').innerHTML=

@@ -3,6 +3,12 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.7
+- Dashboard ingress detection unterstützt jetzt beide HA-Routen
+  (`/api/hassio_ingress/...` und `/hassio/ingress/...`).
+- Styx-Chat im Dashboard kann jetzt das Modell direkt umschalten (persistente Auswahl).
+- Runtime-Versioning synchronisiert: Add-on-Version und `/usr/src/app/VERSION` sind wieder konsistent.
+
 ## 7.8.6
 - Add-on-Info (`DOCS.md`) enthält jetzt eine exakte Produktions-Installationsanleitung
   inklusive Lovelace-YAML, Cloud-Fallback-Setup und Smoke-Checks.

@@ -1,5 +1,23 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.7] - 2026-02-23 — DASHBOARD RECONNECT + MODEL UX
+
+### Fixed
+- Dashboard ingress auto-detection now supports both HA ingress path variants:
+  - `/api/hassio_ingress/<slug>`
+  - `/hassio/ingress/<slug>`
+- API calls from the Styx board no longer break when served from the newer ingress route.
+
+### Added
+- Interactive chat model selection in the Styx dashboard (`chat-model-select`):
+  - Installed models are loaded from `/chat/status`.
+  - User choice is persisted in browser storage and applied to chat completions.
+
+### Changed
+- Add-on runtime version source synchronized:
+  - `copilot_core/config.yaml` now `7.8.7`
+  - `/usr/src/app/VERSION` now `7.8.7` (removes stale-version display drift).
+
 ## [7.8.6] - 2026-02-22 — INSTALL/UX DOCS HARDENING
 
 ### Changed
