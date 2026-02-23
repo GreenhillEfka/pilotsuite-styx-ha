@@ -77,9 +77,17 @@
 | Notifications API | `api/v1/notifications.py` | ✅ Complete | — |
 | Sharing API | `sharing/api.py` | ✅ Complete | — |
 | Collective Intelligence API | `collective_intelligence/api.py` | ✅ Complete | — |
-| Blueprint Registration | `core_setup.py` | 🔧 **IN PROGRESS** | `dev/feature-phase5-2026-02-23` |
+| Blueprint Registration | `core_setup.py` | ✅ **COMPLETE** | `531af5b` |
 
-## Files Changed (2026-02-23)
-- `PHASE5_TODO.md` — Updated status and action items
-- `core_setup.py` — Register 3 missing blueprints (notifications, sharing, federated)
-- `docs/ROADMAP.md` — Phase 5 progress update
+## Summary (2026-02-23)
+**31 Endpoints** durch 3 API-Blueprints registriert:
+- Notifications: 9 endpoints (`/api/v1/notifications/*`)
+- Sharing: 7 endpoints (`/api/v1/sharing/*`)
+- Collective Intelligence: 15 endpoints (`/api/v1/federated/*`)
+
+**Status**: Phase 5 API-Integration ✅ COMPLETE
+
+## Commits (2026-02-23)
+- `4fc8aef` — Phase 5: register Notifications, Sharing, Collective Intelligence blueprints
+- `531af5b` — fix: remove duplicate Sharing API registration
+- Tag: `v5.1.0-phase5-2026-02-23`
