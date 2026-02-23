@@ -729,6 +729,15 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Vector API")
 
+    # Register Error Status API (v7.8.10 — Error Dashboard Widget)
+    try:
+        from copilot_core.api.v1.error_status import api_bp
+        app.register_blueprint(api_bp)
+        _LOGGER.info("Registered Error Status API (/api/v1/errors/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Error Status API")
+        _LOGGER.exception("Failed to register Vector API")
+
     # Register Sharing API (fix: was never wired)
     try:
         from copilot_core.sharing.api import sharing_bp
