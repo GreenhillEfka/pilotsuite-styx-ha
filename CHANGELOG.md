@@ -1,5 +1,25 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.9] - 2026-02-23 — ERROR ISOLATION + CONNECTION POOLING
+
+### Added
+- Module-Crash-Isolation über `ModuleErrorBoundary`
+- Connection Pooling für HA-ClientSessions
+- Error Dashboard Widget zur Visualisierung
+
+### Changed
+- Error handling in `__init__.py` überarbeitet
+- Session-Management in `api/__init__.py`
+
+### Fixed
+- Haushalts-Error-Kaskaden verhindert
+- Resource-Leaks bei HA-Updates
+
+### Testing
+- pytest passed: 520 tests
+- hassfest: ✅ OK
+- local Ollama: ✅ OK
+
 ## [7.8.8] - 2026-02-23 — DUAL MODEL ROUTING + CLOUD/OFFLINE CONTROL
 
 ### Added
