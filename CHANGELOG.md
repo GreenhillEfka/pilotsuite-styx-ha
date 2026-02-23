@@ -1,5 +1,26 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.10] - 2026-02-23
+
+### N3 Forwarder Stability
+- **Circuit Breaker für Flush-Loop**:
+  - `CircuitBreaker` wrapper um `_flush_events()` zur Vermeidung von Cascade-Failures
+  - 5 Failure Threshold, 30s Recovery Timeout
+  - Graceful Skip wenn Circuit offen (warning log)
+  - Behebt Connection Pool Exhaustion bei Core Unverfügbarkeit
+
+### Core API Integration Fixes
+- **Sharing API URL-Prefix korrigiert**:
+  - `/api/v1/sharing/*` Endpoints jetzt korrekt erreichbar (ohne Prefix waren sie 404)
+  - behebt `SharingService` uninitialisiert Fehler im Core
+  - federated learning, discovery, sync über HA <-> HA HomeLinks wieder vollständig
+- **Notifications API im Core registriert**:
+  - Core Add-on v7.8.9+: `/api/v1/notifications/*` Endpoints verfügbar
+  - Push-Benachrichtigungen für Mood-Änderungen, Alerts, Suggestions
+- **Collective Intelligence API im Core registriert**:
+  - Core Add-on v7.8.9+: `/api/v1/collective_intelligence/*` Endpoints verfügbar
+  - Federated Learning Rounds, Model Aggregation, Knowledge Transfer
+
 ## [7.8.9] - 2026-02-23
 - **CI/hassfest Fix**:
   - `assist_pipeline` als `after_dependencies` in `manifest.json` ergänzt.
