@@ -1,6 +1,9 @@
 {
   "domain": "ai_home_copilot",
   "name": "PilotSuite",
+  "after_dependencies": [
+    "assist_pipeline"
+  ],
   "codeowners": [
     "@GreenhillEfka"
   ],
@@ -12,9 +15,6 @@
     "recorder",
     "tag",
     "webhook"
-  ],
-  "after_dependencies": [
-    "assist_pipeline"
   ],
   "documentation": "https://github.com/GreenhillEfka/pilotsuite-styx-ha#readme",
   "integration_type": "hub",
