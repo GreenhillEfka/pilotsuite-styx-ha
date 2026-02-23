@@ -1,5 +1,11 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.9] - 2026-02-23
+- **CI/hassfest Fix**:
+  - `assist_pipeline` als `after_dependencies` in `manifest.json` ergänzt.
+  - behebt Hassfest-Fehler: Nutzung von `homeassistant.components.assist_pipeline`
+    ohne deklarierte (after_)dependency.
+
 ## [7.8.8] - 2026-02-23
 - **Default-Agent Persistenz verbessert**:
   - Auto-Config setzt Styx jetzt nicht nur als registrierten Conversation-Agent,

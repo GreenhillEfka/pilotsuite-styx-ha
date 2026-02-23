@@ -5,6 +5,10 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.8.9] - 2026-02-23
+- Hassfest-Fix: `assist_pipeline` in `manifest.json` als `after_dependencies` deklariert.
+- Behebt CI-Fehler fuer die neue Pipeline-Default-Logik in `agent_auto_config.py`.
+
 ## [7.8.8] - 2026-02-23
 - Auto-Config versucht jetzt, Styx als `conversation_engine` der bevorzugten Assist-Pipeline zu setzen.
 - Damit bleibt Styx als Standard-Gespraechsagent ueber Neustarts/Updates stabiler.
