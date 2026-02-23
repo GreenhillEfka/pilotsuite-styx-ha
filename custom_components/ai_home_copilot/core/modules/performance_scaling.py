@@ -29,7 +29,7 @@ DEFAULT_THRESHOLDS = {
     "api_response_time_ms": 2000,
     "coordinator_update_ms": 5000,
     "entity_count_max": 200,
-    "memory_usage_mb_max": 256,
+    "memory_usage_mb_max": 1536,
     "error_rate_percent": 5.0,
 }
 

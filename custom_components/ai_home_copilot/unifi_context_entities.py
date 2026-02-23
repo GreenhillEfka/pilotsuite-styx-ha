@@ -1,174 +1,175 @@
-"""UniFi Context Entities for PilotSuite.
-
-Exposes network data as Home Assistant entities:
-- sensor.ai_home_copilot_unifi_clients_online
-- sensor.ai_home_copilot_unifi_wan_latency
-- sensor.ai_home_copilot_unifi_packet_loss
-- binary_sensor.ai_home_copilot_unifi_wan_online
-- binary_sensor.ai_home_copilot_unifi_roaming_activity
-"""
+"""UniFi context entities for PilotSuite."""
 from __future__ import annotations
 
-import logging
-from typing import Any
-
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .unifi_context import UnifiContextCoordinator, UnifiSnapshot
-
-_LOGGER = logging.getLogger(__name__)
+from .unifi_context import UnifiContextCoordinator
 
 
-class UnifiClientsOnlineSensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
-    """Sensor for number of online UniFi clients."""
+class _UnifiSensorBase(CoordinatorEntity[UnifiContextCoordinator], SensorEntity):
+    """Base class for UniFi coordinator-backed sensors."""
 
-    def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
+    _attr_has_entity_name = False
+
+    def __init__(self, coordinator: UnifiContextCoordinator, key: str, name: str, icon: str) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_unifi_clients_online"
-        self._attr_name = "PilotSuite UniFi Clients Online"
-        self.entity_id = f"sensor.{self._attr_unique_id}"
-        self._attr_icon = "mdi:devices"
+        self._attr_unique_id = f"{DOMAIN}_{key}"
+        self._attr_name = name
+        self._attr_icon = icon
+
+
+class _UnifiBinaryBase(CoordinatorEntity[UnifiContextCoordinator], BinarySensorEntity):
+    """Base class for UniFi coordinator-backed binary sensors."""
+
+    _attr_has_entity_name = False
+
+    def __init__(self, coordinator: UnifiContextCoordinator, key: str, name: str, icon: str) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{key}"
+        self._attr_name = name
+        self._attr_icon = icon
+
+
+class UnifiClientsOnlineSensor(_UnifiSensorBase):
+    """Number of online UniFi clients."""
+
+    def __init__(self, coordinator: UnifiContextCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            key="unifi_clients_online",
+            name="PilotSuite UniFi Clients Online",
+            icon="mdi:devices",
+        )
 
     @property
-    def native_value(self) -> int:
-        """Return number of online clients."""
+    def native_value(self) -> StateType:
         if self.coordinator.data:
             return len([c for c in self.coordinator.data.clients if c.status == "online"])
         return 0
 
 
-class UnifiWanLatencySensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
-    """Sensor for WAN latency in milliseconds."""
+class UnifiWanLatencySensor(_UnifiSensorBase):
+    """Current WAN latency."""
 
     _attr_native_unit_of_measurement = "ms"
-    _attr_icon = "mdi:timer-outline"
 
-    def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_unifi_wan_latency"
-        self._attr_name = "PilotSuite UniFi WAN Latency"
-        self.entity_id = f"sensor.{self._attr_unique_id}"
+    def __init__(self, coordinator: UnifiContextCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            key="unifi_wan_latency",
+            name="PilotSuite UniFi WAN Latency",
+            icon="mdi:timer-outline",
+        )
 
     @property
-    def native_value(self) -> float:
-        """Return WAN latency value."""
+    def native_value(self) -> StateType:
         if self.coordinator.data and self.coordinator.data.wan:
             return round(self.coordinator.data.wan.latency_ms, 1)
         return 0.0
 
 
-class UnifiPacketLossSensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
-    """Sensor for WAN packet loss percentage."""
+class UnifiPacketLossSensor(_UnifiSensorBase):
+    """Current WAN packet loss."""
 
     _attr_native_unit_of_measurement = "%"
-    _attr_icon = "mdi:packet-loss"
 
-    def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_unifi_packet_loss"
-        self._attr_name = "PilotSuite UniFi Packet Loss"
-        self.entity_id = f"sensor.{self._attr_unique_id}"
+    def __init__(self, coordinator: UnifiContextCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            key="unifi_packet_loss",
+            name="PilotSuite UniFi Packet Loss",
+            icon="mdi:packet-loss",
+        )
 
     @property
-    def native_value(self) -> float:
-        """Return packet loss percentage."""
+    def native_value(self) -> StateType:
         if self.coordinator.data and self.coordinator.data.wan:
             return round(self.coordinator.data.wan.packet_loss_percent, 2)
         return 0.0
 
 
-class UnifiWanOnlineBinarySensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
-    """Binary sensor for WAN online status."""
+class UnifiUptimeSensor(_UnifiSensorBase):
+    """WAN uptime as compact readable string."""
 
-    _attr_device_class = "connectivity"
-    _attr_icon = "mdi:wan"
+    def __init__(self, coordinator: UnifiContextCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            key="unifi_wan_uptime",
+            name="PilotSuite UniFi WAN Uptime",
+            icon="mdi:clock-outline",
+        )
 
-    def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_unifi_wan_online"
-        self._attr_name = "PilotSuite UniFi WAN Online"
-        self.entity_id = f"binary_sensor.{self._attr_unique_id}"
+    @property
+    def native_value(self) -> StateType:
+        if not self.coordinator.data or not self.coordinator.data.wan:
+            return "0s"
+        seconds = int(self.coordinator.data.wan.uptime_seconds)
+        if seconds < 60:
+            return f"{seconds}s"
+        if seconds < 3600:
+            return f"{seconds // 60}m"
+        if seconds < 86400:
+            return f"{seconds // 3600}h"
+        return f"{seconds // 86400}d"
+
+
+class UnifiWanOnlineBinarySensor(_UnifiBinaryBase):
+    """WAN online state."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(self, coordinator: UnifiContextCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            key="unifi_wan_online",
+            name="PilotSuite UniFi WAN Online",
+            icon="mdi:wan",
+        )
 
     @property
     def is_on(self) -> bool | None:
-        """Return True if WAN is online."""
         if self.coordinator.data and self.coordinator.data.wan:
             return self.coordinator.data.wan.online
         return None
 
 
-class UnifiRoamingActivityBinarySensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
-    """Binary sensor for recent roaming activity."""
+class UnifiRoamingActivityBinarySensor(_UnifiBinaryBase):
+    """Roaming activity indicator."""
 
-    _attr_device_class = "activity"
-    _attr_icon = "mdi:swap-horizontal"
+    _attr_device_class = BinarySensorDeviceClass.MOTION
 
-    def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_unifi_roaming"
-        self._attr_name = "PilotSuite UniFi Roaming Activity"
-        self.entity_id = f"binary_sensor.{self._attr_unique_id}"
+    def __init__(self, coordinator: UnifiContextCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            key="unifi_roaming",
+            name="PilotSuite UniFi Roaming Activity",
+            icon="mdi:swap-horizontal",
+        )
 
     @property
     def is_on(self) -> bool | None:
-        """Return True if there was recent roaming activity."""
-        if self.coordinator.data:
-            # Check for roaming clients in the last 5 minutes
-            from datetime import datetime, timezone
-            now = datetime.now(timezone.utc)
-            for client in self.coordinator.data.clients:
-                if client.roaming:
-                    return True
-        return False
+        if not self.coordinator.data:
+            return False
+        return any(bool(client.roaming) for client in self.coordinator.data.clients)
 
 
-class UnifiUptimeSensor(CoordinatorEntity[UnifiContextCoordinator], Entity):
-    """Sensor for WAN uptime in human-readable format."""
-
-    _attr_icon = "mdi:clock-outline"
-
-    def __init__(self, hass: HomeAssistant, coordinator: UnifiContextCoordinator):
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{DOMAIN}_unifi_wan_uptime"
-        self._attr_name = "PilotSuite UniFi WAN Uptime"
-        self.entity_id = f"sensor.{self._attr_unique_id}"
-
-    @property
-    def native_value(self) -> str:
-        """Return formatted uptime."""
-        if self.coordinator.data and self.coordinator.data.wan:
-            seconds = self.coordinator.data.wan.uptime_seconds
-            if seconds < 60:
-                return f"{seconds}s"
-            elif seconds < 3600:
-                return f"{seconds // 60}m"
-            elif seconds < 86400:
-                return f"{seconds // 3600}h"
-            else:
-                return f"{seconds // 86400}d"
-        return "0s"
-
-
-async def async_setup_unifi_entities(
-    hass: HomeAssistant,
-    coordinator: UnifiContextCoordinator,
-) -> list[Entity]:
-    """Set up all UniFi context entities."""
-    entities = [
-        UnifiClientsOnlineSensor(hass, coordinator),
-        UnifiWanLatencySensor(hass, coordinator),
-        UnifiPacketLossSensor(hass, coordinator),
-        UnifiWanOnlineBinarySensor(hass, coordinator),
-        UnifiRoamingActivityBinarySensor(hass, coordinator),
-        UnifiUptimeSensor(hass, coordinator),
+def build_unifi_sensor_entities(coordinator: UnifiContextCoordinator) -> list[SensorEntity]:
+    """Build UniFi sensor entities backed by a UniFi coordinator."""
+    return [
+        UnifiClientsOnlineSensor(coordinator),
+        UnifiWanLatencySensor(coordinator),
+        UnifiPacketLossSensor(coordinator),
+        UnifiUptimeSensor(coordinator),
     ]
 
-    for entity in entities:
-        hass.data[DOMAIN].setdefault("entities", []).append(entity)
-        await entity.async_added_to_hass()
 
-    _LOGGER.info("Created %d UniFi context entities", len(entities))
-    return entities
+def build_unifi_binary_entities(coordinator: UnifiContextCoordinator) -> list[BinarySensorEntity]:
+    """Build UniFi binary entities backed by a UniFi coordinator."""
+    return [
+        UnifiWanOnlineBinarySensor(coordinator),
+        UnifiRoamingActivityBinarySensor(coordinator),
+    ]

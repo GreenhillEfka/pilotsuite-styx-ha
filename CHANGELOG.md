@@ -1,5 +1,21 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.7] - 2026-02-23
+- **Runtime-Kompatibilität gehärtet**:
+  - `ModuleContext` bietet wieder `entry_id`/`domain`-Properties für ältere Module.
+  - behebt Setup-Abbrüche wie `AttributeError: ModuleContext has no attribute entry_id`.
+- **Weather/UniFi Kontext stabilisiert**:
+  - Coordinatoren liefern bei 4xx/5xx/Verbindungsfehlern degradierte Fallback-Snapshots statt harter Exceptions.
+  - wiederholte Error-Log-Spikes bei temporär nicht verfügbaren Endpunkten reduziert.
+- **Context-Entities sauber angebunden**:
+  - Weather-/UniFi-Entities auf gültige CoordinatorEntity-Muster umgestellt.
+  - dynamische Registrierung per Dispatcher-Signal, sobald Coordinatoren verfügbar sind.
+  - behebt fehlerhafte Entity-Initialisierung (`object.__init__()` TypeError).
+- **Performance-Warnung entschärft**:
+  - Standard-Schwelle `memory_usage_mb_max` von `256` auf `1536` MB angehoben.
+- **Tests**:
+  - neue Regressionen für ModuleContext-Kompatibilität und Context-Entity-Builder.
+
 ## [7.8.6] - 2026-02-22
 - **Habitus-Zonen UX entschaerft**:
   - Zone-Create/Edit blockiert nicht mehr auf hartes `motion + light`.

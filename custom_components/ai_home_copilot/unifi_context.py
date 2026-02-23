@@ -10,13 +10,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
-from urllib.parse import urlsplit, urlunsplit
+from typing import Any
+from urllib.parse import urlsplit
 
 import aiohttp
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 
@@ -100,6 +100,50 @@ class UnifiContextCoordinator(DataUpdateCoordinator[UnifiSnapshot]):
         self._port = port
         self._token = token
         self._session: aiohttp.ClientSession | None = None
+        self._last_issue: str | None = None
+
+    def _log_issue_once(self, issue: str, message: str, *args: object) -> None:
+        """Log a warning only when issue state changes."""
+        if issue == self._last_issue:
+            return
+        self._last_issue = issue
+        _LOGGER.warning(message, *args)
+
+    def _clear_issue(self) -> None:
+        self._last_issue = None
+
+    def _fallback_snapshot(self, reason: str) -> UnifiSnapshot:
+        """Return safe fallback snapshot when API is unavailable."""
+        if self.data is not None:
+            return self.data
+        now = datetime.now().isoformat()
+        return UnifiSnapshot(
+            timestamp=now,
+            wan=WanStatus(
+                online=False,
+                latency_ms=0.0,
+                packet_loss_percent=0.0,
+                uptime_seconds=0,
+                ip_address=None,
+                gateway=None,
+                dns_servers=[],
+                last_check=now,
+            ),
+            clients=[],
+            roaming_events=[],
+            baselines=TrafficBaselines(
+                period="",
+                avg_upload_mbps=0.0,
+                avg_download_mbps=0.0,
+                peak_upload_mbps=0.0,
+                peak_download_mbps=0.0,
+                total_bytes_up=0,
+                total_bytes_down=0,
+                last_updated=now,
+            ),
+            suppress_suggestions=False,
+            suppression_reason=reason,
+        )
 
     def _get_base_url(self) -> str:
         """Build base URL for Core Add-on API."""
@@ -131,25 +175,50 @@ class UnifiContextCoordinator(DataUpdateCoordinator[UnifiSnapshot]):
 
     async def _async_update_data(self) -> UnifiSnapshot:
         """Fetch UniFi snapshot from Core Add-on."""
+        session = await self._get_session()
+        base_url = self._get_base_url()
+        url = f"{base_url}/api/v1/unifi"
+
         try:
-            session = await self._get_session()
-            base_url = self._get_base_url()
-            url = f"{base_url}/api/v1/unifi"
-            
             async with session.get(url, headers=self._get_headers()) as response:
-                if response.status == 503:
-                    raise Exception("UniFi service not initialized in Core Add-on")
-                if response.status == 401:
-                    raise Exception("Invalid API token for UniFi service")
-                if not response.ok:
-                    raise Exception(f"UniFi API returned status {response.status}")
-                
+                if response.status == 404:
+                    self._log_issue_once(
+                        "http_404",
+                        "UniFi endpoint missing at %s (status=404); keeping last known snapshot",
+                        url,
+                    )
+                    return self._fallback_snapshot("http_404")
+                if response.status in (401, 403):
+                    self._log_issue_once(
+                        f"http_{response.status}",
+                        "UniFi API authorization failed at %s (status=%s); keeping last known snapshot",
+                        url,
+                        response.status,
+                    )
+                    return self._fallback_snapshot(f"http_{response.status}")
+                if response.status >= 500:
+                    self._log_issue_once(
+                        f"http_{response.status}",
+                        "UniFi API temporary failure at %s (status=%s); keeping last known snapshot",
+                        url,
+                        response.status,
+                    )
+                    return self._fallback_snapshot(f"http_{response.status}")
+                if response.status < 200 or response.status >= 300:
+                    self._log_issue_once(
+                        f"http_{response.status}",
+                        "UniFi API returned unexpected status %s at %s; keeping last known snapshot",
+                        response.status,
+                        url,
+                    )
+                    return self._fallback_snapshot(f"http_{response.status}")
+
                 data = await response.json()
-                
+
                 wan_data = data.get("wan", {})
                 baselines_data = data.get("baselines", {})
-                
-                return UnifiSnapshot(
+
+                snapshot = UnifiSnapshot(
                     timestamp=data.get("timestamp", datetime.now().isoformat()),
                     wan=WanStatus(
                         online=wan_data.get("online", False),
@@ -199,8 +268,22 @@ class UnifiContextCoordinator(DataUpdateCoordinator[UnifiSnapshot]):
                     suppress_suggestions=data.get("suppress_suggestions", False),
                     suppression_reason=data.get("suppression_reason"),
                 )
+                self._clear_issue()
+                return snapshot
         except aiohttp.ClientError as err:
-            raise Exception(f"Connection error to UniFi service: {err}") from err
+            self._log_issue_once(
+                "client_error",
+                "UniFi API connection error (%s); keeping last known snapshot",
+                err,
+            )
+            return self._fallback_snapshot("client_error")
+        except Exception as err:  # noqa: BLE001
+            self._log_issue_once(
+                "unexpected_error",
+                "Unexpected UniFi API error (%s); keeping last known snapshot",
+                err,
+            )
+            return self._fallback_snapshot("unexpected_error")
 
     async def async_get_wan_status(self) -> WanStatus | None:
         """Fetch WAN status from Core Add-on."""

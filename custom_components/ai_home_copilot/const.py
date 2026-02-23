@@ -17,6 +17,9 @@ LEGACY_DASHBOARD_DIR = DOMAIN
 DATA_CORE = "_core"
 DATA_RUNTIME = "runtime"
 
+# Dispatcher signals
+SIGNAL_CONTEXT_ENTITIES_REFRESH = f"{DOMAIN}_context_entities_refresh"
+
 CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_TOKEN = "token"

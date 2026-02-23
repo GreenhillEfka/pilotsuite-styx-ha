@@ -19,8 +19,15 @@ from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from ...const import CONF_HOST, CONF_PORT, CONF_TOKEN, DOMAIN
+from ...const import (
+    CONF_HOST,
+    CONF_PORT,
+    CONF_TOKEN,
+    DOMAIN,
+    SIGNAL_CONTEXT_ENTITIES_REFRESH,
+)
 from ..module import ModuleContext
 
 if TYPE_CHECKING:
@@ -104,14 +111,12 @@ class UnifiContextModule:
         # Build AP to room mapping from HA areas
         await self._build_ap_room_mapping()
 
-        # Set up entities
-        if self._coordinator:
-            await self._setup_unifi_entities(ctx.hass)
-
-        # Store reference for other modules
+        # Store reference for other modules and platform entities
         domain_data = ctx.hass.data.setdefault(DOMAIN, {})
         entry_data = domain_data.setdefault(self._entry_id, {})
         entry_data["network_module"] = self
+        entry_data["unifi_context_coordinator"] = self._coordinator
+        async_dispatcher_send(ctx.hass, SIGNAL_CONTEXT_ENTITIES_REFRESH, ctx.entry.entry_id)
 
         _LOGGER.info("UnifiContext v0.2: initialized (host=%s:%s)", host, port)
 
@@ -139,14 +144,6 @@ class UnifiContextModule:
         except Exception as e:
             _LOGGER.debug("Could not build AP room mapping: %s", e)
 
-    async def _setup_unifi_entities(self, hass: HomeAssistant) -> None:
-        """Set up UniFi context entities."""
-        try:
-            from ...unifi_context_entities import async_setup_unifi_entities
-            await async_setup_unifi_entities(hass, self._coordinator)
-        except Exception as e:
-            _LOGGER.warning("Could not set up UniFi entities: %s", e)
-
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload UniFi context tracking."""
         domain_data = ctx.hass.data.get(DOMAIN, {})
@@ -154,6 +151,7 @@ class UnifiContextModule:
 
         if "network_module" in entry_data:
             del entry_data["network_module"]
+        entry_data.pop("unifi_context_coordinator", None)
 
         self._coordinator = None
         self._hass = None
