@@ -740,10 +740,10 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Error Status API")
 
-    # Register Sharing API (v7.8.10 — cross-home sync & discovery)
+    # Register Sharing API (Phase 5 — Cross-home sync & discovery)
     try:
         from copilot_core.sharing.api import sharing_bp
-        app.register_blueprint(sharing_bp, url_prefix="/api/v1")
+        app.register_blueprint(sharing_bp)
         _LOGGER.info("Registered Sharing API (/api/v1/sharing/*)")
     except Exception:
         _LOGGER.exception("Failed to register Sharing API")
@@ -763,14 +763,6 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Notifications API (/api/v1/notifications/*)")
     except Exception:
         _LOGGER.exception("Failed to register Notifications API")
-
-    # Register Sharing API (Phase 5 — Cross-home sync & discovery)
-    try:
-        from copilot_core.sharing.api import sharing_bp
-        app.register_blueprint(sharing_bp)
-        _LOGGER.info("Registered Sharing API (/api/v1/sharing/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Sharing API")
 
     # Register Collective Intelligence API (Phase 5 — Federated learning)
     try:
