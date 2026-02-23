@@ -96,7 +96,7 @@ def test_cloud_used_for_explicit_external_model_when_configured(
 
     assert result["provider"] == "cloud"
     assert result["content"] == "ok from cloud"
-    assert ollama_models == ["gpt-4o-mini"]
+    assert ollama_models == []
     assert cloud_calls == ["gpt-4o-mini"]
 
 
@@ -172,6 +172,29 @@ def test_non_ollama_cloud_keeps_generic_default_model(monkeypatch: pytest.Monkey
     assert cloud_models == ["gpt-4o-mini"]
 
 
+def test_cloud_url_with_chat_completions_suffix_is_normalized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("CLOUD_API_URL", "https://api.example.com/v1/chat/completions")
+    monkeypatch.setenv("CLOUD_API_KEY", "sk-test")
+    monkeypatch.setenv("PREFER_LOCAL", "false")
+
+    cloud_urls: list[str] = []
+
+    def _fake_post(url: str, json: dict[str, Any], timeout: int, headers=None):  # noqa: A002
+        cloud_urls.append(url)
+        return _Resp(200, "", {"choices": [{"message": {"content": "ok from cloud"}}]})
+
+    monkeypatch.setattr("copilot_core.llm_provider.http_requests.post", _fake_post)
+
+    provider = LLMProvider()
+    result = provider.chat(messages=[{"role": "user", "content": "hi"}])
+
+    assert result["provider"] == "cloud"
+    assert cloud_urls == ["https://api.example.com/v1/chat/completions"]
+
+
 def test_cloud_url_without_key_returns_offline_dict(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3:4b")
@@ -243,3 +266,29 @@ def test_cloud_like_ollama_config_is_forced_to_local_fallback(
     assert status["ollama_model"] == "qwen3:0.6b"
     assert status["ollama_model_configured"] == "gpt-4o-mini"
     assert status["ollama_model_overridden"] is True
+
+
+def test_update_routing_switches_primary_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3:0.6b")
+    monkeypatch.setenv("CLOUD_API_URL", "https://api.example.com/v1")
+    monkeypatch.setenv("CLOUD_API_KEY", "sk-test")
+    monkeypatch.setenv("CLOUD_MODEL", "gpt-4o-mini")
+    monkeypatch.setenv("LLM_RUNTIME_SETTINGS_PATH", "/tmp/llm_provider_routing_test.json")
+
+    provider = LLMProvider()
+    before = provider.status()
+    assert before["primary_provider"] == "offline"
+
+    after = provider.update_routing(
+        primary_provider="cloud",
+        secondary_provider="offline",
+        offline_model="qwen3:4b",
+        cloud_model="gpt-oss:20b",
+        persist=False,
+    )
+
+    assert after["primary_provider"] == "cloud"
+    assert after["secondary_provider"] == "offline"
+    assert after["ollama_model"] == "qwen3:4b"
+    assert after["cloud_model"] == "gpt-oss:20b"

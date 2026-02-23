@@ -478,7 +478,11 @@ a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
     <table class="tbl" id="set-llm"></table>
   </div>
   <div class="card">
-    <h2><span class="ic">&#x1f4e6;</span> Ollama Modelle</h2>
+    <h2><span class="ic">&#9881;</span> LLM Routing</h2>
+    <div id="set-routing"><div class="loading"><div class="spinner"></div>Lade...</div></div>
+  </div>
+  <div class="card">
+    <h2><span class="ic">&#x1f4e6;</span> Verfuegbare Modelle</h2>
     <div id="set-models"><div class="loading"><div class="spinner"></div>Lade...</div></div>
   </div>
   <div class="card">
@@ -614,6 +618,7 @@ let _hubRoomsCache=[];
 let _roomsAutofilled=false;
 let _moduleStatesSyncedAt=0;
 let _selectedModuleConfig='habitus_miner';
+let _chatStatus=null;
 const CHAT_MODEL_STORAGE_KEY='styx_chat_model';
 
 // -- Helpers --
@@ -681,46 +686,69 @@ function _parseConfigInput(input,field){
 }
 function badge(t,c){return`<span class="b b-${c}">${escapeHtml(t)}</span>`}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html)e.innerHTML=html;return e}
-function _modelSetFrom(status){
-  const out=[];
-  const seen=new Set();
-  const installed=Array.isArray(status?.installed_models)?status.installed_models:[];
-  installed.forEach((m)=>{
+function _chatModelLabel(model){
+  const value=String(model||'').trim();
+  if(!value)return '--';
+  if(value==='primary')return 'auto(primary)';
+  if(value==='secondary')return 'auto(secondary)';
+  if(value.startsWith('offline:'))return value.slice('offline:'.length);
+  if(value.startsWith('cloud:'))return value.slice('cloud:'.length)+' (cloud)';
+  return value;
+}
+function _chatModelOptionsFromStatus(status){
+  const out=[{value:'primary',label:'Auto (Primary Routing)'}];
+  if(status?.secondary_provider)out.push({value:'secondary',label:'Auto (Secondary/Fallback)'});
+  const seen=new Set(out.map((o)=>o.value));
+  const offline=status?.model_catalog?.offline?.models||status?.installed_models||[];
+  const cloud=status?.model_catalog?.cloud?.models||status?.cloud_models||[];
+  offline.forEach((m)=>{
     const v=String(m||'').trim();
-    if(!v||seen.has(v))return;
-    seen.add(v);out.push(v);
+    if(!v)return;
+    const key='offline:'+v;
+    if(seen.has(key))return;
+    seen.add(key);
+    out.push({value:key,label:'Offline · '+v});
   });
-  const primary=String(status?.model||'').trim();
-  if(primary&&!seen.has(primary)){seen.add(primary);out.unshift(primary);}
+  cloud.forEach((m)=>{
+    const v=String(m||'').trim();
+    if(!v)return;
+    const key='cloud:'+v;
+    if(seen.has(key))return;
+    seen.add(key);
+    out.push({value:key,label:'Cloud · '+v});
+  });
   return out;
 }
-function _restoreChatModel(defaultModel){
+function _restoreChatModel(defaultModel,options){
   const preferred=String(localStorage.getItem(CHAT_MODEL_STORAGE_KEY)||'').trim();
-  if(preferred)return preferred;
-  return String(defaultModel||'').trim();
+  const values=new Set((options||[]).map((o)=>String(o.value||'')));
+  if(preferred&&values.has(preferred))return preferred;
+  return String(defaultModel||'primary').trim()||'primary';
 }
 function _setChatModel(model,{persist=true,announce=false}={}){
   const next=String(model||'').trim();
   currentModel=next;
-  $('chat-model').textContent=escapeHtml(next)||'--';
+  $('chat-model').textContent=escapeHtml(_chatModelLabel(next));
   if(persist){
     if(next)localStorage.setItem(CHAT_MODEL_STORAGE_KEY,next);
     else localStorage.removeItem(CHAT_MODEL_STORAGE_KEY);
   }
-  if(announce&&next)addHistory('Chat-Modell gesetzt: '+next);
+  if(announce&&next)addHistory('Chat-Modell gesetzt: '+_chatModelLabel(next));
 }
-function _renderChatModelSelector(models,activeModel){
+function _renderChatModelSelector(options,activeModel){
   const sel=$('chat-model-select');
   if(!sel)return;
   sel.innerHTML='';
-  if(!Array.isArray(models)||!models.length){
+  if(!Array.isArray(options)||!options.length){
     sel.disabled=true;
     sel.appendChild(new Option('kein Modell',''));
     return;
   }
   sel.disabled=false;
-  models.forEach((model)=>{
-    sel.appendChild(new Option(model,model,false,model===activeModel));
+  options.forEach((opt)=>{
+    const value=String(opt?.value||'').trim();
+    const label=String(opt?.label||value||'');
+    sel.appendChild(new Option(label,value,false,value===activeModel));
   });
 }
 
@@ -831,17 +859,17 @@ async function loadStyx(){
   try{
     // Load status
     const status=await api('/chat/status');
+    _chatStatus=status;
     const dot=$('status-dot'),txt=$('status-text');
     if(status){
       if(status.available){dot.className='dot dot-green';txt.textContent='Online'}
       else{dot.className='dot dot-yellow';txt.textContent='Bereit'}
-      const availableModels=_modelSetFrom(status);
-      const preferredModel=_restoreChatModel(status.model||availableModels[0]||'');
-      const selectedModel=availableModels.includes(preferredModel)
-        ?preferredModel
-        :(status.model||availableModels[0]||preferredModel);
+      const modelOptions=_chatModelOptionsFromStatus(status);
+      const preferredModel=_restoreChatModel('primary',modelOptions);
+      const optionValues=new Set(modelOptions.map((opt)=>opt.value));
+      const selectedModel=optionValues.has(preferredModel)?preferredModel:'primary';
       _setChatModel(selectedModel,{persist:true,announce:false});
-      _renderChatModelSelector(availableModels,selectedModel);
+      _renderChatModelSelector(modelOptions,selectedModel);
       $('ver-badge').textContent=status.version?('v'+status.version):'--';
       const name=status.assistant_name||'Styx';
       $('assistant-name').textContent=escapeHtml(name);
@@ -1056,9 +1084,14 @@ async function sendChat(){
   try{
     const r=await fetch(API+'/v1/chat/completions',withAuth({
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:currentModel||'pilotsuite',messages:chatHistory.slice(-10),stream:false})
+      body:JSON.stringify({model:currentModel||'primary',messages:chatHistory.slice(-10),stream:false})
     }));
-    const data=await r.json();
+    let data={};
+    try{data=await r.json()}catch(_parseErr){data={error:{message:'Antwort konnte nicht gelesen werden'}}}
+    if(!r.ok){
+      const errMsg=data?.error?.message||('HTTP '+r.status);
+      throw new Error(errMsg);
+    }
     const reply=data?.choices?.[0]?.message?.content||data?.error?.message||'Keine Antwort.';
     // XSS-safe: escape first, then convert newlines to <br>
     typing.innerHTML=escapeHtml(reply).replace(/\n/g,'<br>');
@@ -2167,6 +2200,81 @@ async function loadNewsWarnings(){
 // ==================================================
 // SETTINGS
 // ==================================================
+function _routingProviderLabel(provider){
+  const p=String(provider||'').toLowerCase();
+  return p==='cloud'?'Cloud':'Offline';
+}
+function _renderRoutingControls(status){
+  const mount=$('set-routing');
+  if(!mount)return;
+  if(!status){
+    mount.innerHTML='<div class="empty">Routing nicht verfuegbar (API offline)</div>';
+    return;
+  }
+  const offlineModels=status?.model_catalog?.offline?.models||status?.installed_models||[];
+  const cloudModels=status?.model_catalog?.cloud?.models||status?.cloud_models||[];
+  const primary=String(status.primary_provider||'offline');
+  const secondary=String(status.secondary_provider|| (primary==='offline'?'cloud':'offline'));
+  const offlineCurrent=String(status.model_catalog?.offline?.active_model||status.model||'');
+  const cloudCurrent=String(status.model_catalog?.cloud?.active_model||status.cloud_model||'');
+  const cloudConfigured=!!status.cloud_configured;
+  const providerOptions=`<option value="offline"${primary==='offline'?' selected':''}>Offline</option><option value="cloud"${primary==='cloud'?' selected':''}${cloudConfigured?'':' disabled'}>Cloud</option>`;
+  const secondaryOptions=`<option value="offline"${secondary==='offline'?' selected':''}>Offline</option><option value="cloud"${secondary==='cloud'?' selected':''}${cloudConfigured?'':' disabled'}>Cloud</option>`;
+  let html='';
+  html+='<div style="display:grid;gap:8px">';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html+='<label style="font-size:11px;color:var(--dim)">Primary Provider<select id="llm-primary-provider" style="width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:12px">'+providerOptions+'</select></label>';
+  html+='<label style="font-size:11px;color:var(--dim)">Secondary Provider<select id="llm-secondary-provider" style="width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:12px">'+secondaryOptions+'</select></label>';
+  html+='</div>';
+  html+='<label style="font-size:11px;color:var(--dim)">Offline Modell<select id="llm-offline-model" style="width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:12px">';
+  if(!offlineModels.length)html+='<option value="">kein Modell</option>';
+  offlineModels.forEach((m)=>{const v=String(m||'').trim();if(!v)return;html+=`<option value="${escapeHtml(v)}"${v===offlineCurrent?' selected':''}>${escapeHtml(v)}</option>`});
+  html+='</select></label>';
+  html+='<label style="font-size:11px;color:var(--dim)">Cloud Modell<select id="llm-cloud-model" style="width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:12px"'+(cloudConfigured?'':' disabled')+'>';
+  if(!cloudModels.length)html+='<option value="">kein Modell</option>';
+  cloudModels.forEach((m)=>{const v=String(m||'').trim();if(!v)return;html+=`<option value="${escapeHtml(v)}"${v===cloudCurrent?' selected':''}>${escapeHtml(v)}</option>`});
+  html+='</select></label>';
+  html+='<div style="display:flex;gap:8px;align-items:center">';
+  html+='<button onclick="saveRoutingConfig()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:600">Routing speichern</button>';
+  html+='<span style="font-size:10px;color:var(--dim)">'+(cloudConfigured?'Fallback aktiv bei Ausfall':'Cloud nicht konfiguriert (nur Offline)')+'</span>';
+  html+='</div>';
+  html+='</div>';
+  mount.innerHTML=html;
+}
+async function saveRoutingConfig(){
+  const primaryEl=$('llm-primary-provider');
+  const secondaryEl=$('llm-secondary-provider');
+  const offlineEl=$('llm-offline-model');
+  const cloudEl=$('llm-cloud-model');
+  if(!primaryEl||!secondaryEl||!offlineEl||!cloudEl)return;
+  const primary=String(primaryEl.value||'offline');
+  let secondary=String(secondaryEl.value||'cloud');
+  if(secondary===primary)secondary=(primary==='offline'?'cloud':'offline');
+  const payload={
+    primary_provider:primary,
+    secondary_provider:secondary,
+    offline_model:String(offlineEl.value||''),
+    cloud_model:String(cloudEl.value||''),
+    persist:true,
+  };
+  try{
+    const r=await fetch(API+'/chat/routing',withAuth({
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+    }));
+    let data={};
+    try{data=await r.json()}catch(_err){data={}}
+    if(!r.ok||!data?.ok){
+      throw new Error(data?.error||data?.message||('HTTP '+r.status));
+    }
+    addHistory('LLM-Routing aktualisiert: '+_routingProviderLabel(primary)+' -> '+_routingProviderLabel(secondary));
+    await loadStyx();
+    await loadSettings();
+  }catch(e){
+    addHistory('\u26a0\ufe0f Routing-Update fehlgeschlagen: '+(e.message||'unbekannt'));
+  }
+}
 async function loadSettings(){
   // Load all in parallel, resilient
   const settled=await Promise.allSettled([
@@ -2181,18 +2289,33 @@ async function loadSettings(){
   if(status){
     $('set-llm').innerHTML=
       `<tr><td>Provider</td><td>${badge(status.active_provider||'--','p')}</td></tr>`+
-      `<tr><td>Modell</td><td><strong>${escapeHtml(currentModel||status.model||'--')}</strong></td></tr>`+
+      `<tr><td>Chat Modell</td><td><strong>${escapeHtml(_chatModelLabel(currentModel||'primary'))}</strong></td></tr>`+
       `<tr><td>Assistent</td><td><strong>${escapeHtml(status.assistant_name||'Styx')}</strong></td></tr>`+
       `<tr><td>Ollama</td><td>${status.ollama_available?badge('Online','g'):badge('Offline','r')}</td></tr>`+
       `<tr><td>Cloud API</td><td>${status.cloud_configured?badge('Konfiguriert','b'):badge('Nicht konfiguriert','y')}</td></tr>`+
-      `<tr><td>Lokal bevorzugen</td><td>${status.prefer_local?badge('Ja','g'):badge('Nein','y')}</td></tr>`+
+      `<tr><td>Primary</td><td>${badge(_routingProviderLabel(status.primary_provider||'offline'),'g')} · ${escapeHtml(status.primary_model||'--')}</td></tr>`+
+      `<tr><td>Secondary</td><td>${badge(_routingProviderLabel(status.secondary_provider||'cloud'),'y')} · ${escapeHtml(status.secondary_model||'--')}</td></tr>`+
       `<tr><td>Charakter</td><td>${escapeHtml(status.character||'copilot')}</td></tr>`+
       `<tr><td>Anfragen/h</td><td>${status.calls_this_hour||0} / ${status.max_calls_per_hour||60}</td></tr>`;
+    _renderRoutingControls(status);
     // Models
-    const models=status.installed_models||[];
+    const models=status?.model_catalog?.offline?.models||status.installed_models||[];
+    const cloudModels=status?.model_catalog?.cloud?.models||status.cloud_models||[];
     const mc=$('set-models');
-    if(!models.length){mc.innerHTML='<div class="empty">Keine Modelle installiert</div>'}
-    else{mc.innerHTML='';models.forEach(m=>{mc.appendChild(el('div','pat',`<span>${escapeHtml(m)}</span><span class="meta">${m===currentModel?badge('Aktiv','g'):''}</span>`))})}
+    if(!models.length&&!cloudModels.length){mc.innerHTML='<div class="empty">Keine Modelle gefunden</div>'}
+    else{
+      mc.innerHTML='';
+      models.forEach((m)=>{
+        const v=String(m||'');
+        const active=v===String(status.model_catalog?.offline?.active_model||status.model||'');
+        mc.appendChild(el('div','pat',`<span>${escapeHtml(v)}</span><span class="meta">${badge('Offline','b')}${active?(' '+badge('Aktiv','g')):''}</span>`));
+      });
+      cloudModels.forEach((m)=>{
+        const v=String(m||'');
+        const active=v===String(status.model_catalog?.cloud?.active_model||status.cloud_model||'');
+        mc.appendChild(el('div','pat',`<span>${escapeHtml(v)}</span><span class="meta">${badge('Cloud','p')}${active?(' '+badge('Aktiv','g')):''}</span>`));
+      });
+    }
     // System (real MCP status from capabilities)
     const mcpOk=caps?.ok===true;
     $('set-system').innerHTML=
@@ -2205,6 +2328,7 @@ async function loadSettings(){
       (caps?.capabilities?.length?`<tr><td>Features</td><td style="font-size:10px;color:var(--dim)">${escapeHtml(caps.capabilities.slice(0,5).join(', '))}${caps.capabilities.length>5?'…':''}</td></tr>`:'');
   }else{
     $('set-llm').innerHTML='<tr><td colspan="2" style="color:var(--red)">\u26a0\ufe0f Core API nicht erreichbar</td></tr>';
+    _renderRoutingControls(null);
   }
   // Memory
   const mc2=$('set-memory');
@@ -2213,6 +2337,7 @@ async function loadSettings(){
       <tr><td>Nachrichten</td><td><strong>${mem.stats.total_messages||0}</strong></td></tr>
       <tr><td>Praeferenzen</td><td><strong>${(mem.preferences||[]).length}</strong></td></tr>
       <tr><td>Themen</td><td><strong>${mem.stats.topics_count||0}</strong></td></tr>
+      <tr><td>RAG</td><td>${mem.rag_active?badge('Aktiv','g'):badge('Inaktiv','y')}</td></tr>
       <tr><td>Speicher</td><td>${mem.stats.db_size_mb?mem.stats.db_size_mb.toFixed(1)+' MB':'--'}</td></tr>
     </table>`;
   }else{mc2.innerHTML='<div class="empty">Gedaechtnis nicht initialisiert oder API offline</div>'}
@@ -2224,8 +2349,16 @@ async function loadSettings(){
       const mbadges=[m.installed?badge('Installiert','g'):badge((m.size_mb||'?')+'MB','y')];
       if(m.active)mbadges.push(badge('Aktiv','p'));
       if(m.supports_tools)mbadges.push(badge('Tools','b'));
+      mbadges.push(badge('Offline','b'));
       rc.appendChild(el('div','pat',
         `<div><strong>${escapeHtml(m.name||'')}</strong><br><span style="font-size:10px;color:var(--dim)">${escapeHtml(m.description||'')}</span></div>
+        <div class="meta">${mbadges.join(' ')}</div>`));
+    });
+    (rec.cloud_models||[]).forEach(m=>{
+      const mbadges=[badge('Cloud','p')];
+      if(m.active)mbadges.push(badge('Aktiv','g'));
+      rc.appendChild(el('div','pat',
+        `<div><strong>${escapeHtml(m.name||m.id||'')}</strong><br><span style="font-size:10px;color:var(--dim)">${escapeHtml(m.description||'Cloud fallback Modell')}</span></div>
         <div class="meta">${mbadges.join(' ')}</div>`));
     });
   }else{rc.innerHTML='<div class="empty">Keine Empfehlungen verfuegbar</div>'}

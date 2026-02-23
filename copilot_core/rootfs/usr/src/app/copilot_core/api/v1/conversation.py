@@ -116,16 +116,26 @@ RECOMMENDED_MODELS = [
 ]
 
 DEFAULT_MODEL = "qwen3:0.6b"
-MODEL_ALIASES = {"pilotsuite", "default", "auto", "local", "ollama"}
+MODEL_ALIASES = {"pilotsuite", "default", "auto", "primary"}
+LOCAL_MODEL_ALIASES = {"local", "offline", "ollama"}
+CLOUD_MODEL_ALIASES = {"cloud", "remote"}
+SECONDARY_MODEL_ALIASES = {"secondary", "fallback"}
 
 
 def _normalize_requested_model(model: str | None) -> str | None:
-    """Normalize external model aliases to a real configured model."""
+    """Normalize model aliases to routing-aware selectors."""
     requested = str(model or "").strip()
     if not requested:
         return None
-    if requested.lower() in MODEL_ALIASES:
-        return os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
+    lowered = requested.lower()
+    if lowered in MODEL_ALIASES:
+        return "primary"
+    if lowered in LOCAL_MODEL_ALIASES:
+        return "offline"
+    if lowered in CLOUD_MODEL_ALIASES:
+        return "cloud"
+    if lowered in SECONDARY_MODEL_ALIASES:
+        return "secondary"
     return requested
 
 
@@ -580,47 +590,44 @@ def _get_user_context() -> str:
 @openai_compat_bp.route('/models', methods=['GET'])
 def list_models():
     """OpenAI-compatible model listing. Required by extended_openai_conversation for validation."""
-    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-    models = []
+    provider = _get_llm_provider()
+    status = provider.status()
+    catalog = provider.model_catalog()
 
-    # Try to get installed models from Ollama
-    try:
-        resp = http_requests.get(f"{ollama_url}/api/tags", timeout=5)
-        if resp.status_code == 200:
-            for m in resp.json().get("models", []):
-                name = m.get("name", "")
-                models.append({
-                    "id": name,
-                    "object": "model",
-                    "created": int(m.get("modified_at", time.time())),
-                    "owned_by": "ollama",
-                })
-    except Exception:
-        pass
+    models: list[dict] = []
+    seen: set[str] = set()
 
-    # Always include the configured default even if Ollama is down
-    configured_model = os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
-    if not any(m["id"] == configured_model for m in models):
-        models.insert(0, {
-            "id": configured_model,
+    def _append_model(model_id: str, owner: str) -> None:
+        mid = str(model_id or "").strip()
+        if not mid or mid in seen:
+            return
+        seen.add(mid)
+        models.append({
+            "id": mid,
             "object": "model",
             "created": int(time.time()),
-            "owned_by": "ollama",
+            "owned_by": owner,
         })
 
-    # Stable alias used by PilotSuite clients.
-    if not any(m["id"] == "pilotsuite" for m in models):
-        models.insert(0, {
-            "id": "pilotsuite",
-            "object": "model",
-            "created": int(time.time()),
-            "owned_by": "pilotsuite",
-        })
+    # Stable aliases used by PilotSuite clients.
+    _append_model("pilotsuite", "pilotsuite")
+    _append_model("primary", "pilotsuite")
+    _append_model("secondary", "pilotsuite")
+    _append_model("offline", "pilotsuite")
+    if bool(status.get("cloud_configured")):
+        _append_model("cloud", "pilotsuite")
 
-    return jsonify({
-        "object": "list",
-        "data": models,
-    })
+    for model_id in catalog.get("offline", {}).get("models", []):
+        _append_model(model_id, "ollama")
+    for model_id in catalog.get("cloud", {}).get("models", []):
+        _append_model(model_id, "cloud")
+
+    # Keep configured defaults visible even if provider listing failed.
+    _append_model(str(status.get("ollama_model") or DEFAULT_MODEL), "ollama")
+    if status.get("cloud_model"):
+        _append_model(str(status["cloud_model"]), "cloud")
+
+    return jsonify({"object": "list", "data": models})
 
 
 @openai_compat_bp.route('/models/<path:model_id>', methods=['GET'])
@@ -754,32 +761,48 @@ def list_characters():
 
 @conversation_bp.route('/models/recommended', methods=['GET'])
 def list_recommended_models():
-    """List recommended Ollama models for Home Assistant use."""
-    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-    current_model = os.environ.get("OLLAMA_MODEL", DEFAULT_MODEL)
+    """List recommended local+cloud models and runtime routing."""
+    provider = _get_llm_provider()
+    provider_status = provider.status()
+    catalog = provider.model_catalog()
 
-    # Check which models are installed
-    installed = set()
-    try:
-        resp = http_requests.get(f"{ollama_url}/api/tags", timeout=5)
-        if resp.status_code == 200:
-            for m in resp.json().get("models", []):
-                installed.add(m.get("name", "").split(":")[0])
-    except Exception:
-        pass
+    installed = {
+        str(model).split(":")[0]
+        for model in catalog.get("offline", {}).get("models", [])
+    }
+    installed_full = {str(model) for model in catalog.get("offline", {}).get("models", [])}
 
     models = []
     for m in RECOMMENDED_MODELS:
+        model_id = str(m["id"])
         models.append({
             **m,
-            "installed": m["id"].split(":")[0] in installed or m["id"] in installed,
-            "active": m["id"] == current_model,
+            "installed": model_id in installed_full or model_id.split(":")[0] in installed,
+            "active": model_id == str(provider_status.get("ollama_model", "")),
+            "scope": "offline",
+        })
+
+    cloud_models = []
+    for model_id in catalog.get("cloud", {}).get("recommended", []) or []:
+        cloud_models.append({
+            "id": model_id,
+            "name": model_id,
+            "description": "Cloud model",
+            "tags": ["cloud"],
+            "supports_tools": True,
+            "active": model_id == str(provider_status.get("cloud_model", "")),
         })
 
     return jsonify({
         "models": models,
-        "current_model": current_model,
-        "ollama_url": ollama_url,
+        "cloud_models": cloud_models,
+        "offline_models": catalog.get("offline", {}).get("models", []),
+        "current_model": provider_status.get("ollama_model", DEFAULT_MODEL),
+        "cloud_current_model": provider_status.get("cloud_model"),
+        "primary_provider": provider_status.get("primary_provider", "offline"),
+        "secondary_provider": provider_status.get("secondary_provider", "cloud"),
+        "ollama_url": provider_status.get("ollama_url"),
+        "cloud_url": provider_status.get("cloud_api_url"),
     })
 
 
@@ -788,15 +811,9 @@ def llm_status():
     """Return LLM availability and configuration."""
     provider = _get_llm_provider()
     provider_status = provider.status()
-
-    # Also check installed Ollama models
-    installed_models = []
-    try:
-        resp = http_requests.get(f"{provider_status['ollama_url']}/api/tags", timeout=5)
-        if resp.status_code == 200:
-            installed_models = [m.get("name", "") for m in resp.json().get("models", [])]
-    except Exception:
-        pass
+    catalog = provider.model_catalog()
+    installed_models = catalog.get("offline", {}).get("models", [])
+    cloud_models = catalog.get("cloud", {}).get("models", [])
 
     now = time.monotonic()
     with _rate_limit_lock:
@@ -812,7 +829,13 @@ def llm_status():
         "cloud_configured": provider_status["cloud_configured"],
         "cloud_api_url": provider_status["cloud_api_url"],
         "cloud_model": provider_status["cloud_model"],
+        "primary_provider": provider_status.get("primary_provider", "offline"),
+        "secondary_provider": provider_status.get("secondary_provider", "cloud"),
+        "primary_model": provider_status.get("primary_model"),
+        "secondary_model": provider_status.get("secondary_model"),
         "installed_models": installed_models,
+        "cloud_models": cloud_models,
+        "model_catalog": catalog,
         "calls_this_hour": calls_this_hour,
         "max_calls_per_hour": MAX_CALLS_PER_HOUR,
         "assistant_name": ASSISTANT_NAME,
@@ -823,6 +846,53 @@ def llm_status():
         "characters": list(CONVERSATION_CHARACTERS.keys()),
         "integration_url": "http://[HOST]:8909/v1",
         "integration_hint": "Use base_url=http://<addon-host>:8909/v1 in extended_openai_conversation or OpenClaw",
+    })
+
+
+@conversation_bp.route('/models/catalog', methods=['GET'])
+def llm_model_catalog():
+    """Return grouped local/cloud model catalog for dashboard selectors."""
+    provider = _get_llm_provider()
+    return jsonify({
+        "ok": True,
+        "catalog": provider.model_catalog(force_refresh=True),
+        "status": provider.status(),
+    })
+
+
+@conversation_bp.route('/routing', methods=['GET'])
+def llm_routing_get():
+    """Return current LLM routing config."""
+    provider = _get_llm_provider()
+    status = provider.status()
+    return jsonify({
+        "ok": True,
+        "primary_provider": status.get("primary_provider"),
+        "secondary_provider": status.get("secondary_provider"),
+        "offline_model": status.get("ollama_model"),
+        "cloud_model": status.get("cloud_model"),
+        "cloud_configured": status.get("cloud_configured"),
+    })
+
+
+@conversation_bp.route('/routing', methods=['POST'])
+@require_token
+def llm_routing_set():
+    """Update runtime LLM routing (primary/secondary + offline/cloud models)."""
+    provider = _get_llm_provider()
+    body = request.get_json(silent=True) or {}
+    persist = bool(body.get("persist", True))
+    status = provider.update_routing(
+        primary_provider=body.get("primary_provider"),
+        secondary_provider=body.get("secondary_provider"),
+        offline_model=body.get("offline_model"),
+        cloud_model=body.get("cloud_model"),
+        persist=persist,
+    )
+    return jsonify({
+        "ok": True,
+        "status": status,
+        "catalog": provider.model_catalog(force_refresh=True),
     })
 
 
@@ -933,7 +1003,8 @@ def _process_conversation(messages: list, model_override: str = None,
     When ``tools`` are provided, the LLM may return ``tool_calls`` instead of text.
     """
     provider = _get_llm_provider()
-    model = model_override or provider.active_model
+    model_request = model_override or "primary"
+    response_model = model_override or provider.active_model
 
     # Resolve character
     character_name = os.environ.get("CONVERSATION_CHARACTER", DEFAULT_CHARACTER)
@@ -958,7 +1029,12 @@ def _process_conversation(messages: list, model_override: str = None,
     if user_context:
         system_prompt += user_context
 
-    logger.info("Using character: %s (%s), model: %s", character_name, character['name'], model)
+    logger.info(
+        "Using character: %s (%s), model request: %s",
+        character_name,
+        character['name'],
+        model_request,
+    )
 
     # Build LLM messages -- inject our system prompt, keep conversation history
     llm_messages = [{"role": "system", "content": system_prompt}]
@@ -975,7 +1051,7 @@ def _process_conversation(messages: list, model_override: str = None,
     # Call LLM provider (handles Ollama -> Cloud fallback)
     result = provider.chat(
         messages=llm_messages, tools=tools,
-        model=model, temperature=temperature, max_tokens=max_tokens,
+        model=model_request, temperature=temperature, max_tokens=max_tokens,
     )
 
     response_content = result.get("content", "")
@@ -1008,7 +1084,7 @@ def _process_conversation(messages: list, model_override: str = None,
         "id": f"chatcmpl-{os.urandom(12).hex()}",
         "object": "chat.completion",
         "created": int(time.time()),
-        "model": model,
+        "model": response_model,
         "choices": [{
             "index": 0,
             "message": response_message,

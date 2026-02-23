@@ -53,3 +53,10 @@ def test_dashboard_template_exposes_chat_model_selector() -> None:
     assert 'id="chat-model-select"' in text
     assert "CHAT_MODEL_STORAGE_KEY" in text
     assert "_renderChatModelSelector" in text
+
+
+def test_dashboard_template_exposes_llm_routing_controls() -> None:
+    text = _dashboard_template()
+    assert 'id="set-routing"' in text
+    assert "saveRoutingConfig" in text
+    assert "/chat/routing" in text

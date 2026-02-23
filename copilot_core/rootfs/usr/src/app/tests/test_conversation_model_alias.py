@@ -11,14 +11,15 @@ def test_model_alias_pilotsuite_maps_to_configured_ollama_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3:4b")
-    assert _normalize_requested_model("pilotsuite") == "qwen3:4b"
+    assert _normalize_requested_model("pilotsuite") == "primary"
 
 
-def test_model_alias_local_maps_to_default_when_not_configured(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-    assert _normalize_requested_model("local") == "qwen3:0.6b"
+def test_model_alias_local_maps_to_offline_selector() -> None:
+    assert _normalize_requested_model("local") == "offline"
+
+
+def test_model_alias_cloud_maps_to_cloud_selector() -> None:
+    assert _normalize_requested_model("cloud") == "cloud"
 
 
 def test_non_alias_model_is_preserved() -> None:

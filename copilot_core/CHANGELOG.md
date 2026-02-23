@@ -3,6 +3,15 @@
 This file exists so Home Assistant can show an add-on changelog.
 For full history, see the repository-level `CHANGELOG.md`.
 
+## 7.8.8
+- LLM-Routing erweitert: Primary/Secondary Provider (`offline`/`cloud`) mit robustem Fallback.
+- Neue API-Endpunkte fuer Routing/Katalog:
+  - `GET /chat/models/catalog`
+  - `GET /chat/routing`
+  - `POST /chat/routing`
+- Dashboard Settings: getrennte Offline/Cloud-Modellauswahl + Routing-Steuerung.
+- Cloud-Defaults aktualisiert: `https://ollama.com/v1` + `gpt-oss:20b`.
+
 ## 7.8.7
 - Dashboard ingress detection unterstützt jetzt beide HA-Routen
   (`/api/hassio_ingress/...` und `/hassio/ingress/...`).

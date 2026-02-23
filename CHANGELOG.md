@@ -1,5 +1,30 @@
 # Changelog - PilotSuite Core Add-on
 
+## [7.8.8] - 2026-02-23 — DUAL MODEL ROUTING + CLOUD/OFFLINE CONTROL
+
+### Added
+- LLM routing with explicit `primary`/`secondary` provider chain (`offline`/`cloud`) and runtime fallback handling.
+- New conversation endpoints:
+  - `GET /chat/models/catalog`
+  - `GET /chat/routing`
+  - `POST /chat/routing` (token-protected)
+- Dashboard settings now include:
+  - Routing editor (primary/secondary provider)
+  - Separate offline + cloud model selectors
+  - grouped model visibility and RAG status indicator
+
+### Changed
+- OpenAI-compatible `/v1/models` now exposes routing aliases (`pilotsuite`, `primary`, `secondary`, `offline`, `cloud`) plus local/cloud catalogs.
+- Model alias normalization is routing-aware (`primary`, `secondary`, `offline`, `cloud`).
+- Cloud defaults optimized for Ollama-hosted API:
+  - `conversation_cloud_api_url` default: `https://ollama.com/v1`
+  - `conversation_cloud_model` default: `gpt-oss:20b`
+- Runtime version synchronized to `7.8.8` (`copilot_core/config.yaml`, `/usr/src/app/VERSION`).
+
+### Fixed
+- Dashboard chat now sends routing-aware model keys (e.g. `primary`) and surfaces HTTP/API errors more clearly.
+- Cloud base URL normalization tolerates `/chat/completions` and `/models` style user inputs.
+
 ## [7.8.7] - 2026-02-23 — DASHBOARD RECONNECT + MODEL UX
 
 ### Fixed
