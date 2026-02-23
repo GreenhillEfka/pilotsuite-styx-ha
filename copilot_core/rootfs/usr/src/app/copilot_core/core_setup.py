@@ -727,10 +727,10 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Vector API")
 
-    # Register Sharing API (fix: was never wired)
+    # Register Sharing API (v7.8.10 — cross-home sync & discovery)
     try:
         from copilot_core.sharing.api import sharing_bp
-        app.register_blueprint(sharing_bp)
+        app.register_blueprint(sharing_bp, url_prefix="/api/v1")
         _LOGGER.info("Registered Sharing API (/api/v1/sharing/*)")
     except Exception:
         _LOGGER.exception("Failed to register Sharing API")
