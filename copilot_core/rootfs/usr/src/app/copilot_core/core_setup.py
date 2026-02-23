@@ -7,6 +7,8 @@ Extracted from main.py to follow modular architecture pattern.
 import logging
 from flask import Flask
 
+from copilot_core.error_boundary import ModuleErrorBoundary
+
 from copilot_core.api.v1 import log_fixer_tx
 from copilot_core.api.v1 import events_ingest
 from copilot_core.api.v1.events_ingest import set_post_ingest_callback
