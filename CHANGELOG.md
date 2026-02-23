@@ -1,5 +1,13 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.8] - 2026-02-23
+- **Default-Agent Persistenz verbessert**:
+  - Auto-Config setzt Styx jetzt nicht nur als registrierten Conversation-Agent,
+    sondern aktualisiert best-effort auch die bevorzugte Assist-Pipeline
+    (`conversation_engine=<entry_id>`), damit Styx über Updates/Neustarts stabil bleibt.
+- **Agent-Hinweise aktualisiert**:
+  - Service-Notification beschreibt nun den Pipeline-basierten Default-Mechanismus klarer.
+
 ## [7.8.7] - 2026-02-23
 - **Runtime-Kompatibilität gehärtet**:
   - `ModuleContext` bietet wieder `entry_id`/`domain`-Properties für ältere Module.

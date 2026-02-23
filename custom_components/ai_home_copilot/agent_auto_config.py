@@ -179,21 +179,22 @@ async def async_attempt_agent_self_heal(
 async def async_set_default_conversation_agent(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> bool:
-    """Attempt to set PilotSuite as the default conversation agent.
+    """Best-effort: keep Styx as active Assist conversation engine.
 
-    Uses HA's internal conversation component to configure the default agent.
-    This sets the agent_id in the conversation component's configuration.
+    Strategy:
+    1) Ensure our conversation agent is registered.
+    2) Update the preferred Assist pipeline to use this entry as conversation_engine.
+       This survives restarts/updates because it writes pipeline storage.
     """
     try:
         # The agent_id for custom integrations is the config entry ID
         agent_id = entry.entry_id
 
-        # Try to set via HA's conversation component storage
+        # Verify our agent is registered in conversation integration.
         from homeassistant.components.conversation import (
             async_get_agent_info,
         )
 
-        # Verify our agent is registered
         agent_info = async_get_agent_info(hass, agent_id)
         if agent_info is None:
             _LOGGER.warning(
@@ -202,6 +203,34 @@ async def async_set_default_conversation_agent(
                 agent_id,
             )
             return False
+
+        # Persist as active engine for the preferred Assist pipeline.
+        # This is what the Voice Assistants UI changes internally.
+        try:
+            from homeassistant.components import assist_pipeline
+
+            pipeline = assist_pipeline.async_get_pipeline(hass)
+            if pipeline.conversation_engine != agent_id:
+                await assist_pipeline.async_update_pipeline(
+                    hass,
+                    pipeline,
+                    conversation_engine=agent_id,
+                )
+                _LOGGER.info(
+                    "Updated preferred Assist pipeline '%s' conversation_engine -> %s",
+                    pipeline.id,
+                    agent_id,
+                )
+            else:
+                _LOGGER.debug(
+                    "Preferred Assist pipeline '%s' already uses Styx agent",
+                    pipeline.id,
+                )
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning(
+                "Could not set preferred Assist pipeline conversation_engine to Styx: %s",
+                exc,
+            )
 
         # Fire event so automations/scripts can react
         hass.bus.async_fire(
@@ -214,15 +243,15 @@ async def async_set_default_conversation_agent(
         )
 
         _LOGGER.info(
-            "Styx conversation agent is registered and ready (agent_id=%s). "
-            "To set as default: Settings > Voice Assistants > select PilotSuite.",
+            "Styx conversation agent is registered and ready (agent_id=%s).",
             agent_id,
         )
         return True
 
     except ImportError:
         _LOGGER.debug("async_get_agent_info not available in this HA version")
-        # Still fire the event — agent was registered via async_set_agent
+        # Conversation helpers not available in this HA version.
+        # Still fire the event — agent was registered via async_set_agent.
         hass.bus.async_fire(
             "pilotsuite_agent_ready",
             {
@@ -299,12 +328,10 @@ async def async_setup_agent_auto_config(
                 hass,
                 title="Styx — Conversation Agent",
                 message=(
-                    "Styx ist als Gesprächsagent registriert.\n\n"
-                    "Gehe zu **Einstellungen > Sprachassistenten** und wähle "
-                    "**PilotSuite** als Standard-Gesprächsagent.\n\n"
-                    "Styx is registered as conversation agent.\n"
-                    "Go to **Settings > Voice Assistants** and select "
-                    "**PilotSuite** as default."
+                    "Styx ist als Gesprächsagent registriert und wurde als "
+                    "Conversation-Engine in der bevorzugten Assist-Pipeline gesetzt.\n\n"
+                    "Falls du mehrere Pipelines nutzt, kannst du dies in "
+                    "**Einstellungen > Sprachassistenten** pro Pipeline anpassen."
                 ),
                 notification_id="pilotsuite_set_default_agent",
             )
