@@ -1,137 +1,77 @@
-# PilotSuite Styx - Vision (2026-02-22)
+# Vision.md - PilotSuite Styx HA Enhancements
 
-This document is the active vision baseline for the dual-repo system:
-- Core add-on repo: `pilotsuite-styx-core`
-- HACS integration repo: `pilotsuite-styx-ha`
+## 🌟 Vision Statement
 
-Version baseline:
-- Core add-on: `7.8.0`
-- HA integration: `7.8.0`
-- Core API port: `8909`
+**Eine produktionsreife Home Assistant Integration für PilotSuite Styx – intuitiv, erweiterbar und sauber integriert.**
 
-## Mission
-Build a local-first AI co-pilot for Home Assistant that learns household patterns, explains recommendations, and never bypasses user governance.
+### Kernprinzipien
+- **HA konform:** Keine Workarounds, saubere Integration
+- **Dashboard-first:** Lovelace Cards sind zentral
+- **Zero-Config:** Auto-Discovery so weit wie möglich
+- **Modular:** Jedes Feature ist ein eigenes Modul
+- **User-first:** Klare Navigation & Feedback
 
-## Non-negotiable principles
-- Local-first: no cloud dependency for core operation.
-- Privacy-first: redaction, bounded storage, explicit retention.
-- Governance-first: recommendation before action, user remains decider.
-- Safety defaults: fail safe under uncertainty, degraded mode over crash.
-- Explainability: every recommendation has traceable evidence.
+---
 
-## Zero-Config Vision
-PilotSuite aims for **maximum user comfort** with zero configuration:
-- Auto-discovery of Core add-on (localhost:8909)
-- Auto-discovery of media entities (Sonos, Apple TV, Smart TV)
-- Zone inference from entity names and HA areas
-- Automatic Ollama Cloud fallback when local Ollama unavailable
-- Smart weather/fallback without mandatory API keys
-- Predictive maintenance with graceful degradation
+## 📋 Roadmap: Iterative Entwicklung
 
-### Auto-Discovery Features
-| Feature | Implementation |
-|---------|---------------|
-| Core Endpoint | mDNS/UDP discovery + smart host candidates |
-| Media Players | Sonos, Apple TV, Smart TV detection |
-| Zone Inference | Entity name + HA Area parsing |
-| Model Fallback | Local Ollama → Ollama Cloud → graceful degradation |
-| Weather | Open-Meteo (free) as default, personal-weather-station fallback |
+### Phase 1: Stabilität & Qualität (P0)
+- Error Isolation – Modul-Crashes isolieren
+- Connection Pooling – HA-Session Leaks verhindern
+- Test Suite – Regressionssicherheit
 
-## Normative loop
-`HA states -> Neuron context -> Mood/Intent weighting -> Pattern mining -> Candidate -> User decision -> Feedback`
+### Phase 2: Intelligenz & Lernen (P1)
+- Scene Pattern Extraction – aus HA-Automationen/Scenes lernen
+- Routine Pattern Extraction – tageszeitbasierte Mustererkennung
+- Push Notifications – Integration mit Styx Core Notify-Service
 
-Rules:
-- No direct state-to-action shortcut in default mode.
-- High-risk classes remain manual unless explicitly elevated.
-- Feedback (accept/defer/dismiss) is part of the learning loop.
+### Phase 3: Erweiterte Integration (P2)
+- MCP Phase 2 – erweiterte Dashboard-Integration
+- Energy Module – erweiterte Verbrauchsanalyse
+- MUPL – Multi-User Preference Learning
 
-## Dual-repo contract
-- `pilotsuite-styx-core`: backend runtime, event ingest, graph, mining, candidate lifecycle, LLM/memory, health APIs.
-- `pilotsuite-styx-ha`: Home Assistant-facing runtime, entities/cards/config-flow, events forwarder, repairs/governance UX, decision sync.
+---
 
-Separation is intentional for HA ecosystem compatibility and release independence.
+## 🛠️ Iterationszyklus (15 min)
 
-## Communication architecture
-Forward path (HA -> Core):
-- HA events -> N3 forwarder envelope -> `POST /api/v1/events` -> EventProcessor -> BrainGraph -> Habitus.
+1. **TODOS.md prüfen** → nächsten Task auswählen
+2. **Implementierung** → Feature/Bugfix in HA Integration
+3. **Testing** → pytest + hassfest + HA mock tests
+4. **Dashboard** → Lovelace Cards generieren
+5. **Release** → Commit + Push + CHANGELOG
+6. **Report** → Telegram Update
 
-Return path (Core -> HA):
-- Candidate API -> HA Candidate Poller -> Repairs issue/workflow -> user decision -> `PUT /api/v1/candidates/:id`.
+---
 
-Realtime path:
-- Core webhook push -> HA coordinator merge -> entity refresh.
+## 📝 Release Notes Template
 
-## Self-Heal Capabilities
-PilotSuite automatically recovers from common failure scenarios:
-- **Ollama unavailable**: Falls back to Ollama Cloud automatically
-- **Module load failure**: Skips failed module, logs error, continues with others
-- **Entity unavailable**: Uses fallback/default values
-- **Network issues**: Retry with exponential backoff
-- **Manual trigger**: `POST /api/v1/agent/self-heal` endpoint
+```
+## [x.x.x] - YYYY-MM-DD — FEATURE/BUGFIX
 
-## Module intent map
-Core subsystems:
-- Ingest and event store: reliable intake with idempotency.
-- Brain graph: decayed relationship model and graph queries.
-- Habitus mining: pattern extraction with quality thresholds.
-- Candidate store: governed lifecycle and feedback memory.
-- Mood and neuron services: contextual weighting and suppression logic.
-- Vector/memory/knowledge: semantic recall and explainability context.
-- Hub engines: advanced domain-specific orchestration surfaces.
+### Added
+- ...
 
-HA integration runtime modules (31 active) are grouped as:
-- Core plumbing: `legacy`, `events_forwarder`, `candidate_poller`, `history_backfill`, `dev_surface`.
-- Intelligence/context: `habitus_miner`, `brain_graph_sync`, `mood`, `mood_context`, `ml_context`, `knowledge_graph_sync`.
-- Domain context: `energy_context`, `weather_context`, `media_zones`, `network`, `camera_context`.
-- User/governance: `character_module`, `entity_tags`, `quick_search`, `voice_context`, `ops_runbook`.
-- Home operations: `home_alerts`, `waste_reminder`, `birthday_reminder`, `person_tracking`, `scene_module`, `calendar_module`, `homekit_bridge`, `frigate_bridge`, `unifi_module`, `performance_scaling`.
+### Changed
+- ...
 
-## Model Strategy
-Default: `qwen3:0.6b` (fast, local, privacy-first)
+### Fixed
+- ...
 
-Available alternatives:
-- `qwen3:4b` - Better reasoning, still local
-- `llama3.2:3b` - Alternative reasoning model
-- `ollama.com/v1` - Cloud fallback (automatic)
+### Testing
+- pytest passed: X tests
+- hassfest: ✅ OK
+- HA mock tests: ✅ OK
+```
 
-## Configurability goals
-- Zero-config first run works out of the box.
-- Advanced mode exposes host/port/token, zones, tags, module toggles, thresholds.
-- Runtime behavior is adjustable without manual file edits.
-- Operational diagnostics are available from HA UI and API endpoints.
+---
 
-## UX vision (dashboard + controls)
-State-of-the-art UX for this project means:
-- Clear system posture: health, readiness, and confidence visible at all times.
-- Progressive disclosure: simple default, deep diagnostics on demand.
-- Fast feedback loop: user decisions reflected immediately in UI state.
-- Explainable recommendations: evidence and risk level visible before action.
-- Mobile-safe layouts and low-friction controls for critical flows.
+## 🚦 Status Farben
 
-Current implementation direction:
-- Ingress dashboard with Brain/Mood/Module views.
-- Lovelace card resources for mood/neurons/habitus surfaces.
-- Repairs-based governance workflow for controlled application of candidates.
-- Unified module-to-core communication path (active failover endpoint + consistent auth headers).
+- **🟢 Green:** Alles in Ordnung, Feature fertig
+- **🟡 Yellow:** In Arbeit, aber stabil
+- **🔴 Red:** Problem, sofortige Aufmerksamkeit nötig
 
-## Production readiness definition
-A release is production-ready only if all are true:
-- Critical path tests pass (forward path + return path + auth + status).
-- Runtime fallback behavior works outside ideal HA container paths.
-- CI fails on real regressions (no masked failures).
-- Versioning/changelogs/docs are synchronized across both repos.
+---
 
-## Continuous hardening loop
-Both repos run a scheduled `production-guard` workflow every 15 minutes to validate critical paths continuously.
-
-Purpose:
-- detect regressions early,
-- keep dual-repo contract healthy,
-- provide a stable base for iterative feature work.
-
-## Beyond 7.8.x
-- Enhanced entity auto-discovery with ML-based zone inference
-- Deeper RAG integration for household knowledge
-- Cross-home pattern sharing (federated learning)
-- Policy controls per risk class
-- Large-home scalability improvements
+*Last updated: 2026-02-23*
+*Based on Styx HA v7.8.8*

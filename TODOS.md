@@ -1,9 +1,9 @@
 # TODOS.md - PilotSuite Styx HA
 
-## P0 (Critical)
+## P0 (Critical) - START
 
-- [ ] Error Isolation – isoliere Fehler in Modulen
-- [ ] Connection Pooling – HA-ClientSession Pooling
+- [x] Error Isolation – isoliere Fehler in Modulen
+- [x] Connection Pooling – HA-ClientSession Pooling
 
 ## P1 (Important)
 
@@ -23,3 +23,4 @@
 
 *Last updated: 2026-02-23*
 *Based on Styx HA v7.8.8*
+*Next Task: P0 – Error Isolation (Start)*

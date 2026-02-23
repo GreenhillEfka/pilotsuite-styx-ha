@@ -1,5 +1,25 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.10] - 2026-02-23 — ERROR ISOLATION + CONNECTION POOLING
+
+### Added
+- Error Dashboard Widget zur Visualisierung
+- Module-Crash-Isolation über `ErrorBoundary`
+- Connection Pooling für HA-ClientSessions
+
+### Changed
+- Error handling in `__init__.py` überarbeitet
+- Session-Management in `api/__init__.py`
+
+### Fixed
+- Haushalts-Error-Kaskaden verhindert
+- Resource-Leaks bei HA-Updates
+
+### Testing
+- pytest passed: 520 tests
+- hassfest: ✅ OK
+- HA mock tests: ✅ OK
+
 ## [7.8.9] - 2026-02-23
 - **CI/hassfest Fix**:
   - `assist_pipeline` als `after_dependencies` in `manifest.json` ergänzt.
