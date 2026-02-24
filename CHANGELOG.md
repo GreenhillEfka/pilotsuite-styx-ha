@@ -1,1 +1,1 @@
-# CHANGELOG\n\n## v7.8.11-dev (2026-02-24)\n- Fixed error isolation and connection pooling\n- Tagged test-p0-202602240530\n
+# CHANGELOG\n\n## v7.8.11-dev (2026-02-24)\n- Fixed error isolation and connection pooling\n- Tagged test-p0-202602240530\n- Updated RELEASE_NOTES for P0 fixes\n- Tagged test-p0-202602240620\n
