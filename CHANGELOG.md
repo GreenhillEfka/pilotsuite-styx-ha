@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v7.10.2 (2026-02-24)
+- Version bump to v7.10.2 — sync with main branch merge
+- Fixed pyproject package name to `ai_home_copilot_client`
+- Resolved import errors in SDK tests
+- Synchronized core and HA versions
+
 ## v7.10.1 (2026-02-24)
 - Auto-release: System integrity checks and minor fixes
 - Updated version in config and manifest
