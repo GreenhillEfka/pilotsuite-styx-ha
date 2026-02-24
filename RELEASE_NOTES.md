@@ -1,6 +1,1 @@
-# Release Notes — 2026-02-23
-
-## Changes:
-.github/workflows/ci.yml
-.github/workflows/production-guard.yml
-copilot_core/rootfs/usr/src/app/copilot_core/core_setup.py
+# Release Notes\n\n### v7.8.11-dev\n- Bug fixes for error handling\n- Phase 5 features reviewed\n
