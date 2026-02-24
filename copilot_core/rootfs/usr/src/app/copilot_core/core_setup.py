@@ -5,6 +5,7 @@ Extracted from main.py to follow modular architecture pattern.
 """
 
 import logging
+import os
 from flask import Flask
 
 from copilot_core.api.v1 import log_fixer_tx
@@ -37,6 +38,10 @@ from copilot_core.tags.api import init_tags_api as setup_tag_api
 from copilot_core.webhook_pusher import WebhookPusher
 from copilot_core.household import HouseholdProfile
 from copilot_core.neurons.manager import NeuronManager
+
+# SearXNG web search integration (v7.11.1)
+_SEARXNG_ENABLED = os.environ.get("SEARXNG_ENABLED", "false").lower() == "true"
+_SEARXNG_BASE_URL = os.environ.get("SEARXNG_BASE_URL", "http://192.168.30.18:4041")
 
 # PilotSuite Phase 5 APIs
 from copilot_core.sharing.api import sharing_bp
@@ -244,6 +249,14 @@ def init_services(hass=None, config: dict = None):
         services["tag_registry"] = TagRegistry()
     except Exception:
         _LOGGER.exception("Failed to init TagRegistry")
+
+    # Initialize LLM Provider (v7.11.1 — SearXNG web search)
+    try:
+        from copilot_core.llm_provider import LLMProvider
+        services["llm_provider"] = LLMProvider()
+        _LOGGER.info("LLM Provider initialized (SearXNG: %s)", _SEARXNG_ENABLED if _SEARXNG_ENABLED else "not configured")
+    except Exception:
+        _LOGGER.exception("Failed to init LLMProvider")
 
     # Initialize Webhook Pusher
     try:
@@ -783,6 +796,16 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     # Register PilotSuite MCP Server (expose skills to external AI clients)
     from copilot_core.mcp_server import mcp_bp
     app.register_blueprint(mcp_bp)
+
+    # Register LLM Search API (v7.11.1 — Direct Web Search via SearXNG)
+    try:
+        from copilot_core.api.v1.llm_search import bp as llm_search_bp, init_llm_search
+        if services and services.get("llm_provider"):
+            init_llm_search(services["llm_provider"])
+        app.register_blueprint(llm_search_bp)
+        _LOGGER.info("Registered LLM Search API (/api/v1/llm/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register LLM Search API")
     
     # Register PilotSuite Hub API (v7.6.0 — 17 engines, 120+ endpoints)
     try:

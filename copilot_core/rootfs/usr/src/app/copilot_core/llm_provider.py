@@ -60,6 +60,11 @@ _SECONDARY_MODEL_ALIASES = {"secondary", "fallback"}
 _OFFLINE_MODEL_ALIASES = {"offline", "local", "ollama"}
 _CLOUD_MODEL_ALIASES = {"cloud", "remote"}
 
+# SearXNG web search integration (v7.11.1)
+_SEARXNG_ENABLED = os.environ.get("SEARXNG_ENABLED", "false").lower() == "true"
+_SEARXNG_BASE_URL = os.environ.get("SEARXNG_BASE_URL", "http://192.168.30.18:4041")
+_SEARXNG_TIMEOUT = int(os.environ.get("SEARXNG_TIMEOUT", "10"))
+
 
 class LLMProvider:
     """Unified chat provider with explicit primary/secondary routing."""
@@ -123,6 +128,11 @@ class LLMProvider:
             self.primary_provider = _PROVIDER_OFFLINE
             self.secondary_provider = _PROVIDER_CLOUD
 
+        # SearXNG web search integration (v7.11.1)
+        self.searxng_enabled = _SEARXNG_ENABLED
+        self.searxng_base_url = _SEARXNG_BASE_URL
+        self.searxng_timeout = _SEARXNG_TIMEOUT
+
         # Legacy compatibility field used by status endpoint/tests.
         self.prefer_local = self.primary_provider == _PROVIDER_OFFLINE
 
@@ -155,7 +165,20 @@ class LLMProvider:
         self._load_config()
         self._catalog_cache[_PROVIDER_OFFLINE] = {"models": [], "ts": 0.0}
         self._catalog_cache[_PROVIDER_CLOUD] = {"models": [], "ts": 0.0}
-        logger.info("LLM provider config reloaded")
+        logger.info("LLM provider config reloaded (SearXNG: %s)", self.searxng_enabled)
+
+    def search_web(self, query: str) -> str:
+        """Web search via SearXNG if enabled, otherwise return placeholder."""
+        if not self.searxng_enabled:
+            return f"Web search disabled — enable SEARXNG_ENABLED to search for: {query}"
+
+        try:
+            from copilot_core.plugins.search.searxng_client import SearXNGClient
+            client = SearXNGClient(base_url=self.searxng_base_url)
+            return client.search_simple(query)
+        except Exception as e:
+            logger.warning("SearXNG search failed: %s", e)
+            return f"Web search failed: {e}"
 
     def update_routing(
         self,
@@ -236,6 +259,8 @@ class LLMProvider:
             "primary_model": self._default_model_for_provider(self.primary_provider),
             "secondary_model": self._default_model_for_provider(self.secondary_provider),
             "routing_runtime_path": self._settings_path,
+            "searxng_enabled": self.searxng_enabled,
+            "searxng_base_url": self.searxng_base_url,
         }
 
     def model_catalog(self, *, force_refresh: bool = False) -> dict:
@@ -342,7 +367,24 @@ class LLMProvider:
         temperature: float = None,
         max_tokens: int = None,
     ) -> dict:
-        """Send chat request with configurable primary/secondary fallback."""
+        """Send chat request with configurable primary/secondary fallback.
+        
+        Auto-integrates web search via SearXNG if enabled (v7.11.1).
+        """
+        # Check for web search intent in last message
+        last_msg = str(messages[-1].get("content", "")).strip().lower() if messages else ""
+        if self.searxng_enabled and last_msg.startswith(("/search ", "!search ", "websearch:")):
+            # Extract query and search web
+            query = last_msg.replace("/search ", "").replace("!search ", "").replace("websearch:", "").strip()
+            if query:
+                search_result = self.search_web(query)
+                # Inject search result into messages for LLM context
+                messages.append({
+                    "role": "assistant",
+                    "content": f"[WEB SEARCH RESULT for '{query}']:\n{search_result}"
+                })
+                logger.info("Web search result injected into LLM context")
+
         for provider, selected_model in self._build_routing_targets(model):
             if provider == _PROVIDER_OFFLINE:
                 result = self._try_ollama(messages, tools, selected_model, temperature, max_tokens)

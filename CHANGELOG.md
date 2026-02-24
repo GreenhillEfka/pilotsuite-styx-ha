@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v7.11.1 (2026-02-24)
+- SearXNG auto-integration in llm_provider.py (v7.11.1)
+- Direct Web Search API `/api/v1/llm/search` + `/api/v1/llm/status`
+- Auto web search intent detection in LLM prompts (`/search`, `!search`, `websearch:`)
+- SearXNG config via `SEARXNG_ENABLED`, `SEARXNG_BASE_URL`, `SEARXNG_TIMEOUT`
+
 ## v7.10.1 (2026-02-24)
 - Auto-release: System integrity checks and minor fixes
 - Updated version in config and manifest
