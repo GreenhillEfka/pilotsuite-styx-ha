@@ -1,1 +1,1 @@
-# Release Notes v7.8.11-dev (2026-02-24)\n\n- Synced with core fixes for error isolation and connection pooling.\n- HA manifest updated.\n- Added manifest.json for conformance.\n- Test tag: test-p0-202602240550
+# Release Notes v7.8.11-dev (2026-02-24)\n\n- Synced with core fixes for error isolation and connection pooling.\n- HA manifest updated.\n- Added manifest.json for conformance.\n- Test tag: test-p0-202602240550\n- New test tag: test-p0-202602240640- New test tag: test-p0-202602240650
