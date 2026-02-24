@@ -5,6 +5,16 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [7.8.12] - 2026-02-24 — Phase 5: NotificationSensor + SceneIntelligenceSensor
+
+### Added
+- `NotificationSensor` — exponiert Notification Count und Alerts als HA Sensor
+- `SceneIntelligenceSensor` — zeigt aktive Szene, Vorschläge, Cloud Status
+- Integration in `sensors/__init__.py` für automatische Erkennung
+
+### Fixed
+- Sensor-Lazy-Loading in `sensors/__init__.py` aktualisiert
+
 ## [7.8.9] - 2026-02-23
 - Hassfest-Fix: `assist_pipeline` in `manifest.json` als `after_dependencies` deklariert.
 - Behebt CI-Fehler fuer die neue Pipeline-Default-Logik in `agent_auto_config.py`.

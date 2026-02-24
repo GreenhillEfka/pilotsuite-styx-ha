@@ -1,5 +1,12 @@
 # CHANGELOG - PilotSuite HA Integration
 
+## [7.8.12] - 2026-02-24 — Phase 5: NotificationSensor + SceneIntelligenceSensor
+
+### Added
+- **NotificationSensor** — exponiert Notification Count und Alerts als HA Sensor
+- **SceneIntelligenceSensor** — zeigt aktive Szene, Vorschläge, Cloud Status
+- Integration in `sensors/__init__.py` für automatische Erkennung
+
 ## [7.8.10] - 2026-02-23
 
 ### N3 Forwarder Stability
