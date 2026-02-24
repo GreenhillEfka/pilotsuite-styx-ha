@@ -8,6 +8,8 @@ import logging
 import os
 from flask import Flask
 
+from copilot_core.error_boundary import ModuleErrorBoundary
+
 from copilot_core.api.v1 import log_fixer_tx
 from copilot_core.api.v1 import events_ingest
 from copilot_core.api.v1.events_ingest import set_post_ingest_callback
@@ -729,6 +731,81 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Routine Patterns API")
 
+<<<<<<< HEAD
+=======
+    # Register Push Notifications API (v7.12.0)
+    try:
+        from copilot_core.api.v1.push_notifications import push_notifications_bp
+        app.register_blueprint(push_notifications_bp)
+        _LOGGER.info("Registered Push Notifications API (/api/v1/notifications/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Push Notifications API")
+
+    # Register System Status API (v7.12.0)
+    try:
+        from copilot_core.api.v1.system_status import system_status_bp
+        app.register_blueprint(system_status_bp)
+        _LOGGER.info("Registered System Status API (/api/v1/system/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register System Status API")
+
+    # Register Entity Management API (v7.13.0)
+    try:
+        from copilot_core.api.v1.entities import entities_bp
+        app.register_blueprint(entities_bp)
+        _LOGGER.info("Registered Entity Management API (/api/v1/entities/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Entity Management API")
+
+    # Register Automation Webhook API (v7.13.0)
+    try:
+        from copilot_core.api.v1.automation_webhook import automation_webhook_bp
+        app.register_blueprint(automation_webhook_bp)
+        _LOGGER.info("Registered Automation Webhook API (/api/v1/automation/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Automation Webhook API")
+
+    # Register Service Calls API (v7.14.0)
+    try:
+        from copilot_core.api.v1.service_calls import services_bp
+        app.register_blueprint(services_bp)
+        _LOGGER.info("Registered Service Calls API (/api/v1/services/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Service Calls API")
+
+    # Register Sensors API (v7.14.0)
+    try:
+        from copilot_core.api.v1.sensors import sensors_bp
+        app.register_blueprint(sensors_bp)
+        _LOGGER.info("Registered Sensors API (/api/v1/sensors/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Sensors API")
+
+    # Register Lights API (v7.15.0)
+    try:
+        from copilot_core.api.v1.lights import lights_bp
+        app.register_blueprint(lights_bp)
+        _LOGGER.info("Registered Lights API (/api/v1/lights/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Lights API")
+
+    # Register Climate API (v7.15.0)
+    try:
+        from copilot_core.api.v1.climate import climate_bp
+        app.register_blueprint(climate_bp)
+        _LOGGER.info("Registered Climate API (/api/v1/climate/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Climate API")
+
+    # Register Switches API (v7.15.0)
+    try:
+        from copilot_core.api.v1.switches import switches_bp
+        app.register_blueprint(switches_bp)
+        _LOGGER.info("Registered Switches API (/api/v1/switches/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Switches API")
+
+>>>>>>> 83d47d148880728806b07f85ab8c363546173e5f
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
@@ -766,10 +843,8 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.error_status import api_bp
         app.register_blueprint(api_bp)
         _LOGGER.info("Registered Error Status API (/api/v1/errors/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Error Status API")
-
-    # Register Sharing API (Phase 5 — Cross-home sync & discovery)
+    # Register Sharing API (fix: was never wired)
+>>>>>>> origin/dev/v7.8.8-enhancements
     try:
         from copilot_core.sharing.api import sharing_bp
         app.register_blueprint(sharing_bp)
