@@ -713,6 +713,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Scenes API")
 
+    # Register Scene Pattern Extraction API (v7.11.0)
+    try:
+        from copilot_core.api.v1.scene_patterns import scene_patterns_bp
+        app.register_blueprint(scene_patterns_bp)
+        _LOGGER.info("Registered Scene Patterns API (/api/v1/scenes/patterns/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Scene Patterns API")
+
+    # Register Routine Pattern Extraction API (v7.11.0)
+    try:
+        from copilot_core.api.v1.routine_patterns import routine_patterns_bp
+        app.register_blueprint(routine_patterns_bp)
+        _LOGGER.info("Registered Routine Patterns API (/api/v1/routines/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Routine Patterns API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
