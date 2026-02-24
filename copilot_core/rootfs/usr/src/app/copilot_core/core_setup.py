@@ -748,6 +748,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Sharing API")
 
+    # Register Dashboard API (v7.11.0 — Brain Graph Summary + Health)
+    try:
+        from copilot_core.api.v1.dashboard import bp as dashboard_bp
+        app.register_blueprint(dashboard_bp)
+        _LOGGER.info("Registered Dashboard API (/dashboard/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Dashboard API")
+
     # Register Onyx bridge API (deterministic action bridge)
     try:
         from copilot_core.api.v1.onyx_bridge import onyx_bridge_bp
