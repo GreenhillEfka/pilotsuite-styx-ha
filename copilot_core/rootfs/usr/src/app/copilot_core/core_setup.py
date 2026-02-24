@@ -891,6 +891,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Alerts API")
 
+    # Register Weather API (v7.23.0)
+    try:
+        from copilot_core.api.v1.weather import weather_bp
+        app.register_blueprint(weather_bp)
+        _LOGGER.info("Registered Weather API (/api/v1/weather/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Weather API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
