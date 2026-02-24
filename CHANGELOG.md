@@ -11,3 +11,7 @@
 
 ## v7.8.13 (2026-02-24)
 - Cross-Home Sharing + Autopilot Runner v0.1.0
+
+## v7.9.1 (2026-02-24)
+- Synced with HA fixes and features
+- Tagged v7.9.1
