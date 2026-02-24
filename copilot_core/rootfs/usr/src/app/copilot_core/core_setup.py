@@ -819,6 +819,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Groups API")
 
+    # Register Input Select API (v7.17.0)
+    try:
+        from copilot_core.api.v1.input_select import input_select_bp
+        app.register_blueprint(input_select_bp)
+        _LOGGER.info("Registered Input Select API (/api/v1/input_select/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Input Select API")
+
+    # Register Scenes v2 API (v7.17.0)
+    try:
+        from copilot_core.api.v1.scenes_v2 import scenes_v2_bp
+        app.register_blueprint(scenes_v2_bp)
+        _LOGGER.info("Registered Scenes v2 API (/api/v1/scenes/v2/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Scenes v2 API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
