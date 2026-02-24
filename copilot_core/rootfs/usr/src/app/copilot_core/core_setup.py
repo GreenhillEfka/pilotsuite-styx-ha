@@ -731,8 +731,6 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Routine Patterns API")
 
-<<<<<<< HEAD
-=======
     # Register Push Notifications API (v7.12.0)
     try:
         from copilot_core.api.v1.push_notifications import push_notifications_bp
@@ -805,7 +803,6 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Switches API")
 
->>>>>>> 83d47d148880728806b07f85ab8c363546173e5f
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
@@ -824,129 +821,9 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
 
     # Register Shopping List & Reminders API (v3.5.0)
     try:
-        from copilot_core.api.v1.shopping import shopping_bp
-        app.register_blueprint(shopping_bp)
-        _LOGGER.info("Registered Shopping/Reminders API (/api/v1/shopping/*, /api/v1/reminders/*)")
+        from copilot_core.api.v1.shopping_list import shopping_list_bp
+        app.register_blueprint(shopping_list_bp)
+        _LOGGER.info("Registered Shopping List & Reminders API (/api/v1/shopping-list/*)")
     except Exception:
-        _LOGGER.exception("Failed to register Shopping/Reminders API")
+        _LOGGER.exception("Failed to register Shopping List & Reminders API")
 
-    # Register Vector Store API (v3.5.0)
-    try:
-        from copilot_core.api.v1.vector import bp as vector_bp
-        app.register_blueprint(vector_bp, url_prefix="/api/v1")
-        _LOGGER.info("Registered Vector API (/api/v1/vector/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Vector API")
-
-    # Register Error Status API (v7.8.10 — Error Dashboard Widget)
-    try:
-        from copilot_core.api.v1.error_status import api_bp
-        app.register_blueprint(api_bp)
-        _LOGGER.info("Registered Error Status API (/api/v1/errors/*)")
-    # Register Sharing API (fix: was never wired)
->>>>>>> origin/dev/v7.8.8-enhancements
-    try:
-        from copilot_core.sharing.api import sharing_bp
-        app.register_blueprint(sharing_bp)
-        _LOGGER.info("Registered Sharing API (/api/v1/sharing/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Sharing API")
-
-    # Register Dashboard API (v7.11.0 — Brain Graph Summary + Health)
-    try:
-        from copilot_core.api.v1.dashboard import bp as dashboard_bp
-        app.register_blueprint(dashboard_bp)
-        _LOGGER.info("Registered Dashboard API (/dashboard/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Dashboard API")
-
-    # Register Onyx bridge API (deterministic action bridge)
-    try:
-        from copilot_core.api.v1.onyx_bridge import onyx_bridge_bp
-        app.register_blueprint(onyx_bridge_bp)
-        _LOGGER.info("Registered Onyx bridge API (/api/v1/onyx/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Onyx bridge API")
-
-    # Register Notifications API (Phase 5 — Push notifications)
-    try:
-        from copilot_core.api.v1.notifications import bp as notifications_bp
-        app.register_blueprint(notifications_bp, url_prefix="/api/v1")
-        _LOGGER.info("Registered Notifications API (/api/v1/notifications/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Notifications API")
-
-    # Register Collective Intelligence API (Phase 5 — Federated learning)
-    try:
-        from copilot_core.collective_intelligence.api import federated_bp
-        app.register_blueprint(federated_bp, url_prefix="/api/v1")
-        _LOGGER.info("Registered Collective Intelligence API (/api/v1/federated/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Collective Intelligence API")
-
-    # Register PilotSuite MCP Server (expose skills to external AI clients)
-    from copilot_core.mcp_server import mcp_bp
-    app.register_blueprint(mcp_bp)
-
-    # Register LLM Search API (v7.11.1 — Direct Web Search via SearXNG)
-    try:
-        from copilot_core.api.v1.llm_search import bp as llm_search_bp, init_llm_search
-        if services and services.get("llm_provider"):
-            init_llm_search(services["llm_provider"])
-        app.register_blueprint(llm_search_bp)
-        _LOGGER.info("Registered LLM Search API (/api/v1/llm/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register LLM Search API")
-    
-    # Register PilotSuite Hub API (v7.6.0 — 17 engines, 120+ endpoints)
-    try:
-        from copilot_core.hub.api import hub_bp, init_hub_api
-        if services:
-            init_hub_api(
-                dashboard=services.get("hub_dashboard"),
-                plugin_manager=services.get("hub_plugin_manager"),
-                multi_home=services.get("hub_multi_home"),
-                maintenance_engine=services.get("hub_maintenance"),
-                anomaly_engine=services.get("hub_anomaly"),
-                zone_engine=services.get("hub_zones"),
-                light_engine=services.get("hub_light"),
-                mode_engine=services.get("hub_modes"),
-                media_engine=services.get("hub_media"),
-                energy_advisor=services.get("hub_energy"),
-                template_engine=services.get("hub_templates"),
-                scene_engine=services.get("hub_scenes"),
-                presence_engine=services.get("hub_presence"),
-                notification_engine=services.get("hub_notifications"),
-                integration_hub=services.get("hub_integration"),
-                brain_architecture=services.get("hub_brain_arch"),
-                brain_activity=services.get("hub_brain_activity"),
-            )
-        app.register_blueprint(hub_bp)
-        _LOGGER.info("Registered Hub API (/api/v1/hub/* — 120+ endpoints)")
-    except Exception:
-        _LOGGER.exception("Failed to register Hub API")
-
-    # Store services in app config for conversation context injection
-    if services:
-        app.config["COPILOT_SERVICES"] = services
-
-    # Set global service instances for API access
-    if services:
-        from copilot_core import set_system_health_service
-        if services.get("system_health_service"):
-            set_system_health_service(services["system_health_service"])
-        
-        # Set SQL connection pool
-        from copilot_core.performance import sql_pool
-        if sql_pool:
-            sql_pool.max_connections = 5  # Configure pool size
-        
-        # Set UniFi service for API access
-        from copilot_core.unifi import set_unifi_service as set_unifi
-        if services.get("unifi_service"):
-            set_unifi(services["unifi_service"])
-        
-        # Set Energy service for API access
-        from copilot_core.energy.api import init_energy_api
-        if services.get("energy_service"):
-            init_energy_api(services["energy_service"])
