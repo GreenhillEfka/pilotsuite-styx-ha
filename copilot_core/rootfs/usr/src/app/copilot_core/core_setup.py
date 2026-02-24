@@ -8,6 +8,8 @@ import logging
 import os
 from flask import Flask
 
+from copilot_core.error_boundary import ModuleErrorBoundary
+
 from copilot_core.api.v1 import log_fixer_tx
 from copilot_core.api.v1 import events_ingest
 from copilot_core.api.v1.events_ingest import set_post_ingest_callback
@@ -750,10 +752,8 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.error_status import api_bp
         app.register_blueprint(api_bp)
         _LOGGER.info("Registered Error Status API (/api/v1/errors/*)")
-    except Exception:
-        _LOGGER.exception("Failed to register Error Status API")
-
-    # Register Sharing API (Phase 5 — Cross-home sync & discovery)
+    # Register Sharing API (fix: was never wired)
+>>>>>>> origin/dev/v7.8.8-enhancements
     try:
         from copilot_core.sharing.api import sharing_bp
         app.register_blueprint(sharing_bp)
