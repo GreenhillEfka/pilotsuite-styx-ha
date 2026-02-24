@@ -1,0 +1,1 @@
+{\n  "name": "PilotSuite Styx HA",\n  "domains": ["sensor", "binary_sensor", "button", "select", "number", "text"],\n  "homeassistant": "2024.1.0",\n  "iot_class": "local_polling",\n  "version": "7.8.12",\n  "documentation": "https://github.com/styx/pilotsuite-styx-ha",\n  "issue_tracker": "https://github.com/styx/pilotsuite-styx-ha/issues",\n  "codeowners": ["@styx"]\n}
