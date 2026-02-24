@@ -851,6 +851,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Fans API")
 
+    # Register Webhooks API (v7.19.0)
+    try:
+        from copilot_core.api.v1.webhooks import webhooks_bp
+        app.register_blueprint(webhooks_bp)
+        _LOGGER.info("Registered Webhooks API (/api/v1/webhooks/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Webhooks API")
+
+    # Register Summary API (v7.19.0)
+    try:
+        from copilot_core.api.v1.summary import summary_bp
+        app.register_blueprint(summary_bp)
+        _LOGGER.info("Registered Summary API (/api/v1/summary/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Summary API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
