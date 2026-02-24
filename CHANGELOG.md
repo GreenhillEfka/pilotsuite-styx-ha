@@ -1,1 +1,1 @@
-# CHANGELOG\n\n## v7.8.11-dev (2026-02-24)\n- Synced with core fixes\n- Tagged test-p0-202602240530\n- Updated RELEASE_NOTES for P0 fixes\n- Tagged test-p0-202602240620\n- Tagged test-p0-202602240640\n- Tagged test-p0-202602240650
+# CHANGELOG\n\n## v7.8.11-dev (2026-02-24)\n- Synced with core fixes\n- Tagged test-p0-202602240530\n- Updated RELEASE_NOTES for P0 fixes\n- Tagged test-p0-202602240620\n- Tagged test-p0-202602240640\n- Tagged test-p0-202602240650\n- Tagged test-p0-202602240710
