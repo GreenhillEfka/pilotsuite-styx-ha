@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v8.0.0 (2026-02-24)
+- Major Release (HA/HACS konform)
+- Scene Pattern Extraction (v7.11.1)
+- Routine Pattern Extraction (v7.11.1)
+- Dashboard API (v7.11.0)
+- SearXNG auto-integration (v7.11.1)
+- Direct Web Search API (v7.11.1)
+- Anomaly Detector Fixes (bool type + last true anomaly)
+- Extend routine pattern extraction with scene grouping
+- Pytest: 608 passed
+
 ## v7.9.3 (2026-02-24)
 - fix(anomaly_detector): ensure is_anomaly returns Python bool type
 - fix(anomaly_detector): correct last_anomaly timestamp and features to reflect last true anomaly
@@ -21,3 +32,6 @@
 - Tagged test-p0-202602240710
 - Tagged test-p0-202602240730
 - Tagged test-p0-202602240740
+- Tagged test-p0-202602240750
+- Tagged test-p0-202602240840
+- Pytest: 2 failures, 606 passed (ha)
