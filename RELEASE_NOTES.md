@@ -1,1 +1,5 @@
-# Release Notes - 2026-02-24\n\n- Implemented P0 bugfixes for error isolation.\n- Advanced feature extensions in progress.
+# Release Notes - v7.9.2 (2026-02-24)
+
+- Integrated SearXNG for enhanced web search capabilities using http://192.168.30.18:4041.
+- Improved connection pooling in LLM provider.
+- Updated config version to 7.9.2.

@@ -1,4 +1,8 @@
--e # CHANGELOG
+# CHANGELOG
+
+## v7.9.2 (2026-02-24)
+- Bugfix: connection pooling in llm_provider
+- Feature: SearXNG integration for web search
 
 ## v7.8.11-dev (2026-02-24)
 - Fixed error isolation and connection pooling
