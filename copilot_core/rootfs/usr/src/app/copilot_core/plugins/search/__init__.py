@@ -1,5 +1,5 @@
 # copilot_core/plugins/search/__init__.py
-# Search plugins module — SearXNG integration for PilotSuite
+# Search plugin internals — SearXNG client
 
 from .searxng_client import SearXNGClient
 
