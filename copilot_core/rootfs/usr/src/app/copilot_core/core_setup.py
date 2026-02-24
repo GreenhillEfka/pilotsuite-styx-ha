@@ -835,6 +835,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Scenes v2 API")
 
+    # Register Covers API (v7.18.0)
+    try:
+        from copilot_core.api.v1.covers import covers_bp
+        app.register_blueprint(covers_bp)
+        _LOGGER.info("Registered Covers API (/api/v1/covers/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Covers API")
+
+    # Register Fans API (v7.18.0)
+    try:
+        from copilot_core.api.v1.fans import fans_bp
+        app.register_blueprint(fans_bp)
+        _LOGGER.info("Registered Fans API (/api/v1/fans/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Fans API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
