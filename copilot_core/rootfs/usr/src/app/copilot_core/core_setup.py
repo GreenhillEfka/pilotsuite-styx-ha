@@ -779,6 +779,30 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Sensors API")
 
+    # Register Lights API (v7.15.0)
+    try:
+        from copilot_core.api.v1.lights import lights_bp
+        app.register_blueprint(lights_bp)
+        _LOGGER.info("Registered Lights API (/api/v1/lights/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Lights API")
+
+    # Register Climate API (v7.15.0)
+    try:
+        from copilot_core.api.v1.climate import climate_bp
+        app.register_blueprint(climate_bp)
+        _LOGGER.info("Registered Climate API (/api/v1/climate/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Climate API")
+
+    # Register Switches API (v7.15.0)
+    try:
+        from copilot_core.api.v1.switches import switches_bp
+        app.register_blueprint(switches_bp)
+        _LOGGER.info("Registered Switches API (/api/v1/switches/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Switches API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
