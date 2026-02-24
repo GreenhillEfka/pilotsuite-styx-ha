@@ -1,1 +1,1 @@
-# Release Notes\n\n### v7.8.11-dev\n- Bug fixes for error handling\n- Phase 5 features reviewed\n
+# Release Notes v7.8.11-dev (2026-02-24)\n\n- Implemented fixes for error isolation and connection pooling.\n- Phase 5 features completed as per PHASE5_TODO.md.\n- Test tag: test-p0-202602240540
