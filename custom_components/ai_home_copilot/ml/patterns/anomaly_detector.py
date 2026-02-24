@@ -97,7 +97,7 @@ class AnomalyDetector:
         score = self._compute_anomaly_score(feature_vector)
         
         # Determine if anomaly
-        is_anomaly = score > self._get_adaptive_threshold()
+        is_anomaly = bool(score > self._get_adaptive_threshold())
         
         # Track history
         self.anomaly_history.append({
@@ -213,9 +213,9 @@ class AnomalyDetector:
             
         return {
             "count": len(recent_anomalies),
-            "last_anomaly": recent_anomalies[-1]["timestamp"],
-            "peak_score": max(entry["score"] for entry in recent_anomalies),
-            "features": recent_anomalies[-1]["features"],
+            "last_anomaly": max((e["timestamp"] for e in recent_anomalies if e["is_anomaly"]), default=None),
+            "peak_score": max((e["score"] for e in recent_anomalies if e["is_anomaly"]), default=0.0),
+            "features": next((e["features"] for e in reversed(recent_anomalies) if e["is_anomaly"]), {}),
         }
     
     def reset(self) -> None:
