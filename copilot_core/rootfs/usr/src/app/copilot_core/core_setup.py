@@ -883,6 +883,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Locks API")
 
+    # Register Alerts API (v7.22.0)
+    try:
+        from copilot_core.api.v1.alerts import alerts_bp
+        app.register_blueprint(alerts_bp)
+        _LOGGER.info("Registered Alerts API (/api/v1/alerts/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Alerts API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
