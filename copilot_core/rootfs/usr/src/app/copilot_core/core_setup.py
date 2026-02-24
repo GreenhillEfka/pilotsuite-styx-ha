@@ -763,6 +763,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Automation Webhook API")
 
+    # Register Service Calls API (v7.14.0)
+    try:
+        from copilot_core.api.v1.service_calls import services_bp
+        app.register_blueprint(services_bp)
+        _LOGGER.info("Registered Service Calls API (/api/v1/services/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Service Calls API")
+
+    # Register Sensors API (v7.14.0)
+    try:
+        from copilot_core.api.v1.sensors import sensors_bp
+        app.register_blueprint(sensors_bp)
+        _LOGGER.info("Registered Sensors API (/api/v1/sensors/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Sensors API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
