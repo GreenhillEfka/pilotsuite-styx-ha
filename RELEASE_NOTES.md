@@ -1,1 +1,20 @@
-# Release Notes v7.8.11-dev (2026-02-24)\n\n- Synced with core fixes for error isolation and connection pooling.\n- HA manifest updated.\n- Added manifest.json for conformance.\n- Test tag: test-p0-202602240550\n- New test tag: test-p0-202602240640- New test tag: test-p0-202602240650\n- New test tag: test-p0-202602240710\n- New test tag: test-p0-202602240730\n- New test tag: test-p0-202602240740\n- New test tag: test-p0-202602240750\n- New test tag: test-p0-202602240840\n- HA tests: 2 failures in anomaly_detector
+# Release Notes v7.9.3 (2026-02-24)
+
+**Version:** 7.9.3
+**Date:** 2026-02-24
+**Tag:** `v7.9.3`
+
+## Features
+- Anomaly detector fixes — bool type + last true anomaly
+- Extend routine pattern extraction with scene grouping
+
+## Changes
+- Version bump in manifest.json
+- Updated CHANGELOG
+
+## Testing
+- Pytest: 606 passed
+
+---
+
+**PilotSuite Styx HA** 🧠🏠

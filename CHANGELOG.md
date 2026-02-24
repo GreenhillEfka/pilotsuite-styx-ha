@@ -1,1 +1,20 @@
-# CHANGELOG\n\n## v7.8.11-dev (2026-02-24)\n- Synced with core fixes\n- Tagged test-p0-202602240530\n- Updated RELEASE_NOTES for P0 fixes\n- Tagged test-p0-202602240620\n- Tagged test-p0-202602240640\n- Tagged test-p0-202602240650\n- Tagged test-p0-202602240710\n- Tagged test-p0-202602240730\n- Tagged test-p0-202602240740\n- Tagged test-p0-202602240750\n- Tagged test-p0-202602240840\n- Pytest: 2 failures, 606 passed (ha)
+# CHANGELOG
+
+## v7.9.3 (2026-02-24)
+- Release: anomaly detector fixes — bool type + last true anomaly
+- Extend routine pattern extraction with scene grouping
+- Pytest: 606 passed
+
+## v7.8.11-dev (2026-02-24)
+- Synced with core fixes
+- Tagged test-p0-202602240530
+- Updated RELEASE_NOTES for P0 fixes
+- Tagged test-p0-202602240620
+- Tagged test-p0-202602240640
+- Tagged test-p0-202602240650
+- Tagged test-p0-202602240710
+- Tagged test-p0-202602240730
+- Tagged test-p0-202602240740
+- Tagged test-p0-202602240750
+- Tagged test-p0-202602240840
+- Pytest: 2 failures, 606 passed (ha)
