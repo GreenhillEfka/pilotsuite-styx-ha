@@ -1,1 +1,1 @@
-# Release Notes\n\n### v7.8.11-dev\n- HA conformance checked\n- Manifest validated\n
+# Release Notes v7.8.11-dev (2026-02-24)\n\n- Synced with core fixes for error isolation and connection pooling.\n- HA manifest updated.\n- Test tag: test-p0-202602240540
