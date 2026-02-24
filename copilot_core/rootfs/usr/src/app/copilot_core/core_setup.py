@@ -747,6 +747,22 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register System Status API")
 
+    # Register Entity Management API (v7.13.0)
+    try:
+        from copilot_core.api.v1.entities import entities_bp
+        app.register_blueprint(entities_bp)
+        _LOGGER.info("Registered Entity Management API (/api/v1/entities/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Entity Management API")
+
+    # Register Automation Webhook API (v7.13.0)
+    try:
+        from copilot_core.api.v1.automation_webhook import automation_webhook_bp
+        app.register_blueprint(automation_webhook_bp)
+        _LOGGER.info("Registered Automation Webhook API (/api/v1/automation/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Automation Webhook API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
