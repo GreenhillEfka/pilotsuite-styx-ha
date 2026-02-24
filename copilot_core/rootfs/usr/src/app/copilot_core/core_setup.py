@@ -867,6 +867,14 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Summary API")
 
+    # Register History API (v7.20.0)
+    try:
+        from copilot_core.api.v1.history import history_bp
+        app.register_blueprint(history_bp)
+        _LOGGER.info("Registered History API (/api/v1/history/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register History API")
+
     # Register HomeKit Bridge API (v3.4.0)
     try:
         from copilot_core.api.v1.homekit import homekit_bp
