@@ -532,3 +532,16 @@ class ContextAwareHabitPredictor(HabitPredictor):
                 "samples": len(pattern),
             },
         }
+
+    def extract_routine_patterns(self, min_occurrences: int = 3) -> Dict[str, List[Dict]]:
+        """Extract routine patterns from observed data with enhanced scene integration."""
+        routines = {}
+        for device_id, events in self.device_patterns.items():
+            if len(events) >= min_occurrences:
+                # Enhanced: Group by scene if available
+                scene_groups = defaultdict(list)
+                for event in events:
+                    scene = event.get("context", {}).get("scene", "default")
+                    scene_groups[scene].append(event)
+                routines[device_id] = dict(scene_groups)
+        return routines

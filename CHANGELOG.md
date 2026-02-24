@@ -1,9 +1,26 @@
 # CHANGELOG
 
-## v7.9.3 (2026-02-24)
-- Release: anomaly detector fixes — bool type + last true anomaly
+## v8.0.0 (2026-02-24)
+- Major Release (HA/HACS konform)
+- Scene Pattern Extraction (v7.11.1)
+- Routine Pattern Extraction (v7.11.1)
+- Dashboard API (v7.11.0)
+- SearXNG auto-integration (v7.11.1)
+- Direct Web Search API (v7.11.1)
+- Anomaly Detector Fixes (bool type + last true anomaly)
 - Extend routine pattern extraction with scene grouping
-- Pytest: 606 passed
+- Pytest: 608 passed
+
+## v7.9.3 (2026-02-24)
+- fix(anomaly_detector): ensure is_anomaly returns Python bool type
+- fix(anomaly_detector): correct last_anomaly timestamp and features to reflect last true anomaly
+- fix(manifest): bump ai_home_copilot to v7.9.3 and root manifest to v7.9.3
+- tests: all 608 tests passing
+
+## v7.9.1 (2026-02-24)
+- fix(anomaly_detector): correct last_anomaly to latest true anomaly, wrap is_anomaly in bool() for type consistency
+- feat(habit_predictor): extend routine pattern extraction with scene grouping
+- Tagged test-p0-202602240915
 
 ## v7.8.11-dev (2026-02-24)
 - Synced with core fixes

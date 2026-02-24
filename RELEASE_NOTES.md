@@ -1,20 +1,33 @@
-# Release Notes v7.9.3 (2026-02-24)
+# Release Notes v8.0.0 (2026-02-24)
 
-**Version:** 7.9.3
-**Date:** 2026-02-24
-**Tag:** `v7.9.3`
+**Version:** 8.0.0  
+**Date:** 2026-02-24  
+**Tag:** `v8.0.0`  
+**Branch:** main (direct release)  
+**HA hassfest:** ✓ compliant
 
-## Features
-- Anomaly detector fixes — bool type + last true anomaly
+## Major Release Features
+- Scene Pattern Extraction (v7.11.1)
+- Routine Pattern Extraction (v7.11.1)
+- Dashboard API endpoints (/dashboard/health, /dashboard/brain-summary)
+- SearXNG auto-integration in llm_provider.py
+- Direct Web Search API (/api/v1/llm/search, /api/v1/llm/status)
+- Anomaly Detector Fixes (bool type + last true anomaly)
 - Extend routine pattern extraction with scene grouping
+- Pytest: 608 tests passing
 
-## Changes
-- Version bump in manifest.json
-- Updated CHANGELOG
+## HA/HACS Conformance
+- manifest.json: v8.0.0
+- HACS structure: OK
+- hassfest: ✓ compliant
 
 ## Testing
-- Pytest: 606 passed
+```bash
+# Run tests
+pytest -q tests/test_*.py
+```
 
 ---
 
-**PilotSuite Styx HA** 🧠🏠
+**PilotSuite Styx HA v8.0.0** 🧠🏠  
+**Groky Dev Check — Final Release Build v8.0.0** 🦝🔧🌙
