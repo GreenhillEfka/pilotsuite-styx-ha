@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v7.10.1 (2026-02-24)
+- Auto-release: System integrity checks and minor fixes
+- Updated version in config and manifest
+
 ## v7.10.0 (2026-02-24)
 - Plugin system v1 — base classes, search/llm plugins, React backend API
 - Search plugin via SearXNG (local, HTML parser)
