@@ -939,3 +939,19 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Zones API (/api/v1/zones/*)")
     except Exception:
         _LOGGER.exception("Failed to register Zones API")
+
+    # Register Config Management API (v7.28.0)
+    try:
+        from copilot_core.api.v1.config_management import config_bp
+        app.register_blueprint(config_bp)
+        _LOGGER.info("Registered Config Management API (/api/v1/config/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Config Management API")
+
+    # Register Templates API (v7.28.0)
+    try:
+        from copilot_core.api.v1.templates import templates_bp
+        app.register_blueprint(templates_bp)
+        _LOGGER.info("Registered Templates API (/api/v1/templates/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Templates API")
