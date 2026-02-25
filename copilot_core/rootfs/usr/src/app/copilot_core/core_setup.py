@@ -923,3 +923,19 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Shopping List & Reminders API")
 
+
+    # Register Input Number API (v7.25.0)
+    try:
+        from copilot_core.api.v1.input_number import input_number_bp
+        app.register_blueprint(input_number_bp)
+        _LOGGER.info("Registered Input Number API (/api/v1/input_number/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Input Number API")
+
+    # Register Zones API (v7.25.0)
+    try:
+        from copilot_core.api.v1.zones import zones_bp
+        app.register_blueprint(zones_bp)
+        _LOGGER.info("Registered Zones API (/api/v1/zones/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Zones API")
