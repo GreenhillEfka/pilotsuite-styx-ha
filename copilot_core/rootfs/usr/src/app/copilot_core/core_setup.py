@@ -1013,3 +1013,9 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.areas import areas_bp
         app.register_blueprint(areas_bp)
     except: pass
+
+    # Register Issues API (v7.35)
+    try:
+        from copilot_core.api.v1.issues import issues_bp
+        app.register_blueprint(issues_bp)
+    except: pass
