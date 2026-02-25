@@ -1523,3 +1523,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.firmware import firmware_bp
         app.register_blueprint(firmware_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.memory import memory_bp
+        app.register_blueprint(memory_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.cpu import cpu_bp
+        app.register_blueprint(cpu_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.gpu import gpu_bp
+        app.register_blueprint(gpu_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.disk import disk_bp
+        app.register_blueprint(disk_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.raid import raid_bp
+        app.register_blueprint(raid_bp)
+    except: pass
