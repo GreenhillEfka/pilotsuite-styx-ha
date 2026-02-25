@@ -1,25 +1,26 @@
-# Release Notes v8.1.1 (2026-02-25)
+# Release Notes v8.4.0 (2026-02-25)
 
-**Version:** 8.1.1  
+**Version:** 8.4.0  
 **Date:** 2026-02-25  
-**Tag:** `v8.1.1`  
+**Tag:** `v8.4.0`  
 **Branch:** main (HA/HACS konform)  
 **Hassfest:** ✅ compliant
 
 ## Release Features
-- RFC-Phase 2 Core Tools implementiert
-- Scene Automation Skills (create_scene_from_behavior, list_scenes)
-- Multi-Zone Audio Control (group_zones, ungroup_zones)
-- Security & Access (door_status, lock_door, unlock_door)
-- Maintenance & Diagnostics (system_health, restart_service)
-- Calendar & Scheduling (upcoming_events, optimal_time)
-- Weather-Based Automation (weather_trigger)
-- MCP-compatible API mit input schemas
+- feat: entity profile runtime select (UI dropdown for Core model/provider)
+- fix: knowledge_graph guard for KeyError safety
+- fix: guard all hass.data access against KeyError
+- fix: inspector_sensor key path fix
+- feat: Brain Graph + Habitus Rules sensors
+- feat: Core API integration improvements
+- feat: dashboard improvements
+- feat: Per-module options submenu
+- feat: Core module control API
 - Pytest: 608 passed
 
 ## HA/HACS Conformance
-- manifest.json: v8.1.1
-- domain Feld hinzugefügt (falsches `domains` war das Problem!)
+- manifest.json: v8.4.0
+- domain Feld vorhanden
 - HACS structure: OK
 - hassfest: ✅ compliant
 
@@ -27,10 +28,10 @@
 ```bash
 # Run tests
 pytest -q tests/test_*.py
+# 608 passed, 1 skipped
 ```
 
 ---
 
-**PilotSuite Styx HA v8.1.1** 🧠🏠  
-**Release Iteration Maschine — v8.1.1** 🦝🔧🌙
-
+**PilotSuite Styx HA v8.4.0** 🧠🏠  
+**Release Iteration Maschine — v8.4.0** 🦝🔧🌙

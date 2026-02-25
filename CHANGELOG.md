@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## v8.4.0 (2026-02-25)
+- feat: entity profile runtime select
+- fix: knowledge_graph guard for KeyError
+- Pytest: 608 passed
+
+## v8.3.0 (2026-02-25)
+- fix: guard all hass.data access against KeyError
+- fix: inspector_sensor key path
+- Pytest: 608 passed
+
+## v8.2.0 (2026-02-25)
+- feat: Brain Graph + Habitus Rules sensors
+- feat: Core API integration
+- feat: dashboard improvements
+- Pytest: 608 passed
+
+## v8.1.2 (2026-02-25)
+- feat: Per-module options submenu
+- feat: Core module control API
+- Pytest: 608 passed
+
 ## v8.1.1 (2026-02-25)
 - RFC-Phase 2 Core Tools implementiert
 - Scene Automation Skills (create_scene_from_behavior, list_scenes)
