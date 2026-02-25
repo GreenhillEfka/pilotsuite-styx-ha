@@ -1223,3 +1223,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.humidifier import humidifier_bp
         app.register_blueprint(humidifier_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.water_heater import water_bp
+        app.register_blueprint(water_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.airquality import airquality_bp
+        app.register_blueprint(airquality_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.binarysensor import binarysensor_bp
+        app.register_blueprint(binarysensor_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.siren import siren_bp
+        app.register_blueprint(siren_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.lightfull import lightfull_bp
+        app.register_blueprint(lightfull_bp)
+    except: pass
