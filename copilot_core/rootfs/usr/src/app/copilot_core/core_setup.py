@@ -1443,3 +1443,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.ftp import ftp_bp
         app.register_blueprint(ftp_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.ssh import ssh_bp
+        app.register_blueprint(ssh_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.telnet import telnet_bp
+        app.register_blueprint(telnet_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.rdp import rdp_bp
+        app.register_blueprint(rdp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.vnc import vnc_bp
+        app.register_blueprint(vnc_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.rdp2 import rdp2_bp
+        app.register_blueprint(rdp2_bp)
+    except: pass
