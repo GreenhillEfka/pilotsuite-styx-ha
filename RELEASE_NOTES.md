@@ -1,20 +1,19 @@
-# Release Notes v8.5.0 (2026-02-25)
+# Release Notes v8.6.0 (2026-02-25)
 
-**Version:** 8.5.0  
+**Version:** 8.6.0  
 **Date:** 2026-02-25  
-**Tag:** `v8.5.0`  
+**Tag:** `v8.6.0`  
 **Branch:** main (HA/HACS konform)  
 **Hassfest:** ✅ compliant
 
 ## Release Features
-- fix: camera forwarding has a legacy-safe sync wrapper, avoiding `coroutine was never awaited` warnings from old call paths
-- fix: performance memory warnings are less noisy (default threshold `3072 MB`, alert only after 3 consecutive breaches)
-- test: dedicated regressions for camera legacy wrapper + performance streak behavior
-- chore: version alignment across HA manifests to `8.5.0`
-- Pytest (targeted): 25 passed
+- feat: generated Habitus dashboards now include camera entities as dedicated sections and live `picture-entity` cards
+- feat: habitus key-signal history/logbook includes camera traces for better zone observability
+- chore: version alignment across HA manifests to `8.6.0`
+- Pytest (targeted): 33 passed
 
 ## HA/HACS Conformance
-- manifest.json: v8.5.0
+- manifest.json: v8.6.0
 - domain Feld vorhanden
 - HACS structure: OK
 - hassfest: ✅ compliant
@@ -28,4 +27,4 @@ pytest -q tests/test_*.py
 
 ---
 
-**PilotSuite Styx HA v8.5.0**
+**PilotSuite Styx HA v8.6.0**

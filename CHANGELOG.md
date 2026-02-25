@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v8.6.0 (2026-02-25)
+- feat(habitus-dashboard): camera entities are now rendered explicitly in generated Habitus dashboards (entities + live `picture-entity` cards)
+- feat(habitus-dashboard): zone overview signal stack now includes camera signals in key history/logbook tracks
+- chore(version): align integration + repo manifest to `8.6.0`
+- targeted tests: 33 passed (`habitus_dashboard_generation`, `habitus_zones_dashboard`, `camera_context_module`, `performance_scaling`)
+
 ## v8.5.0 (2026-02-25)
 - fix(camera): `CameraContextModule` now keeps a legacy-safe sync wrapper for `_forward_to_brain`, preventing `coroutine ... was never awaited` warnings from old sync callsites
 - test(camera): added regression test for direct legacy `_forward_to_brain(...)` invocation path

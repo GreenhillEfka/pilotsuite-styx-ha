@@ -138,6 +138,15 @@ def _entity_card_yaml(title: str, entity_id: str) -> str:
     )
 
 
+def _camera_card_yaml(title: str, entity_id: str) -> str:
+    return (
+        "      - type: picture-entity\n"
+        f"        entity: {entity_id}\n"
+        f"        name: {title}\n"
+        "        camera_view: live\n"
+    )
+
+
 def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     """Return a YAML snippet for one Lovelace view.
 
@@ -165,6 +174,7 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     domain_groups: dict[str, list[str]] = {
         "binary_sensor": [],
         "light": [],
+        "camera": [],
         "cover": [],
         "climate": [],
         "lock": [],
@@ -185,6 +195,7 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     # Fill common roles if missing
     roles.setdefault("motion", domain_groups["binary_sensor"])
     roles.setdefault("lights", domain_groups["light"])
+    roles.setdefault("camera", domain_groups["camera"])
     roles.setdefault("cover", domain_groups["cover"])
     roles.setdefault("heating", domain_groups["climate"])
     roles.setdefault("lock", domain_groups["lock"])
@@ -240,6 +251,11 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
         cards.append(_entities_card_yaml("Heizung", roles.get("heating") or []))
     if roles.get("media"):
         cards.append(_entities_card_yaml("Media / Lautstärke", roles.get("media") or []))
+    if roles.get("camera"):
+        cams = roles.get("camera") or []
+        cards.append(_entities_card_yaml("Kameras", cams))
+        for cam in cams[:4]:
+            cards.append(_camera_card_yaml("Kamera Live", cam))
 
     # Motion/Präsenz (mit letzter Änderung)
     motion = roles.get("motion") or []
@@ -319,6 +335,7 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     # Key signals for history/logbook (kuratiert)
     key_signals: list[str] = []
     key_signals.extend((motion or [])[:2])
+    key_signals.extend((roles.get("camera") or [])[:2])
     key_signals.extend((lights or [])[:6])
     key_signals.extend((roles.get("media") or [])[:4])
     key_signals.extend((roles.get("heating") or [])[:2])
