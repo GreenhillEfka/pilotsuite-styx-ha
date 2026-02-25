@@ -1803,3 +1803,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.wifitdls import wifitdls_bp
         app.register_blueprint(wifitdls_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.usb4 import usb4_bp
+        app.register_blueprint(usb4_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.usb3 import usb3_bp
+        app.register_blueprint(usb3_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.thunderbolt import thunderbolt_bp
+        app.register_blueprint(thunderbolt_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.pcie import pcie_bp
+        app.register_blueprint(pcie_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.sata import sata_bp
+        app.register_blueprint(sata_bp)
+    except: pass
