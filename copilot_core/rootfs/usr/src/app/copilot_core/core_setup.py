@@ -1303,3 +1303,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.authtoken import authtoken_bp
         app.register_blueprint(authtoken_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.auditlog import auditlog_bp
+        app.register_blueprint(auditlog_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.auditevent import auditevent_bp
+        app.register_blueprint(auditevent_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.report import report_bp
+        app.register_blueprint(report_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.export import export_bp
+        app.register_blueprint(export_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.import import import_bp
+        app.register_blueprint(import_bp)
+    except: pass
