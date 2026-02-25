@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v8.11.0 (2026-02-25)
+- compat(core): paired with Core `v8.11.0` system observability endpoints (`/api/v1/system/*`) for dashboard health/resource/sensor views.
+- chore(version): integration + repo manifest aligned to `8.11.0`.
+- docs: setup/install guides updated to reference the new system overview flow.
+
 ## v8.10.0 (2026-02-25)
 - fix(homekit): HomeKit bridge module now imports `async_get_clientsession` correctly, so setup-info sync from Core (`/api/v1/homekit/all-zones-info`) works reliably.
 - compat(core): paired with Core `v8.10.0` HomeKit zone server API and Habitus dashboard HomeKit management panel.

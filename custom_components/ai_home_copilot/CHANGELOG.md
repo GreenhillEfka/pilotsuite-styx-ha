@@ -5,6 +5,11 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [8.11.0] - 2026-02-25
+- Kompatibilitaetsrelease zur Core-Paarung `8.11.0`.
+- React-Dashboard nutzt neue Core-Systemuebersicht (`/api/v1/system/*`) fuer Ressourcen-/Sensor-/Zonenstatus.
+- Versionsmetadaten auf `8.11.0` synchronisiert.
+
 ## [8.10.0] - 2026-02-25
 - HomeKit-Bridge Importfix: `async_get_clientsession` sauber eingebunden.
 - Setup-Info-Sync vom Core (`/api/v1/homekit/all-zones-info`) laeuft jetzt stabil.

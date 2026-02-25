@@ -1,6 +1,6 @@
 # PilotSuite Styx – Setup (HA + Core)
 
-Stand: **v8.10.0**
+Stand: **v8.11.0**
 
 ## 1) Core Add-on installieren
 
@@ -59,7 +59,7 @@ Im Core Add-on (Configuration):
 
 ## Version-Paarung
 
-- HA Integration: `8.10.0`
-- Core Add-on: `8.10.0`
+- HA Integration: `8.11.0`
+- Core Add-on: `8.11.0`
 
 Für Add-on-Info-Screen: siehe `pilotsuite-styx-core/copilot_core/DOCS.md`.
