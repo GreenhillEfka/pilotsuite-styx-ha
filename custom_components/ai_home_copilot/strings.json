@@ -210,8 +210,9 @@
       },
       "module_pilotsuite_ux": {
         "title": "PilotSuite UI",
-        "description": "Toggle visibility of advanced button groups in the dashboard.",
+        "description": "Entity profile and visibility of advanced button groups.",
         "data": {
+          "entity_profile": "Entity profile (core / full)",
           "pilotsuite_show_safety_backup_buttons": "Show safety-backup buttons",
           "pilotsuite_show_dev_surface_buttons": "Show debug/dev buttons",
           "pilotsuite_show_graph_bridge_buttons": "Show graph-to-candidates buttons"
