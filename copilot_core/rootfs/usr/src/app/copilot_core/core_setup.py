@@ -1503,3 +1503,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.netboot import netboot_bp
         app.register_blueprint(netboot_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.pxe import pxe_bp
+        app.register_blueprint(pxe_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ipxe import ipxe_bp
+        app.register_blueprint(ipxe_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.uefi import uefi_bp
+        app.register_blueprint(uefi_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.bios import bios_bp
+        app.register_blueprint(bios_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.firmware import firmware_bp
+        app.register_blueprint(firmware_bp)
+    except: pass
