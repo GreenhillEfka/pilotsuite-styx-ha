@@ -1,6 +1,3 @@
-# Groky Dev Check Cronjob — Erweiterte Struktur
-# Run every 10 min via: */10 * * * * python3 /config/.openclaw/workspace/groky_dev_check.py
-
 #!/usr/bin/env python3
 """
 Groky Dev Check — System Integrity & HA-Conform Release Automation
@@ -29,7 +26,6 @@ import os
 import sys
 import subprocess
 import json
-import requests
 from datetime import datetime
 from pathlib import Path
 
@@ -51,6 +47,12 @@ def run(cmd, cwd=None, check=True):
         return result.stdout.strip(), result.stderr.strip(), result.returncode
     except subprocess.CalledProcessError as e:
         return "", e.stderr, e.returncode
+
+def curl(url, timeout=5):
+    """Simple curl-based HTTP check."""
+    cmd = f'curl -s -o /dev/null -w "%{{http_code}}" --connect-timeout {timeout} --max-time {timeout} "{url}"'
+    stdout, _, code = run(cmd, check=False)
+    return int(stdout) if stdout.isdigit() else 0
 
 def log(msg):
     """Print timestamped log."""
@@ -108,12 +110,9 @@ def phase2_bugfix_round():
     )
     log(f"Error boundary tests: {stdout if stdout else 'no output'}")
 
-    # Connection pool health
-    try:
-        resp = requests.get(f"{CORE_API_URL}/api/performance/pool", timeout=5)
-        log(f"Connection pool status: {resp.status_code}")
-    except Exception as e:
-        log(f"⚠️ Connection pool check failed: {e}")
+    # Connection pool health via curl
+    pool_status = curl(f"{CORE_API_URL}/api/performance/pool")
+    log(f"Connection pool status: {pool_status}")
 
     return {"status": "ok"}
 
@@ -125,21 +124,12 @@ def phase3_feature_extension():
     log("PHASE 3: Feature Extension — SearXNG & Plugin System")
 
     # SearXNG health check
-    try:
-        resp = requests.get(f"{SearXNG_URL}/search?q=test", timeout=5)
-        log(f"SearXNG health: {resp.status_code}")
-    except Exception as e:
-        log(f"⚠️ SearXNG check failed: {e}")
+    searx_status = curl(f"{SearXNG_URL}/search?q=test")
+    log(f"SearXNG health: {searx_status}")
 
     # Plugin registry check
-    try:
-        resp = requests.get(f"{CORE_API_URL}/api/plugins", timeout=5)
-        plugins = resp.json() if resp.status_code == 200 else []
-        log(f"Plugins registered: {len(plugins)}")
-        for p in plugins:
-            log(f"  - {p.get('id', 'unknown')}: {p.get('name', '')} (enabled={p.get('enabled', False)})")
-    except Exception as e:
-        log(f"⚠️ Plugin registry check failed: {e}")
+    plugins_status = curl(f"{CORE_API_URL}/api/plugins")
+    log(f"Plugin registry status: {plugins_status}")
 
     return {"status": "ok"}
 
@@ -303,23 +293,14 @@ def phase7_system_integrity():
     log("PHASE 7: SYSTEM INTEGRITY — Dashboard + UX Optimierung")
 
     # Dashboard endpoint check
-    try:
-        resp = requests.get(f"{CORE_API_URL}/dashboard", timeout=5)
-        if resp.status_code == 200:
-            log("✓ Dashboard endpoint: OK")
-        else:
-            log(f"⚠️ Dashboard endpoint: {resp.status_code}")
-    except Exception as e:
-        log(f"⚠️ Dashboard endpoint check failed: {e}")
+    dashboard_status = curl(f"{CORE_API_URL}/dashboard")
+    log(f"Dashboard endpoint: {dashboard_status}")
 
     # API routes validation
     api_endpoints = ["/api/status", "/api/plugins", "/api/performance/pool"]
     for endpoint in api_endpoints:
-        try:
-            resp = requests.get(f"{CORE_API_URL}{endpoint}", timeout=5)
-            log(f"  ✓ {endpoint}: {resp.status_code}")
-        except Exception as e:
-            log(f"  ⚠️ {endpoint}: {e}")
+        status = curl(f"{CORE_API_URL}{endpoint}")
+        log(f"  ✓ {endpoint}: {status}")
 
     # Config validation (YAML syntax check)
     config_path = CORE_PATH / "copilot_core" / "config.yaml"
@@ -336,13 +317,10 @@ def phase7_system_integrity():
     success = 0
     fail = 0
     for _ in range(100):
-        try:
-            resp = requests.get(f"{CORE_API_URL}/api/status", timeout=2)
-            if resp.status_code == 200:
-                success += 1
-            else:
-                fail += 1
-        except:
+        status = curl(f"{CORE_API_URL}/api/status")
+        if status == 200:
+            success += 1
+        else:
             fail += 1
 
     error_rate = fail / (success + fail) * 100 if (success + fail) > 0 else 0

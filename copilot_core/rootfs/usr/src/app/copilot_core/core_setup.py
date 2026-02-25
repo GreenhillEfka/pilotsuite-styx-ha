@@ -1643,3 +1643,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.copier import copier_bp
         app.register_blueprint(copier_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.fax import fax_bp
+        app.register_blueprint(fax_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.modem import modem_bp
+        app.register_blueprint(modem_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.isdn import isdn_bp
+        app.register_blueprint(isdn_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.dsl import dsl_bp
+        app.register_blueprint(dsl_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.pon import pon_bp
+        app.register_blueprint(pon_bp)
+    except: pass
