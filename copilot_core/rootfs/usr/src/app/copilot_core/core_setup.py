@@ -1363,3 +1363,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.decrypt import decrypt_bp
         app.register_blueprint(decrypt_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.certificate import cert_bp
+        app.register_blueprint(cert_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.vpn import vpn_bp
+        app.register_blueprint(vpn_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.firewall import firewall_bp
+        app.register_blueprint(firewall_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.proxy import proxy_bp
+        app.register_blueprint(proxy_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.dns import dns_bp
+        app.register_blueprint(dns_bp)
+    except: pass
