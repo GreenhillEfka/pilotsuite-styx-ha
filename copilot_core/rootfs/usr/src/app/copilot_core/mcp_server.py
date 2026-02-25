@@ -124,6 +124,22 @@ MCP_TOOLS = [
             "properties": {},
         },
     },
+    {
+        "name": "pilotsuite.search_web",
+        "description": "Search the web via SearXNG metasearch engine. Good for up-to-date information, facts, or external knowledge.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query"},
+                "language": {"type": "string", "description": "Language code (e.g., 'de', 'en')", "default": "de"},
+                "categories": {"type": "string", "description": "Comma-separated categories (e.g., 'general,news')", "default": "general"},
+                "time_range": {"type": "string", "description": "Time range: 'day', 'week', 'month', 'year'", "default": ""},
+                "safesearch": {"type": "integer", "description": "Safe search level: 0=off, 1=moderate, 2=strict", "default": 1},
+                "max_results": {"type": "integer", "description": "Max results (default 10)", "default": 10},
+            },
+            "required": ["query"],
+        },
+    },
 ]
 
 # MCP Prompts
