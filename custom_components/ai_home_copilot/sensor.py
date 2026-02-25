@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
@@ -167,6 +168,9 @@ from .sensors.notification_intelligence_sensor import NotificationIntelligenceSe
 from .sensors.system_integration_sensor import SystemIntegrationSensor
 from .sensors.brain_architecture_sensor import BrainArchitectureSensor
 from .sensors.brain_activity_sensor import BrainActivitySensor
+from .sensors.rag_status_sensor import RagPipelineStatusSensor
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
@@ -190,6 +194,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 MoodSensor(coordinator),
                 MoodConfidenceSensor(coordinator),
                 AgentStatusSensor(coordinator),
+                RagPipelineStatusSensor(coordinator),
             ],
             True,
         )
@@ -255,6 +260,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
         PipelineHealthSensor(coordinator),
+        RagPipelineStatusSensor(coordinator),
         DebugModeSensor(hass, entry),
         # Mood Sensors (Neural System)
         MoodSensor(coordinator),

@@ -291,6 +291,17 @@ class CopilotApiClient(SharedCopilotApiClient):
             _LOGGER.debug("Automation suggestions not available: %s", e)
         return {}
 
+    async def async_get_rag_status(self) -> dict[str, Any]:
+        """Return RAG status from Core API (best effort)."""
+        try:
+            data = await self.async_get("/api/v1/rag/status")
+            if isinstance(data.get("rag"), dict):
+                return data.get("rag", {})
+            return data
+        except CopilotApiError as e:
+            _LOGGER.debug("RAG status API not available: %s", e)
+        return {}
+
 
 class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator with neural system integration."""
@@ -360,6 +371,9 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 # Get Habitus rules summary (best-effort)
                 habitus_rules = await self.api.async_get_habitus_rules_summary()
 
+                # Get RAG status (best-effort)
+                rag_status = await self.api.async_get_rag_status()
+
                 # Get habit learning data from ML context if available
                 habit_data = await self._get_habit_learning_data()
 
@@ -376,6 +390,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     "core_modules": core_modules,
                     "brain_summary": brain_summary,
                     "habitus_rules": habitus_rules,
+                    "rag_status": rag_status,
                 }
             except CopilotApiError as err:
                 last_err = err

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v8.7.0 (2026-02-25)
+- feat(sensor): new `PilotSuite RAG Pipeline` sensor (`sensor.ai_home_copilot_rag_pipeline`) wired into coordinator data.
+- feat(coordinator): HA now fetches Core RAG status via `/api/v1/rag/status` and exposes it in coordinator payload.
+- fix(sensor): added missing logger initialization in `sensor.py` (prevented silent exceptions in dynamic context sensor refresh paths).
+- fix(perf): performance scaling now auto-tunes memory threshold to sane host/container limits and adds hysteresis (`trigger +96MB`, clear at `92%`) to prevent repetitive warning spam.
+- chore(version): align integration + repo manifest to `8.7.0`.
+- validation: `python3 -m py_compile` on all changed HA integration modules passed.
+
 ## v8.6.0 (2026-02-25)
 - feat(habitus-dashboard): camera entities are now rendered explicitly in generated Habitus dashboards (entities + live `picture-entity` cards)
 - feat(habitus-dashboard): zone overview signal stack now includes camera signals in key history/logbook tracks

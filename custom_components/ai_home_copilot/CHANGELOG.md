@@ -5,6 +5,14 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [8.7.0] - 2026-02-25
+- RAG-Status in Coordinator integriert (`/api/v1/rag/status`).
+- Neuer Sensor: `PilotSuite RAG Pipeline`.
+- Performance-Memory-Alerts gehaertet:
+  - automatische Schwellenanpassung an Host/Container-Limit
+  - Hysterese gegen Warn-Flipflops
+- Logger-Initialisierung in `sensor.py` vervollstaendigt.
+
 ## [8.4.1] - 2026-02-25
 - Version sync release to match Core `v8.4.1`.
 - No functional integration changes.

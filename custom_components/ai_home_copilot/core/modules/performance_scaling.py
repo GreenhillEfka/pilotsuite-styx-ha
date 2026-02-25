@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from collections import deque
 from dataclasses import dataclass, field, asdict
@@ -38,6 +39,9 @@ DEFAULT_THRESHOLDS = {
 ALERT_LOG_THROTTLE_S = 15 * 60
 # Require sustained breaches to avoid restart spike noise.
 ALERT_STREAK_REQUIRED = 3
+MEMORY_ALERT_CLEAR_FACTOR = 0.92
+MEMORY_ALERT_HEADROOM_MB = 96
+MIN_REASONABLE_MEMORY_THRESHOLD_MB = 2048
 
 
 @dataclass
@@ -88,6 +92,7 @@ class PerformanceScalingModule:
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         self._hass = ctx.hass
         self._entry = ctx.entry
+        self._auto_tune_memory_threshold()
 
         dom = ctx.hass.data.setdefault(DOMAIN, {})
         ent = dom.setdefault(ctx.entry.entry_id, {})
@@ -103,8 +108,9 @@ class PerformanceScalingModule:
         self._monitor_task = ctx.hass.async_create_task(self._monitor_loop())
 
         _LOGGER.info(
-            "Performance scaling kernel v1.0 active for entry %s",
+            "Performance scaling kernel v1.0 active for entry %s (memory threshold: %.0f MB)",
             ctx.entry.entry_id,
+            self._thresholds.get("memory_usage_mb_max", 0),
         )
 
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
@@ -277,7 +283,10 @@ class PerformanceScalingModule:
         # Memory
         memory_mb = self._get_memory_mb()
         mem_key = "memory_high"
-        if memory_mb > self._thresholds["memory_usage_mb_max"]:
+        mem_threshold = float(self._thresholds["memory_usage_mb_max"])
+        mem_trigger = mem_threshold + MEMORY_ALERT_HEADROOM_MB
+        mem_clear = mem_threshold * MEMORY_ALERT_CLEAR_FACTOR
+        if memory_mb > mem_trigger:
             streak = self._alert_streaks.get(mem_key, 0) + 1
             self._alert_streaks[mem_key] = streak
             if streak >= ALERT_STREAK_REQUIRED:
@@ -286,14 +295,14 @@ class PerformanceScalingModule:
                         "type": mem_key,
                         "message": (
                             f"Memory {memory_mb:.1f}MB "
-                            f"exceeds {self._thresholds['memory_usage_mb_max']}MB"
+                            f"exceeds {mem_threshold:.0f}MB"
                         ),
                         "timestamp": now,
                         "value": memory_mb,
                         "streak": streak,
                     }
                 )
-        else:
+        elif memory_mb < mem_clear:
             self._alert_streaks[mem_key] = 0
 
         # Error rate
@@ -313,6 +322,72 @@ class PerformanceScalingModule:
                 )
 
         return alerts
+
+    def _auto_tune_memory_threshold(self) -> None:
+        """Tune memory threshold to avoid noisy alerts on larger HA hosts.
+
+        Legacy versions used low defaults (256/1536 MB), which are too low for
+        modern HA setups with many integrations. We now enforce a sane floor.
+        """
+        configured = float(self._thresholds.get("memory_usage_mb_max", 0))
+        if configured < MIN_REASONABLE_MEMORY_THRESHOLD_MB:
+            configured = MIN_REASONABLE_MEMORY_THRESHOLD_MB
+
+        auto_limit = self._detect_memory_limit_mb()
+        if auto_limit:
+            # Keep headroom for other HA components.
+            suggested = max(
+                MIN_REASONABLE_MEMORY_THRESHOLD_MB,
+                min(8192.0, auto_limit * 0.80),
+            )
+            configured = max(configured, suggested)
+
+        self._thresholds["memory_usage_mb_max"] = float(configured)
+
+    @staticmethod
+    def _detect_memory_limit_mb() -> float | None:
+        """Best-effort detection of process/container memory limit."""
+        candidates = (
+            "/sys/fs/cgroup/memory.max",  # cgroup v2
+            "/sys/fs/cgroup/memory/memory.limit_in_bytes",  # cgroup v1
+        )
+        for path in candidates:
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    raw = handle.read().strip()
+                if not raw or raw.lower() == "max":
+                    continue
+                value = int(raw)
+                # Ignore bogus "no limit" values.
+                if value <= 0 or value >= 1 << 60:
+                    continue
+                return round(value / (1024 * 1024), 1)
+            except Exception:
+                continue
+
+        # Fallback to MemTotal from /proc/meminfo.
+        try:
+            with open("/proc/meminfo", "r", encoding="utf-8") as handle:
+                for line in handle:
+                    if line.startswith("MemTotal:"):
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            kb = int(parts[1])
+                            if kb > 0:
+                                return round(kb / 1024, 1)
+                        break
+        except Exception:
+            pass
+
+        env_limit = os.environ.get("HASS_MEMORY_LIMIT_MB")
+        if env_limit:
+            try:
+                parsed = float(env_limit)
+                if parsed > 0:
+                    return parsed
+            except ValueError:
+                return None
+        return None
 
     async def _monitor_loop(self) -> None:
         """Background task: check alerts every 60 seconds."""
