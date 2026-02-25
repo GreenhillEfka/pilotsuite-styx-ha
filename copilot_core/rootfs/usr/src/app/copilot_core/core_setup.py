@@ -1723,3 +1723,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.matter import matter_bp
         app.register_blueprint(matter_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.thread import thread_bp
+        app.register_blueprint(thread_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ble import ble_bp
+        app.register_blueprint(ble_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.nfc import nfc_bp
+        app.register_blueprint(nfc_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.rfid import rfid_bp
+        app.register_blueprint(rfid_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.uwb import uwb_bp
+        app.register_blueprint(uwb_bp)
+    except: pass
