@@ -195,8 +195,8 @@
       "description": "CoPilot hat ein wiederverwendbares Muster gefunden und schlaegt vor, daraus eine Automation zu machen.{evidence}\n\n**Naechste Schritte:**\n1. Gehe zu [Einstellungen > Automatisierungen & Szenen > Blaupausen](HA_BLUEPRINTS_URL)\n2. Importiere die CoPilot-Blaupause ueber den Link unten\n3. Konfiguriere deine Automation\n4. Komm hier zurueck und klicke **Fix** um diesen Vorschlag abzuschliessen\n\nBlaupausen-Link: [CoPilot A>B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
-      "title": "CoPilot Seed: {title}",
-      "description": "CoPilot hat einen Vorschlags-Seed aus {source} erkannt. Erkannte Entitaeten: {entities}.\n\nAuszug: {excerpt}\n\nNutze den sicheren A>B Blueprint und bestaetige anschliessend per Fix."
+      "title": "PilotSuite Vorschlag: {title}",
+      "description": "PilotSuite hat einen Vorschlags-Seed aus {source} erkannt. Erkannte Entitaeten: {entities}.\n\nAuszug: {excerpt}\n\nNutze den sicheren A>B Blueprint und bestaetige anschliessend per Fix."
     },
     "log_manifest_parse_error": {
       "title": "Custom Integration hat ungueltiges manifest.json: {integration}",

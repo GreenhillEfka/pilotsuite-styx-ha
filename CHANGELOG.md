@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v8.9.1 (2026-02-25)
+- fix(repairs): startup cleanup now removes stale low-signal `seed_suggestion` issues (e.g. `CoPilot Seed: on/5/17`) from older releases.
+- fix(repairs): stale internal seed-source issues (`sensor/number/text.ai_home_copilot_*seed*`) are now auto-pruned.
+- feat(branding): integration brand assets are now shipped in `custom_components/ai_home_copilot/brands/` (`icon.png`, `logo.png`) for consistent HA icon rendering.
+- chore(i18n): seed issue title changed from `CoPilot Seed` to `PilotSuite suggestion` / `PilotSuite Vorschlag`.
+- docs: setup/install docs refreshed for current `8909` architecture and paired HA/Core release line.
+- test: new stale-seed cleanup regression tests (`tests/test_repairs_cleanup.py`).
+
 ## v8.9.0 (2026-02-25)
 - feat(zones): Habitus zone create/edit flow expanded with role-based selectors:
   - `brightness_entity_ids`, `noise_entity_ids`, `humidity_entity_ids`, `co2_entity_ids`

@@ -25,6 +25,7 @@ from .const import (
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 from .core.runtime import CopilotRuntime
 from .entity import build_main_device_identifiers
+from .repairs_cleanup import async_cleanup_stale_seed_repairs
 from .services_setup import async_register_all_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -435,6 +436,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _async_cleanup_legacy_config_text_entities(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to clean up legacy config text entities")
+
+    try:
+        await async_cleanup_stale_seed_repairs(hass, entry.entry_id)
+    except Exception:
+        _LOGGER.exception("Failed to clean up stale seed repair issues")
 
     try:
         await async_install_blueprints(hass)

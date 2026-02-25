@@ -1,37 +1,27 @@
-# Release Notes v8.9.0 (2026-02-25)
+# Release Notes v8.9.1 (2026-02-25)
 
-**Version:** 8.9.0
-**Date:** 2026-02-25
-**Tag:** `v8.9.0`
+**Version:** 8.9.1  
+**Date:** 2026-02-25  
+**Tag:** `v8.9.1`  
 **Branch:** main (HA/HACS konform)
-**Hassfest:** ✅ compliant
 
-## Release Features
-- feat: Habitus zone form now supports role-based selectors:
-  - `brightness`, `noise`, `humidity`, `co2`, `temperature`, `heating`, `camera`, `media`.
-- feat: area-driven auto-suggestions now prefill standard role buckets, not only generic optional entities.
-- fix: seed adapter ignores internal `ai_home_copilot_*seed*` helper entities to prevent self-generated Repairs spam.
-- fix: noisy `CoPilot/PilotSuite Seed:*` titles without detected target entities are filtered before candidate creation.
-- docs: cloud fallback model default in user manual updated to `qwen3.5:cloud`.
-- chore: manifest versions aligned to `8.9.0`.
+## Highlights
+- repairs: automatische Bereinigung alter Seed-Noise-Reparaturmeldungen (`CoPilot Seed: on/5/17/...`) beim Setup.
+- repairs: interne Seed-Quellen (`ai_home_copilot_*seed*`) werden auch nach Upgrade nicht mehr als UI-Restproblem stehen gelassen.
+- branding: Integration liefert jetzt aktive Brand-Assets unter `custom_components/ai_home_copilot/brands/` (`icon.png`, `logo.png`).
+- i18n: Reparaturtitel von `CoPilot Seed` auf `PilotSuite suggestion` / `PilotSuite Vorschlag` umgestellt.
+- docs: Installations-/Setup-Anleitungen auf aktuelle HA/Core-Architektur (`:8909`) und Release-Line aktualisiert.
 
-## HA/HACS Conformance
-- manifest.json: v8.9.0
-- domain Feld vorhanden
-- HACS structure: OK
-- hassfest: ✅ compliant
+## Version Sync
+- `custom_components/ai_home_copilot/manifest.json`: `8.9.1`
+- `manifest.json` (Repo): `8.9.1`
 
-## Testing
+## Validation
 ```bash
-# Syntax validation
-python3 -m py_compile \
-  custom_components/ai_home_copilot/__init__.py \
-  custom_components/ai_home_copilot/config_zones_flow.py \
-  custom_components/ai_home_copilot/seed_adapter.py \
-  custom_components/ai_home_copilot/config_options_flow.py \
-  custom_components/ai_home_copilot/config_schema_builders.py
+cd pilotsuite-styx-ha
+pytest -q tests/test_repairs_cleanup.py tests/test_seed_adapter.py
 ```
 
 ---
 
-**PilotSuite Styx HA v8.9.0**
+**PilotSuite Styx HA v8.9.1**

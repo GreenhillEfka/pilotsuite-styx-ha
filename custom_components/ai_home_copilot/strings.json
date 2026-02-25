@@ -37,8 +37,8 @@
       "description": "CoPilot found a reusable pattern and suggests turning it into an automation.{evidence}\n\n**Next steps:**\n1. Go to [Settings > Automations & Scenes > Blueprints](HA_BLUEPRINTS_URL)\n2. Import the CoPilot blueprint using the link below\n3. Configure your automation\n4. Return here and click **Fix** to complete this suggestion\n\nBlueprint link: [CoPilot A>B Blueprint]({blueprint_url})"
     },
     "seed_suggestion": {
-      "title": "CoPilot seed: {title}",
-      "description": "CoPilot picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A>B blueprint to create an automation if it makes sense, then click Fix and confirm."
+      "title": "PilotSuite suggestion: {title}",
+      "description": "PilotSuite picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A>B blueprint to create an automation if it makes sense, then click Fix and confirm."
     },
     "log_manifest_parse_error": {
       "title": "Custom integration has invalid manifest.json: {integration}",

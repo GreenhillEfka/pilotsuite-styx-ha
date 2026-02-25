@@ -5,6 +5,12 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [8.9.1] - 2026-02-25
+- Repairs-Cleanup beim Setup: alte Seed-Noise-Issues (`CoPilot Seed: on/5/17/...`) werden automatisch entfernt.
+- Interne Seed-Quellen (`sensor/number/text.ai_home_copilot_*seed*`) werden in der Cleanup-Phase entfernt.
+- Branding-Assets fuer HA im `brands/`-Ordner hinterlegt (`icon.png`, `logo.png`) fuer konsistente Icon-Anzeige.
+- Seed-Issue-Text auf PilotSuite-Branding umgestellt.
+
 ## [8.9.0] - 2026-02-25
 - Habitus-Zonenformular erweitert um rollenbasierte Entitaetsauswahl:
   - Helligkeit, Laerm, Luftfeuchte, CO2, Temperatur, Heizung/Klima, Kamera, Media.
