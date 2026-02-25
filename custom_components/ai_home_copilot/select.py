@@ -11,14 +11,18 @@ from homeassistant.helpers.entity import EntityCategory
 _LOGGER = logging.getLogger(__name__)
 
 from .const import (
+    CONF_ENTITY_PROFILE,
     DEBUG_LEVELS,
     DEBUG_LEVEL_FULL,
     DEBUG_LEVEL_LIGHT,
     DEBUG_LEVEL_OFF,
     DEFAULT_DEBUG_LEVEL,
+    DEFAULT_ENTITY_PROFILE,
     DOMAIN,
+    ENTITY_PROFILES,
 )
 from .entity import CopilotBaseEntity
+from .entity_profile import get_entity_profile
 from .media_context_v2_entities import (
     ZoneSelectEntity,
     ManualTargetSelectEntity,
@@ -66,6 +70,30 @@ class DiagnosticLevelSelectEntity(CopilotBaseEntity, SelectEntity):
             )
 
 
+class EntityProfileSelectEntity(CopilotBaseEntity, SelectEntity):
+    """Select entity to switch between core/full entity profile at runtime."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_name = "Entity Profile"
+    _attr_unique_id = "ai_home_copilot_entity_profile_select"
+    _attr_icon = "mdi:tune-variant"
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._entry = entry
+        self._attr_options = list(ENTITY_PROFILES)
+        self._attr_current_option = get_entity_profile(entry)
+
+    async def async_select_option(self, option: str) -> None:
+        if option not in ENTITY_PROFILES:
+            return
+        self._attr_current_option = option
+        new_options = {**self._entry.options, CONF_ENTITY_PROFILE: option}
+        self.hass.config_entries.async_update_entry(self._entry, options=new_options)
+        self.async_write_ha_state()
+        _LOGGER.info("Entity profile changed to %s — reload integration to apply", option)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Set up select entities for the integration."""
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
@@ -79,6 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     
     entities = [
         DiagnosticLevelSelectEntity(coordinator, entry.entry_id),
+        EntityProfileSelectEntity(coordinator, entry),
         # v2 Select
         HabitusZonesV2GlobalStateSelect(coordinator, entry),
     ]
