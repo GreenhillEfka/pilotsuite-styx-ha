@@ -45,7 +45,7 @@ def send_notification():
     message = data.get("message")
     
     if not title or not message:
-        return jsonify({"error": title or not message "title and message required"}), 400
+        return jsonify({"error": "title and message required"}), 400
     
     priority = data.get("priority", "normal")
     channel = data.get("channel", "all")

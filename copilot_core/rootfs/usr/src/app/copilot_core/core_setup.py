@@ -939,3 +939,11 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Zones API (/api/v1/zones/*)")
     except Exception:
         _LOGGER.exception("Failed to register Zones API")
+
+    # Register Input Boolean API (v7.26.0)
+    try:
+        from copilot_core.api.v1.input_boolean import input_boolean_bp
+        app.register_blueprint(input_boolean_bp)
+        _LOGGER.info("Registered Input Boolean API (/api/v1/input_boolean/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Input Boolean API")
