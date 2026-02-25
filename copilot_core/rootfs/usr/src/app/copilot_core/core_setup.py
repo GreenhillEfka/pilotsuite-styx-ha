@@ -1543,3 +1543,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.raid import raid_bp
         app.register_blueprint(raid_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.thermal import thermal_bp
+        app.register_blueprint(thermal_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.power import power_bp
+        app.register_blueprint(power_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.battery import battery_bp
+        app.register_blueprint(battery_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ups import ups_bp
+        app.register_blueprint(ups_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.fan2 import fan_bp
+        app.register_blueprint(fan_bp)
+    except: pass
