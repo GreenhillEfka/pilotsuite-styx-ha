@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v8.4.1 (2026-02-25)
+- chore: sync HA integration version with Core `v8.4.1` line
+- no functional HA code changes; compatibility release for paired install tracking
+
 ## v8.4.0 (2026-02-25)
 - feat: entity profile runtime select
 - fix: knowledge_graph guard for KeyError

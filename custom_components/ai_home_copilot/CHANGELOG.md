@@ -5,6 +5,10 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [8.4.1] - 2026-02-25
+- Version sync release to match Core `v8.4.1`.
+- No functional integration changes.
+
 ## [7.8.12] - 2026-02-24 — Phase 5: NotificationSensor + SceneIntelligenceSensor
 
 ### Added

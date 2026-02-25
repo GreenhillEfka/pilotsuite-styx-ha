@@ -1,12 +1,14 @@
-# Release Notes v8.4.0 (2026-02-25)
+# Release Notes v8.4.1 (2026-02-25)
 
-**Version:** 8.4.0  
+**Version:** 8.4.1  
 **Date:** 2026-02-25  
-**Tag:** `v8.4.0`  
+**Tag:** `v8.4.1`  
 **Branch:** main (HA/HACS konform)  
 **Hassfest:** ✅ compliant
 
 ## Release Features
+- chore: Version sync with Core `v8.4.1` (paired deployment clarity)
+- no functional HA delta compared to `v8.4.0`
 - feat: entity profile runtime select (UI dropdown for Core model/provider)
 - fix: knowledge_graph guard for KeyError safety
 - fix: guard all hass.data access against KeyError
@@ -19,7 +21,7 @@
 - Pytest: 608 passed
 
 ## HA/HACS Conformance
-- manifest.json: v8.4.0
+- manifest.json: v8.4.1
 - domain Feld vorhanden
 - HACS structure: OK
 - hassfest: ✅ compliant
@@ -33,5 +35,5 @@ pytest -q tests/test_*.py
 
 ---
 
-**PilotSuite Styx HA v8.4.0** 🧠🏠  
-**Release Iteration Maschine — v8.4.0** 🦝🔧🌙
+**PilotSuite Styx HA v8.4.1** 🧠🏠  
+**Release Iteration Maschine — v8.4.1** 🦝🔧🌙
