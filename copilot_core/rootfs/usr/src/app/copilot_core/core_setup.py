@@ -1123,3 +1123,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.tts import tts_bp
         app.register_blueprint(tts_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.stt import stt_bp
+        app.register_blueprint(stt_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.tts_v2 import tts2_bp
+        app.register_blueprint(tts2_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.conversation import conversation_bp
+        app.register_blueprint(conversation_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.intent import intent_bp
+        app.register_blueprint(intent_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.selector import selector_bp
+        app.register_blueprint(selector_bp)
+    except: pass
