@@ -1031,3 +1031,7 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.diagnostics import diagnostics_bp
         app.register_blueprint(diagnostics_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.helpers import helpers_bp
+        app.register_blueprint(helpers_bp)
+    except: pass
