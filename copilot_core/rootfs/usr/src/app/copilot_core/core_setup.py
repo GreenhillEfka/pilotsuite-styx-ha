@@ -1763,3 +1763,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.applehome import applehome_bp
         app.register_blueprint(applehome_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.matter13 import matter13_bp
+        app.register_blueprint(matter13_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.matter14 import matter14_bp
+        app.register_blueprint(matter14_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.thread13 import thread13_bp
+        app.register_blueprint(thread13_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.thread14 import thread14_bp
+        app.register_blueprint(thread14_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.motel import motel_bp
+        app.register_blueprint(motel_bp)
+    except: pass
