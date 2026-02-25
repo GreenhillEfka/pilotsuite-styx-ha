@@ -940,18 +940,18 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
     except Exception:
         _LOGGER.exception("Failed to register Zones API")
 
-    # Register Input Boolean API (v7.26.0)
+    # Register Config Management API (v7.28.0)
     try:
-        from copilot_core.api.v1.input_boolean import input_boolean_bp
-        app.register_blueprint(input_boolean_bp)
-        _LOGGER.info("Registered Input Boolean API (/api/v1/input_boolean/*)")
+        from copilot_core.api.v1.config_management import config_bp
+        app.register_blueprint(config_bp)
+        _LOGGER.info("Registered Config Management API (/api/v1/config/*)")
     except Exception:
-        _LOGGER.exception("Failed to register Input Boolean API")
+        _LOGGER.exception("Failed to register Config Management API")
 
-    # Register Bulk Operations API (v7.27.0)
+    # Register Templates API (v7.28.0)
     try:
-        from copilot_core.api.v1.bulk import bulk_bp
-        app.register_blueprint(bulk_bp)
-        _LOGGER.info("Registered Bulk Operations API (/api/v1/bulk/*)")
+        from copilot_core.api.v1.templates import templates_bp
+        app.register_blueprint(templates_bp)
+        _LOGGER.info("Registered Templates API (/api/v1/templates/*)")
     except Exception:
-        _LOGGER.exception("Failed to register Bulk Operations API")
+        _LOGGER.exception("Failed to register Templates API")
