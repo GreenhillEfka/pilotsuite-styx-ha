@@ -1483,3 +1483,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.tty import tty_bp
         app.register_blueprint(tty_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.kvm import kvm_bp
+        app.register_blueprint(kvm_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.console import console_bp
+        app.register_blueprint(console_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.serial import serial_bp
+        app.register_blueprint(serial_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.usbip import usbip_bp
+        app.register_blueprint(usbip_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.netboot import netboot_bp
+        app.register_blueprint(netboot_bp)
+    except: pass
