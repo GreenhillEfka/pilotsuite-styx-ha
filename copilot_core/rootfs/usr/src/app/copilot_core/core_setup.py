@@ -1143,3 +1143,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.selector import selector_bp
         app.register_blueprint(selector_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.update import update_bp
+        app.register_blueprint(update_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.number import number_bp
+        app.register_blueprint(number_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.button import button_bp
+        app.register_blueprint(button_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.image import image_bp
+        app.register_blueprint(image_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.homekit import homekit_bp
+        app.register_blueprint(homekit_bp)
+    except: pass
