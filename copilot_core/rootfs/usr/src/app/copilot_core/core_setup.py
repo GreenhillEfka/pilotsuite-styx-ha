@@ -1323,3 +1323,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.import import import_bp
         app.register_blueprint(import_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.file import file_bp
+        app.register_blueprint(file_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.directory import directory_bp
+        app.register_blueprint(directory_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.storage import storage_bp
+        app.register_blueprint(storage_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.upload import upload_bp
+        app.register_blueprint(upload_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.download import download_bp
+        app.register_blueprint(download_bp)
+    except: pass
