@@ -1663,3 +1663,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.pon import pon_bp
         app.register_blueprint(pon_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.wifi import wifi_bp
+        app.register_blueprint(wifi_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifi5g import wifi5g_bp
+        app.register_blueprint(wifi5g_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifi6 import wifi6_bp
+        app.register_blueprint(wifi6_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifi7 import wifi7_bp
+        app.register_blueprint(wifi7_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ethernet import eth_bp
+        app.register_blueprint(eth_bp)
+    except: pass
