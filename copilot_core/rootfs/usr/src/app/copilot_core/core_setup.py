@@ -1563,3 +1563,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.fan2 import fan_bp
         app.register_blueprint(fan_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.sound import sound_bp
+        app.register_blueprint(sound_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.mic import mic_bp
+        app.register_blueprint(mic_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.speaker import speaker_bp
+        app.register_blueprint(speaker_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.audio import audio_bp
+        app.register_blueprint(audio_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.video import video_bp
+        app.register_blueprint(video_bp)
+    except: pass
