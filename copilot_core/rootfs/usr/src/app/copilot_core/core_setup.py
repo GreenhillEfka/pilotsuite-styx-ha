@@ -1883,3 +1883,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.hdcp import hdcp_bp
         app.register_blueprint(hdcp_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.widevine import widevine_bp
+        app.register_blueprint(widevine_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.playready import playready_bp
+        app.register_blueprint(playready_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.fairplay import fairplay_bp
+        app.register_blueprint(fairplay_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.eme import eme_bp
+        app.register_blueprint(eme_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.webrtc import webrtc_bp
+        app.register_blueprint(webrtc_bp)
+    except: pass
