@@ -963,3 +963,19 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Logbook API (/api/v1/logbook/*)")
     except Exception:
         _LOGGER.exception("Failed to register Logbook API")
+
+    # Register Repairs API (v7.30.0)
+    try:
+        from copilot_core.api.v1.repairs import repairs_bp
+        app.register_blueprint(repairs_bp)
+        _LOGGER.info("Registered Repairs API (/api/v1/repairs/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Repairs API")
+
+    # Register System Health API (v7.30.0)
+    try:
+        from copilot_core.api.v1.system_health import system_health_bp
+        app.register_blueprint(system_health_bp)
+        _LOGGER.info("Registered System Health API (/api/v1/system_health/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register System Health API")
