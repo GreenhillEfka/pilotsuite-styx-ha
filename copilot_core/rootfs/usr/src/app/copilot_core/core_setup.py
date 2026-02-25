@@ -1743,3 +1743,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.uwb import uwb_bp
         app.register_blueprint(uwb_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.zigbee3 import zigbee3_bp
+        app.register_blueprint(zigbee3_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.matter12 import matter12_bp
+        app.register_blueprint(matter12_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.thread12 import thread12_bp
+        app.register_blueprint(thread12_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.homekit2 import homekit2_bp
+        app.register_blueprint(homekit2_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.applehome import applehome_bp
+        app.register_blueprint(applehome_bp)
+    except: pass
