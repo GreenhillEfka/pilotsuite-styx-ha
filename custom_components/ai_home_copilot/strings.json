@@ -324,10 +324,16 @@
           "create_zone": "Create zone",
           "edit_zone": "Edit zone",
           "delete_zone": "Delete zone",
-          "generate_dashboard": "Generate dashboard YAML",
-          "publish_dashboard": "Publish dashboard (www)",
+          "dashboard_info": "Dashboard mode info",
           "bulk_edit": "Bulk edit (YAML/JSON)",
           "back": "Back"
+        }
+      },
+      "dashboard_info": {
+        "title": "Dashboard mode info",
+        "description": "PilotSuite now uses the Core/React dashboard as the primary management UI. Legacy YAML dashboards are optional and disabled by default.",
+        "data": {
+          "back_to_menu": "Back to Habitus zone menu"
         }
       },
       "backup_restore": {

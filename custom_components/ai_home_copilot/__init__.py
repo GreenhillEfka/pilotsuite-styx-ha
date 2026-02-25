@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib import import_module
 import logging
+import os
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -112,6 +113,27 @@ _LEGACY_SENSOR_UNIQUE_ID_MIGRATIONS: dict[str, str] = {
     "_energy_sankey_flow": "copilot_energy_sankey_flow",
     "_notifications": "copilot_notifications",
 }
+
+
+def _as_bool(value: object, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "on"}:
+        return True
+    if text in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def _legacy_yaml_dashboards_enabled(entry: ConfigEntry) -> bool:
+    """Legacy YAML dashboard generation is opt-in (React dashboard is primary)."""
+    cfg = merged_entry_config(entry)
+    if "legacy_yaml_dashboards" in cfg:
+        return _as_bool(cfg.get("legacy_yaml_dashboards"), False)
+    return _as_bool(os.environ.get("PILOTSUITE_LEGACY_YAML_DASHBOARDS"), False)
 
 
 async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -476,69 +498,78 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to register Lovelace card resources")
 
-    # Auto-generate dashboard YAML files on first setup.
-    try:
-        from .dashboard_wiring import async_ensure_lovelace_dashboard_wiring
-        from .habitus_dashboard import async_generate_habitus_zones_dashboard
-        from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+    legacy_yaml_dashboards = _legacy_yaml_dashboards_enabled(entry)
 
-        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-        if isinstance(entry_store, dict) and not entry_store.get("_dashboards_generated"):
-            await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
-            await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
-            wiring_state = await async_ensure_lovelace_dashboard_wiring(hass)
-            entry_store["_dashboards_generated"] = True
-            _LOGGER.info(
-                "PilotSuite dashboards auto-generated on first setup (wiring=%s)",
-                wiring_state,
-            )
-    except Exception:
-        _LOGGER.exception("Failed to auto-generate PilotSuite dashboards")
+    if legacy_yaml_dashboards:
+        # Auto-generate dashboard YAML files on first setup (legacy mode).
+        try:
+            from .dashboard_wiring import async_ensure_lovelace_dashboard_wiring
+            from .habitus_dashboard import async_generate_habitus_zones_dashboard
+            from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
 
-    # Keep dashboard YAML updated when Habitus zones change.
-    try:
-        from .habitus_zones_store_v2 import SIGNAL_HABITUS_ZONES_V2_UPDATED
-        from .habitus_dashboard import async_generate_habitus_zones_dashboard
-        from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+            entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+            if isinstance(entry_store, dict) and not entry_store.get("_dashboards_generated"):
+                await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
+                await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
+                wiring_state = await async_ensure_lovelace_dashboard_wiring(hass)
+                entry_store["_dashboards_generated"] = True
+                _LOGGER.info(
+                    "PilotSuite dashboards auto-generated on first setup (legacy_yaml=true, wiring=%s)",
+                    wiring_state,
+                )
+        except Exception:
+            _LOGGER.exception("Failed to auto-generate PilotSuite dashboards")
+    else:
+        _LOGGER.info(
+            "Legacy YAML dashboards disabled (React dashboard is primary). "
+            "Set option/env legacy_yaml_dashboards=true to re-enable."
+        )
 
-        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-        if isinstance(entry_store, dict):
-            async def _async_refresh_dashboard(reason: str) -> None:
-                try:
-                    await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
-                    await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
-                    _LOGGER.info("PilotSuite dashboards auto-regenerated (%s)", reason)
-                except Exception:
-                    _LOGGER.exception("Failed to auto-regenerate PilotSuite dashboards (%s)", reason)
+    if legacy_yaml_dashboards:
+        # Keep dashboard YAML updated when Habitus zones change (legacy mode).
+        try:
+            from .habitus_zones_store_v2 import SIGNAL_HABITUS_ZONES_V2_UPDATED
+            from .habitus_dashboard import async_generate_habitus_zones_dashboard
+            from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
 
-            @callback
-            def _schedule_dashboard_refresh(reason: str) -> None:
-                cancel = entry_store.pop("_dashboard_refresh_cancel", None)
-                if callable(cancel):
-                    cancel()
+            entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+            if isinstance(entry_store, dict):
+                async def _async_refresh_dashboard(reason: str) -> None:
+                    try:
+                        await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
+                        await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
+                        _LOGGER.info("PilotSuite dashboards auto-regenerated (%s)", reason)
+                    except Exception:
+                        _LOGGER.exception("Failed to auto-regenerate PilotSuite dashboards (%s)", reason)
 
                 @callback
-                def _run_refresh(_now) -> None:
-                    entry_store.pop("_dashboard_refresh_cancel", None)
-                    hass.async_create_task(_async_refresh_dashboard(reason))
+                def _schedule_dashboard_refresh(reason: str) -> None:
+                    cancel = entry_store.pop("_dashboard_refresh_cancel", None)
+                    if callable(cancel):
+                        cancel()
 
-                # Debounce rapid zone edits to a single regen.
-                entry_store["_dashboard_refresh_cancel"] = async_call_later(hass, 2.0, _run_refresh)
+                    @callback
+                    def _run_refresh(_now) -> None:
+                        entry_store.pop("_dashboard_refresh_cancel", None)
+                        hass.async_create_task(_async_refresh_dashboard(reason))
 
-            @callback
-            def _on_zones_updated(updated_entry_id: str) -> None:
-                if str(updated_entry_id) != entry.entry_id:
-                    return
-                _schedule_dashboard_refresh("habitus_zones_updated")
+                    # Debounce rapid zone edits to a single regen.
+                    entry_store["_dashboard_refresh_cancel"] = async_call_later(hass, 2.0, _run_refresh)
 
-            unsub = async_dispatcher_connect(
-                hass,
-                SIGNAL_HABITUS_ZONES_V2_UPDATED,
-                _on_zones_updated,
-            )
-            entry_store["_dashboard_zones_unsub"] = unsub
-    except Exception:
-        _LOGGER.exception("Failed to set up dashboard auto-refresh listener")
+                @callback
+                def _on_zones_updated(updated_entry_id: str) -> None:
+                    if str(updated_entry_id) != entry.entry_id:
+                        return
+                    _schedule_dashboard_refresh("habitus_zones_updated")
+
+                unsub = async_dispatcher_connect(
+                    hass,
+                    SIGNAL_HABITUS_ZONES_V2_UPDATED,
+                    _on_zones_updated,
+                )
+                entry_store["_dashboard_zones_unsub"] = unsub
+        except Exception:
+            _LOGGER.exception("Failed to set up dashboard auto-refresh listener")
 
     # Show onboarding notification on first setup (v3.12.0)
     try:

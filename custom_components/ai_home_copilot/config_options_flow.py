@@ -324,11 +324,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 "create_zone",
                 "edit_zone",
                 "delete_zone",
-                "generate_dashboard",
-                "publish_dashboard",
+                "dashboard_info",
                 "bulk_edit",
                 "back",
             ],
+        )
+
+    async def async_step_dashboard_info(self, user_input: dict | None = None) -> FlowResult:
+        """Inform users that React/Core dashboard is primary; YAML is legacy."""
+        schema = vol.Schema({vol.Optional("back_to_menu", default=True): bool})
+        return self.async_show_form(
+            step_id="dashboard_info",
+            data_schema=schema,
+            description_placeholders={
+                "description": (
+                    "PilotSuite verwendet jetzt primär das Core/React-Dashboard "
+                    "für Verwaltung, Status, Habituszonen und Module.\n\n"
+                    "Legacy YAML-Dashboards sind optional und standardmäßig deaktiviert. "
+                    "Aktiviere sie nur bei explizitem Bedarf."
+                )
+            },
         )
 
     async def async_step_back(self, user_input: dict | None = None) -> FlowResult:

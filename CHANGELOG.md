@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v8.8.0 (2026-02-25)
+- feat(flow): Habitus options flow switched to React-first dashboard concept (`dashboard_info` in menu, legacy YAML actions no longer default path).
+- feat(core-alignment): legacy YAML dashboard auto-generation/auto-refresh is now opt-in (`legacy_yaml_dashboards` / `PILOTSUITE_LEGACY_YAML_DASHBOARDS`).
+- feat(strings): updated options strings for React-first dashboard mode.
+- test: updated habitus dashboard config-flow expectations for the new menu concept.
+- chore(version): align integration + repo manifest to `8.8.0`.
+
 ## v8.7.0 (2026-02-25)
 - feat(sensor): new `PilotSuite RAG Pipeline` sensor (`sensor.ai_home_copilot_rag_pipeline`) wired into coordinator data.
 - feat(coordinator): HA now fetches Core RAG status via `/api/v1/rag/status` and exposes it in coordinator payload.

@@ -5,6 +5,12 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [8.8.0] - 2026-02-25
+- React-first Dashboardmodus fuer Habitus-Flow:
+  - `habitus_zones` menu nutzt jetzt `dashboard_info` statt YAML-Aktionen als Standardpfad.
+- Legacy YAML Dashboard-Generierung in Setup ist jetzt opt-in (`legacy_yaml_dashboards` / `PILOTSUITE_LEGACY_YAML_DASHBOARDS`).
+- Strings und Tests fuer den neuen Dashboard-Flow aktualisiert.
+
 ## [8.7.0] - 2026-02-25
 - RAG-Status in Coordinator integriert (`/api/v1/rag/status`).
 - Neuer Sensor: `PilotSuite RAG Pipeline`.
