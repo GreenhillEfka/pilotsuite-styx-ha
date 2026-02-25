@@ -1863,3 +1863,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.intelme import intelme_bp
         app.register_blueprint(intelme_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.amdpsp import amdpsp_bp
+        app.register_blueprint(amdpsp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.trench import trench_bp
+        app.register_blueprint(trench_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.bootguard import bootguard_bp
+        app.register_blueprint(bootguard_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.drm import drm_bp
+        app.register_blueprint(drm_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.hdcp import hdcp_bp
+        app.register_blueprint(hdcp_bp)
+    except: pass
