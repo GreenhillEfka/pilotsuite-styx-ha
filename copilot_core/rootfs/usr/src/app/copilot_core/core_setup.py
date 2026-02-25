@@ -1103,3 +1103,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.camera import camera_bp
         app.register_blueprint(camera_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.vacuum import vacuum_bp
+        app.register_blueprint(vacuum_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.light import light_bp
+        app.register_blueprint(light_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.switch_v2 import switch_bp
+        app.register_blueprint(switch_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wakeword import wakeword_bp
+        app.register_blueprint(wakeword_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.tts import tts_bp
+        app.register_blueprint(tts_bp)
+    except: pass
