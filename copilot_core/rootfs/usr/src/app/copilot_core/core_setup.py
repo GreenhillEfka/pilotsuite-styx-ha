@@ -1283,3 +1283,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.test import test_bp
         app.register_blueprint(test_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.user import user_bp
+        app.register_blueprint(user_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.role import role_bp
+        app.register_blueprint(role_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.permission import permission_bp
+        app.register_blueprint(permission_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.session import session_bp
+        app.register_blueprint(session_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.authtoken import authtoken_bp
+        app.register_blueprint(authtoken_bp)
+    except: pass
