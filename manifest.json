@@ -1,9 +1,10 @@
 {
+  "domain": "pilotsuite_styx",
   "name": "PilotSuite Styx HA",
   "domains": ["sensor", "binary_sensor", "button", "select", "number", "text"],
   "homeassistant": "2024.1.0",
   "iot_class": "local_polling",
-  "version": "8.0.0",
+  "version": "8.0.2",
   "documentation": "https://github.com/styx/pilotsuite-styx-ha",
   "issue_tracker": "https://github.com/styx/pilotsuite-styx-ha/issues",
   "codeowners": ["@styx"]
