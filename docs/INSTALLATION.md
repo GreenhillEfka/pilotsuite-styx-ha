@@ -1,6 +1,6 @@
 # PilotSuite Installation (HA Integration)
 
-Stand: **v8.9.1**
+Stand: **v8.10.0**
 
 ## Schnellpfad
 
@@ -31,6 +31,7 @@ curl -sS http://<HA-IP>:8909/chat/status
 
 - Wenn HACS `Restart required` anzeigt: Home Assistant neu starten.
 - Ab `v8.9.1` werden alte Low-Signal-Seed-Reparaturmeldungen beim Setup automatisch entfernt.
+- Ab `v8.10.0` ist die HomeKit-Bridge-Kommunikation zum Core fuer Setup-Info/QR stabilisiert.
 
 ## Referenz
 

@@ -1,27 +1,26 @@
-# Release Notes v8.9.1 (2026-02-25)
+# Release Notes v8.10.0 (2026-02-25)
 
-**Version:** 8.9.1  
+**Version:** 8.10.0  
 **Date:** 2026-02-25  
-**Tag:** `v8.9.1`  
+**Tag:** `v8.10.0`  
 **Branch:** main (HA/HACS konform)
 
 ## Highlights
-- repairs: automatische Bereinigung alter Seed-Noise-Reparaturmeldungen (`CoPilot Seed: on/5/17/...`) beim Setup.
-- repairs: interne Seed-Quellen (`ai_home_copilot_*seed*`) werden auch nach Upgrade nicht mehr als UI-Restproblem stehen gelassen.
-- branding: Integration liefert jetzt aktive Brand-Assets unter `custom_components/ai_home_copilot/brands/` (`icon.png`, `logo.png`).
-- i18n: Reparaturtitel von `CoPilot Seed` auf `PilotSuite suggestion` / `PilotSuite Vorschlag` umgestellt.
-- docs: Installations-/Setup-Anleitungen auf aktuelle HA/Core-Architektur (`:8909`) und Release-Line aktualisiert.
+- homekit: HomeKit-Bridge Fix (`async_get_clientsession` Import) für stabilen Setup-Info-Abruf vom Core.
+- core pairing: abgestimmt auf Core `v8.10.0` (HomeKit-Zonenserver + QR/Status APIs).
+- version sync: Manifeste auf `8.10.0` vereinheitlicht.
 
 ## Version Sync
-- `custom_components/ai_home_copilot/manifest.json`: `8.9.1`
-- `manifest.json` (Repo): `8.9.1`
+- `custom_components/ai_home_copilot/manifest.json`: `8.10.0`
+- `manifest.json` (Repo): `8.10.0`
 
 ## Validation
 ```bash
 cd pilotsuite-styx-ha
-pytest -q tests/test_repairs_cleanup.py tests/test_seed_adapter.py
+python3 -m py_compile custom_components/ai_home_copilot/core/modules/homekit_bridge.py
+pytest -q tests/test_repairs_cleanup.py tests/test_seed_adapter.py tests/test_config_zones_flow.py
 ```
 
 ---
 
-**PilotSuite Styx HA v8.9.1**
+**PilotSuite Styx HA v8.10.0**

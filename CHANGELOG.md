@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v8.10.0 (2026-02-25)
+- fix(homekit): HomeKit bridge module now imports `async_get_clientsession` correctly, so setup-info sync from Core (`/api/v1/homekit/all-zones-info`) works reliably.
+- compat(core): paired with Core `v8.10.0` HomeKit zone server API and Habitus dashboard HomeKit management panel.
+- chore(version): integration + repo manifest aligned to `8.10.0`.
+
 ## v8.9.1 (2026-02-25)
 - fix(repairs): startup cleanup now removes stale low-signal `seed_suggestion` issues (e.g. `CoPilot Seed: on/5/17`) from older releases.
 - fix(repairs): stale internal seed-source issues (`sensor/number/text.ai_home_copilot_*seed*`) are now auto-pruned.
