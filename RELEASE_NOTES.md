@@ -1,25 +1,25 @@
-# Release Notes v8.0.0 (2026-02-24)
+# Release Notes v8.1.0 (2026-02-25)
 
-**Version:** 8.0.0  
-**Date:** 2026-02-24  
-**Tag:** `v8.0.0`  
-**Branch:** main (direct release)  
-**HA hassfest:** ✓ compliant
+**Version:** 8.1.0  
+**Date:** 2026-02-25  
+**Tag:** `v8.1.0`  
+**Branch:** main (HA/HACS konform)  
+**Hassfest:** ✅ compliant
 
-## Major Release Features
-- Scene Pattern Extraction (v7.11.1)
-- Routine Pattern Extraction (v7.11.1)
-- Dashboard API endpoints (/dashboard/health, /dashboard/brain-summary)
-- SearXNG auto-integration in llm_provider.py
-- Direct Web Search API (/api/v1/llm/search, /api/v1/llm/status)
-- Anomaly Detector Fixes (bool type + last true anomaly)
-- Extend routine pattern extraction with scene grouping
+## Release Features
+- HACS Release Pipeline (v8.1.0)
+- HA Dashboard API Endpoints (v7.11.0)
+- LLM Provider Fallback (v7.11.0)
+- SearXNG Auto-Integration (v7.11.1)
+- Direct Web Search API Endpoints
+- HASSFest Fix (domain Feld in manifest.json)
 - Pytest: 608 tests passing
 
 ## HA/HACS Conformance
-- manifest.json: v8.0.0
+- manifest.json: v8.1.0
+- domain Feld hinzugefügt (falsches `domains` war das Problem!)
 - HACS structure: OK
-- hassfest: ✓ compliant
+- hassfest: ✅ compliant
 
 ## Testing
 ```bash
@@ -29,5 +29,5 @@ pytest -q tests/test_*.py
 
 ---
 
-**PilotSuite Styx HA v8.0.0** 🧠🏠  
-**Groky Dev Check — Final Release Build v8.0.0** 🦝🔧🌙
+**PilotSuite Styx HA v8.1.0** 🧠🏠  
+**Release Iteration Maschine — v8.1.0** 🦝🔧🌙

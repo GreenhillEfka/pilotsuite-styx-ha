@@ -1,15 +1,15 @@
 # CHANGELOG
 
-## v8.0.0 (2026-02-24)
-- Major Release (HA/HACS konform)
-- Scene Pattern Extraction (v7.11.1)
-- Routine Pattern Extraction (v7.11.1)
-- Dashboard API (v7.11.0)
-- SearXNG auto-integration (v7.11.1)
-- Direct Web Search API (v7.11.1)
-- Anomaly Detector Fixes (bool type + last true anomaly)
-- Extend routine pattern extraction with scene grouping
+## v8.1.0 (2026-02-25)
+- HACS Release Pipeline (v8.1.0)
+- HA Dashboard API Endpoints (v7.11.0)
+- LLM Provider Fallback (v7.11.0)
+- SearXNG Auto-Integration (v7.11.1)
+- Direct Web Search API Endpoints
+- HASSFest Fix (domain Feld in manifest.json)
 - Pytest: 608 passed
+
+## v8.0.0 (2026-02-24)
 
 ## v7.9.3 (2026-02-24)
 - fix(anomaly_detector): ensure is_anomaly returns Python bool type
