@@ -995,3 +995,15 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Persons API (/api/v1/persons/*)")
     except:
         pass
+
+    # Register Tags API (v7.32)
+    try:
+        from copilot_core.api.v1.tags import tags_bp
+        app.register_blueprint(tags_bp)
+    except: pass
+
+    # Register Devices API (v7.33)
+    try:
+        from copilot_core.api.v1.devices import devices_bp
+        app.register_blueprint(devices_bp)
+    except: pass
