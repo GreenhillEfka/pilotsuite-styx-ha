@@ -1183,3 +1183,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.alexa import alexa_bp
         app.register_blueprint(alexa_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.knx import knx_bp
+        app.register_blueprint(knx_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.zwave import zwave_bp
+        app.register_blueprint(zwave_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.zigbee import zigbee_bp
+        app.register_blueprint(zigbee_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.mqtt import mqtt_bp
+        app.register_blueprint(mqtt_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.backup import backup_bp
+        app.register_blueprint(backup_bp)
+    except: pass
