@@ -1403,3 +1403,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.route import route_bp
         app.register_blueprint(route_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.ifaceconfig import ifaceconfig_bp
+        app.register_blueprint(ifaceconfig_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.dhcp import dhcp_bp
+        app.register_blueprint(dhcp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ipv4 import ipv4_bp
+        app.register_blueprint(ipv4_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ipv6 import ipv6_bp
+        app.register_blueprint(ipv6_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.mac import mac_bp
+        app.register_blueprint(mac_bp)
+    except: pass
