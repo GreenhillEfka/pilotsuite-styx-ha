@@ -235,6 +235,66 @@ def _execute_mcp_tool(name: str, arguments: dict) -> dict:
                 return {"error": "EnergyService not available"}
             return energy_svc.get_summary()
 
+        elif name == "pilotsuite.search_web":
+            # Web search via SearXNG (external service)
+            import urllib.parse
+            import requests
+            
+            query = arguments.get("query", "")
+            if not query:
+                return {"error": "Missing required parameter: query"}
+            
+            language = arguments.get("language", "de")
+            categories = arguments.get("categories", "general")
+            time_range = arguments.get("time_range", "")
+            safesearch = arguments.get("safesearch", 1)
+            max_results = min(int(arguments.get("max_results", 10)), 50)
+            
+            # SearXNG API endpoint
+            searxng_url = "http://192.168.30.18:4041/search"
+            
+            params = {
+                "q": query,
+                "format": "json",
+                "language": language,
+                "categories": categories,
+                "time_range": time_range if time_range else None,
+                "safesearch": safesearch,
+                "pageno": 1,
+            }
+            
+            # Filter out None values
+            params = {k: v for k, v in params.items() if v is not None}
+            
+            try:
+                response = requests.get(searxng_url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Parse results
+                results = []
+                for result in data.get("results", [])[:max_results]:
+                    results.append({
+                        "title": result.get("title", ""),
+                        "url": result.get("url", ""),
+                        "content": result.get("content", ""),
+                        "engine": result.get("engine", ""),
+                        "score": result.get("score", 0),
+                    })
+                
+                return {
+                    "query": query,
+                    "total_results": data.get("number_of_results", len(results)),
+                    "results": results,
+                }
+            
+            except requests.exceptions.RequestException as e:
+                logger.error("SearXNG search failed: %s", e)
+                return {"error": f"SearXNG request failed: {str(e)}"}
+            except Exception as e:
+                logger.error("Unexpected error during web search: %s", e)
+                return {"error": f"Web search failed: {str(e)}"}
+
         else:
             return {"error": f"Unknown tool: {name}"}
 

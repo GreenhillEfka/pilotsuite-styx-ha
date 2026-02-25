@@ -1243,3 +1243,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.lightfull import lightfull_bp
         app.register_blueprint(lightfull_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.throttle import throttle_bp
+        app.register_blueprint(throttle_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ratelimit import ratelimit_bp
+        app.register_blueprint(ratelimit_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.cache import cache_bp
+        app.register_blueprint(cache_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.debug import debug_bp
+        app.register_blueprint(debug_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.metrics import metrics_bp
+        app.register_blueprint(metrics_bp)
+    except: pass
