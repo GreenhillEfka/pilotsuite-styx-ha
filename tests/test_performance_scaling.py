@@ -137,6 +137,15 @@ class TestAlerts:
         alert_types = [a["type"] for a in alerts]
         assert "coordinator_slow" in alert_types
 
+    def test_memory_alert_requires_sustained_streak(self, perf_module):
+        with patch.object(perf_module, "_get_memory_mb", return_value=5000.0):
+            first = perf_module._check_alerts()
+            second = perf_module._check_alerts()
+            third = perf_module._check_alerts()
+        assert "memory_high" not in [a["type"] for a in first]
+        assert "memory_high" not in [a["type"] for a in second]
+        assert "memory_high" in [a["type"] for a in third]
+
     @patch(
         "custom_components.ai_home_copilot.core.modules.performance_scaling._LOGGER.warning"
     )

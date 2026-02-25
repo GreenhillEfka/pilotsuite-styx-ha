@@ -32,7 +32,7 @@ async def test_process_motion_schedules_forward_task() -> None:
     async def _fake_forward(event_subtype: str, context: dict) -> None:
         await seen.put((event_subtype, context))
 
-    module._forward_to_brain = _fake_forward  # type: ignore[method-assign]
+    module._async_forward_to_brain = _fake_forward  # type: ignore[method-assign]
 
     module._process_motion_to_neuron(
         {
@@ -63,7 +63,7 @@ async def test_async_unload_cancels_pending_forward_tasks() -> None:
     async def _blocking_forward(_event_subtype: str, _context: dict) -> None:
         await gate.wait()
 
-    module._forward_to_brain = _blocking_forward  # type: ignore[method-assign]
+    module._async_forward_to_brain = _blocking_forward  # type: ignore[method-assign]
 
     module._process_motion_to_neuron(
         {
@@ -84,3 +84,23 @@ async def test_async_unload_cancels_pending_forward_tasks() -> None:
     assert not module._forward_tasks
 
     gate.set()
+
+
+@pytest.mark.asyncio
+async def test_legacy_forward_to_brain_wrapper_schedules_without_await() -> None:
+    module = CameraContextModule()
+    module._hass = _FakeHass()
+
+    seen: asyncio.Queue = asyncio.Queue()
+
+    async def _fake_forward(event_subtype: str, context: dict) -> None:
+        await seen.put((event_subtype, context.get("camera_id")))
+
+    module._async_forward_to_brain = _fake_forward  # type: ignore[method-assign]
+
+    # Legacy sync call path (previously produced "coroutine was never awaited" warnings).
+    module._forward_to_brain("motion", {"camera_id": "cam_legacy"})
+
+    subtype, camera_id = await asyncio.wait_for(seen.get(), timeout=1.0)
+    assert subtype == "motion"
+    assert camera_id == "cam_legacy"

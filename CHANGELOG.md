@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v8.5.0 (2026-02-25)
+- fix(camera): `CameraContextModule` now keeps a legacy-safe sync wrapper for `_forward_to_brain`, preventing `coroutine ... was never awaited` warnings from old sync callsites
+- test(camera): added regression test for direct legacy `_forward_to_brain(...)` invocation path
+- fix(perf): raised default memory alert threshold to `3072 MB` and added sustained-breach logic (3 consecutive checks) to suppress restart spike noise
+- test(perf): added alert streak regression test for memory-high warnings
+- chore: version alignment to `8.5.0` in both integration manifest and repo `manifest.json`
+
 ## v8.4.2 (2026-02-25)
 - fix: seed adapter now filters low-signal values (`on/off`, numeric-only) to prevent noisy `CoPilot Seed:*` repair spam
 - fix: state fallback in seed adapter is now stricter (only meaningful text payloads become seed candidates)

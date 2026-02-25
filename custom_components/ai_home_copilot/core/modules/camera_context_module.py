@@ -425,7 +425,9 @@ class CameraContextModule(CopilotModule):
         """Run async forwarding without dropping coroutine execution."""
         if not self._hass:
             return
-        task = self._hass.async_create_task(self._forward_to_brain(event_subtype, context))
+        task = self._hass.async_create_task(
+            self._async_forward_to_brain(event_subtype, context)
+        )
         self._forward_tasks.add(task)
 
         def _on_done(done_task: asyncio.Task) -> None:
@@ -438,8 +440,20 @@ class CameraContextModule(CopilotModule):
                 _LOGGER.debug("Camera event forwarding task failed", exc_info=True)
 
         task.add_done_callback(_on_done)
-    
-    async def _forward_to_brain(
+
+    def _forward_to_brain(
+        self,
+        event_subtype: str,
+        context: dict[str, Any],
+    ) -> None:
+        """Compatibility wrapper for older callsites.
+
+        Older builds called this method directly from sync code. Keep this as a
+        sync method so those calls schedule work safely without coroutine warnings.
+        """
+        self._schedule_forward_to_brain(event_subtype, context)
+
+    async def _async_forward_to_brain(
         self,
         event_subtype: str,
         context: dict[str, Any],

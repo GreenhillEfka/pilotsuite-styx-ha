@@ -29,13 +29,15 @@ DEFAULT_THRESHOLDS = {
     "api_response_time_ms": 2000,
     "coordinator_update_ms": 5000,
     "entity_count_max": 200,
-    # 2 GB default to reduce false positives on normal HA host workloads.
-    "memory_usage_mb_max": 2048,
+    # 3 GB default to reduce false positives on normal HA host workloads.
+    "memory_usage_mb_max": 3072,
     "error_rate_percent": 5.0,
 }
 
 # Avoid repeating identical warnings every minute in steady-state overloads.
 ALERT_LOG_THROTTLE_S = 15 * 60
+# Require sustained breaches to avoid restart spike noise.
+ALERT_STREAK_REQUIRED = 3
 
 
 @dataclass
@@ -81,6 +83,7 @@ class PerformanceScalingModule:
         self._entry: Optional[ConfigEntry] = None
         self._last_alert_log_ts: Dict[str, float] = {}
         self._suppressed_alerts: Dict[str, int] = {}
+        self._alert_streaks: Dict[str, int] = {}
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         self._hass = ctx.hass
@@ -273,18 +276,25 @@ class PerformanceScalingModule:
 
         # Memory
         memory_mb = self._get_memory_mb()
+        mem_key = "memory_high"
         if memory_mb > self._thresholds["memory_usage_mb_max"]:
-            alerts.append(
-                {
-                    "type": "memory_high",
-                    "message": (
-                        f"Memory {memory_mb:.1f}MB "
-                        f"exceeds {self._thresholds['memory_usage_mb_max']}MB"
-                    ),
-                    "timestamp": now,
-                    "value": memory_mb,
-                }
-            )
+            streak = self._alert_streaks.get(mem_key, 0) + 1
+            self._alert_streaks[mem_key] = streak
+            if streak >= ALERT_STREAK_REQUIRED:
+                alerts.append(
+                    {
+                        "type": mem_key,
+                        "message": (
+                            f"Memory {memory_mb:.1f}MB "
+                            f"exceeds {self._thresholds['memory_usage_mb_max']}MB"
+                        ),
+                        "timestamp": now,
+                        "value": memory_mb,
+                        "streak": streak,
+                    }
+                )
+        else:
+            self._alert_streaks[mem_key] = 0
 
         # Error rate
         if self._request_count > 0:

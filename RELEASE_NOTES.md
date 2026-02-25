@@ -1,20 +1,20 @@
-# Release Notes v8.4.2 (2026-02-25)
+# Release Notes v8.5.0 (2026-02-25)
 
-**Version:** 8.4.2  
+**Version:** 8.5.0  
 **Date:** 2026-02-25  
-**Tag:** `v8.4.2`  
+**Tag:** `v8.5.0`  
 **Branch:** main (HA/HACS konform)  
 **Hassfest:** ✅ compliant
 
 ## Release Features
-- fix: low-signal Seed-Reparaturen unterdrueckt (`on/off`, Zahlen-only, zu kurze payloads)
-- fix: state-basierter Seed-Fallback nur noch fuer wirklich inhaltliche Texte aktiv
-- fix: Performance-Warnschwelle fuer RAM auf `2048 MB` angehoben
-- chore: Manifest-/Versionsinfos vereinheitlicht (keine widerspruechlichen Versionsanzeigen)
-- Pytest (targeted): 33 passed
+- fix: camera forwarding has a legacy-safe sync wrapper, avoiding `coroutine was never awaited` warnings from old call paths
+- fix: performance memory warnings are less noisy (default threshold `3072 MB`, alert only after 3 consecutive breaches)
+- test: dedicated regressions for camera legacy wrapper + performance streak behavior
+- chore: version alignment across HA manifests to `8.5.0`
+- Pytest (targeted): 25 passed
 
 ## HA/HACS Conformance
-- manifest.json: v8.4.2
+- manifest.json: v8.5.0
 - domain Feld vorhanden
 - HACS structure: OK
 - hassfest: ✅ compliant
@@ -28,4 +28,4 @@ pytest -q tests/test_*.py
 
 ---
 
-**PilotSuite Styx HA v8.4.2**
+**PilotSuite Styx HA v8.5.0**
