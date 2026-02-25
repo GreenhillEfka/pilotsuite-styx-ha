@@ -1047,3 +1047,11 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.info import info_bp
         app.register_blueprint(info_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.bluetooth import bluetooth_bp
+        app.register_blueprint(bluetooth_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.usb import usb_bp
+        app.register_blueprint(usb_bp)
+    except: pass
