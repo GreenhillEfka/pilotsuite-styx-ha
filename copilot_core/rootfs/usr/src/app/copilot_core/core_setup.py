@@ -1583,3 +1583,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.video import video_bp
         app.register_blueprint(video_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.display import display_bp
+        app.register_blueprint(display_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.touchscreen import touchscreen_bp
+        app.register_blueprint(touchscreen_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.resolution import resolution_bp
+        app.register_blueprint(resolution_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.brightness import brightness_bp
+        app.register_blueprint(brightness_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.contrast import contrast_bp
+        app.register_blueprint(contrast_bp)
+    except: pass
