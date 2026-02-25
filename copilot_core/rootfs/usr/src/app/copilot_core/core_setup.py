@@ -1823,3 +1823,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.sata import sata_bp
         app.register_blueprint(sata_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.nvme import nvme_bp
+        app.register_blueprint(nvme_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.sas import sas_bp
+        app.register_blueprint(sas_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.emmc import emmc_bp
+        app.register_blueprint(emmc_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.sdcard import sdcard_bp
+        app.register_blueprint(sdcard_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ufs import ufs_bp
+        app.register_blueprint(ufs_bp)
+    except: pass
