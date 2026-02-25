@@ -1843,3 +1843,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.ufs import ufs_bp
         app.register_blueprint(ufs_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.tpm import tpm_bp
+        app.register_blueprint(tpm_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.secboot import secboot_bp
+        app.register_blueprint(secboot_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.uefi import uefi_bp
+        app.register_blueprint(uefi_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.bios import bios_bp
+        app.register_blueprint(bios_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.intelme import intelme_bp
+        app.register_blueprint(intelme_bp)
+    except: pass
