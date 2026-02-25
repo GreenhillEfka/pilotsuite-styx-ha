@@ -1383,3 +1383,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.dns import dns_bp
         app.register_blueprint(dns_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.netint import netint_bp
+        app.register_blueprint(netint_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.interface import interface_bp
+        app.register_blueprint(interface_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.subnet import subnet_bp
+        app.register_blueprint(subnet_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.gateway import gateway_bp
+        app.register_blueprint(gateway_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.route import route_bp
+        app.register_blueprint(route_bp)
+    except: pass
