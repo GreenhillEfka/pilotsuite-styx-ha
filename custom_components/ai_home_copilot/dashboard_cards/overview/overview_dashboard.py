@@ -39,7 +39,7 @@ def create_complete_dashboard(
     
     return {
         "type": "vertical-stack",
-        "title": config.get("title", "🏠 AI Home Copilot"),
+        "title": config.get("title", "🏠 PilotSuite - Styx"),
         "cards": [
             # === SECTION 1: OVERVIEW ===
             create_dashboard_overview_card(data, {"title": "📊 Übersicht"}),
@@ -95,7 +95,7 @@ def create_mobile_dashboard(
     
     return {
         "type": "vertical-stack",
-        "title": config.get("title", "🏠 AI Home Copilot"),
+        "title": config.get("title", "🏠 PilotSuite - Styx"),
         "cards": [
             # Overview (compact)
             {

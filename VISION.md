@@ -1,12 +1,12 @@
-# PilotSuite Styx - Vision (2026-02-22)
+# PilotSuite Styx - Vision (2026-02-25)
 
 This document is the active vision baseline for the dual-repo system:
 - Core add-on repo: `pilotsuite-styx-core`
 - HACS integration repo: `pilotsuite-styx-ha`
 
 Version baseline:
-- Core add-on: `7.8.0`
-- HA integration: `7.8.0`
+- Core add-on: `8.9.0`
+- HA integration: `8.9.0`
 - Core API port: `8909`
 
 ## Mission

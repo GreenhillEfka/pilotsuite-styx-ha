@@ -27,6 +27,28 @@ _MOTION_HINTS = (
     "besetzt",
 )
 
+_ROLE_FIELD_MAP: dict[str, str] = {
+    "brightness": "brightness_entity_ids",
+    "noise": "noise_entity_ids",
+    "humidity": "humidity_entity_ids",
+    "co2": "co2_entity_ids",
+    "temperature": "temperature_entity_ids",
+    "heating": "heating_entity_ids",
+    "camera": "camera_entity_ids",
+    "media": "media_entity_ids",
+}
+
+_ROLE_LABELS: dict[str, str] = {
+    "brightness": "Helligkeit",
+    "noise": "Laerm",
+    "humidity": "Luftfeuchte",
+    "co2": "CO2",
+    "temperature": "Temperatur",
+    "heating": "Heizung/Klima",
+    "camera": "Kamera",
+    "media": "Media",
+}
+
 
 def _normalize_entity_ids(raw: Any) -> list[str]:
     if raw is None:
@@ -119,6 +141,54 @@ def _entity_area_id(dev_reg, reg_entry) -> str | None:
     return None
 
 
+def _infer_optional_role(entity_id: str) -> str:
+    """Infer optional role from entity id/domain naming hints."""
+    eid = str(entity_id or "").lower()
+    domain = eid.split(".", 1)[0] if "." in eid else ""
+
+    if domain == "camera":
+        return "camera"
+    if domain == "media_player":
+        return "media"
+    if domain == "climate":
+        return "heating"
+    if domain in ("switch", "number", "input_number", "water_heater") and any(
+        key in eid for key in ("heat", "heiz", "boiler", "therm")
+    ):
+        return "heating"
+
+    if domain in ("sensor", "binary_sensor"):
+        if any(key in eid for key in ("co2", "carbon", "ppm")):
+            return "co2"
+        if any(key in eid for key in ("humid", "feucht")):
+            return "humidity"
+        if any(key in eid for key in ("noise", "sound", "laerm", "larm", "db")):
+            return "noise"
+        if any(key in eid for key in ("lux", "illuminance", "brightness", "hellig")):
+            return "brightness"
+        if "temp" in eid:
+            return "temperature"
+    return "other"
+
+
+def _split_optional_entities(entity_ids: list[str]) -> tuple[dict[str, list[str]], list[str]]:
+    """Split optional entities into known role buckets."""
+    role_map: dict[str, list[str]] = {role: [] for role in _ROLE_FIELD_MAP}
+    other: list[str] = []
+    seen: set[str] = set()
+    for entity_id in entity_ids:
+        eid = str(entity_id or "").strip()
+        if not eid or eid in seen:
+            continue
+        seen.add(eid)
+        role = _infer_optional_role(eid)
+        if role in role_map:
+            role_map[role].append(eid)
+        else:
+            other.append(eid)
+    return role_map, other
+
+
 async def _suggest_entities_for_area(hass: HomeAssistant, area_id: str) -> dict[str, list[str]]:
     """Suggest zone entities for an HA area."""
     ent_reg = entity_registry.async_get(hass)
@@ -197,6 +267,7 @@ def _build_zone_form_schema(
     name: str,
     motion_entity_id: str | None,
     light_entity_ids: list[str],
+    role_entity_ids: dict[str, list[str]],
     optional_entity_ids: list[str],
 ) -> vol.Schema:
     """Build schema for create/edit zone forms."""
@@ -216,6 +287,30 @@ def _build_zone_form_schema(
     )
     fields[vol.Optional("light_entity_ids", default=light_entity_ids)] = selector.EntitySelector(
         selector.EntitySelectorConfig(domain="light", multiple=True)
+    )
+    fields[vol.Optional("brightness_entity_ids", default=role_entity_ids.get("brightness", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("noise_entity_ids", default=role_entity_ids.get("noise", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("humidity_entity_ids", default=role_entity_ids.get("humidity", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("co2_entity_ids", default=role_entity_ids.get("co2", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("temperature_entity_ids", default=role_entity_ids.get("temperature", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor", "climate"], multiple=True)
+    )
+    fields[vol.Optional("heating_entity_ids", default=role_entity_ids.get("heating", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["climate", "switch", "number", "input_number", "water_heater"], multiple=True)
+    )
+    fields[vol.Optional("camera_entity_ids", default=role_entity_ids.get("camera", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["camera"], multiple=True)
+    )
+    fields[vol.Optional("media_entity_ids", default=role_entity_ids.get("media", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["media_player"], multiple=True)
     )
     fields[vol.Optional("optional_entity_ids", default=optional_entity_ids)] = selector.EntitySelector(
         selector.EntitySelectorConfig(multiple=True)
@@ -331,6 +426,7 @@ async def async_step_zone_form(
     default_name = ""
     default_motion: str | None = None
     default_lights: list[str] = []
+    default_roles: dict[str, list[str]] = {role: [] for role in _ROLE_FIELD_MAP}
     default_optional: list[str] = []
 
     if zone is not None:
@@ -343,10 +439,11 @@ async def async_step_zone_form(
         if isinstance(ent_map, dict):
             motion_list = _normalize_entity_ids(ent_map.get("motion"))
             lights_list = _normalize_entity_ids(ent_map.get("lights"))
-            other_list = _normalize_entity_ids(ent_map.get("other"))
             default_motion = motion_list[0] if motion_list else None
             default_lights = lights_list
-            default_optional = other_list
+            for role in _ROLE_FIELD_MAP:
+                default_roles[role] = _normalize_entity_ids(ent_map.get(role))
+            default_optional = _normalize_entity_ids(ent_map.get("other"))
         else:
             for eid in zone.entity_ids:
                 if eid.startswith("light."):
@@ -354,7 +451,14 @@ async def async_step_zone_form(
                 elif eid.startswith(("binary_sensor.", "sensor.")) and default_motion is None:
                     default_motion = eid
                 else:
-                    default_optional.append(eid)
+                    role_map, remainder = _split_optional_entities([eid])
+                    assigned = False
+                    for role, values in role_map.items():
+                        if values:
+                            default_roles[role].extend(values)
+                            assigned = True
+                    if not assigned:
+                        default_optional.extend(remainder or [eid])
 
     if user_input is None:
         schema = _build_zone_form_schema(
@@ -364,6 +468,7 @@ async def async_step_zone_form(
             name=default_name,
             motion_entity_id=default_motion,
             light_entity_ids=default_lights,
+            role_entity_ids=default_roles,
             optional_entity_ids=default_optional,
         )
         return flow.async_show_form(step_id=step_id, data_schema=schema)
@@ -378,22 +483,28 @@ async def async_step_zone_form(
     name = str(user_input.get("name") or "").strip()
     motion = str(user_input.get("motion_entity_id") or "").strip()
     lights = _normalize_entity_ids(user_input.get("light_entity_ids"))
+    role_entities: dict[str, list[str]] = {}
+    for role, field_key in _ROLE_FIELD_MAP.items():
+        role_entities[role] = _normalize_entity_ids(user_input.get(field_key))
     optional = _normalize_entity_ids(user_input.get("optional_entity_ids"))
 
-    auto_hint = ""
+    auto_hints: list[str] = []
     if area_ids and (not motion or not lights):
         suggestions = await _suggest_entities_for_areas(flow.hass, area_ids)
         if not motion and suggestions["motion"]:
             motion = suggestions["motion"][0]
-            auto_hint = "Motion wurde automatisch aus dem gewählten Bereich übernommen."
+            auto_hints.append("Motion wurde automatisch aus dem gewaehlten Bereich uebernommen.")
         if not lights and suggestions["lights"]:
             lights = suggestions["lights"]
-            if auto_hint:
-                auto_hint = f"{auto_hint} Lichter wurden ebenfalls automatisch übernommen."
-            else:
-                auto_hint = "Lichter wurden automatisch aus dem gewählten Bereich übernommen."
+            auto_hints.append("Lichter wurden automatisch aus dem gewaehlten Bereich uebernommen.")
         if not optional:
             optional = suggestions["optional"][:8]
+        suggested_roles, suggested_other = _split_optional_entities(suggestions["optional"])
+        for role in _ROLE_FIELD_MAP:
+            if not role_entities.get(role) and suggested_roles.get(role):
+                role_entities[role] = suggested_roles[role][:4]
+        if not optional and suggested_other:
+            optional = suggested_other[:8]
 
     area_names = [name for name in (_area_name(flow.hass, aid) for aid in area_ids) if name]
     area_name_summary = " + ".join(area_names) if area_names else ""
@@ -408,7 +519,8 @@ async def async_step_zone_form(
         zone_name = base_name
 
     errors: dict[str, str] = {}
-    if not motion and not lights and not optional:
+    has_role_entities = any(role_entities.get(role) for role in _ROLE_FIELD_MAP)
+    if not motion and not lights and not optional and not has_role_entities:
         errors["base"] = "invalid"
     if errors:
         schema = _build_zone_form_schema(
@@ -418,10 +530,11 @@ async def async_step_zone_form(
             name=name,
             motion_entity_id=motion or None,
             light_entity_ids=lights,
+            role_entity_ids=role_entities,
             optional_entity_ids=optional,
         )
         missing_hint = "Bitte mindestens eine Entitaet auswaehlen (Motion, Licht oder optional)."
-        combined_hint = f"{auto_hint} {missing_hint}".strip() if auto_hint else missing_hint
+        combined_hint = " ".join(auto_hints + [missing_hint]).strip()
         placeholders = {"hint": combined_hint}
         return flow.async_show_form(
             step_id=step_id,
@@ -430,7 +543,11 @@ async def async_step_zone_form(
             description_placeholders=placeholders,
         )
 
-    entity_ids = [motion] + lights + optional
+    role_order = ("brightness", "noise", "humidity", "co2", "temperature", "heating", "camera", "media")
+    entity_ids = [motion] + lights
+    for role in role_order:
+        entity_ids.extend(role_entities.get(role, []))
+    entity_ids.extend(optional)
     uniq: list[str] = []
     seen: set[str] = set()
     for entity_id in entity_ids:
@@ -440,6 +557,10 @@ async def async_step_zone_form(
         uniq.append(entity_id)
 
     ent_map = {"motion": [motion], "lights": lights, "other": optional}
+    for role in role_order:
+        role_values = role_entities.get(role, [])
+        if role_values:
+            ent_map[role] = role_values
     ent_map = {key: value for key, value in ent_map.items() if value}
     base_metadata = dict(zone.metadata) if zone is not None and isinstance(zone.metadata, dict) else {}
     if area_ids:
@@ -471,9 +592,10 @@ async def async_step_zone_form(
             name=name,
             motion_entity_id=motion or None,
             light_entity_ids=lights,
+            role_entity_ids=role_entities,
             optional_entity_ids=optional,
         )
-        placeholders = {"hint": f"{auto_hint} {err}".strip()} if auto_hint else {"hint": str(err)}
+        placeholders = {"hint": f"{' '.join(auto_hints)} {err}".strip()} if auto_hints else {"hint": str(err)}
         return flow.async_show_form(
             step_id=step_id,
             data_schema=schema,

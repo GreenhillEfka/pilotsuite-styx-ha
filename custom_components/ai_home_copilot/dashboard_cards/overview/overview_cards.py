@@ -50,7 +50,7 @@ def create_dashboard_overview_card(
     
     card_config = {
         "type": "vertical-stack",
-        "title": config.get("title", "🏠 AI Home Copilot Dashboard"),
+        "title": config.get("title", "🏠 PilotSuite - Styx Dashboard"),
         "cards": cards,
     }
     

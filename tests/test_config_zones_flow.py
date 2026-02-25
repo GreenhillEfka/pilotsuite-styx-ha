@@ -35,6 +35,7 @@ def test_create_zone_schema_uses_area_selector_and_no_zone_id_field() -> None:
         name="",
         motion_entity_id=None,
         light_entity_ids=[],
+        role_entity_ids={},
         optional_entity_ids=[],
     )
     keys = _schema_keys(schema)
@@ -53,8 +54,14 @@ def test_edit_zone_schema_has_no_zone_id_field() -> None:
         name="Wohnzimmer",
         motion_entity_id="binary_sensor.motion_wohnzimmer",
         light_entity_ids=["light.retrolampe"],
+        role_entity_ids={
+            "brightness": ["sensor.wohnzimmer_lux"],
+            "co2": ["sensor.wohnzimmer_co2"],
+        },
         optional_entity_ids=[],
     )
     keys = _schema_keys(schema)
     assert "area_ids" in keys
     assert "zone_id" not in keys
+    assert "brightness_entity_ids" in keys
+    assert "co2_entity_ids" in keys

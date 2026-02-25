@@ -33,6 +33,8 @@ from .suggest import Candidate, async_offer_candidate
 _LOGGER = logging.getLogger(__name__)
 
 _ENTITY_ID_RE = re.compile(r"\b([a-z_]+\.[a-z0-9_]+)\b")
+_INTERNAL_SEED_SOURCE_RE = re.compile(r"^(sensor|number|text)\.ai_home_copilot_.*seed", re.IGNORECASE)
+_SEED_NOISE_TITLE_RE = re.compile(r"^(pilotsuite|copilot)\s+seed\s*:", re.IGNORECASE)
 _LOW_SIGNAL_TOKENS = {
     "on",
     "off",
@@ -109,6 +111,11 @@ def _is_low_signal_seed_text(text: str) -> bool:
         return True
 
     return False
+
+
+def _is_internal_seed_source(entity_id: str) -> bool:
+    """Ignore internal helper entities to avoid self-generated repairs spam."""
+    return bool(_INTERNAL_SEED_SOURCE_RE.match(str(entity_id or "").strip()))
 
 
 def _extract_text_from_item(item: Any) -> str:
@@ -245,6 +252,9 @@ async def _limiter_allow_offer(
 
 
 async def async_process_seed_entity(hass: HomeAssistant, entry: ConfigEntry, entity_id: str) -> None:
+    if _is_internal_seed_source(entity_id):
+        return
+
     st = hass.states.get(entity_id)
     if st is None:
         return
@@ -283,6 +293,8 @@ async def async_process_seed_entity(hass: HomeAssistant, entry: ConfigEntry, ent
     for seed in seeds:
         if offered >= max_per_update:
             break
+        if not seed.entities_found and _SEED_NOISE_TITLE_RE.match(seed.title or ""):
+            continue
 
         if not await _limiter_allow_offer(
             hass,

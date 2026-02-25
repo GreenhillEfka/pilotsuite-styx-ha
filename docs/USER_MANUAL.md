@@ -80,7 +80,7 @@ conversation_enabled: true
 conversation_ollama_model: qwen3:0.6b
 conversation_cloud_api_url: ""
 conversation_cloud_api_key: ""
-conversation_cloud_model: gpt-4o-mini
+conversation_cloud_model: qwen3.5:cloud
 conversation_prefer_local: true
 ```
 
@@ -93,7 +93,7 @@ conversation_prefer_local: true
 | `conversation_ollama_model` | `qwen3:0.6b` | Lokales Hauptmodell (Default) |
 | `conversation_cloud_api_url` | `""` | Optionaler Cloud-Fallback Endpoint (`/v1`) |
 | `conversation_cloud_api_key` | `""` | API-Key fuer Cloud-Fallback |
-| `conversation_cloud_model` | `gpt-4o-mini` | Modellname fuer Cloud-Fallback |
+| `conversation_cloud_model` | `qwen3.5:cloud` | Modellname fuer Cloud-Fallback (Ollama Cloud empfohlen) |
 | `conversation_prefer_local` | `true` | Erst lokal, dann Cloud |
 
 ### Schritt 4: Starten und pruefen

@@ -36,6 +36,14 @@ _LEGACY_TEXT_ENTITY_SUFFIXES = (
     "seed_sensors_csv",
     "test_light_entity_id",
 )
+_CANONICAL_DEVICE_NAME = "PilotSuite - Styx"
+_LEGACY_DEVICE_DISPLAY_NAMES = {
+    "ai home copilot",
+    "ai_home_copilot",
+    "ai-home-copilot",
+    "pilot suite",
+    "pilotsuite",
+}
 
 _MODULE_IMPORTS = {
     "legacy": (".core.modules.legacy", "LegacyModule"),
@@ -189,12 +197,20 @@ async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry)
 
     new_ids = set(device.identifiers)
     new_ids.update(identifiers)
+    name_by_user = device.name_by_user
+    if not name_by_user:
+        current_name = str(getattr(device, "name", "") or "").strip().lower()
+        if current_name in _LEGACY_DEVICE_DISPLAY_NAMES:
+            # Promote legacy auto-generated labels to current branding without
+            # touching explicit user-customized names.
+            name_by_user = _CANONICAL_DEVICE_NAME
+
     dev_reg.async_update_device(
         device.id,
         new_identifiers=new_ids,
         manufacturer="PilotSuite",
         model="Home Assistant Integration",
-        name_by_user=device.name_by_user,
+        name_by_user=name_by_user,
     )
 
     # Consolidate entities from legacy PilotSuite devices into the canonical hub.

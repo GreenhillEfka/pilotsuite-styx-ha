@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v8.9.0 (2026-02-25)
+- feat(zones): Habitus zone create/edit flow expanded with role-based selectors:
+  - `brightness_entity_ids`, `noise_entity_ids`, `humidity_entity_ids`, `co2_entity_ids`
+  - `temperature_entity_ids`, `heating_entity_ids`, `camera_entity_ids`, `media_entity_ids`
+- feat(zones): area-based auto-suggestions now prefill standard role buckets (Motion/Licht + Klima/CO2/Laerm/Helligkeit/Kamera/Media).
+- fix(seed): internal `ai_home_copilot_*seed*` helper entities are now ignored by seed adapter to prevent self-generated Repairs spam.
+- fix(seed): noisy seed-style titles without detected entities (`CoPilot/PilotSuite Seed:*`) are filtered out before issue creation.
+- docs: cloud model default in user manual updated to `qwen3.5:cloud` for Ollama Cloud alignment.
+- test: zone flow helper tests updated for role-selector schema.
+
 ## v8.8.0 (2026-02-25)
 - feat(flow): Habitus options flow switched to React-first dashboard concept (`dashboard_info` in menu, legacy YAML actions no longer default path).
 - feat(core-alignment): legacy YAML dashboard auto-generation/auto-refresh is now opt-in (`legacy_yaml_dashboards` / `PILOTSUITE_LEGACY_YAML_DASHBOARDS`).

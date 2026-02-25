@@ -5,6 +5,12 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [8.9.0] - 2026-02-25
+- Habitus-Zonenformular erweitert um rollenbasierte Entitaetsauswahl:
+  - Helligkeit, Laerm, Luftfeuchte, CO2, Temperatur, Heizung/Klima, Kamera, Media.
+- Bereichsbasierte Auto-Vorschlaege fuellen jetzt Standardrollen statt nur `optional`.
+- Seed-Adapter ignoriert interne `ai_home_copilot_*seed*` Entitaeten und filtert `CoPilot/PilotSuite Seed:*` Noise ohne erkannte Ziel-Entitaeten.
+
 ## [8.8.0] - 2026-02-25
 - React-first Dashboardmodus fuer Habitus-Flow:
   - `habitus_zones` menu nutzt jetzt `dashboard_info` statt YAML-Aktionen als Standardpfad.

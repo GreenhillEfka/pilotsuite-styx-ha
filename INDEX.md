@@ -1,56 +1,42 @@
-# PilotSuite - HA Integration
+# PilotSuite HA Index
 
-## Quick Links
-- **README.md** - Installation & Configuration
-- **CHANGELOG.md** - Version History
-- **custom_components/ai_home_copilot/** - Main Code
-- **docs/openapi.yaml** - Service API Documentation (v0.8.2)
+Quick orientation for the Home Assistant integration repository (`pilotsuite-styx-ha`).
 
-## Components
+## Current Baseline
 
-### Core Files
-- `__init__.py` - Integration setup
-- `config_flow.py` - UI configuration
-- `const.py` - Constants
-- `coordinator.py` - Data coordination
+- Version: `8.9.0`
+- Domain: `ai_home_copilot` (kept for backward compatibility)
+- Product name/UI: `PilotSuite - Styx`
+- Companion backend: `pilotsuite-styx-core` (Core API default port `8909`)
 
-### Modules
-- `brain_graph_*.py` - Neural graph visualization
-- `habitus_*.py` - Pattern detection & zones
-- `tag_registry.py` - Entity tagging
-- `energy_context.py` - Energy monitoring
-- `unifi_context.py` - Network context
-- `media_context.py` - Media state
-- `core/performance.py` - Caching & optimization (v0.8.1)
-- `core/mupl/` - Multi-User Preference Learning (v0.8.0)
+## Main Paths
 
-### Services
-- `services_setup.py` - Service registration
-- `services.yaml` - Service definitions
+- Integration code: `custom_components/ai_home_copilot/`
+- Runtime modules: `custom_components/ai_home_copilot/core/modules/`
+- Config/Options flows: `custom_components/ai_home_copilot/config_flow.py`, `custom_components/ai_home_copilot/config_options_flow.py`
+- Habitus zone management: `custom_components/ai_home_copilot/config_zones_flow.py`
+- Tests: `tests/` and `custom_components/ai_home_copilot/tests/`
+- Docs: `docs/`, plus root files (`VISION.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`)
 
-## Current Version
-- **v0.8.2** - OpenAPI Specification for Services
-- **v0.8.1** - Performance Optimization + MUPL Phase 2
-- **v0.8.0** - Multi-User Preference Learning
-- **v0.7.6** - Interactive Brain Graph Panel
+## Integration Focus (React-first)
 
-## Features
+- Core React dashboard is the primary UI for status, module control, chat, and Habitus operations.
+- Legacy YAML dashboards remain optional compatibility mode.
+- Zone creation/editing is selector-based (including role fields like brightness, humidity, CO2, heating, camera, media).
+- Runtime includes module orchestration, candidate governance via Repairs, and bidirectional Core communication.
 
-| Feature | Version | Status |
-|---------|---------|--------|
-| Brain Graph v2 | v0.7.5 | ✅ |
-| Tag System v0.2 | v0.7.5 | ✅ |
-| Habitus Dashboard Cards | v0.7.5 | ✅ |
-| Interactive Brain Graph | v0.7.6 | ✅ |
-| Multi-User Preference Learning | v0.8.0 | ✅ |
-| MUPL Phase 2: Action Attribution | v0.8.1 | ✅ |
-| Performance Optimization | v0.8.1 | ✅ |
-| OpenAPI Specification | v0.8.2 | ✅ |
+## Key Features
 
-## Related
-- Core Add-on: https://github.com/GreenhillEfka/pilotsuite-styx-core
-- Docs: https://github.com/GreenhillEfka/pilotsuite-styx-ha#readme
+- Zero-config onboarding + connection normalization
+- Stable single-device identity (`styx_hub`) with legacy migration
+- Module runtime loader (31 modules)
+- Candidate poller + Repairs decision sync-back
+- Habitus zones v2 with area-based suggestions and role mapping
+- Seed/noise suppression and operational diagnostics
 
----
+## Release/Docs
 
-*Last updated: 2026-02-15*
+- Release notes: `RELEASE_NOTES.md`
+- Changelog: `CHANGELOG.md`, `custom_components/ai_home_copilot/CHANGELOG.md`
+- Setup guides: `SETUP.md`, `docs/INSTALLATION.md`, `docs/USER_MANUAL.md`
+- Vision: `VISION.md`
