@@ -1075,3 +1075,7 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.logbook2 import logbook2_bp
         app.register_blueprint(logbook2_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.raspberry import raspberry_bp
+        app.register_blueprint(raspberry_bp)
+    except: pass
