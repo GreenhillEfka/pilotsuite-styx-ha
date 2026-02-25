@@ -1603,3 +1603,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.contrast import contrast_bp
         app.register_blueprint(contrast_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.aspect import aspect_bp
+        app.register_blueprint(aspect_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.gamma import gamma_bp
+        app.register_blueprint(gamma_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.hue import hue_bp
+        app.register_blueprint(hue_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.saturation import saturation_bp
+        app.register_blueprint(saturation_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.contrast2 import contrast2_bp
+        app.register_blueprint(contrast2_bp)
+    except: pass
