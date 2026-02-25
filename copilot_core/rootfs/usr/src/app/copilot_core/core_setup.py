@@ -955,3 +955,11 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Templates API (/api/v1/templates/*)")
     except Exception:
         _LOGGER.exception("Failed to register Templates API")
+
+    # Register Logbook API (v7.29.0)
+    try:
+        from copilot_core.api.v1.logbook import logbook_bp
+        app.register_blueprint(logbook_bp)
+        _LOGGER.info("Registered Logbook API (/api/v1/logbook/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Logbook API")
