@@ -7,9 +7,9 @@
 
 ## P1 (Important)
 
-- [ ] Scene Pattern Extraction – aus User-Verhalten (Szenen-Aktivierung) Muster lernen
-- [ ] Routine Pattern Extraction – tageszeitbasierte/wochentagsbasierte Rückschlüsse
-- [ ] Push Notifications – Styx als zentraler Notify-Service (Mobile App, Telegram, Email)
+- [x] Scene Pattern Extraction – aus User-Verhalten (Szenen-Aktivierung) Muster lernen
+- [x] Routine Pattern Extraction – tageszeitbasierte/wochentagsbasierte Rückschlüsse
+- [x] Push Notifications – Styx als zentraler Notify-Service (Mobile App, Telegram, Email)
 
 ## P2 (Nice to have)
 
@@ -21,6 +21,6 @@
 
 ## Notes
 
-*Last updated: 2026-02-23*
-*Based on Styx v7.8.8*
-*Next Task: P0 – Error Isolation (Start)*
+*Last updated: 2026-02-25*
+*Based on Styx v7.26.0*
+*Next Task: P2 – MCP Phase 2 + Test Suite Expansion*
