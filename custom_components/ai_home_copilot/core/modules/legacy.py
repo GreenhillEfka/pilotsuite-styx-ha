@@ -57,6 +57,8 @@ class LegacyModule:
                 "predictions": [],
                 "sequences": [],
                 "core_modules": {},
+                "brain_summary": {},
+                "habitus_rules": {},
             }
 
         webhook_id = None

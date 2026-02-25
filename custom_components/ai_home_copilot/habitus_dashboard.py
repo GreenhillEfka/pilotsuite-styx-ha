@@ -208,6 +208,10 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
             return []
         eid = _avg_entity_id(metric)
         if hass.states.get(eid) is None:
+            _LOGGER.debug(
+                "Average sensor %s not yet available for zone %s (%d sources)",
+                eid, zone_id, len(sources),
+            )
             return []
         return [_entity_card_yaml(title, eid)]
 

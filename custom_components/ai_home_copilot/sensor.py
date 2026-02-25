@@ -298,6 +298,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         InspectorSensor(coordinator, "tags", "Active Tags", "mdi:tag-multiple"),
         InspectorSensor(coordinator, "character", "Character Profile", "mdi:account-cog"),
         InspectorSensor(coordinator, "mood", "Current Mood", "mdi:emoticon"),
+        # Brain Graph & Habitus rules (from Core API)
+        BrainGraphSummarySensor(coordinator),
+        HabitusRulesSummarySensor(coordinator),
     ]
 
     # Events Forwarder quality sensors (v0.1 kernel)
@@ -1157,3 +1160,68 @@ class CalendarSensor(SensorEntity):
             }
         except Exception:
             return {}
+
+
+class BrainGraphSummarySensor(CopilotBaseEntity, SensorEntity):
+    """Sensor exposing Brain Graph node/edge counts from Core."""
+
+    _attr_name = "Brain Graph"
+    _attr_unique_id = "ai_home_copilot_brain_graph_summary"
+    _attr_icon = "mdi:graph"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        summary = self.coordinator.data.get("brain_summary", {})
+        nodes = summary.get("node_count", 0)
+        edges = summary.get("edge_count", 0)
+        if not nodes and not edges:
+            return "unavailable"
+        return f"{nodes} nodes / {edges} edges"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        summary = self.coordinator.data.get("brain_summary", {})
+        attrs: dict[str, Any] = {}
+        if "nodes_by_kind" in summary:
+            attrs["nodes_by_kind"] = summary["nodes_by_kind"]
+        if "edges_by_type" in summary:
+            attrs["edges_by_type"] = summary["edges_by_type"]
+        if "top_nodes" in summary:
+            attrs["top_nodes"] = summary["top_nodes"][:5]
+        return attrs
+
+
+class HabitusRulesSummarySensor(CopilotBaseEntity, SensorEntity):
+    """Sensor exposing Habitus discovered patterns/rules from Core."""
+
+    _attr_name = "Habitus Patterns"
+    _attr_unique_id = "ai_home_copilot_habitus_rules_summary"
+    _attr_icon = "mdi:lightbulb-auto"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        rules = self.coordinator.data.get("habitus_rules", {})
+        total = rules.get("total_rules", 0)
+        if not total:
+            return "learning"
+        return f"{total} patterns"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        rules = self.coordinator.data.get("habitus_rules", {})
+        attrs: dict[str, Any] = {}
+        if "by_domain" in rules:
+            attrs["by_domain"] = rules["by_domain"]
+        if "avg_confidence" in rules:
+            attrs["avg_confidence"] = rules["avg_confidence"]
+        if "top_rules" in rules:
+            attrs["top_rules"] = rules["top_rules"][:5]
+        return attrs

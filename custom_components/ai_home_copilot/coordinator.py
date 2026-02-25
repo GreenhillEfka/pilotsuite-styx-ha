@@ -267,6 +267,30 @@ class CopilotApiClient(SharedCopilotApiClient):
             {"state": state},
         )
 
+    async def async_get_brain_summary(self) -> dict:
+        """Return Brain Graph summary from /api/v1/dashboard/brain-summary."""
+        try:
+            return await self.async_get("/api/v1/dashboard/brain-summary")
+        except CopilotApiError as e:
+            _LOGGER.debug("Brain summary not available: %s", e)
+        return {}
+
+    async def async_get_habitus_rules_summary(self) -> dict:
+        """Return Habitus rules summary from /api/v1/habitus/rules/summary."""
+        try:
+            return await self.get_with_auth("habitus/rules/summary")
+        except CopilotApiError as e:
+            _LOGGER.debug("Habitus rules summary not available: %s", e)
+        return {}
+
+    async def async_get_automation_suggestions(self) -> dict:
+        """Return automation suggestions from /api/v1/habitus/dashboard_cards/rules."""
+        try:
+            return await self.async_get("/api/v1/habitus/dashboard_cards/rules?min_confidence=0.7&limit=10")
+        except CopilotApiError as e:
+            _LOGGER.debug("Automation suggestions not available: %s", e)
+        return {}
+
 
 class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator with neural system integration."""
@@ -330,6 +354,12 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 # Get Core module states (best-effort, non-blocking)
                 core_modules = await self.api.async_get_core_modules()
 
+                # Get Brain Graph summary (best-effort)
+                brain_summary = await self.api.async_get_brain_summary()
+
+                # Get Habitus rules summary (best-effort)
+                habitus_rules = await self.api.async_get_habitus_rules_summary()
+
                 # Get habit learning data from ML context if available
                 habit_data = await self._get_habit_learning_data()
 
@@ -344,6 +374,8 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     "predictions": habit_data.get("predictions", []),
                     "sequences": habit_data.get("sequences", []),
                     "core_modules": core_modules,
+                    "brain_summary": brain_summary,
+                    "habitus_rules": habitus_rules,
                 }
             except CopilotApiError as err:
                 last_err = err
