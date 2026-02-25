@@ -158,8 +158,8 @@ async def async_setup_knowledge_graph_sensors(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Knowledge Graph sensors."""
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data.get("coordinator")
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    coordinator = data.get("coordinator") if isinstance(data, dict) else None
     if coordinator is None:
         _LOGGER.error("Coordinator not available for %s, skipping knowledge_graph setup", entry.entry_id)
         return
