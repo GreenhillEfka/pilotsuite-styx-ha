@@ -1163,3 +1163,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.homekit import homekit_bp
         app.register_blueprint(homekit_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.sonos import sonos_bp
+        app.register_blueprint(sonos_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.plex import plex_bp
+        app.register_blueprint(plex_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.spotify import spotify_bp
+        app.register_blueprint(spotify_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.gtts import gtts_bp
+        app.register_blueprint(gtts_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.alexa import alexa_bp
+        app.register_blueprint(alexa_bp)
+    except: pass
