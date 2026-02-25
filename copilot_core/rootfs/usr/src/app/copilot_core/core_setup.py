@@ -1079,3 +1079,7 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.raspberry import raspberry_bp
         app.register_blueprint(raspberry_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.stream import stream_bp
+        app.register_blueprint(stream_bp)
+    except: pass
