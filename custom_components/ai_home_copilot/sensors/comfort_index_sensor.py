@@ -30,7 +30,7 @@ class ComfortIndexSensor(CopilotBaseEntity):
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self._host}:{self._port}_comfort_index"
+        self._attr_unique_id = "copilot_comfort_index"
         self._comfort_data: dict[str, Any] | None = None
 
     @property
@@ -53,10 +53,10 @@ class ComfortIndexSensor(CopilotBaseEntity):
         """Return comfort details."""
         attrs: dict[str, Any] = {
             "comfort_url": (
-                f"http://{self._host}:{self._port}/api/v1/comfort"
+                f"{self._core_base_url()}/api/v1/comfort"
             ),
             "lighting_url": (
-                f"http://{self._host}:{self._port}/api/v1/comfort/lighting"
+                f"{self._core_base_url()}/api/v1/comfort/lighting"
             ),
         }
 
@@ -81,11 +81,8 @@ class ComfortIndexSensor(CopilotBaseEntity):
             if session is None:
                 return
 
-            url = f"http://{self._host}:{self._port}/api/v1/comfort"
-            headers = {}
-            token = self.coordinator._config.get("auth_token")
-            if token:
-                headers["X-Auth-Token"] = token
+            url = f"{self._core_base_url()}/api/v1/comfort"
+            headers = self._core_headers()
 
             async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status == 200:

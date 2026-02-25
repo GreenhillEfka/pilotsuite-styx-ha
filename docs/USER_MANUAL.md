@@ -1,7 +1,7 @@
 # PilotSuite - Benutzerhandbuch
 
-> **Version:** Integration v4.0.0 + Core Add-on v4.0.0
-> **Letzte Aktualisierung:** 2026-02-20
+> **Version:** Integration v7.7.16 + Core Add-on v7.7.15
+> **Letzte Aktualisierung:** 2026-02-22
 
 ---
 
@@ -28,7 +28,7 @@ Ein **privacy-first, lokaler KI-Assistent** fuer Home Assistant. CoPilot lernt d
 
 | Komponente | Beschreibung | Port |
 |------------|-------------|------|
-| **Core Add-on** | Flask-basierter Backend-Server mit Brain Graph, Neuronen, Energy-Analyse | 8099 |
+| **Core Add-on** | Flask-basierter Backend-Server mit Brain Graph, Neuronen, Energy-Analyse | 8909 |
 | **HACS Integration** | Home Assistant Custom Component mit 80+ Sensoren, Zonen, Media Context | - |
 
 ```
@@ -37,7 +37,7 @@ Home Assistant
   +-- HACS Integration (custom_components/ai_home_copilot)
   |     Sensoren, Entities, Event-Forwarder, Zonen
   |     |
-  |     +--[ HTTP / Webhook ]--> Core Add-on (:8099)
+  |     +--[ HTTP / Webhook ]--> Core Add-on (:8909)
   |                                Brain Graph, Neuronen, Energy
   |                                Habitus Miner, Candidates, Tags
   +-- Lovelace Dashboard
@@ -51,7 +51,7 @@ Home Assistant
 - Home Assistant OS oder Supervised (>= 2024.1)
 - HACS installiert (fuer die Integration)
 - Min. 2 GB freier RAM (empfohlen: 4 GB)
-- Netzwerkzugang zwischen HA und Core Add-on (Port 8099)
+- Netzwerkzugang zwischen HA und Core Add-on (Port 8909)
 
 ---
 
@@ -76,17 +76,25 @@ Add-on Konfiguration bearbeiten:
 ```yaml
 log_level: info
 auth_token: dein-geheimes-token-hier-aendern
-port: 8099
+conversation_enabled: true
+conversation_ollama_model: qwen3:0.6b
+conversation_cloud_api_url: ""
+conversation_cloud_api_key: ""
+conversation_cloud_model: gpt-4o-mini
+conversation_prefer_local: true
 ```
 
 | Parameter | Standard | Beschreibung |
 |-----------|----------|--------------|
-| `port` | `8099` | HTTP-Port fuer die API |
+| `port` | `8909` | HTTP-Port fuer die API |
 | `auth_token` | (Pflicht) | Geheimes Token fuer Authentifizierung |
 | `log_level` | `info` | Log-Level: debug, info, warning, error |
-| `storage_path` | `/data` | Pfad fuer persistente Daten |
-| `max_nodes` | `500` | Max. Knoten im Brain Graph |
-| `max_edges` | `1500` | Max. Kanten im Brain Graph |
+| `conversation_enabled` | `true` | Chat-API/LLM aktivieren |
+| `conversation_ollama_model` | `qwen3:0.6b` | Lokales Hauptmodell (Default) |
+| `conversation_cloud_api_url` | `""` | Optionaler Cloud-Fallback Endpoint (`/v1`) |
+| `conversation_cloud_api_key` | `""` | API-Key fuer Cloud-Fallback |
+| `conversation_cloud_model` | `gpt-4o-mini` | Modellname fuer Cloud-Fallback |
+| `conversation_prefer_local` | `true` | Erst lokal, dann Cloud |
 
 ### Schritt 4: Starten und pruefen
 
@@ -95,12 +103,12 @@ port: 8099
 
 ```bash
 # Health Check
-curl http://homeassistant.local:8099/health
+curl http://homeassistant.local:8909/health
 # -> {"ok": true}
 
 # Version
-curl http://homeassistant.local:8099/version
-# -> {"version": "0.8.7"}
+curl http://homeassistant.local:8909/version
+# -> {"version": "7.7.15"}
 ```
 
 ---
@@ -118,12 +126,13 @@ curl http://homeassistant.local:8099/version
 1. **Einstellungen** -> **Geraete & Dienste** -> **Integration hinzufuegen**
 2. Nach **PilotSuite** suchen
 3. Konfigurieren:
-   - **Core URL:** `http://homeassistant.local:8099`
+   - **Core URL:** `http://homeassistant.local:8909`
    - **Auth Token:** (gleiches Token wie im Core Add-on)
 
 ### Schritt 3: Home Assistant neu starten
 
-Nach dem Neustart erscheinen 80+ Entitaeten unter `ai_home_copilot.*`.
+Nach dem Neustart erscheinen die PilotSuite-Entitaeten unter `ai_home_copilot.*`.
+Standard ist das schlanke `core`-Profil (weniger Entity-Rauschen). Das `full`-Profil ist optional in den Modulen aktivierbar.
 
 ---
 
@@ -136,11 +145,23 @@ Nach der Installation in **Einstellungen** -> **Geraete & Dienste** -> **PilotSu
 | Bereich | Einstellung | Empfehlung |
 |---------|------------|------------|
 | **Verbindung** | Host, Port, Token | Muss mit Core uebereinstimmen |
-| **Media Player** | Musik/TV Player-Listen | Alle relevanten Player eintragen |
+| **Media Player** | Musik/TV Player | Relevante Player per Selector auswaehlen |
 | **Events Forwarder** | Aktiviert, Flush-Intervall | `true`, 30s |
 | **Neuronen** | Aktiviert, Evaluierungs-Intervall | `true`, 60s |
 | **Watchdog** | Aktiviert, Intervall | `true`, 300s |
 | **Devlog Push** | Aktiviert | Optional, fuer Debugging |
+
+### Agent Selbstreparatur (neu)
+
+Wenn Styx nach Zero-Config noch nicht antwortet:
+
+1. HA-Service `ai_home_copilot.repair_agent` ausfuehren.
+2. 1-2 Minuten warten (Modell-Download kann im Hintergrund laufen).
+3. Danach `ai_home_copilot.get_agent_status` oder Chat erneut pruefen.
+
+Hinweis:
+- Cloud-Fallback wird im Core Add-on unter `conversation_cloud_api_*` gesetzt.
+- Ohne Cloud-Fallback mapped Styx cloud-typische Modellnamen automatisch auf das lokale Standardmodell.
 
 ### Umgebungsvariablen (Erweitert)
 
@@ -157,6 +178,22 @@ Nach der Installation in **Einstellungen** -> **Geraete & Dienste** -> **PilotSu
 ---
 
 ## Zonen einrichten
+
+### UI-Flow (empfohlen)
+
+Habituszonen koennen direkt ueber den Options-Flow erstellt werden:
+
+1. `Einstellungen -> Geraete & Dienste -> PilotSuite -> Konfigurieren -> Habituszonen`.
+2. `Zone erstellen`:
+   - optional Bereich (`area_id`) waehlen
+   - Motion/Praesenz und mindestens ein Licht waehlen
+   - optional weitere Entitaeten auswaehlen
+3. Die Zonen-ID wird automatisch aus Bereich/Name erzeugt (kollisionssicher).
+
+Wichtig:
+- keine Freitext-Entity-IDs mehr erforderlich (selector-basiert).
+- bei Bereichsauswahl werden Motion/Lichter asynchron vorgeschlagen.
+- Validierung akzeptiert auch deutsche Motion-Entity-Namen (`bewegung`, `praesenz`, ...).
 
 ### Zonen-Hierarchie
 
@@ -384,7 +421,7 @@ layout: dot
 
 ## API-Referenz
 
-Der Core Add-on stellt eine REST API auf Port 8099 bereit.
+Der Core Add-on stellt eine REST API auf Port 8909 bereit.
 
 ### Authentifizierung
 
@@ -416,7 +453,7 @@ Authorization: Bearer <auth_token>
 | `GET` | `/api/v1/dev/logs` | Dev-Logs |
 | `GET` | `/api/v1/dev/health` | System-Health |
 
-Vollstaendige API-Dokumentation: `http://homeassistant.local:8099/api/v1/docs/`
+Vollstaendige API-Dokumentation: `http://homeassistant.local:8909/api/v1/docs/`
 
 ---
 
@@ -427,15 +464,15 @@ Vollstaendige API-Dokumentation: `http://homeassistant.local:8099/api/v1/docs/`
 ```bash
 # Logs pruefen (in HA Add-on Ansicht)
 # Haeufige Probleme:
-# - Port 8099 bereits belegt
+# - Port 8909 bereits belegt
 # - Ungültiges Auth-Token
 # - Fehlende Abhaengigkeiten
 ```
 
 ### Integration findet Core nicht
 
-1. Core laeuft pruefen: `curl http://<HA_IP>:8099/health`
-2. Firewall erlaubt Port 8099
+1. Core laeuft pruefen: `curl http://<HA_IP>:8909/health`
+2. Firewall erlaubt Port 8909
 3. Auth-Token stimmt ueberein
 
 ### Entitaeten erscheinen nicht

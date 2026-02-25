@@ -1,9 +1,21 @@
 {
   "domain": "ai_home_copilot",
   "name": "PilotSuite",
-  "codeowners": ["@GreenhillEfka"],
+  "after_dependencies": [
+    "assist_pipeline"
+  ],
+  "codeowners": [
+    "@GreenhillEfka"
+  ],
   "config_flow": true,
-  "dependencies": ["conversation", "history", "http", "recorder", "tag", "webhook"],
+  "dependencies": [
+    "conversation",
+    "history",
+    "http",
+    "recorder",
+    "tag",
+    "webhook"
+  ],
   "documentation": "https://github.com/GreenhillEfka/pilotsuite-styx-ha#readme",
   "integration_type": "hub",
   "iot_class": "local_push",

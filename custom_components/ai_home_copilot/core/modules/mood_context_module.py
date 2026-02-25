@@ -16,6 +16,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ...const import DOMAIN
+from ...connection_config import resolve_core_connection
+from .module import CopilotModule, ModuleContext
 
 if TYPE_CHECKING:
     from .user_preference_module import UserPreferenceModule
@@ -23,10 +25,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MoodContextModule:
+class MoodContextModule(CopilotModule):
     """Async mood context tracker from Core API with local persistence."""
 
-    def __init__(self, hass: HomeAssistant, core_api_base_url: str, api_token: str):
+    def __init__(
+        self,
+        hass: HomeAssistant | None = None,
+        core_api_base_url: str | None = None,
+        api_token: str | None = None,
+    ) -> None:
         """Initialize mood context module.
 
         Args:
@@ -35,8 +42,9 @@ class MoodContextModule:
             api_token: Auth token for Core API
         """
         self.hass = hass
-        self.core_api_base_url = core_api_base_url
-        self.api_token = api_token
+        self._entry_id: str | None = None
+        self.core_api_base_url = str(core_api_base_url or "")
+        self.api_token = str(api_token or "")
 
         self._zone_moods: Dict[str, Dict[str, Any]] = {}
         self._last_update: Optional[datetime] = None
@@ -47,8 +55,14 @@ class MoodContextModule:
 
         logger.info("MoodContextModule initialized (Core: %s)", core_api_base_url)
 
+    @property
+    def name(self) -> str:
+        return "mood_context"
+
     async def async_start(self) -> None:
         """Start polling Core mood API. Pre-loads from local cache first."""
+        if self.hass is None:
+            return
         if self._update_task:
             return
 
@@ -78,6 +92,34 @@ class MoodContextModule:
             self._update_task = None
         
         logger.info("MoodContextModule: Stopped")
+
+    async def async_setup_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible module setup."""
+        host, port, token = resolve_core_connection(ctx.entry)
+        self.hass = ctx.hass
+        self._entry_id = ctx.entry.entry_id
+        self.core_api_base_url = f"http://{host}:{port}"
+        self.api_token = token
+        self._enabled = True
+
+        dom = ctx.hass.data.setdefault(DOMAIN, {})
+        entry_data = dom.setdefault(ctx.entry.entry_id, {})
+        if isinstance(entry_data, dict):
+            entry_data["mood_context_module"] = self
+
+        await self.async_start()
+        return True
+
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible module unload."""
+        await self.async_stop()
+        dom = ctx.hass.data.get(DOMAIN, {})
+        entry_data = dom.get(ctx.entry.entry_id, {})
+        if isinstance(entry_data, dict):
+            entry_data.pop("mood_context_module", None)
+        self.hass = None
+        self._entry_id = None
+        return True
     
     async def _polling_loop(self) -> None:
         """Continuous polling loop with exponential backoff on errors."""

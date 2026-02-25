@@ -10,11 +10,13 @@ The JS file is served by the Core Add-on at:
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, CONF_HOST, CONF_PORT
+from .connection_config import resolve_core_connection
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,9 +27,7 @@ async def async_register_card_resources(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
     """Register PilotSuite Lovelace card resources."""
-    config = entry.options or entry.data
-    host = config.get(CONF_HOST, "")
-    port = config.get(CONF_PORT, 8909)
+    host, port, _token = resolve_core_connection(entry)
 
     if not host:
         _LOGGER.debug("No host configured, skipping Lovelace resource registration")
@@ -42,11 +42,19 @@ async def async_register_card_resources(
             _LOGGER.debug("Lovelace not initialized yet, skipping card registration")
             return
 
+        # HA versions expose lovelace either as dict-like data or LovelaceData object.
+        resources = None
+        if isinstance(lovelace, Mapping):
+            resources = lovelace.get("resources")
+        else:
+            resources = getattr(lovelace, "resources", None)
+
         # Check if resource already registered
-        resources = lovelace.get("resources")
         if resources is not None:
             existing = await resources.async_get_items()
             for item in existing:
+                if not isinstance(item, Mapping):
+                    continue
                 if CARD_JS_PATH in (item.get("url") or ""):
                     _LOGGER.debug("PilotSuite card resource already registered")
                     return

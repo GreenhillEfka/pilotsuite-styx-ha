@@ -10,7 +10,6 @@ Follows the HA 2024.x+ conversation agent pattern.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components.conversation import (
     AbstractConversationAgent,
@@ -23,6 +22,7 @@ from homeassistant.helpers import intent
 
 from .const import DOMAIN
 from .coordinator import CopilotApiError
+from .conversation_ids import normalize_conversation_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,10 +46,12 @@ class StyxConversationAgent(AbstractConversationAgent):
         """Process a user utterance via PilotSuite Core."""
         entry_data = self.hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {})
         coordinator = entry_data.get("coordinator")
+        conversation_id = normalize_conversation_id(user_input.conversation_id)
+        language = user_input.language or self.hass.config.language or "de"
 
         if coordinator is None:
             return self._error_result(
-                user_input, "PilotSuite coordinator not available."
+                language, "PilotSuite coordinator not available.", conversation_id
             )
 
         messages = [{"role": "user", "content": user_input.text}]
@@ -57,42 +59,44 @@ class StyxConversationAgent(AbstractConversationAgent):
         try:
             result = await coordinator.api.async_chat_completions(
                 messages=messages,
-                conversation_id=user_input.conversation_id,
+                conversation_id=conversation_id,
             )
         except CopilotApiError as err:
             _LOGGER.error("PilotSuite API error: %s", err)
             return self._error_result(
-                user_input, f"Core returned an error: {err}"
+                language, f"Core returned an error: {err}", conversation_id
             )
         except TimeoutError:
             _LOGGER.error("PilotSuite conversation request timed out")
             return self._error_result(
-                user_input, "Request to PilotSuite Core timed out."
+                language, "Request to PilotSuite Core timed out.", conversation_id
             )
         except Exception as err:
             _LOGGER.error("PilotSuite conversation request failed: %s", err)
             return self._error_result(
-                user_input, "Could not reach PilotSuite Core."
+                language, "Could not reach PilotSuite Core.", conversation_id
             )
 
         reply = result.get("content", "")
-        response = intent.IntentResponse(language=user_input.language)
+        response = intent.IntentResponse(language=language)
         response.async_set_speech(reply or "No response from PilotSuite.")
         return ConversationResult(
             response=response,
-            conversation_id=user_input.conversation_id,
+            conversation_id=conversation_id,
         )
 
     @staticmethod
     def _error_result(
-        user_input: ConversationInput, message: str
+        language: str,
+        message: str,
+        conversation_id: str,
     ) -> ConversationResult:
         """Build a ConversationResult for error cases."""
-        response = intent.IntentResponse(language=user_input.language)
+        response = intent.IntentResponse(language=language)
         response.async_set_speech(message)
         return ConversationResult(
             response=response,
-            conversation_id=user_input.conversation_id,
+            conversation_id=conversation_id,
         )
 
 

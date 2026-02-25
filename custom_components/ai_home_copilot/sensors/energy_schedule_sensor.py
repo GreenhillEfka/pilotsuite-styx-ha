@@ -22,7 +22,7 @@ class EnergyScheduleSensor(CopilotBaseEntity):
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self._host}:{self._port}_energy_schedule"
+        self._attr_unique_id = "copilot_energy_schedule"
         self._plan_data: dict[str, Any] | None = None
 
     @property
@@ -52,11 +52,11 @@ class EnergyScheduleSensor(CopilotBaseEntity):
         """Return schedule details."""
         attrs: dict[str, Any] = {
             "schedule_url": (
-                f"http://{self._host}:{self._port}"
+                f"{self._core_base_url()}"
                 "/api/v1/predict/schedule/daily"
             ),
             "next_device_url": (
-                f"http://{self._host}:{self._port}"
+                f"{self._core_base_url()}"
                 "/api/v1/predict/schedule/next"
             ),
         }
@@ -101,13 +101,10 @@ class EnergyScheduleSensor(CopilotBaseEntity):
                 return
 
             url = (
-                f"http://{self._host}:{self._port}"
+                f"{self._core_base_url()}"
                 "/api/v1/predict/schedule/daily"
             )
-            headers = {}
-            token = self.coordinator._config.get("auth_token")
-            if token:
-                headers["X-Auth-Token"] = token
+            headers = self._core_headers()
 
             async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status == 200:

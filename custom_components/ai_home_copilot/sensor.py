@@ -4,11 +4,13 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import DOMAIN
+from .const import DOMAIN, SIGNAL_CONTEXT_ENTITIES_REFRESH
 from .debug import DebugModeSensor
 from .entity import CopilotBaseEntity
+from .entity_profile import is_full_entity_profile
 from .media_entities import (
     MusicActiveCountSensor,
     MusicNowPlayingSensor,
@@ -124,6 +126,8 @@ from .camera_entities import (
     ActivityCamera,
     ZoneCamera,
 )
+from .unifi_context_entities import build_unifi_sensor_entities
+from .weather_context_entities import build_weather_entities
 
 # Mobile Dashboard Cards
 from .mobile_dashboard_cards import (
@@ -173,6 +177,58 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if coordinator is None:
         return
 
+    if not is_full_entity_profile(entry):
+        async_add_entities(
+            [
+                CopilotVersionSensor(coordinator),
+                CoreApiV1StatusSensor(coordinator, entry),
+                HabitusZonesSensor(coordinator, entry),
+                HabitusZonesV2CountSensor(coordinator, entry),
+                HabitusZonesV2StatesSensor(coordinator, entry),
+                HabitusZonesV2HealthSensor(coordinator, entry),
+                PipelineHealthSensor(coordinator),
+                MoodSensor(coordinator),
+                MoodConfidenceSensor(coordinator),
+                AgentStatusSensor(coordinator),
+            ],
+            True,
+        )
+        return
+
+    dynamic_context_unique_ids: set[str] = set()
+
+    def _collect_dynamic_context_sensors() -> list[SensorEntity]:
+        """Collect context sensors created after initial platform setup."""
+        new_entities: list[SensorEntity] = []
+
+        unifi_coordinator = data.get("unifi_context_coordinator")
+        if unifi_coordinator is not None:
+            try:
+                for entity in build_unifi_sensor_entities(unifi_coordinator):
+                    unique_id = str(getattr(entity, "unique_id", "") or "")
+                    if unique_id and unique_id in dynamic_context_unique_ids:
+                        continue
+                    if unique_id:
+                        dynamic_context_unique_ids.add(unique_id)
+                    new_entities.append(entity)
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Failed to create UniFi context sensor entities")
+
+        weather_coordinator = data.get("weather_context_coordinator")
+        if weather_coordinator is not None:
+            try:
+                for entity in build_weather_entities(weather_coordinator):
+                    unique_id = str(getattr(entity, "unique_id", "") or "")
+                    if unique_id and unique_id in dynamic_context_unique_ids:
+                        continue
+                    if unique_id:
+                        dynamic_context_unique_ids.add(unique_id)
+                    new_entities.append(entity)
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Failed to create weather context sensor entities")
+
+        return new_entities
+
     entities = [
         CopilotVersionSensor(coordinator),
         CoreApiV1StatusSensor(coordinator, entry),
@@ -199,7 +255,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
         PipelineHealthSensor(coordinator),
-        DebugModeSensor(hass),
+        DebugModeSensor(hass, entry),
         # Mood Sensors (Neural System)
         MoodSensor(coordinator),
         MoodConfidenceSensor(coordinator),
@@ -463,6 +519,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     cal_mod = get_calendar_module(hass, entry.entry_id)
     if cal_mod is not None:
         entities.append(CalendarSensor(hass, entry, cal_mod))
+
+    entities.extend(_collect_dynamic_context_sensors())
+
+    @callback
+    def _async_handle_context_refresh(updated_entry_id: str) -> None:
+        if str(updated_entry_id) != entry.entry_id:
+            return
+        new_entities = _collect_dynamic_context_sensors()
+        if new_entities:
+            async_add_entities(new_entities, True)
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass,
+            SIGNAL_CONTEXT_ENTITIES_REFRESH,
+            _async_handle_context_refresh,
+        )
+    )
 
     async_add_entities(entities, True)
 

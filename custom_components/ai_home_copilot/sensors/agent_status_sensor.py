@@ -61,11 +61,8 @@ class AgentStatusSensor(CopilotBaseEntity, SensorEntity):
 
     async def async_update(self) -> None:
         session = async_get_clientsession(self.hass)
-        base = f"http://{self._host}:{self._port}/api/v1/agent"
-        headers = {}
-        token = self.coordinator._config.get("token")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        base = f"{self._core_base_url()}/api/v1/agent"
+        headers = self._core_headers()
 
         try:
             async with session.get(

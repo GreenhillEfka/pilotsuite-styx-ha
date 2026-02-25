@@ -13,25 +13,30 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlencode
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
 from .api import CopilotApiClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-SEARCH_SERVICE_SCHEMA = cv.make_entity_service_schema(
+SEARCH_SERVICE_SCHEMA = vol.Schema(
     {
-        cv.Optional("query"): cv.string,
-        cv.Optional("types"): cv.ensure_list,
-        cv.Optional("limit"): cv.positive_int,
+        vol.Optional("query", default=""): cv.string,
+        vol.Optional("types"): [cv.string],
+        vol.Optional("limit", default=20): cv.positive_int,
+        vol.Optional("domain"): cv.string,
+        vol.Optional("state"): cv.string,
+        vol.Optional("area"): cv.string,
     }
 )
 
-INDEX_SERVICE_SCHEMA = cv.make_entity_service_schema({})
+INDEX_SERVICE_SCHEMA = vol.Schema({})
 
 
 class QuickSearchIntegration:
@@ -53,8 +58,8 @@ class QuickSearchIntegration:
             params = {"q": query, "limit": limit}
             if types:
                 params["types"] = ",".join(types)
-            
-            response = await self._api.async_get(f"/api/v1/search?{params}")
+
+            response = await self._api.async_get(f"/api/v1/search?{urlencode(params)}")
             return response.get("data", {})
         except Exception as e:
             _LOGGER.error("Search error: %s", e)
@@ -76,8 +81,10 @@ class QuickSearchIntegration:
                 params["state"] = state
             if area:
                 params["area"] = area
-            
-            response = await self._api.async_get(f"/api/v1/search/entities?{params}")
+
+            response = await self._api.async_get(
+                f"/api/v1/search/entities?{urlencode(params)}"
+            )
             return response.get("data", {}).get("results", [])
         except Exception as e:
             _LOGGER.error("Entity filter error: %s", e)
@@ -96,7 +103,7 @@ class QuickSearchIntegration:
             
             # Get automations
             automations = {}
-            for entity in self._hass.entity_registry.entities.values():
+            for entity in self._entity_registry.entities.values():
                 if entity.domain == "automation":
                     config = self._hass.states.get(entity.entity_id)
                     if config:
@@ -108,7 +115,7 @@ class QuickSearchIntegration:
             
             # Get scripts
             scripts = {}
-            for entity in self._hass.entity_registry.entities.values():
+            for entity in self._entity_registry.entities.values():
                 if entity.domain == "script":
                     config = self._hass.states.get(entity.entity_id)
                     if config:
@@ -118,7 +125,7 @@ class QuickSearchIntegration:
             
             # Get scenes
             scenes = {}
-            for entity in self._hass.entity_registry.entities.values():
+            for entity in self._entity_registry.entities.values():
                 if entity.domain == "scene":
                     config = self._hass.states.get(entity.entity_id)
                     if config:

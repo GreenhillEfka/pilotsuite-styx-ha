@@ -16,10 +16,12 @@ import logging
 import time
 from typing import Any, Optional
 
+import aiohttp
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.storage import Store
 
+from ...connection_config import build_core_headers, resolve_core_connection
 from .module import CopilotModule, ModuleContext
 
 _LOGGER = logging.getLogger(__name__)
@@ -178,37 +180,35 @@ class HomeKitBridgeModule(CopilotModule):
             return
 
         try:
-            from ...const import CONF_HOST, CONF_PORT, CONF_TOKEN, DOMAIN
+            from ...const import DOMAIN
             entries = self._hass.config_entries.async_entries(DOMAIN)
             if not entries:
                 return
             entry = entries[0]
-            host = entry.data.get(CONF_HOST, "homeassistant.local")
-            port = entry.data.get(CONF_PORT, 8909)
-            token = entry.data.get(CONF_TOKEN, "")
+            host, port, token = resolve_core_connection(entry)
 
             import aiohttp
-            headers = {"X-Auth-Token": token} if token else {}
+            headers = build_core_headers(token)
             url = f"http://{host}:{port}/api/v1/homekit/all-zones-info"
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        for zone_info in data.get("zones", []):
-                            zid = zone_info.get("zone_id", "")
-                            if zid in self._zone_config:
-                                self._zone_config[zid]["setup_info"] = {
-                                    "setup_code": zone_info.get("setup_code", ""),
-                                    "homekit_uri": zone_info.get("homekit_uri", ""),
-                                    "qr_svg_url": zone_info.get("qr_svg_url", ""),
-                                    "qr_png_url": zone_info.get("qr_png_url", ""),
-                                    "serial": zone_info.get("serial", ""),
-                                    "manufacturer": zone_info.get("manufacturer", "PilotSuite"),
-                                    "model": zone_info.get("model", "Styx HomeKit Bridge"),
-                                }
-                        await self._save()
-                        _LOGGER.debug("Fetched HomeKit setup info from Core for %d zones", len(data.get("zones", [])))
+            session = async_get_clientsession(self._hass)
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    for zone_info in data.get("zones", []):
+                        zid = zone_info.get("zone_id", "")
+                        if zid in self._zone_config:
+                            self._zone_config[zid]["setup_info"] = {
+                                "setup_code": zone_info.get("setup_code", ""),
+                                "homekit_uri": zone_info.get("homekit_uri", ""),
+                                "qr_svg_url": zone_info.get("qr_svg_url", ""),
+                                "qr_png_url": zone_info.get("qr_png_url", ""),
+                                "serial": zone_info.get("serial", ""),
+                                "manufacturer": zone_info.get("manufacturer", "PilotSuite"),
+                                "model": zone_info.get("model", "Styx HomeKit Bridge"),
+                            }
+                    await self._save()
+                    _LOGGER.debug("Fetched HomeKit setup info from Core for %d zones", len(data.get("zones", [])))
         except Exception as exc:
             _LOGGER.debug("Could not fetch HomeKit setup info from Core: %s", exc)
 

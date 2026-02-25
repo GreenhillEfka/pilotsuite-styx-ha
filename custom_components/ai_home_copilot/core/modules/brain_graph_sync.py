@@ -28,6 +28,11 @@ from ...brain_graph_sync import (
     async_setup_brain_graph_sync as setup_service,
     async_unload_brain_graph_sync as unload_service,
 )
+from ...connection_config import (
+    build_core_base_url,
+    merged_entry_config,
+    resolve_core_connection,
+)
 from ...const import DOMAIN
 from ...module_connector import (
     ModuleConnector,
@@ -90,10 +95,10 @@ class BrainGraphSyncModule(CopilotModule):
             self._hass = ctx.hass
             self._entry_id = ctx.entry.entry_id
             
-            # Get configuration from config entry
-            entry_data = ctx.entry.data
-            core_url = entry_data.get("core_url", "http://localhost:8909")
-            access_token = entry_data.get("access_token", "")
+            # Get normalized Core connection config from entry data+options.
+            entry_data = merged_entry_config(ctx.entry)
+            _host, _port, access_token = resolve_core_connection(ctx.entry)
+            core_url = build_core_base_url(ctx.entry)
             
             if not core_url or not access_token:
                 _LOGGER.warning(

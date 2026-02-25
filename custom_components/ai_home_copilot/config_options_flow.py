@@ -11,7 +11,8 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
-from .config_helpers import as_csv, parse_csv
+from .config_helpers import merge_config_data, parse_csv
+from .core_endpoint import normalize_host_port
 from .config_schema_builders import build_neuron_schema
 from .config_snapshot_flow import ConfigSnapshotOptionsFlow
 from .config_zones_flow import async_step_zone_form
@@ -20,6 +21,7 @@ from .const import (
     CONF_HOST,
     CONF_PORT,
     CONF_TOKEN,
+    CONF_TEST_LIGHT,
     CONF_WEBHOOK_URL,
     CONF_MEDIA_MUSIC_PLAYERS,
     CONF_MEDIA_TV_PLAYERS,
@@ -29,15 +31,40 @@ from .const import (
     CONF_NEURON_CONTEXT_ENTITIES,
     CONF_NEURON_STATE_ENTITIES,
     CONF_NEURON_MOOD_ENTITIES,
+    CONF_WASTE_ENTITIES,
+    CONF_BIRTHDAY_CALENDAR_ENTITIES,
+    CONF_PRIMARY_USER,
+    CONF_WASTE_TTS_ENTITY,
+    CONF_BIRTHDAY_TTS_ENTITY,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalize_entity_list(value: object) -> list[str]:
+    """Normalize selector/csv values into list[str]."""
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        return parse_csv(value)
+    if value is None:
+        return []
+    item = str(value).strip()
+    return [item] if item else []
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._entry = config_entry
         ConfigSnapshotOptionsFlow.__init__(self, config_entry)
+
+    def _effective_config(self) -> dict:
+        """Return merged live config (entry.data + entry.options)."""
+        return merge_config_data(self._entry.data, self._entry.options)
+
+    def _create_merged_entry(self, updates: dict) -> FlowResult:
+        """Persist options without dropping unrelated keys from previous steps."""
+        return self.async_create_entry(title="", data=merge_config_data(self._entry.data, self._entry.options, updates))
 
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
@@ -51,6 +78,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Network settings: host, port, token, webhook URL, test light."""
         if user_input is not None:
             user_input.pop(CONF_WEBHOOK_URL, None)
+            data = self._effective_config()
+            host, port = normalize_host_port(
+                user_input.get(CONF_HOST, data.get(CONF_HOST)),
+                user_input.get(CONF_PORT, data.get(CONF_PORT)),
+            )
+            user_input[CONF_HOST] = host
+            user_input[CONF_PORT] = port
 
             clear_token = user_input.pop("_clear_token", False)
             new_token = user_input.get(CONF_TOKEN, "")
@@ -58,7 +92,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             if clear_token:
                 user_input[CONF_TOKEN] = ""
             elif not new_token:
-                existing_token = self._entry.data.get(CONF_TOKEN, "")
+                existing_token = str(data.get(CONF_TOKEN, "") or "")
                 user_input[CONF_TOKEN] = existing_token
 
             if CONF_TOKEN in user_input:
@@ -66,9 +100,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 if not token:
                     user_input[CONF_TOKEN] = ""
 
-            return self.async_create_entry(title="", data=user_input)
+            # Optional selector: keep prior value when UI submits null.
+            test_light = user_input.get(CONF_TEST_LIGHT)
+            if test_light in (None, ""):
+                existing_test_light = str(data.get(CONF_TEST_LIGHT) or "").strip()
+                if existing_test_light:
+                    user_input[CONF_TEST_LIGHT] = existing_test_light
+                else:
+                    user_input.pop(CONF_TEST_LIGHT, None)
 
-        data = {**self._entry.data, **self._entry.options}
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
 
         webhook_id = data.get("webhook_id")
         base = self.hass.config.internal_url or self.hass.config.external_url or ""
@@ -316,12 +359,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         from .habitus_zones_store_v2 import async_get_zones_v2
 
         zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
-        ids = [z.zone_id for z in zones]
-        if not ids:
+        if not zones:
             return self.async_abort(reason="no_zones")
 
         if user_input is None:
-            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            options = [
+                selector.SelectOptionDict(value=z.zone_id, label=f"{z.name} ({z.zone_id})")
+                for z in zones
+            ]
+            schema = vol.Schema(
+                {
+                    vol.Required("zone_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            multiple=False,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            )
             return self.async_show_form(step_id="edit_zone", data_schema=schema)
 
         zid = str(user_input.get("zone_id", ""))
@@ -331,12 +387,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2
 
         zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
-        ids = [z.zone_id for z in zones]
-        if not ids:
+        if not zones:
             return self.async_abort(reason="no_zones")
 
         if user_input is None:
-            schema = vol.Schema({vol.Required("zone_id"): vol.In(ids)})
+            options = [
+                selector.SelectOptionDict(value=z.zone_id, label=f"{z.name} ({z.zone_id})")
+                for z in zones
+            ]
+            schema = vol.Schema(
+                {
+                    vol.Required("zone_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=options,
+                            multiple=False,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            )
             return self.async_show_form(step_id="delete_zone", data_schema=schema)
 
         zid = str(user_input.get("zone_id", ""))
@@ -400,7 +469,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             data_schema=schema,
             description_placeholders={
                 "hint": (
-                    "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires motion/presence + light.\n\n"
+                    "Paste a YAML/JSON list of zones (or {zones:[...]}). Each zone requires at least one valid entity_id.\n\n"
                     "Optional: use a categorized structure via `entities:` (role -> list of entity_ids), e.g.\n"
                     "- entities: {motion: [...], lights: [...], brightness: [...], heating: [...], humidity: [...], co2: [...], cover: [...], door: [...], window: [...], lock: [...], media: [...], other: [...]}"
                 ),
@@ -434,7 +503,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             description_placeholders={
                 "description": (
                     "Creates a Lovelace YAML dashboard file for all Habitus zones. "
-                    "The file is saved in the `ai_home_copilot/` configuration folder."
+                    "The file is saved in the `pilotsuite-styx/` configuration folder "
+                    "(with legacy mirror in `ai_home_copilot/`)."
                 )
             },
         )
@@ -471,8 +541,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             data_schema=schema,
             description_placeholders={
                 "description": (
-                    "Copies the latest generated dashboard to the `www/ai_home_copilot/` folder "
-                    "for easy download. This creates a stable URL for the dashboard YAML."
+                    "Copies the latest generated dashboard to `www/pilotsuite-styx/` "
+                    "(plus legacy mirror in `www/ai_home_copilot/`) for easy download."
                 )
             },
         )
@@ -483,12 +553,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Configure neural system entities."""
         if user_input is not None:
             for field in (CONF_NEURON_CONTEXT_ENTITIES, CONF_NEURON_STATE_ENTITIES, CONF_NEURON_MOOD_ENTITIES):
-                csv_val = user_input.get(field, "")
-                if isinstance(csv_val, str):
-                    user_input[field] = parse_csv(csv_val)
+                if field in user_input:
+                    user_input[field] = _normalize_entity_list(user_input.get(field))
 
-            return self.async_create_entry(title="", data=user_input)
+            return self._create_merged_entry(user_input)
 
-        data = {**self._entry.data, **self._entry.options}
+        data = self._effective_config()
         schema = vol.Schema(build_neuron_schema(data))
         return self.async_show_form(step_id="neurons", data_schema=schema)

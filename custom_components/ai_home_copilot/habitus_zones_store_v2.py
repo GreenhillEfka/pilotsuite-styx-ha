@@ -48,6 +48,19 @@ KNOWN_ROLES = {
     "power", "energy", "brightness", "other"
 }
 
+_MOTION_HINTS = (
+    "motion",
+    "presence",
+    "occupancy",
+    "bewegung",
+    "praesenz",
+    "präsenz",
+    "anwesenheit",
+    "pir",
+    "belegt",
+    "besetzt",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class HabitusZoneV2:
@@ -654,26 +667,51 @@ def _is_motion_or_presence_entity(hass: HomeAssistant, entity_id: str) -> bool:
     if device_class in ("motion", "presence", "occupancy"):
         return True
 
+    try:
+        from homeassistant.helpers import entity_registry
+
+        reg = entity_registry.async_get(hass)
+        reg_ent = reg.async_get(entity_id) if reg is not None else None
+        reg_dc = getattr(reg_ent, "device_class", None)
+        if isinstance(reg_dc, str) and reg_dc.lower() in ("motion", "presence", "occupancy"):
+            return True
+        labels = [entity_id.lower()]
+        if isinstance(getattr(reg_ent, "original_name", None), str):
+            labels.append(reg_ent.original_name.lower())
+        if st is not None and isinstance(st.attributes.get("friendly_name"), str):
+            labels.append(st.attributes["friendly_name"].lower())
+    except Exception:  # noqa: BLE001
+        labels = [entity_id.lower()]
+        if st is not None and isinstance(st.attributes.get("friendly_name"), str):
+            labels.append(st.attributes["friendly_name"].lower())
+
     # Fallback heuristic
-    eid_l = entity_id.lower()
-    return any(k in eid_l for k in ("motion", "presence", "occupancy"))
+    merged = " ".join(labels)
+    return any(k in merged for k in _MOTION_HINTS)
 
 
 def _validate_zone_v2(hass: HomeAssistant, z: HabitusZoneV2) -> None:
     """Validate zone requirements.
-    
-    Policy: each zone must have:
-    - at least one motion/presence entity
-    - at least one light entity
+
+    Policy:
+    - each zone must include at least one valid entity_id
+    - motion/light roles are optional (recommended, not mandatory)
     """
     motion_candidates: list[str] = []
     light_candidates: list[str] = []
+    all_candidates = [str(eid).strip() for eid in z.get_all_entities() if str(eid).strip()]
 
     if isinstance(z.entities, dict):
         motion_candidates.extend(z.entities.get("motion") or [])
         light_candidates.extend(z.entities.get("lights") or [])
 
-    # Fallback: scan flat list
+    valid_entities = [eid for eid in all_candidates if "." in eid and _domain(eid)]
+    if not valid_entities:
+        raise ValueError(
+            f"Zone '{z.zone_id}' must include at least 1 valid entity_id (domain.object)."
+        )
+
+    # Optional quality checks (non-blocking): motion/light availability.
     motion_scan = any(_is_motion_or_presence_entity(hass, eid) for eid in z.entity_ids)
     light_scan = any(_is_light_entity(eid) for eid in z.entity_ids)
 
@@ -682,15 +720,16 @@ def _validate_zone_v2(hass: HomeAssistant, z: HabitusZoneV2) -> None:
         if motion_candidates
         else motion_scan
     )
+    if motion_candidates and not has_motion:
+        # Explicitly selected motion role: accept binary_sensor/sensor assignments
+        # even when device_class metadata is missing.
+        has_motion = any(_domain(eid) in ("binary_sensor", "sensor") for eid in motion_candidates)
     has_light = (
         any(_is_light_entity(eid) for eid in light_candidates) if light_candidates else light_scan
     )
-
-    if not has_motion or not has_light:
-        raise ValueError(
-            f"Zone '{z.zone_id}' must include at least 1 motion/presence entity and 1 light entity. "
-            f"Found motion/presence={has_motion}, light={has_light}."
-        )
+    # If both key signal categories are absent, keep zone valid and let
+    # higher layers surface UX hints. This avoids hard-blocking setup flows.
+    _ = has_motion, has_light
 
 
 async def async_set_zones_v2_from_raw(

@@ -15,7 +15,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, CONF_HOST, CONF_PORT
+from .connection_config import resolve_core_connection
+from .const import DOMAIN
 from .coordinator import CopilotDataUpdateCoordinator
 from .entity import CopilotBaseEntity
 from .core.modules.homekit_bridge import (
@@ -72,8 +73,7 @@ class HomeKitZoneToggleButton(CopilotBaseEntity, ButtonEntity):
 
         enabled = bridge.is_zone_enabled(self._zone_id)
         setup_info = bridge.get_zone_setup_info(self._zone_id)
-        host = self._entry.data.get(CONF_HOST, "homeassistant.local")
-        port = self._entry.data.get(CONF_PORT, 8909)
+        host, port, _token = resolve_core_connection(self._entry)
 
         attrs: dict[str, Any] = {
             "homekit_enabled": enabled,
@@ -135,8 +135,7 @@ class HomeKitZoneQRSensor(CopilotBaseEntity, SensorEntity):
 
         enabled = bridge.is_zone_enabled(self._zone_id)
         setup_info = bridge.get_zone_setup_info(self._zone_id)
-        host = self._entry.data.get(CONF_HOST, "homeassistant.local")
-        port = self._entry.data.get(CONF_PORT, 8909)
+        host, port, _token = resolve_core_connection(self._entry)
 
         attrs: dict[str, Any] = {
             "homekit_enabled": enabled,

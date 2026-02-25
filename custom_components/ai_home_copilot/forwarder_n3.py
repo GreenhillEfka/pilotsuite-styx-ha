@@ -613,11 +613,26 @@ class N3EventForwarder:
 
     async def _flush_loop(self):
         """Background task to flush events periodically."""
+        from .core.retry_helpers import CircuitBreaker, CircuitBreakerOpen
+        
+        # Circuit breaker for Core API failures
+        flush_cb = CircuitBreaker(
+            failure_threshold=5,
+            recovery_timeout=30.0,
+            expected_exception=Exception
+        )
+        
         try:
             while True:
                 await asyncio.sleep(self._flush_interval)
                 if self._pending_events:
-                    await self._flush_events()
+                    try:
+                        await flush_cb.call(self._flush_events)
+                    except CircuitBreakerOpen as e:
+                        _LOGGER.warning(
+                            "Flush circuit breaker open: %s. Skipping flush until recovery.",
+                            e
+                        )
         except asyncio.CancelledError:
             raise
         except Exception as e:

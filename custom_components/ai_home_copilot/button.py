@@ -13,6 +13,7 @@ from .const import (
     DEFAULT_TEST_LIGHT,
     DOMAIN,
 )
+from .entity_profile import is_full_entity_profile
 from .habitus_zones_entities_v2 import (
     HabitusZonesV2ValidateButton,
     HabitusZonesV2SyncGraphButton,
@@ -39,6 +40,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         _LOGGER.error("Coordinator not available for %s, skipping button setup", entry.entry_id)
         return
     cfg = entry.data | entry.options
+
+    if not is_full_entity_profile(entry):
+        async_add_entities(
+            [
+                CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
+                CopilotPingCoreButton(coordinator, entry),
+                HabitusZonesV2ValidateButton(coordinator, entry),
+                CopilotGenerateHabitusDashboardButton(coordinator, entry),
+                CopilotDownloadHabitusDashboardButton(coordinator, entry),
+                CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
+                CopilotDownloadPilotSuiteDashboardButton(coordinator, entry),
+            ],
+            True,
+        )
+        return
     
     entities = [
         # System buttons

@@ -4,7 +4,7 @@ from __future__ import annotations
 import voluptuous as vol
 from homeassistant.helpers import selector
 
-from .config_helpers import as_csv
+from .config_helpers import as_csv, parse_csv
 from .const import (
     CONF_HOST,
     CONF_PORT,
@@ -131,19 +131,38 @@ from .const import (
     DEFAULT_BIRTHDAY_TTS_ENABLED,
     DEFAULT_BIRTHDAY_TTS_ENTITY,
     DEFAULT_BIRTHDAY_REMINDER_HOUR,
+    CONF_ENTITY_PROFILE,
+    DEFAULT_ENTITY_PROFILE,
+    ENTITY_PROFILES,
 )
+
+
+def _as_entity_list(value: object) -> list[str]:
+    """Normalize entity config values to list[str] for selector defaults."""
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        return parse_csv(value)
+    if value is None:
+        return []
+    item = str(value).strip()
+    return [item] if item else []
 
 
 def build_network_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
     """Build schema fields for network settings (HOST, PORT, TOKEN)."""
+    test_light_default = data.get(CONF_TEST_LIGHT) or None
     return {
         vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): str,
         vol.Required(CONF_HOST, default=data.get(CONF_HOST, DEFAULT_HOST)): str,
         vol.Required(CONF_PORT, default=data.get(CONF_PORT, DEFAULT_PORT)): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
         vol.Optional(CONF_TOKEN, default="", description={"suggested_value": token_hint}): str,
         vol.Optional("_clear_token"): bool,
-        vol.Optional(CONF_TEST_LIGHT, default=data.get(CONF_TEST_LIGHT, "")): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="light", multiple=False),
+        vol.Optional(CONF_TEST_LIGHT, default=test_light_default): vol.Any(
+            None,
+            selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="light", multiple=False),
+            ),
         ),
     }
 
@@ -158,12 +177,16 @@ def build_media_schema(data: dict) -> dict:
     return {
         vol.Optional(
             CONF_MEDIA_MUSIC_PLAYERS,
-            default=as_csv(data.get(CONF_MEDIA_MUSIC_PLAYERS, DEFAULT_MEDIA_MUSIC_PLAYERS)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_MEDIA_MUSIC_PLAYERS, DEFAULT_MEDIA_MUSIC_PLAYERS)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["media_player"], multiple=True)
+        ),
         vol.Optional(
             CONF_MEDIA_TV_PLAYERS,
-            default=as_csv(data.get(CONF_MEDIA_TV_PLAYERS, DEFAULT_MEDIA_TV_PLAYERS)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_MEDIA_TV_PLAYERS, DEFAULT_MEDIA_TV_PLAYERS)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["media_player"], multiple=True)
+        ),
     }
 
 
@@ -172,8 +195,10 @@ def build_seed_schema(data: dict) -> dict:
     return {
         vol.Optional(
             CONF_SUGGESTION_SEED_ENTITIES,
-            default=as_csv(data.get(CONF_SUGGESTION_SEED_ENTITIES, DEFAULT_SUGGESTION_SEED_ENTITIES)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_SUGGESTION_SEED_ENTITIES, DEFAULT_SUGGESTION_SEED_ENTITIES)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(multiple=True)
+        ),
         vol.Optional(
             CONF_SEED_ALLOWED_DOMAINS,
             default=as_csv(data.get(CONF_SEED_ALLOWED_DOMAINS, DEFAULT_SEED_ALLOWED_DOMAINS)),
@@ -260,8 +285,12 @@ def build_forwarder_schema(data: dict) -> dict:
         ): bool,
         vol.Optional(
             CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
-            default=as_csv(data.get(CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES, DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES)),
-        ): str,
+            default=_as_entity_list(
+                data.get(CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES, DEFAULT_EVENTS_FORWARDER_ADDITIONAL_ENTITIES)
+            ),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(multiple=True)
+        ),
     }
 
 
@@ -336,12 +365,16 @@ def build_user_prefs_schema(data: dict) -> dict:
         ): bool,
         vol.Optional(
             CONF_TRACKED_USERS,
-            default=as_csv(data.get(CONF_TRACKED_USERS, DEFAULT_TRACKED_USERS)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_TRACKED_USERS, DEFAULT_TRACKED_USERS)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["person"], multiple=True)
+        ),
         vol.Optional(
             CONF_PRIMARY_USER,
-            default=data.get(CONF_PRIMARY_USER, DEFAULT_PRIMARY_USER or ""),
-        ): str,
+            default=data.get(CONF_PRIMARY_USER, DEFAULT_PRIMARY_USER or None),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["person"], multiple=False)
+        ),
         vol.Optional(
             CONF_USER_LEARNING_MODE,
             default=data.get(CONF_USER_LEARNING_MODE, DEFAULT_USER_LEARNING_MODE),
@@ -378,16 +411,22 @@ def build_neuron_schema(data: dict) -> dict:
         ): vol.All(vol.Coerce(int), vol.Range(min=10, max=3600)),
         vol.Optional(
             CONF_NEURON_CONTEXT_ENTITIES,
-            default=as_csv(data.get(CONF_NEURON_CONTEXT_ENTITIES, DEFAULT_NEURON_CONTEXT_ENTITIES)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_NEURON_CONTEXT_ENTITIES, DEFAULT_NEURON_CONTEXT_ENTITIES)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(multiple=True)
+        ),
         vol.Optional(
             CONF_NEURON_STATE_ENTITIES,
-            default=as_csv(data.get(CONF_NEURON_STATE_ENTITIES, DEFAULT_NEURON_STATE_ENTITIES)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_NEURON_STATE_ENTITIES, DEFAULT_NEURON_STATE_ENTITIES)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(multiple=True)
+        ),
         vol.Optional(
             CONF_NEURON_MOOD_ENTITIES,
-            default=as_csv(data.get(CONF_NEURON_MOOD_ENTITIES, DEFAULT_NEURON_MOOD_ENTITIES)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_NEURON_MOOD_ENTITIES, DEFAULT_NEURON_MOOD_ENTITIES)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(multiple=True)
+        ),
     }
 
 
@@ -400,16 +439,20 @@ def build_waste_schema(data: dict) -> dict:
         ): bool,
         vol.Optional(
             CONF_WASTE_ENTITIES,
-            default=as_csv(data.get(CONF_WASTE_ENTITIES, DEFAULT_WASTE_ENTITIES)),
-        ): str,
+            default=_as_entity_list(data.get(CONF_WASTE_ENTITIES, DEFAULT_WASTE_ENTITIES)),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"], multiple=True)
+        ),
         vol.Optional(
             CONF_WASTE_TTS_ENABLED,
             default=data.get(CONF_WASTE_TTS_ENABLED, DEFAULT_WASTE_TTS_ENABLED),
         ): bool,
         vol.Optional(
             CONF_WASTE_TTS_ENTITY,
-            default=data.get(CONF_WASTE_TTS_ENTITY, DEFAULT_WASTE_TTS_ENTITY),
-        ): str,
+            default=data.get(CONF_WASTE_TTS_ENTITY, DEFAULT_WASTE_TTS_ENTITY) or None,
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["media_player"], multiple=False)
+        ),
         vol.Optional(
             CONF_WASTE_REMINDER_EVENING_HOUR,
             default=data.get(CONF_WASTE_REMINDER_EVENING_HOUR, DEFAULT_WASTE_REMINDER_EVENING_HOUR),
@@ -430,8 +473,12 @@ def build_birthday_schema(data: dict) -> dict:
         ): bool,
         vol.Optional(
             CONF_BIRTHDAY_CALENDAR_ENTITIES,
-            default=as_csv(data.get(CONF_BIRTHDAY_CALENDAR_ENTITIES, DEFAULT_BIRTHDAY_CALENDAR_ENTITIES)),
-        ): str,
+            default=_as_entity_list(
+                data.get(CONF_BIRTHDAY_CALENDAR_ENTITIES, DEFAULT_BIRTHDAY_CALENDAR_ENTITIES)
+            ),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["calendar"], multiple=True)
+        ),
         vol.Optional(
             CONF_BIRTHDAY_LOOKAHEAD_DAYS,
             default=data.get(CONF_BIRTHDAY_LOOKAHEAD_DAYS, DEFAULT_BIRTHDAY_LOOKAHEAD_DAYS),
@@ -442,8 +489,10 @@ def build_birthday_schema(data: dict) -> dict:
         ): bool,
         vol.Optional(
             CONF_BIRTHDAY_TTS_ENTITY,
-            default=data.get(CONF_BIRTHDAY_TTS_ENTITY, DEFAULT_BIRTHDAY_TTS_ENTITY),
-        ): str,
+            default=data.get(CONF_BIRTHDAY_TTS_ENTITY, DEFAULT_BIRTHDAY_TTS_ENTITY) or None,
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["media_player"], multiple=False)
+        ),
         vol.Optional(
             CONF_BIRTHDAY_REMINDER_HOUR,
             default=data.get(CONF_BIRTHDAY_REMINDER_HOUR, DEFAULT_BIRTHDAY_REMINDER_HOUR),
@@ -454,6 +503,10 @@ def build_birthday_schema(data: dict) -> dict:
 def build_modules_schema(data: dict) -> dict:
     """Build schema for the modules options step (all module toggles + settings)."""
     fields: dict = {}
+    fields[vol.Optional(
+        CONF_ENTITY_PROFILE,
+        default=data.get(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE),
+    )] = vol.In(ENTITY_PROFILES)
     fields.update(build_media_schema(data))
     fields.update(build_seed_schema(data))
     fields.update(build_watchdog_schema(data))

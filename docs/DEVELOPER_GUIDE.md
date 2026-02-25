@@ -271,7 +271,7 @@ HACS erkennt neue Versionen ausschliesslich ueber GitHub Release Tags. Ohne eine
 
 ```bash
 # Release erstellen (nach PR-Merge und git pull)
-gh release create v3.9.0 --title "v3.9.0" --notes "Release notes hier"
+gh release create vX.Y.Z --title "vX.Y.Z" --notes "Release notes"
 ```
 
 ### Versionierung

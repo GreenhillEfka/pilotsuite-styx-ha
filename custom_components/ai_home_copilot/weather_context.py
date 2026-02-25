@@ -10,13 +10,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
-from urllib.parse import urlsplit, urlunsplit
+from typing import Any
+from urllib.parse import urlsplit
 
 import aiohttp
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 
@@ -77,6 +77,34 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
         self._port = port
         self._token = token
         self._session: aiohttp.ClientSession | None = None
+        self._last_issue: str | None = None
+
+    def _log_issue_once(self, issue: str, message: str, *args: object) -> None:
+        """Log a warning only when issue state changes."""
+        if issue == self._last_issue:
+            return
+        self._last_issue = issue
+        _LOGGER.warning(message, *args)
+
+    def _clear_issue(self) -> None:
+        self._last_issue = None
+
+    def _fallback_snapshot(self, reason: str) -> WeatherSnapshot:
+        """Return a safe fallback snapshot when API is unavailable."""
+        if self.data is not None:
+            return self.data
+        return WeatherSnapshot(
+            timestamp=datetime.now().isoformat(),
+            condition="unknown",
+            temperature_c=0.0,
+            humidity_percent=0.0,
+            cloud_cover_percent=0.0,
+            uv_index=0.0,
+            sunrise="",
+            sunset="",
+            forecast_pv_production_kwh=0.0,
+            recommendation="moderate_usage",
+        )
 
     def _get_base_url(self) -> str:
         """Build base URL for Core Add-on API."""
@@ -108,27 +136,51 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
 
     async def _async_update_data(self) -> WeatherSnapshot:
         """Fetch weather snapshot from Core Add-on."""
+        session = await self._get_session()
+        base_url = self._get_base_url()
+        url = f"{base_url}/api/v1/weather"
+
         try:
-            session = await self._get_session()
-            base_url = self._get_base_url()
-            # Updated endpoint path for Core Add-on v0.4.28
-            url = f"{base_url}/api/v1/weather"
-            
             async with session.get(url, headers=self._get_headers()) as response:
-                if response.status == 503:
-                    raise Exception("Weather service not initialized in Core Add-on")
-                if response.status == 401:
-                    raise Exception("Invalid API token for Weather service")
-                if not response.ok:
-                    raise Exception(f"Weather API returned status {response.status}")
-                
+                if response.status == 404:
+                    self._log_issue_once(
+                        "http_404",
+                        "Weather endpoint missing at %s (status=404); keeping last known snapshot",
+                        url,
+                    )
+                    return self._fallback_snapshot("http_404")
+                if response.status in (401, 403):
+                    self._log_issue_once(
+                        f"http_{response.status}",
+                        "Weather API authorization failed at %s (status=%s); keeping last known snapshot",
+                        url,
+                        response.status,
+                    )
+                    return self._fallback_snapshot(f"http_{response.status}")
+                if response.status >= 500:
+                    self._log_issue_once(
+                        f"http_{response.status}",
+                        "Weather API temporary failure at %s (status=%s); keeping last known snapshot",
+                        url,
+                        response.status,
+                    )
+                    return self._fallback_snapshot(f"http_{response.status}")
+                if response.status < 200 or response.status >= 300:
+                    self._log_issue_once(
+                        f"http_{response.status}",
+                        "Weather API returned unexpected status %s at %s; keeping last known snapshot",
+                        response.status,
+                        url,
+                    )
+                    return self._fallback_snapshot(f"http_{response.status}")
+
                 data = await response.json()
-                
+
                 # Handle wrapped response from Core API
                 if "data" in data:
                     data = data["data"]
-                
-                return WeatherSnapshot(
+
+                snapshot = WeatherSnapshot(
                     timestamp=data.get("timestamp", datetime.now().isoformat()),
                     condition=data.get("condition", "unknown"),
                     temperature_c=data.get("temperature_c", 0.0),
@@ -140,8 +192,22 @@ class WeatherContextCoordinator(DataUpdateCoordinator[WeatherSnapshot]):
                     forecast_pv_production_kwh=data.get("forecast_pv_production_kwh", 0.0),
                     recommendation=data.get("recommendation", "moderate_usage"),
                 )
+                self._clear_issue()
+                return snapshot
         except aiohttp.ClientError as err:
-            raise Exception(f"Connection error to Weather service: {err}") from err
+            self._log_issue_once(
+                "client_error",
+                "Weather API connection error (%s); keeping last known snapshot",
+                err,
+            )
+            return self._fallback_snapshot("client_error")
+        except Exception as err:  # noqa: BLE001
+            self._log_issue_once(
+                "unexpected_error",
+                "Unexpected Weather API error (%s); keeping last known snapshot",
+                err,
+            )
+            return self._fallback_snapshot("unexpected_error")
 
     async def async_get_forecast(self, days: int = 3) -> list[WeatherForecast]:
         """Fetch weather forecast from Core Add-on."""

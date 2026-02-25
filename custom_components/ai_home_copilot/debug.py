@@ -23,6 +23,7 @@ from homeassistant.const import STATE_ON, STATE_OFF
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
+from .entity import build_main_device_identifiers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ async def async_setup_entry(
     hass.data[DOMAIN]["debug_log_level"] = stored.get("log_level", "INFO")
     
     # Add sensor
-    async_add_entities([DebugModeSensor(hass)], update_before_add=True)
+    async_add_entities([DebugModeSensor(hass, config_entry)], update_before_add=True)
     
     # Register services
     async def async_enable_debug(call: ServiceCall) -> None:
@@ -167,14 +168,17 @@ class DebugModeSensor(SensorEntity):
     _attr_unique_id = f"{DOMAIN}_debug_mode_sensor"
     _attr_icon = "mdi:bug"
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry | None = None) -> None:
         """Initialize the sensor."""
         self.hass = hass
+        cfg = {}
+        if entry is not None:
+            cfg = {**(entry.data or {}), **(entry.options or {})}
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, "ai_home_copilot")},
-            "name": "PilotSuite",
+            "identifiers": build_main_device_identifiers(cfg),
+            "name": "PilotSuite - Styx",
             "manufacturer": "PilotSuite",
-            "model": "HACS Integration",
+            "model": "Home Assistant Integration",
         }
 
     @property

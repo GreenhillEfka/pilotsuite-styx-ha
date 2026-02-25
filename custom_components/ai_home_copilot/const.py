@@ -1,8 +1,24 @@
 DOMAIN = "ai_home_copilot"
+INTEGRATION_UNIQUE_ID = "pilotsuite_styx"
+MAIN_DEVICE_IDENTIFIER = "styx_hub"
+LEGACY_MAIN_DEVICE_IDENTIFIERS = (
+    "ai_home_copilot",
+    "copilot_hub",
+    "pilotsuite_hub",
+)
+
+# Dashboard file layout:
+# - primary branded path for new installs
+# - legacy ai_home_copilot path kept for backwards compatibility
+PRIMARY_DASHBOARD_DIR = "pilotsuite-styx"
+LEGACY_DASHBOARD_DIR = DOMAIN
 
 # Internal hass.data keys (namespaced to avoid entry_id collisions).
 DATA_CORE = "_core"
 DATA_RUNTIME = "runtime"
+
+# Dispatcher signals
+SIGNAL_CONTEXT_ENTITIES_REFRESH = f"{DOMAIN}_context_entities_refresh"
 
 CONF_HOST = "host"
 CONF_PORT = "port"
@@ -189,6 +205,13 @@ DEFAULT_CALENDAR_CONTEXT_ENABLED = False
 DEFAULT_CALENDAR_ENTITIES: list[str] = []
 DEFAULT_CALENDAR_LOOKAHEAD_HOURS = 24
 DEFAULT_CALENDAR_MEETING_SOON_MINUTES = 30
+
+# Entity profile (controls sensor/card breadth)
+CONF_ENTITY_PROFILE = "entity_profile"
+ENTITY_PROFILE_CORE = "core"
+ENTITY_PROFILE_FULL = "full"
+ENTITY_PROFILES = [ENTITY_PROFILE_CORE, ENTITY_PROFILE_FULL]
+DEFAULT_ENTITY_PROFILE = ENTITY_PROFILE_CORE
 
 # Suggestion Panel
 CONF_SUGGESTION_PANEL_ENABLED = "suggestion_panel_enabled"

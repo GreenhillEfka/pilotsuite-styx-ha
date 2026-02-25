@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..entity import CopilotBaseEntity
 
@@ -42,12 +43,12 @@ class SceneIntelligenceSensor(CopilotBaseEntity, SensorEntity):
     async def _fetch(self) -> dict | None:
         import aiohttp
         try:
-            url = f"http://{self._host}:{self._port}/api/v1/hub/scenes"
-            headers = {"Authorization": f"Bearer {self.coordinator._config.get('token', '')}"}
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    if resp.status == 200:
-                        return await resp.json()
+            url = f"{self._core_base_url()}/api/v1/hub/scenes"
+            headers = self._core_headers()
+            session = async_get_clientsession(self.hass)
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status == 200:
+                    return await resp.json()
         except Exception:
             logger.debug("Failed to fetch scene intelligence data")
         return None

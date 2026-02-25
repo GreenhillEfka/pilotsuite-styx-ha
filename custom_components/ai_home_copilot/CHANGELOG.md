@@ -2,6 +2,105 @@
 
 All notable changes to PilotSuite will be documented in this file.
 
+> Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
+> Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
+
+## [7.8.12] - 2026-02-24 — Phase 5: NotificationSensor + SceneIntelligenceSensor
+
+### Added
+- `NotificationSensor` — exponiert Notification Count und Alerts als HA Sensor
+- `SceneIntelligenceSensor` — zeigt aktive Szene, Vorschläge, Cloud Status
+- Integration in `sensors/__init__.py` für automatische Erkennung
+
+### Fixed
+- Sensor-Lazy-Loading in `sensors/__init__.py` aktualisiert
+
+## [7.8.9] - 2026-02-23
+- Hassfest-Fix: `assist_pipeline` in `manifest.json` als `after_dependencies` deklariert.
+- Behebt CI-Fehler fuer die neue Pipeline-Default-Logik in `agent_auto_config.py`.
+
+## [7.8.8] - 2026-02-23
+- Auto-Config versucht jetzt, Styx als `conversation_engine` der bevorzugten Assist-Pipeline zu setzen.
+- Damit bleibt Styx als Standard-Gespraechsagent ueber Neustarts/Updates stabiler.
+- Notification-Text fuer `set_default_agent` auf Pipeline-Mechanik aktualisiert.
+
+## [7.8.6] - 2026-02-22
+- Habitus-Zonen-Validierung auf UX-freundliches Minimum umgestellt:
+  - nicht mehr hart `motion + lights`
+  - mindestens eine gueltige Entity-ID reicht
+- Zone-Formular zeigt klare Fehlermeldung bei leerer Entitaetsauswahl.
+- Dashboard-Wiring kann fehlende PilotSuite-Dashboard-Keys in bestehenden `lovelace: dashboards:` Block automatisch einpflegen.
+- Neuer Service `show_installation_guide` (persistente Notification mit exakter Setup-Anleitung).
+- Optionen/Übersetzungen aktualisiert auf primäre `pilotsuite-styx/` Dashboard-Pfade.
+
+## [7.8.2] - 2026-02-22
+- Primäre Dashboard-Dateipfade auf `pilotsuite-styx/` umgestellt, inklusive Legacy-Mirror nach `ai_home_copilot/`.
+- Habitus-Dashboard-Generator robust gemacht (tuple/list/set Rollen, sichere Zone-Paths, YAML-quoting).
+- Dashboard-Wiring akzeptiert und schreibt jetzt sowohl branded als auch legacy Include-Pfade.
+
+## [7.8.1] - 2026-02-22
+- Hub-Sensoren fuer `modes/scenes/presence/notifications/integration/brain/energy/media/templates` repariert (wieder korrekte API-Calls mit Auth-Headern).
+- `CopilotBaseEntity._fetch()` als gemeinsamer, robuster Core-GET-Helper ergaenzt.
+- Syntax-Regression abgesichert durch neuen Source-Syntax-Test.
+
+## [7.7.26] - 2026-02-22
+- Runtime-kompatible Lifecycle-Wrappers fuer `ops_runbook`, `mood_context`, `knowledge_graph_sync`, `person_tracking`.
+- Konstruktoren fuer Modul-Registry ohne Pflichtparameter vereinheitlicht.
+- verhindert stilles Skippen dieser Module beim Runtime-Setup.
+
+## [7.7.25] - 2026-02-22
+- MLContextModule Lifecycle auf Runtime-v2 kompatibel gemacht (`ModuleContext` Signaturen, Task-Cancel auf Unload).
+- behebt stilles Skippen des Moduls bei Runtime-Setup.
+
+## [7.7.24] - 2026-02-22
+- Dashboard-Wiring automatisiert (Include-Datei + Auto-Append bei fehlendem `lovelace:` Block, sonst Merge-Hinweis).
+- Habitus-Dashboard-Generierung auf konsistentes v2 (`async_get_zones_v2`) umgestellt.
+- Setup/Zone-Refresh erzeugt jetzt PilotSuite- und Habitus-Dashboard gemeinsam.
+- Dashboard-Generator referenziert nur noch vorhandene Entities (weniger tote Eintraege).
+
+## [7.7.23] - 2026-02-22
+- Nach Device-Konsolidierung werden verwaiste Legacy-PilotSuite-Devices (ohne Entities) nun automatisch bereinigt.
+- Cleanup bleibt konservativ (nur reine `ai_home_copilot`-Devices) und bricht Setup bei Fehlern nicht.
+
+## [7.7.22] - 2026-02-22
+- Runtime unload now coerces module unload results to strict boolean values.
+- Connection options flow now tolerates `test_light_entity_id: null` safely.
+- Config/Options network schema accepts optional `None` test light values.
+- Pipeline health checks now support Core variants without `/api/v1/capabilities` or `/api/v1/habitus/status`.
+- Core v1 capabilities fetch now falls back to agent/chat status endpoints on 404.
+- Lovelace resource registration now handles both mapping and object-based Lovelace data.
+- Quick-search service registration fixed (valid schemas, URL-encoded query params, registry access cleanup).
+
+## [7.7.21] - 2026-02-22
+- Connection config normalization added (host/port/token) incl. legacy key migration.
+- Failover no longer switches hosts on 401/403 auth errors.
+- `host.docker.internal` fallback made opt-in instead of always-on.
+- Brain Graph/HomeKit/Core-v1/Lovelace/N3 service paths now resolve merged entry config.
+- Legacy CSV/testlight text entities cleaned up during setup.
+- Added regression tests for connection normalization and host candidate behavior.
+
+## [7.7.20] - 2026-02-22
+- Unified sensor Core endpoints to use coordinator active failover base URL.
+- Added shared Core auth header helper (`Authorization` + `X-Auth-Token`).
+- Coordinator startup now normalizes legacy `auth_token` into `token`.
+- Legacy host/port-based sensor unique_ids migrated to stable IDs at setup.
+- Added tests for new base entity endpoint/auth helper behavior.
+
+## [7.7.19] - 2026-02-22
+- OptionsFlow merge fixed: token/host/port/module options persist across updates and step saves.
+- Habitus zones: multi-area selection (`area_ids`) for create/edit, merged auto-suggestions, metadata persistence.
+- Tag edit flow: two-step prefilled entity editor.
+- API fallback hosts expanded (`homeassistant`, `supervisor`, `host.docker.internal`).
+- Token handling harmonized in affected sensors (`token` + `auth_token` fallback).
+- Deprecated CSV text entities for entity selection removed.
+
+## [7.7.18] - 2026-02-22
+- Deprecated CSV text entities for media player selection removed.
+
+## [7.7.17] - 2026-02-22
+- PilotSuite dashboard auto-refresh on Habitus zone changes.
+- Dashboard generate/download buttons enabled for core entity profile.
+
 ## [0.9.6] - 2026-02-16
 
 ### Added

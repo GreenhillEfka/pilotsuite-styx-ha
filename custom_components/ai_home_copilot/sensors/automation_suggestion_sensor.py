@@ -20,7 +20,7 @@ class AutomationSuggestionSensor(CopilotBaseEntity):
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self._host}:{self._port}_automation_suggestions"
+        self._attr_unique_id = "copilot_automation_suggestions"
         self._suggestion_data: dict[str, Any] | None = None
 
     @property
@@ -36,7 +36,7 @@ class AutomationSuggestionSensor(CopilotBaseEntity):
         """Return suggestion details."""
         attrs: dict[str, Any] = {
             "suggestions_url": (
-                f"http://{self._host}:{self._port}"
+                f"{self._core_base_url()}"
                 "/api/v1/automations/suggestions"
             ),
         }
@@ -81,13 +81,10 @@ class AutomationSuggestionSensor(CopilotBaseEntity):
                 return
 
             url = (
-                f"http://{self._host}:{self._port}"
+                f"{self._core_base_url()}"
                 "/api/v1/automations/suggestions"
             )
-            headers = {}
-            token = self.coordinator._config.get("auth_token")
-            if token:
-                headers["X-Auth-Token"] = token
+            headers = self._core_headers()
 
             async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status == 200:

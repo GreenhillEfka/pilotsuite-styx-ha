@@ -17,6 +17,16 @@ class ModuleContext:
     hass: HomeAssistant
     entry: ConfigEntry
 
+    @property
+    def domain(self) -> str:
+        """Compatibility helper for modules expecting ctx.domain."""
+        return self.entry.domain
+
+    @property
+    def entry_id(self) -> str:
+        """Compatibility helper for modules expecting ctx.entry_id."""
+        return self.entry.entry_id
+
 
 @runtime_checkable
 class CopilotModule(Protocol):

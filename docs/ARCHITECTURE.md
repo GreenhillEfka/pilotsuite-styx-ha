@@ -1,8 +1,8 @@
 # PilotSuite HACS Integration -- Systemarchitektur
 
-> Domain: `ai_home_copilot` | 251 Python-Dateien | 28+ Module | 94+ Sensoren
+> Domain: `ai_home_copilot` | 303 Python-Dateien | 31 Runtime-Module | 94+ Sensoren
 >
-> Version: 3.9.0 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
+> Version: 7.7.16 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
 
 ---
 
@@ -29,7 +29,7 @@ PilotSuite besteht aus zwei getrennten Repositories, die zusammen ein vollstaend
 Home Assistant
 |
 +-- HACS Integration (ai_home_copilot)           <-- DIESES REPO
-|     - 251 Python-Dateien
+|     - 303 Python-Dateien
 |     - Sensoren, Buttons, Select, Text, Number
 |     - Dashboard Cards (Lovelace YAML-Generatoren)
 |     - Config Flow + Options Flow
@@ -66,6 +66,10 @@ Home Assistant
 
 Die Authentifizierung erfolgt ueber Token-basierte Header (`Authorization: Bearer <token>` bzw. `X-Auth-Token`). Ein leerer Token erlaubt alle Anfragen (First-Run-Experience).
 
+Identity-Hardening (ab `7.7.14`, erweitert in `7.7.16`):
+- Config-Flow ist als Single-Instance abgesichert (keine neuen Doppel-Entries bei erneutem Hinzufuegen).
+- Haupt-Device nutzt stabile Identifier (`styx_hub`) mit Legacy-Alias (`host:port`) fuer Update-Kompatibilitaet.
+
 ---
 
 ## 2. Coordinator Pattern
@@ -100,7 +104,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
 ```python
 {
     "ok": True,                          # Core erreichbar?
-    "version": "3.9.0",                  # Core-Version
+    "version": "7.7.15",                  # Core-Version
     "mood": {                            # Aktuelle Stimmung
         "mood": "relaxed",
         "confidence": 0.85
@@ -782,7 +786,7 @@ custom_components/ai_home_copilot/
 |   |-- performance.py                  # EntityStateCache, DomainFilter, TTLCache
 |   |-- performance_guardrails.py       # Performance-Grenzen
 |   |-- interface.py                    # Modul-Interface-Definitionen
-|   +-- modules/                        # 28+ Module (je eine Datei)
+|   +-- modules/                        # 31 Runtime-Module (je eine Datei)
 |       |-- legacy.py                   # Basis-Modul (Coordinator, Platforms)
 |       |-- events_forwarder.py         # N3 Events Forwarder Modul-Wrapper
 |       |-- habitus_miner.py            # Muster-Erkennung

@@ -35,13 +35,27 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         self._components: dict[str, str] = {}
         self._last_check: str | None = None
 
+    def _core_ok(self) -> bool:
+        if not self.coordinator.data:
+            return False
+        if isinstance(self.coordinator.data, dict):
+            return self.coordinator.data.get("ok") is True
+        return bool(getattr(self.coordinator.data, "ok", False))
+
+    def _core_version(self) -> str:
+        if not self.coordinator.data:
+            return "unknown"
+        if isinstance(self.coordinator.data, dict):
+            return str(self.coordinator.data.get("version", "unknown"))
+        return str(getattr(self.coordinator.data, "version", "unknown"))
+
     @property
     def native_value(self) -> str:
         """Return overall pipeline health state."""
         if not self.coordinator.data:
             return "offline"
 
-        if self.coordinator.data.ok is not True:
+        if not self._core_ok():
             return "offline"
 
         # If we have component details, evaluate them.
@@ -62,8 +76,8 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         attrs: dict[str, Any] = {}
 
         if self.coordinator.data:
-            attrs["core_ok"] = self.coordinator.data.ok
-            attrs["core_version"] = self.coordinator.data.version
+            attrs["core_ok"] = self._core_ok()
+            attrs["core_version"] = self._core_version()
 
         if self._components:
             attrs["components"] = dict(self._components)
@@ -78,7 +92,7 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         await super().async_update()
 
         # Only deep-check if Core is reachable.
-        if not self.coordinator.data or self.coordinator.data.ok is not True:
+        if not self.coordinator.data or not self._core_ok():
             self._components = {}
             return
 
@@ -90,7 +104,16 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         # 1) Candidates API
         try:
             resp = await api.async_get("/api/v1/candidates")
-            components["candidates"] = "ok" if isinstance(resp, dict) and resp.get("ok") else "error"
+            if isinstance(resp, list):
+                components["candidates"] = "ok"
+            elif isinstance(resp, dict):
+                # Older/newer Core variants either return {"ok": true, ...}
+                # or plain payloads like {"candidates": [...], "count": ...}.
+                has_payload = any(key in resp for key in ("candidates", "items", "count"))
+                status_ok = bool(resp.get("ok", has_payload or True))
+                components["candidates"] = "ok" if status_ok else "error"
+            else:
+                components["candidates"] = "error"
         except Exception:  # noqa: BLE001
             components["candidates"] = "unreachable"
 
@@ -98,8 +121,16 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         try:
             resp = await api.async_get("/api/v1/habitus/status")
             components["habitus"] = "ok" if isinstance(resp, dict) else "error"
-        except Exception:  # noqa: BLE001
-            components["habitus"] = "unreachable"
+        except Exception as err:  # noqa: BLE001
+            # Compatibility fallback for cores exposing /api/v1/habitus/health only.
+            if "HTTP 404" in str(err):
+                try:
+                    resp = await api.async_get("/api/v1/habitus/health")
+                    components["habitus"] = "ok" if isinstance(resp, dict) else "error"
+                except Exception:  # noqa: BLE001
+                    components["habitus"] = "unreachable"
+            else:
+                components["habitus"] = "unreachable"
 
         # 3) Brain Graph API
         try:
@@ -112,8 +143,20 @@ class PipelineHealthSensor(CopilotBaseEntity, SensorEntity):
         try:
             resp = await api.async_get("/api/v1/capabilities")
             components["capabilities"] = "ok" if isinstance(resp, dict) else "error"
-        except Exception:  # noqa: BLE001
-            components["capabilities"] = "unreachable"
+        except Exception as err:  # noqa: BLE001
+            # Fallback for older Core variants without /api/v1/capabilities.
+            if "HTTP 404" in str(err):
+                try:
+                    resp = await api.async_get("/api/v1/agent/status")
+                    components["capabilities"] = "ok" if isinstance(resp, dict) else "error"
+                except Exception:
+                    try:
+                        resp = await api.async_get("/chat/status")
+                        components["capabilities"] = "ok" if isinstance(resp, dict) else "error"
+                    except Exception:  # noqa: BLE001
+                        components["capabilities"] = "unreachable"
+            else:
+                components["capabilities"] = "unreachable"
 
         self._components = components
         self._last_check = datetime.now(timezone.utc).isoformat()

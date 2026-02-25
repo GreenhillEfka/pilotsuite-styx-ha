@@ -22,7 +22,7 @@ class EnergyCostSensor(CopilotBaseEntity):
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{self._host}:{self._port}_energy_cost"
+        self._attr_unique_id = "copilot_energy_cost"
         self._summary_data: dict[str, Any] | None = None
         self._budget_data: dict[str, Any] | None = None
 
@@ -37,8 +37,8 @@ class EnergyCostSensor(CopilotBaseEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return cost details."""
         attrs: dict[str, Any] = {
-            "costs_url": f"http://{self._host}:{self._port}/api/v1/energy/costs",
-            "budget_url": f"http://{self._host}:{self._port}/api/v1/energy/costs/budget",
+            "costs_url": f"{self._core_base_url()}/api/v1/energy/costs",
+            "budget_url": f"{self._core_base_url()}/api/v1/energy/costs/budget",
         }
 
         if self._summary_data and self._summary_data.get("ok"):
@@ -65,12 +65,9 @@ class EnergyCostSensor(CopilotBaseEntity):
             if session is None:
                 return
 
-            headers = {}
-            token = self.coordinator._config.get("auth_token")
-            if token:
-                headers["X-Auth-Token"] = token
+            headers = self._core_headers()
 
-            base = f"http://{self._host}:{self._port}"
+            base = f"{self._core_base_url()}"
 
             async with session.get(
                 f"{base}/api/v1/energy/costs/summary?period=weekly",

@@ -7,6 +7,11 @@ from __future__ import annotations
 # Lazy loading pattern - import from submodules only when needed
 # This reduces startup time by deferring imports of large modules
 
+# Phase 5: Notification & Scene Intelligence sensors
+if False:  # noqa: F821
+    from .notification_sensor import NotificationSensor
+    from .scene_intelligence_sensor import SceneIntelligenceSensor
+
 def __getattr__(name: str):
     """Lazy import sensor classes."""
     
@@ -112,11 +117,22 @@ def __getattr__(name: str):
         from .habit_learning_v2 import SequencePredictionSensor
         return SequencePredictionSensor
     
+    # Phase 5: Notification & Scene Intelligence sensors
+    if name == "NotificationSensor":
+        from .notification_sensor import NotificationSensor
+        return NotificationSensor
+    if name == "SceneIntelligenceSensor":
+        from .scene_intelligence_sensor import SceneIntelligenceSensor
+        return SceneIntelligenceSensor
+    
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # Explicit exports for static analysis and IDE support
 __all__ = [
+    # Phase 5: Notification & Scene Intelligence sensors
+    "NotificationSensor",
+    "SceneIntelligenceSensor",
     # New neuron sensors (split modules)
     "PresenceRoomSensor",
     "PresencePersonSensor",

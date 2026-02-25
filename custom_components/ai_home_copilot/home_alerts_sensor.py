@@ -14,6 +14,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .entity import build_main_device_identifiers
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -62,6 +64,16 @@ def create_home_alerts_sensors(
     ]
 
 
+def _device_info_for_entry(entry: ConfigEntry) -> dict[str, Any]:
+    cfg = entry.data | entry.options
+    return {
+        "identifiers": build_main_device_identifiers(cfg),
+        "name": "PilotSuite - Styx",
+        "manufacturer": "PilotSuite",
+        "model": "Home Alerts",
+    }
+
+
 class HomeAlertsCountSensor(SensorEntity):
     """Sensor for total alert count."""
     
@@ -79,14 +91,9 @@ class HomeAlertsCountSensor(SensorEntity):
         self._module = module
         self._entry = entry
         
-        self._attr_unique_id = f"{entry.entry_id}_home_alerts_count"
+        self._attr_unique_id = "ai_home_copilot_home_alerts_count"
         self._attr_translation_key = "home_alerts_count"
-        self._attr_device_info = {
-            "identifiers": {("ai_home_copilot", entry.entry_id)},
-            "name": "PilotSuite",
-            "manufacturer": "PilotSuite",
-            "model": "Home Alerts",
-        }
+        self._attr_device_info = _device_info_for_entry(entry)
     
     @property
     def name(self) -> str:
@@ -126,14 +133,9 @@ class HomeHealthScoreSensor(SensorEntity):
         self._module = module
         self._entry = entry
         
-        self._attr_unique_id = f"{entry.entry_id}_home_health_score"
+        self._attr_unique_id = "ai_home_copilot_home_health_score"
         self._attr_translation_key = "home_health_score"
-        self._attr_device_info = {
-            "identifiers": {("ai_home_copilot", entry.entry_id)},
-            "name": "PilotSuite",
-            "manufacturer": "PilotSuite",
-            "model": "Home Alerts",
-        }
+        self._attr_device_info = _device_info_for_entry(entry)
     
     @property
     def name(self) -> str:
@@ -202,15 +204,10 @@ class HomeAlertsByCategorySensor(SensorEntity):
         self._entry = entry
         self._category = category
         
-        self._attr_unique_id = f"{entry.entry_id}_home_alerts_{category}"
+        self._attr_unique_id = f"ai_home_copilot_home_alerts_{category}"
         self._attr_translation_key = f"home_alerts_{category}"
         self._attr_icon = self.CATEGORY_ICONS.get(category, "mdi:alert")
-        self._attr_device_info = {
-            "identifiers": {("ai_home_copilot", entry.entry_id)},
-            "name": "PilotSuite",
-            "manufacturer": "PilotSuite",
-            "model": "Home Alerts",
-        }
+        self._attr_device_info = _device_info_for_entry(entry)
     
     @property
     def name(self) -> str:

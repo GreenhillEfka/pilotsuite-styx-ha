@@ -29,6 +29,41 @@ Das **Core Add-on** muss installiert und gestartet sein:
 
 Alternativ: **Quick Start** (gefuehrter Wizard) oder **Manual Setup** (Host/Port/Token manuell).
 
+Wenn du eine exakte Schritt-fuer-Schritt-Anleitung direkt in HA willst:
+- Service aufrufen: `ai_home_copilot.show_installation_guide`
+- Ergebnis erscheint als persistente Notification mit Host/Port/Token-Check und Dashboard-YAML.
+
+### Dashboards (Auto + Fallback)
+
+Beim ersten Start generiert PilotSuite automatisch:
+
+- `/config/pilotsuite-styx/pilotsuite_dashboard_latest.yaml`
+- `/config/pilotsuite-styx/habitus_zones_dashboard_latest.yaml`
+
+Legacy-Kompatibilitaet bleibt erhalten: Die Dateien werden weiterhin auch unter
+`/config/ai_home_copilot/` gespiegelt.
+
+Die Integration versucht ausserdem, das Lovelace-Wiring automatisch vorzubereiten.
+Falls Home Assistant bereits einen eigenen `lovelace:`-Block hat, bekommst du eine
+Notification oder Auto-Merge in den bestehenden `dashboards:`-Block. Manuelle YAML-Variante:
+
+```yaml
+lovelace:
+  dashboards:
+    copilot-pilotsuite:
+      mode: yaml
+      title: "PilotSuite - Styx"
+      icon: mdi:robot-outline
+      show_in_sidebar: true
+      filename: "pilotsuite-styx/pilotsuite_dashboard_latest.yaml"
+    copilot-habitus-zones:
+      mode: yaml
+      title: "PilotSuite - Habitus Zones"
+      icon: mdi:layers-outline
+      show_in_sidebar: true
+      filename: "pilotsuite-styx/habitus_zones_dashboard_latest.yaml"
+```
+
 ## 30 Module
 
 | Modul | Funktion |
@@ -94,6 +129,12 @@ PilotSuite stellt eine OpenAI-kompatible API bereit (`/v1/chat/completions`). So
 4. **Settings** → **Voice Assistants** → Styx als Conversation Agent waehlen
 
 Styx antwortet mit **26 Tools** (Geraete steuern, Automations erstellen, Einkaufsliste, Kalender, Web-Suche, Warnmeldungen, Szenen, Musiksteuerung u.v.m.) und nutzt RAG-basiertes Langzeitgedaechtnis.
+
+### Optional: Onyx als erweitertes RAG-Frontend
+
+Wenn du Connector-RAG (Drive/Slack/Mail), Team-Rollen und Deep Research willst, kann Onyx
+zusaetzlich vor Styx betrieben werden. Empfohlene Architektur und Action-Contract:
+`https://github.com/GreenhillEfka/pilotsuite-styx-core/blob/main/docs/ONYX_INTEGRATION.md`
 
 ### Option 2: Telegram Bot
 

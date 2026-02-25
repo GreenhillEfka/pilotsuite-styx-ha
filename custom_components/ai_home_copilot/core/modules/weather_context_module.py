@@ -8,16 +8,21 @@ Privacy-first: only aggregated values, no location granularity unless user-appro
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from ...const import CONF_HOST, CONF_PORT, CONF_TOKEN, DOMAIN
+from ...const import (
+    CONF_HOST,
+    CONF_PORT,
+    CONF_TOKEN,
+    DOMAIN,
+    SIGNAL_CONTEXT_ENTITIES_REFRESH,
+)
 from ..module import ModuleContext
 from ...weather_context import WeatherContextCoordinator, create_weather_context
-from ...weather_context_entities import async_setup_weather_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,14 +78,12 @@ class WeatherContextModule:
             )
             # Continue anyway - Core Add-on might not be running
 
-        # Set up entities
-        if self._coordinator:
-            await async_setup_weather_entities(ctx.hass, self._coordinator)
-
-        # Store reference for other modules
+        # Store reference for other modules and platform entities
         domain_data = ctx.hass.data.setdefault(DOMAIN, {})
         entry_data = domain_data.setdefault(ctx.entry.entry_id, {})
         entry_data["weather_context_module"] = self
+        entry_data["weather_context_coordinator"] = self._coordinator
+        async_dispatcher_send(ctx.hass, SIGNAL_CONTEXT_ENTITIES_REFRESH, ctx.entry.entry_id)
 
         _LOGGER.info("WeatherContext v0.1: initialized (host=%s:%s)", host, port)
 
@@ -89,6 +92,7 @@ class WeatherContextModule:
         domain_data = ctx.hass.data.get(DOMAIN, {})
         entry_data = domain_data.get(ctx.entry.entry_id, {})
         entry_data.pop("weather_context_module", None)
+        entry_data.pop("weather_context_coordinator", None)
 
         self._coordinator = None
         self._hass = None

@@ -26,6 +26,7 @@ from .config_helpers import (
     STEP_NETWORK,
     STEP_REVIEW,
     validate_input,
+    discover_reachable_core_endpoint,
 )
 from .config_options_flow import OptionsFlowHandler  # noqa: F401 - used by HA via async_get_options_flow
 from .config_wizard_steps import (
@@ -50,9 +51,13 @@ from .const import (
     CONF_PORT,
     CONF_TEST_LIGHT,
     CONF_TOKEN,
+    CONF_ENTITY_PROFILE,
+    DEFAULT_ENTITY_PROFILE,
+    ENTITY_PROFILES,
     DEFAULT_HOST,
     DEFAULT_PORT,
     DOMAIN,
+    INTEGRATION_UNIQUE_ID,
 )
 from .setup_wizard import SetupWizard
 
@@ -72,6 +77,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Initial step - show main menu with Zero Config, Quick Start, or Manual."""
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+
         return self.async_show_menu(
             step_id="user",
             menu_options=["zero_config", "quick_start", "manual_setup"],
@@ -93,25 +101,42 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         anyway (governance-first: the user can reconfigure later) but
         logs a clear warning so it shows up in the system log.
         """
+        resolved = await discover_reachable_core_endpoint(
+            self.hass,
+            preferred_host=DEFAULT_HOST,
+            preferred_port=DEFAULT_PORT,
+        )
+        host, port = resolved if resolved else (DEFAULT_HOST, DEFAULT_PORT)
+        if resolved is None:
+            _LOGGER.warning(
+                "Zero-config: no reachable Core endpoint auto-detected; using defaults %s:%s",
+                DEFAULT_HOST,
+                DEFAULT_PORT,
+            )
+
         config = {
-            CONF_HOST: DEFAULT_HOST,
-            CONF_PORT: DEFAULT_PORT,
+            CONF_HOST: host,
+            CONF_PORT: port,
             CONF_TOKEN: "",
+            CONF_ENTITY_PROFILE: DEFAULT_ENTITY_PROFILE,
             "assistant_name": "Styx",
         }
 
         # Best-effort connectivity check (non-blocking)
         try:
             await validate_input(self.hass, config)
-            _LOGGER.info("Zero-config: Core reachable at %s:%s", DEFAULT_HOST, DEFAULT_PORT)
+            _LOGGER.info("Zero-config: Core reachable at %s:%s", host, port)
         except Exception:
             _LOGGER.warning(
                 "Zero-config: Core Add-on not reachable at %s:%s — "
                 "integration will start anyway. Reconfigure via "
                 "Settings > Integrations > PilotSuite > Configure",
-                DEFAULT_HOST,
-                DEFAULT_PORT,
+                host,
+                port,
             )
+
+        await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+        self._abort_if_unique_id_configured()
 
         title = "Styx — PilotSuite"
         return self.async_create_entry(title=title, data=config)
@@ -137,18 +162,41 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     err,
                 )
 
+            if self.source == config_entries.SOURCE_REAUTH:
+                reauth_entry = self.hass.config_entries.async_get_entry(self.context.get("entry_id"))
+                if reauth_entry is not None:
+                    updated = {**reauth_entry.data, **user_input}
+                    updated.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+                    self.hass.config_entries.async_update_entry(reauth_entry, data=updated)
+                    await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
+
             name = user_input.get("assistant_name", "Styx")
             title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
+            user_input.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+            await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(title=title, data=user_input)
+
+        discovered = await discover_reachable_core_endpoint(
+            self.hass,
+            preferred_host=DEFAULT_HOST,
+            preferred_port=DEFAULT_PORT,
+        )
+        default_host, default_port = discovered if discovered else (DEFAULT_HOST, DEFAULT_PORT)
 
         schema = vol.Schema(
             {
                 vol.Optional("assistant_name", default="Styx"): str,
-                vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
-                vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
+                vol.Required(CONF_HOST, default=default_host): str,
+                vol.Required(CONF_PORT, default=default_port): int,
                 vol.Optional(CONF_TOKEN): str,
-                vol.Optional(CONF_TEST_LIGHT, default=""): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="light", multiple=False),
+                vol.Optional(CONF_ENTITY_PROFILE, default=DEFAULT_ENTITY_PROFILE): vol.In(ENTITY_PROFILES),
+                vol.Optional(CONF_TEST_LIGHT, default=None): vol.Any(
+                    None,
+                    selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="light", multiple=False),
+                    ),
                 ),
             }
         )
@@ -191,6 +239,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Final step: create entry
         if next_step is None:
             final_config, title = build_final_config(self._data)
+            final_config.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+            try:
+                preferred_port = int(final_config.get(CONF_PORT, DEFAULT_PORT))
+            except (TypeError, ValueError):
+                preferred_port = DEFAULT_PORT
+            resolved = await discover_reachable_core_endpoint(
+                self.hass,
+                preferred_host=str(final_config.get(CONF_HOST, DEFAULT_HOST)),
+                preferred_port=preferred_port,
+            )
+            if resolved is not None:
+                final_config[CONF_HOST], final_config[CONF_PORT] = resolved
+            await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(title=title, data=final_config)
 
         self._wizard_step = next_step

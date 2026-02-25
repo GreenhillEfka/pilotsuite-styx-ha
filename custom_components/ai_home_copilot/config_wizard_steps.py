@@ -59,23 +59,18 @@ def build_zones_form(wizard):
         for z in zone_suggestions
     ]
 
-    if zone_options:
-        zone_schema = vol.Schema({
-            vol.Optional("selected_zones"): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value=v, label=l)
-                        for v, l in zone_options
-                    ],
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
-                )
-            ),
-        })
-    else:
-        zone_schema = vol.Schema({
-            vol.Optional("selected_zones"): str,
-        })
+    zone_schema = vol.Schema({
+        vol.Optional("selected_zones", default=[]): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(value=v, label=l)
+                    for v, l in zone_options
+                ],
+                multiple=True,
+                mode=selector.SelectSelectorMode.LIST,
+            )
+        ),
+    })
 
     return (
         "wizard_zones",
@@ -94,9 +89,12 @@ def build_zone_entities_form(wizard, selected_zones):
         zone_info = wizard.get_zone_info(zone_id)
         for role, config in ZONE_ENTITY_ROLES.items():
             key = f"{zone_id}_{role}"
+            role_domains = config.get("domain", ["sensor"])
+            if not isinstance(role_domains, list):
+                role_domains = [str(role_domains)]
             zone_entities_schema[vol.Optional(key)] = selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    domain=[config.get("domain", "sensor")],
+                    domain=role_domains,
                     multiple=True,
                 )
             )

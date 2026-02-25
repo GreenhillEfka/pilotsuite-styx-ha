@@ -4,11 +4,12 @@ import asyncio
 import logging
 from typing import Any, Dict, Optional
 
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 from .module import CopilotModule, ModuleContext
-from ...ml_context import MLContext, initialize_ml_context, get_ml_context
+from ...connection_config import merged_entry_config
+from ...ml_context import MLContext
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,13 +32,14 @@ class MLContextModule(CopilotModule):
     
     MODULE_NAME = "ml_context"
     
-    def __init__(self, context: ModuleContext):
+    def __init__(self) -> None:
         """Initialize ML context module."""
-        super().__init__(context)
+        self._hass: HomeAssistant | None = None
+        self._entry: ConfigEntry | None = None
         self._ml_context: Optional[MLContext] = None
         self._enabled = False
         self._update_interval = 60  # seconds
-        self._unsub: Optional[Any] = None
+        self._periodic_task: Optional[asyncio.Task[Any]] = None
         self._mood_module = None  # Reference to mood module
         
     @property
@@ -52,10 +54,13 @@ class MLContextModule(CopilotModule):
         
     def _get_current_mood(self) -> Dict[str, Any]:
         """Get current mood context for ML integration."""
+        if self._hass is None or self._entry is None:
+            return {"mood": "unknown", "confidence": 0.0}
+
         if self._mood_module:
             try:
                 # Try to get mood from mood module
-                entry_data = self.hass.data.get("ai_home_copilot", {}).get(self.entry.entry_id, {})
+                entry_data = self._hass.data.get("ai_home_copilot", {}).get(self._entry.entry_id, {})
                 mood_data = entry_data.get("mood_module", {})
                 last_orchestration = mood_data.get("last_orchestration", {})
                 
@@ -72,9 +77,14 @@ class MLContextModule(CopilotModule):
         
         return {"mood": "unknown", "confidence": 0.0}
         
-    async def async_setup_entry(self, entry: ConfigEntry) -> bool:
+    async def async_setup_entry(self, ctx: ModuleContext) -> bool:
         """Set up ML context module."""
-        config = entry.options or entry.data
+        self._hass = ctx.hass
+        self._entry = ctx.entry
+
+        entry = ctx.entry
+        hass = ctx.hass
+        config = merged_entry_config(entry)
         
         # Enable ML by default (previously disabled)
         self._enabled = config.get("ml_enabled", True)
@@ -85,7 +95,7 @@ class MLContextModule(CopilotModule):
             
         # Initialize ML context in executor (CPU-bound)
         try:
-            self._ml_context = await self.hass.async_add_executor_job(
+            self._ml_context = await hass.async_add_executor_job(
                 self._init_ml_context
             )
             
@@ -93,16 +103,16 @@ class MLContextModule(CopilotModule):
                 _LOGGER.info("ML Context module initialized")
                 
                 # Register with hass.data for other modules
-                if self.entry.entry_id not in self.hass.data.get("ai_home_copilot", {}):
-                    self.hass.data.setdefault("ai_home_copilot", {})
-                    self.hass.data["ai_home_copilot"][self.entry.entry_id] = {}
-                self.hass.data["ai_home_copilot"][self.entry.entry_id]["ml_context"] = self._ml_context
+                if entry.entry_id not in hass.data.get("ai_home_copilot", {}):
+                    hass.data.setdefault("ai_home_copilot", {})
+                    hass.data["ai_home_copilot"][entry.entry_id] = {}
+                hass.data["ai_home_copilot"][entry.entry_id]["ml_context"] = self._ml_context
                 
                 # Try to connect with mood module
                 await self._connect_mood_module()
                 
                 # Start periodic update
-                self._unsub = asyncio.create_task(self._periodic_update())
+                self._periodic_task = hass.async_create_task(self._periodic_update())
                 
             return True
             
@@ -112,8 +122,10 @@ class MLContextModule(CopilotModule):
     
     async def _connect_mood_module(self) -> None:
         """Connect with mood module if available."""
+        if self._hass is None or self._entry is None:
+            return
         try:
-            entry_data = self.hass.data.get("ai_home_copilot", {}).get(self.entry.entry_id, {})
+            entry_data = self._hass.data.get("ai_home_copilot", {}).get(self._entry.entry_id, {})
             mood_data = entry_data.get("mood_module")
             
             if mood_data:
@@ -154,18 +166,18 @@ class MLContextModule(CopilotModule):
                 
     async def _sync_entity_states(self) -> None:
         """Sync relevant HA entity states to ML context."""
-        if not self._ml_context:
+        if not self._ml_context or self._hass is None or self._entry is None:
             return
             
         # Get entities from config
-        config = self.entry.options or self.entry.data
+        config = self._entry.options or self._entry.data
         ml_entities = config.get("ml_entities", [])
         
         # Get current mood context
         mood_context = self._get_current_mood()
         
         for entity_id in ml_entities:
-            state = self.hass.states.get(entity_id)
+            state = self._hass.states.get(entity_id)
             if state:
                 # Build event context with mood awareness
                 event_context = {
@@ -181,27 +193,33 @@ class MLContextModule(CopilotModule):
                     context=event_context,
                 )
                 
-    async def async_unload_entry(self, entry: ConfigEntry) -> bool:
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
         """Unload ML context module."""
         self._enabled = False
         
-        if self._unsub:
-            self._unsub.cancel()
+        if self._periodic_task:
+            self._periodic_task.cancel()
             try:
-                await self._unsub
+                await self._periodic_task
             except asyncio.CancelledError:
                 pass
+            finally:
+                self._periodic_task = None
             
         if self._ml_context:
             self._ml_context.reset()
+            self._ml_context = None
+
+        self._hass = None
+        self._entry = None
             
         _LOGGER.info("ML Context module unloaded")
         return True
         
-    async def async_reload_entry(self, entry: ConfigEntry) -> bool:
+    async def async_reload_entry(self, ctx: ModuleContext) -> bool:
         """Reload ML context module."""
-        await self.async_unload_entry(entry)
-        return await self.async_setup_entry(entry)
+        await self.async_unload_entry(ctx)
+        return await self.async_setup_entry(ctx)
         
     def get_anomaly_status(self) -> Dict[str, Any]:
         """Get current anomaly detection status."""

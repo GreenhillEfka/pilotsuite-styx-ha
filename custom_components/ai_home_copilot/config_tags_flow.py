@@ -35,19 +35,30 @@ def _build_select_tag_schema(tag_options: list[dict]) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required("tag_id"): selector.SelectSelector(
-                selector.SelectSelectorConfig(options=tag_options, mode="list")
+                selector.SelectSelectorConfig(
+                    options=tag_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
             ),
         }
     )
 
 
-def _build_edit_entities_schema(tag_options: list[dict]) -> vol.Schema:
+def _build_edit_entities_schema(
+    tag_options: list[dict],
+    *,
+    selected_tag_id: str,
+    default_entities: list[str],
+) -> vol.Schema:
     return vol.Schema(
         {
-            vol.Required("tag_id"): selector.SelectSelector(
-                selector.SelectSelectorConfig(options=tag_options, mode="list")
+            vol.Required("tag_id", default=selected_tag_id): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=tag_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
             ),
-            vol.Optional("tag_entities", default=[]): selector.EntitySelector(
+            vol.Optional("tag_entities", default=default_entities): selector.EntitySelector(
                 selector.EntitySelectorConfig(multiple=True)
             ),
         }
@@ -100,10 +111,27 @@ async def async_step_edit_tag(flow, user_input=None) -> FlowResult:
     tag_options = [{"value": tid, "label": f"{t.name} ({len(t.entity_ids)} Entitäten)"} for tid, t in tags.items()]
 
     if user_input is not None:
-        tag_id = user_input.get("tag_id", "")
+        tag_id = str(user_input.get("tag_id", "")).strip()
+
+        # First submit only selects a tag; show second form with preloaded entities.
+        if "tag_entities" not in user_input:
+            if tag_id in tags:
+                schema = _build_edit_entities_schema(
+                    tag_options,
+                    selected_tag_id=tag_id,
+                    default_entities=list(tags[tag_id].entity_ids),
+                )
+                return flow.async_show_form(
+                    step_id="edit_tag",
+                    data_schema=schema,
+                    description_placeholders={"hint": "Entitäten bearbeiten und speichern"},
+                )
+            return await flow.async_step_entity_tags()
+
         entity_ids = user_input.get("tag_entities", [])
         if tag_id and tag_id in tags:
             from .entity_tags_store import async_upsert_tag
+
             await async_upsert_tag(
                 flow.hass,
                 tag_id=tag_id,
@@ -113,12 +141,11 @@ async def async_step_edit_tag(flow, user_input=None) -> FlowResult:
             _reload_module(flow)
         return await flow.async_step_entity_tags()
 
-    # Pre-populate with existing entities if tag_id already selected
-    schema = _build_edit_entities_schema(tag_options)
+    schema = _build_select_tag_schema(tag_options)
     return flow.async_show_form(
         step_id="edit_tag",
         data_schema=schema,
-        description_placeholders={"hint": "Wähle Tag und weise Entitäten zu"},
+        description_placeholders={"hint": "Tag auswählen, dann Entitäten bearbeiten"},
     )
 
 

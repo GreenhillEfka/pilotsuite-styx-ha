@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant, Event, callback
 from homeassistant.const import EVENT_STATE_CHANGED
 
 from ...const import DOMAIN
-from .module import CopilotModule
+from .module import CopilotModule, ModuleContext
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,10 +104,9 @@ class PresenceEvent:
 class PersonTrackingModule(CopilotModule):
     """Tracks persons in the home using HA person.* and device_tracker.* entities."""
 
-    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
-        super().__init__(hass, entry_id)
-        self._hass = hass
-        self._entry_id = entry_id
+    def __init__(self) -> None:
+        self._hass: HomeAssistant | None = None
+        self._entry_id: str | None = None
         self._presence_map: dict[str, PersonPresence] = {}
         self._history: deque[PresenceEvent] = deque(maxlen=100)
         self._listeners: list[Any] = []
@@ -120,7 +119,7 @@ class PersonTrackingModule(CopilotModule):
 
     @property
     def name(self) -> str:  # noqa: D401 – simple property
-        return "Person Tracking"
+        return "person_tracking"
 
     @property
     def enabled(self) -> bool:
@@ -132,6 +131,9 @@ class PersonTrackingModule(CopilotModule):
 
     async def async_setup(self) -> bool:
         """Discover person.* entities, seed the presence map, register listeners."""
+        if self._hass is None or self._entry_id is None:
+            _LOGGER.warning("Person Tracking setup called without runtime context")
+            return False
         _LOGGER.info("Setting up Person Tracking Module")
 
         # 1. Discover all person.* entities and read their current state.
@@ -164,8 +166,16 @@ class PersonTrackingModule(CopilotModule):
         )
         return True
 
+    async def async_setup_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible setup entry."""
+        self._hass = ctx.hass
+        self._entry_id = ctx.entry.entry_id
+        return await self.async_setup()
+
     async def async_shutdown(self) -> None:
         """Remove event listeners and clean up hass.data reference."""
+        if self._hass is None or self._entry_id is None:
+            return
         _LOGGER.info("Shutting down Person Tracking Module")
 
         for unsub in self._listeners:
@@ -182,6 +192,13 @@ class PersonTrackingModule(CopilotModule):
         entry_data.pop("person_tracking_module", None)
 
         _LOGGER.debug("Person Tracking Module shut down")
+
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
+        """Runtime-compatible unload entry."""
+        await self.async_shutdown()
+        self._hass = None
+        self._entry_id = None
+        return True
 
     # ------------------------------------------------------------------
     # Discovery helpers
