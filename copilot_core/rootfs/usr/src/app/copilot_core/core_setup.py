@@ -1203,3 +1203,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.backup import backup_bp
         app.register_blueprint(backup_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.restore import restore_bp
+        app.register_blueprint(restore_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.shop import shop_bp
+        app.register_blueprint(shop_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.shopping import shopping_bp
+        app.register_blueprint(shopping_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.todo import todo_bp
+        app.register_blueprint(todo_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.humidifier import humidifier_bp
+        app.register_blueprint(humidifier_bp)
+    except: pass
