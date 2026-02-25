@@ -1783,3 +1783,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.motel import motel_bp
         app.register_blueprint(motel_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.wec import wec_bp
+        app.register_blueprint(wec_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifiaware import wifiaware_bp
+        app.register_blueprint(wifiaware_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifidirect import wifidirect_bp
+        app.register_blueprint(wifidirect_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifip2p import wifip2p_bp
+        app.register_blueprint(wifip2p_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.wifitdls import wifitdls_bp
+        app.register_blueprint(wifitdls_bp)
+    except: pass
