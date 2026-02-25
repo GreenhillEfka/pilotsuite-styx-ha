@@ -137,6 +137,24 @@ class TestAlerts:
         alert_types = [a["type"] for a in alerts]
         assert "coordinator_slow" in alert_types
 
+    @patch(
+        "custom_components.ai_home_copilot.core.modules.performance_scaling._LOGGER.warning"
+    )
+    def test_alert_logging_throttles_duplicates(self, mock_warn, perf_module):
+        alert = {"type": "memory_high", "message": "Memory 2048MB exceeds 1536MB"}
+
+        with patch(
+            "custom_components.ai_home_copilot.core.modules.performance_scaling.time.time",
+            side_effect=[1000.0, 1001.0, 2000.0],
+        ):
+            perf_module._log_alert(alert)
+            perf_module._log_alert(alert)
+            perf_module._log_alert(alert)
+
+        assert mock_warn.call_count == 2
+        # Final log should include duplicate suppression note.
+        assert "suppressed" in str(mock_warn.call_args_list[-1][0][0]).lower()
+
 
 # ---------- Edge Cases ----------
 

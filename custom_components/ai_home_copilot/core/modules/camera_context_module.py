@@ -10,6 +10,7 @@ Privacy-first: local processing only, face blurring, configurable retention.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -114,6 +115,7 @@ class CameraContextModule(CopilotModule):
         self._tracked_cameras: list[str] = []
         self._enabled = True
         self._listeners: list[Any] = []
+        self._forward_tasks: set[asyncio.Task] = set()
 
     @property
     def name(self) -> str:
@@ -134,6 +136,12 @@ class CameraContextModule(CopilotModule):
         for unsub in self._listeners:
             unsub()
         self._listeners.clear()
+
+        if self._forward_tasks:
+            for task in list(self._forward_tasks):
+                task.cancel()
+            await asyncio.gather(*list(self._forward_tasks), return_exceptions=True)
+            self._forward_tasks.clear()
         return True
 
     async def _async_setup(self) -> bool:
@@ -344,7 +352,7 @@ class CameraContextModule(CopilotModule):
             "timestamp": event_data.get("timestamp"),
         }
         
-        self._forward_to_brain("motion", context)
+        self._schedule_forward_to_brain("motion", context)
         _LOGGER.debug("Motion → Activity Neuron: %s", context)
     
     def _process_presence_to_neuron(self, event_data: dict[str, Any]) -> None:
@@ -358,7 +366,7 @@ class CameraContextModule(CopilotModule):
             "timestamp": event_data.get("timestamp"),
         }
         
-        self._forward_to_brain("presence", context)
+        self._schedule_forward_to_brain("presence", context)
         _LOGGER.debug("Presence → Person Recognition: %s", context)
     
     def _process_face_to_neuron(self, event_data: dict[str, Any]) -> None:
@@ -372,7 +380,7 @@ class CameraContextModule(CopilotModule):
             "timestamp": event_data.get("timestamp"),
         }
         
-        self._forward_to_brain("face", context)
+        self._schedule_forward_to_brain("face", context)
         _LOGGER.debug(
             "Face → Person Recognition: %d faces",
             len(event_data.get("faces", []))
@@ -388,7 +396,7 @@ class CameraContextModule(CopilotModule):
             "timestamp": event_data.get("timestamp"),
         }
         
-        self._forward_to_brain("object", context)
+        self._schedule_forward_to_brain("object", context)
         _LOGGER.debug("Object → Environmental Context: %s", event_data.get("objects", []))
     
     def _process_zone_to_neuron(self, event_data: dict[str, Any]) -> None:
@@ -402,12 +410,34 @@ class CameraContextModule(CopilotModule):
             "timestamp": event_data.get("timestamp"),
         }
         
-        self._forward_to_brain("zone", context)
+        self._schedule_forward_to_brain("zone", context)
         _LOGGER.debug(
             "Zone → Spatial Context: %s %s",
             event_data.get("zone_name"),
             event_data.get("event_type")
         )
+
+    def _schedule_forward_to_brain(
+        self,
+        event_subtype: str,
+        context: dict[str, Any],
+    ) -> None:
+        """Run async forwarding without dropping coroutine execution."""
+        if not self._hass:
+            return
+        task = self._hass.async_create_task(self._forward_to_brain(event_subtype, context))
+        self._forward_tasks.add(task)
+
+        def _on_done(done_task: asyncio.Task) -> None:
+            self._forward_tasks.discard(done_task)
+            try:
+                done_task.result()
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                _LOGGER.debug("Camera event forwarding task failed", exc_info=True)
+
+        task.add_done_callback(_on_done)
     
     async def _forward_to_brain(
         self,
@@ -465,10 +495,6 @@ class CameraContextModule(CopilotModule):
             
             match event_subtype:
                 case "motion":
-                    activity_level = (
-                        "moderate" if context.get("action") == MotionAction.STARTED.value
-                        else "low"
-                    )
                     await connector.async_handle_camera_motion({
                         "type": "motion",
                         "camera_id": context.get("camera_id"),
@@ -505,7 +531,13 @@ class CameraContextModule(CopilotModule):
         """Clean up on shutdown."""
         _LOGGER.info("Shutting down Camera Context Module")
         self._enabled = False
-        
+
+        if self._forward_tasks:
+            for task in list(self._forward_tasks):
+                task.cancel()
+            await asyncio.gather(*list(self._forward_tasks), return_exceptions=True)
+            self._forward_tasks.clear()
+
         # Clean up listeners
         for listener in self._listeners:
             if listener:

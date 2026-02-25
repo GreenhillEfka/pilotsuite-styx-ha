@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v8.4.2 (2026-02-25)
+- fix: seed adapter now filters low-signal values (`on/off`, numeric-only) to prevent noisy `CoPilot Seed:*` repair spam
+- fix: state fallback in seed adapter is now stricter (only meaningful text payloads become seed candidates)
+- fix: performance scaling default memory alert threshold raised to `2048 MB` to reduce false-positive warnings on normal HA hosts
+- chore: align manifest metadata/versioning (`custom_components/.../manifest.json`, repo `manifest.json`) to avoid inconsistent update/version display
+
 ## v8.4.1 (2026-02-25)
 - chore: sync HA integration version with Core `v8.4.1` line
 - no functional HA code changes; compatibility release for paired install tracking

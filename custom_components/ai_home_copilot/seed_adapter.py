@@ -33,6 +33,16 @@ from .suggest import Candidate, async_offer_candidate
 _LOGGER = logging.getLogger(__name__)
 
 _ENTITY_ID_RE = re.compile(r"\b([a-z_]+\.[a-z0-9_]+)\b")
+_LOW_SIGNAL_TOKENS = {
+    "on",
+    "off",
+    "true",
+    "false",
+    "unknown",
+    "unavailable",
+    "none",
+    "null",
+}
 
 
 def _parse_domains(value: Any) -> set[str]:
@@ -78,6 +88,27 @@ def _stable_id(source_entity_id: str, payload: str) -> str:
 def _truncate(s: str, n: int) -> str:
     s = (s or "").strip()
     return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def _is_low_signal_seed_text(text: str) -> bool:
+    """Filter trivial payloads that create noisy seed repairs."""
+    t = (text or "").strip()
+    if not t:
+        return True
+
+    lowered = t.lower()
+    if lowered in _LOW_SIGNAL_TOKENS:
+        return True
+
+    # Scalar-only values (e.g. "17", "42.5", "80%") are not actionable seeds.
+    if re.fullmatch(r"[+-]?\d+(?:[.,]\d+)?%?", lowered):
+        return True
+
+    # Very short snippets without context are usually state noise.
+    if len(t) < 12 and " " not in t:
+        return True
+
+    return False
 
 
 def _extract_text_from_item(item: Any) -> str:
@@ -138,13 +169,22 @@ def _extract_seeds_from_state(
 
     if not candidates:
         # Last resort: use the state itself if it looks like content
-        if isinstance(state.state, str) and state.state not in ("unknown", "unavailable", ""):
-            candidates = [state.state]
+        if isinstance(state.state, str):
+            state_text = state.state.strip()
+            if (
+                state_text
+                and not _is_low_signal_seed_text(state_text)
+                and len(state_text) >= 20
+                and (" " in state_text or ":" in state_text or "." in state_text)
+            ):
+                candidates = [state_text]
 
     seeds: list[Seed] = []
     for item in candidates[:20]:
         text = _extract_text_from_item(item)
         if not text.strip():
+            continue
+        if _is_low_signal_seed_text(text):
             continue
 
         entities_found = sorted(set(_ENTITY_ID_RE.findall(text)))

@@ -29,9 +29,13 @@ DEFAULT_THRESHOLDS = {
     "api_response_time_ms": 2000,
     "coordinator_update_ms": 5000,
     "entity_count_max": 200,
-    "memory_usage_mb_max": 1536,
+    # 2 GB default to reduce false positives on normal HA host workloads.
+    "memory_usage_mb_max": 2048,
     "error_rate_percent": 5.0,
 }
+
+# Avoid repeating identical warnings every minute in steady-state overloads.
+ALERT_LOG_THROTTLE_S = 15 * 60
 
 
 @dataclass
@@ -75,6 +79,8 @@ class PerformanceScalingModule:
         self._monitor_task: Optional[asyncio.Task] = None
         self._hass: Optional[HomeAssistant] = None
         self._entry: Optional[ConfigEntry] = None
+        self._last_alert_log_ts: Dict[str, float] = {}
+        self._suppressed_alerts: Dict[str, int] = {}
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         self._hass = ctx.hass
@@ -306,8 +312,28 @@ class PerformanceScalingModule:
                 alerts = self._check_alerts()
                 for alert in alerts:
                     self._alerts.append(alert)
-                    _LOGGER.warning("Performance alert: %s", alert["message"])
+                    self._log_alert(alert)
             except asyncio.CancelledError:
                 break
             except Exception:
                 _LOGGER.exception("Performance monitor error")
+
+    def _log_alert(self, alert: Dict[str, Any]) -> None:
+        """Log an alert with duplicate-throttling."""
+        alert_type = str(alert.get("type", "unknown"))
+        now = time.time()
+        last_logged = self._last_alert_log_ts.get(alert_type, 0.0)
+        if (now - last_logged) < ALERT_LOG_THROTTLE_S:
+            self._suppressed_alerts[alert_type] = self._suppressed_alerts.get(alert_type, 0) + 1
+            return
+
+        suppressed = self._suppressed_alerts.pop(alert_type, 0)
+        self._last_alert_log_ts[alert_type] = now
+        if suppressed:
+            _LOGGER.warning(
+                "Performance alert: %s (plus %d duplicate alerts suppressed)",
+                alert["message"],
+                suppressed,
+            )
+        else:
+            _LOGGER.warning("Performance alert: %s", alert["message"])

@@ -266,36 +266,59 @@ async def _async_migrate_legacy_sensor_unique_ids(
 
 async def _async_migrate_connection_config(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Normalize host/port/token from data+options into canonical keys."""
-    merged = merged_entry_config(entry)
-    host, port, token = resolve_core_connection_from_mapping(merged)
+    # Prefer entry.data for canonical connection values.
+    # Older releases may have stale host/port/token in entry.options, and
+    # merged_entry_config() gives options precedence.
+    data_map = dict(entry.data) if isinstance(entry.data, dict) else {}
+    options_map = dict(entry.options) if isinstance(entry.options, dict) else {}
+    preferred = dict(options_map)
+    preferred.update(data_map)
+    host, port, token = resolve_core_connection_from_mapping(preferred)
 
-    new_data = dict(entry.data) if isinstance(entry.data, dict) else {}
-    changed = False
+    new_data = dict(data_map)
+    new_options = dict(options_map)
+    data_changed = False
+    options_changed = False
 
     if new_data.get(CONF_HOST) != host:
         new_data[CONF_HOST] = host
-        changed = True
+        data_changed = True
     if new_data.get(CONF_PORT) != port:
         new_data[CONF_PORT] = port
-        changed = True
+        data_changed = True
     if str(new_data.get(CONF_TOKEN, "") or "").strip() != token:
         new_data[CONF_TOKEN] = token
-        changed = True
+        data_changed = True
+
+    if new_options.get(CONF_HOST) != host:
+        new_options[CONF_HOST] = host
+        options_changed = True
+    if new_options.get(CONF_PORT) != port:
+        new_options[CONF_PORT] = port
+        options_changed = True
+    if str(new_options.get(CONF_TOKEN, "") or "").strip() != token:
+        new_options[CONF_TOKEN] = token
+        options_changed = True
 
     for legacy_key in _LEGACY_CONNECTION_KEYS:
         if legacy_key in new_data:
             new_data.pop(legacy_key, None)
-            changed = True
+            data_changed = True
+        if legacy_key in new_options:
+            new_options.pop(legacy_key, None)
+            options_changed = True
 
-    if not changed:
+    if not data_changed and not options_changed:
         return
 
-    hass.config_entries.async_update_entry(entry, data=new_data)
+    hass.config_entries.async_update_entry(entry, data=new_data, options=new_options)
     _LOGGER.info(
-        "Normalized PilotSuite connection config for %s to %s:%s",
+        "Normalized PilotSuite connection config for %s to %s:%s (data_changed=%s, options_changed=%s)",
         entry.entry_id,
         host,
         port,
+        data_changed,
+        options_changed,
     )
 
 
