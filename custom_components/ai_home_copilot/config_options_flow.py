@@ -128,35 +128,192 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         schema = vol.Schema(build_connection_schema(data, webhook_url, token_hint))
         return self.async_show_form(step_id="connection", data_schema=schema)
 
-    # ── Modules ──────────────────────────────────────────────────────
+    # ── Modules (menu) ───────────────────────────────────────────────
 
     async def async_step_modules(self, user_input: dict | None = None) -> FlowResult:
-        """Module toggles and settings."""
+        """Module configuration — shows a per-module submenu."""
+        return self.async_show_menu(
+            step_id="modules",
+            menu_options=[
+                "module_media",
+                "module_forwarder",
+                "module_seed",
+                "module_user_prefs",
+                "module_waste",
+                "module_birthday",
+                "module_ha_errors",
+                "module_devlog",
+                "module_watchdog",
+                "module_pilotsuite_ux",
+                "back",
+            ],
+        )
+
+    # ── Module: Media ────────────────────────────────────────────────
+
+    async def async_step_module_media(self, user_input: dict | None = None) -> FlowResult:
+        """Media player module configuration."""
         if user_input is not None:
-            # Normalize entity-selection fields (selectors + backward-compatible csv).
-            for field in (
-                CONF_SUGGESTION_SEED_ENTITIES,
-                CONF_MEDIA_MUSIC_PLAYERS,
-                CONF_MEDIA_TV_PLAYERS,
-                CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES,
-                CONF_TRACKED_USERS,
-                CONF_WASTE_ENTITIES,
-                CONF_BIRTHDAY_CALENDAR_ENTITIES,
-            ):
+            for field in (CONF_MEDIA_MUSIC_PLAYERS, CONF_MEDIA_TV_PLAYERS):
                 if field in user_input:
-                    user_input[field] = _normalize_entity_list(user_input.get(field))
-
-            # Normalize optional single-entity selectors.
-            for field in (CONF_PRIMARY_USER, CONF_WASTE_TTS_ENTITY, CONF_BIRTHDAY_TTS_ENTITY):
-                if field in user_input and user_input[field] is None:
-                    user_input[field] = ""
-
+                    user_input[field] = _normalize_entity_list(user_input[field])
             return self._create_merged_entry(user_input)
 
         data = self._effective_config()
-        from .config_schema_builders import build_modules_schema
-        schema = vol.Schema(build_modules_schema(data))
-        return self.async_show_form(step_id="modules", data_schema=schema)
+        from .config_schema_builders import build_media_schema
+        return self.async_show_form(
+            step_id="module_media",
+            data_schema=vol.Schema(build_media_schema(data)),
+        )
+
+    # ── Module: Events Forwarder ─────────────────────────────────────
+
+    async def async_step_module_forwarder(self, user_input: dict | None = None) -> FlowResult:
+        """Events forwarder module configuration."""
+        if user_input is not None:
+            if CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES in user_input:
+                user_input[CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES] = _normalize_entity_list(
+                    user_input[CONF_EVENTS_FORWARDER_ADDITIONAL_ENTITIES]
+                )
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_forwarder_schema
+        return self.async_show_form(
+            step_id="module_forwarder",
+            data_schema=vol.Schema(build_forwarder_schema(data)),
+        )
+
+    # ── Module: Suggestion Seed ──────────────────────────────────────
+
+    async def async_step_module_seed(self, user_input: dict | None = None) -> FlowResult:
+        """Suggestion seed module configuration."""
+        if user_input is not None:
+            if CONF_SUGGESTION_SEED_ENTITIES in user_input:
+                user_input[CONF_SUGGESTION_SEED_ENTITIES] = _normalize_entity_list(
+                    user_input[CONF_SUGGESTION_SEED_ENTITIES]
+                )
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_seed_schema
+        return self.async_show_form(
+            step_id="module_seed",
+            data_schema=vol.Schema(build_seed_schema(data)),
+        )
+
+    # ── Module: User Preferences ─────────────────────────────────────
+
+    async def async_step_module_user_prefs(self, user_input: dict | None = None) -> FlowResult:
+        """User preferences module configuration."""
+        if user_input is not None:
+            if CONF_TRACKED_USERS in user_input:
+                user_input[CONF_TRACKED_USERS] = _normalize_entity_list(user_input[CONF_TRACKED_USERS])
+            for field in (CONF_PRIMARY_USER,):
+                if field in user_input and user_input[field] is None:
+                    user_input[field] = ""
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_user_prefs_schema
+        return self.async_show_form(
+            step_id="module_user_prefs",
+            data_schema=vol.Schema(build_user_prefs_schema(data)),
+        )
+
+    # ── Module: Waste Reminder ───────────────────────────────────────
+
+    async def async_step_module_waste(self, user_input: dict | None = None) -> FlowResult:
+        """Waste collection reminder module configuration."""
+        if user_input is not None:
+            if CONF_WASTE_ENTITIES in user_input:
+                user_input[CONF_WASTE_ENTITIES] = _normalize_entity_list(user_input[CONF_WASTE_ENTITIES])
+            if CONF_WASTE_TTS_ENTITY in user_input and user_input[CONF_WASTE_TTS_ENTITY] is None:
+                user_input[CONF_WASTE_TTS_ENTITY] = ""
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_waste_schema
+        return self.async_show_form(
+            step_id="module_waste",
+            data_schema=vol.Schema(build_waste_schema(data)),
+        )
+
+    # ── Module: Birthday Reminder ────────────────────────────────────
+
+    async def async_step_module_birthday(self, user_input: dict | None = None) -> FlowResult:
+        """Birthday reminder module configuration."""
+        if user_input is not None:
+            if CONF_BIRTHDAY_CALENDAR_ENTITIES in user_input:
+                user_input[CONF_BIRTHDAY_CALENDAR_ENTITIES] = _normalize_entity_list(
+                    user_input[CONF_BIRTHDAY_CALENDAR_ENTITIES]
+                )
+            if CONF_BIRTHDAY_TTS_ENTITY in user_input and user_input[CONF_BIRTHDAY_TTS_ENTITY] is None:
+                user_input[CONF_BIRTHDAY_TTS_ENTITY] = ""
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_birthday_schema
+        return self.async_show_form(
+            step_id="module_birthday",
+            data_schema=vol.Schema(build_birthday_schema(data)),
+        )
+
+    # ── Module: HA Errors Digest ─────────────────────────────────────
+
+    async def async_step_module_ha_errors(self, user_input: dict | None = None) -> FlowResult:
+        """HA error digest module configuration."""
+        if user_input is not None:
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_ha_errors_schema
+        return self.async_show_form(
+            step_id="module_ha_errors",
+            data_schema=vol.Schema(build_ha_errors_schema(data)),
+        )
+
+    # ── Module: Devlog Push ──────────────────────────────────────────
+
+    async def async_step_module_devlog(self, user_input: dict | None = None) -> FlowResult:
+        """Dev log push module configuration."""
+        if user_input is not None:
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_devlog_schema
+        return self.async_show_form(
+            step_id="module_devlog",
+            data_schema=vol.Schema(build_devlog_schema(data)),
+        )
+
+    # ── Module: Watchdog ─────────────────────────────────────────────
+
+    async def async_step_module_watchdog(self, user_input: dict | None = None) -> FlowResult:
+        """Watchdog module configuration."""
+        if user_input is not None:
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_watchdog_schema
+        return self.async_show_form(
+            step_id="module_watchdog",
+            data_schema=vol.Schema(build_watchdog_schema(data)),
+        )
+
+    # ── Module: PilotSuite UX ────────────────────────────────────────
+
+    async def async_step_module_pilotsuite_ux(self, user_input: dict | None = None) -> FlowResult:
+        """PilotSuite UX / button visibility configuration."""
+        if user_input is not None:
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_pilotsuite_schema
+        return self.async_show_form(
+            step_id="module_pilotsuite_ux",
+            data_schema=vol.Schema(build_pilotsuite_schema(data)),
+        )
 
     # ── Habitus zones ────────────────────────────────────────────────
 

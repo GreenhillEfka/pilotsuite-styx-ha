@@ -1233,6 +1233,62 @@ def _register_homekit_services(hass: HomeAssistant) -> None:
         )
 
 
+def _register_core_module_services(hass: HomeAssistant) -> None:
+    """Register services for controlling Core module states."""
+    from .const import DOMAIN
+
+    if not hass.services.has_service(DOMAIN, "core_module_configure"):
+
+        async def _handle_configure_module(call) -> None:
+            module_id = call.data.get("module_id", "").strip()
+            state = call.data.get("state", "").strip().lower()
+            if not module_id or not state:
+                _LOGGER.warning("core_module_configure: module_id and state are required")
+                return
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+                coordinator = entry_data.get("coordinator")
+                if not coordinator:
+                    continue
+                try:
+                    result = await coordinator.api.async_configure_core_module(module_id, state)
+                    hass.bus.async_fire(
+                        f"{DOMAIN}_core_module_configured",
+                        {"module_id": module_id, "state": state, "ok": result.get("ok", False)},
+                    )
+                    await coordinator.async_refresh()
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.error("Failed to configure Core module %s: %s", module_id, err)
+                break
+
+        hass.services.async_register(
+            DOMAIN,
+            "core_module_configure",
+            _handle_configure_module,
+            schema=vol.Schema({
+                vol.Required("module_id"): str,
+                vol.Required("state"): vol.In(["active", "learning", "off"]),
+            }),
+        )
+
+    if not hass.services.has_service(DOMAIN, "core_modules_refresh"):
+
+        async def _handle_refresh_modules(call) -> None:
+            for entry in hass.config_entries.async_entries(DOMAIN):
+                entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+                coordinator = entry_data.get("coordinator")
+                if coordinator:
+                    await coordinator.async_refresh()
+                    break
+
+        hass.services.async_register(
+            DOMAIN,
+            "core_modules_refresh",
+            _handle_refresh_modules,
+            schema=vol.Schema({}),
+        )
+
+
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
@@ -1254,3 +1310,4 @@ def async_register_all_services(hass: HomeAssistant) -> None:
     _register_energy_services(hass)
     _register_habit_learning_services(hass)
     _register_homekit_services(hass)
+    _register_core_module_services(hass)

@@ -251,6 +251,22 @@ class CopilotApiClient(SharedCopilotApiClient):
     async def put_with_auth(self, path: str, data: dict | None = None) -> dict:
         return await self.async_put(self._normalize_v1_path(path), payload=data or {})
 
+    async def async_get_core_modules(self) -> dict[str, str]:
+        """Return Core module states from /api/v1/modules/."""
+        try:
+            data = await self.async_get("/api/v1/modules/")
+            return data.get("modules", {})
+        except CopilotApiError as e:
+            _LOGGER.debug("Core modules API not available: %s", e)
+        return {}
+
+    async def async_configure_core_module(self, module_id: str, state: str) -> dict:
+        """Set the state of a Core module via /api/v1/modules/<id>/configure."""
+        return await self.async_post(
+            f"/api/v1/modules/{module_id}/configure",
+            {"state": state},
+        )
+
 
 class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
     """Coordinator with neural system integration."""
@@ -311,6 +327,9 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 # Get neuron states
                 neurons_data = await self.api.async_get_neurons()
 
+                # Get Core module states (best-effort, non-blocking)
+                core_modules = await self.api.async_get_core_modules()
+
                 # Get habit learning data from ML context if available
                 habit_data = await self._get_habit_learning_data()
 
@@ -324,6 +343,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     "habit_summary": habit_data.get("habit_summary", {}),
                     "predictions": habit_data.get("predictions", []),
                     "sequences": habit_data.get("sequences", []),
+                    "core_modules": core_modules,
                 }
             except CopilotApiError as err:
                 last_err = err

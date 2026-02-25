@@ -56,6 +56,7 @@ class LegacyModule:
                 "habit_summary": {},
                 "predictions": [],
                 "sequences": [],
+                "core_modules": {},
             }
 
         webhook_id = None
