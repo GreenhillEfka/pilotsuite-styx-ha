@@ -298,6 +298,10 @@ def build_pilotsuite_schema(data: dict) -> dict:
     """Build schema fields for PilotSuite UX settings."""
     return {
         vol.Optional(
+            CONF_ENTITY_PROFILE,
+            default=data.get(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE),
+        ): vol.In(ENTITY_PROFILES),
+        vol.Optional(
             CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS,
             default=data.get(CONF_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS, DEFAULT_PILOTSUITE_SHOW_SAFETY_BACKUP_BUTTONS),
         ): bool,

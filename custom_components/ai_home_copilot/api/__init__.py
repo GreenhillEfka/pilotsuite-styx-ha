@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 import aiohttp
@@ -131,8 +132,6 @@ class CopilotApiClient:
 
         return CopilotStatus(ok=ok, version=ver)
 
-
-import asyncio  # keep at end to avoid circulars in some HA loaders
 
 __all__ = [
     "CopilotStatus",
