@@ -1623,3 +1623,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.contrast2 import contrast2_bp
         app.register_blueprint(contrast2_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.scan import scan_bp
+        app.register_blueprint(scan_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ocr import ocr_bp
+        app.register_blueprint(ocr_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.printer import printer_bp
+        app.register_blueprint(printer_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.scanner import scanner_bp
+        app.register_blueprint(scanner_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.copier import copier_bp
+        app.register_blueprint(copier_bp)
+    except: pass
