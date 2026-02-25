@@ -1263,3 +1263,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.metrics import metrics_bp
         app.register_blueprint(metrics_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.health2 import health_bp
+        app.register_blueprint(health_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.status2 import status_bp
+        app.register_blueprint(status_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.version2 import version2_bp
+        app.register_blueprint(version2_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.feature import feature_bp
+        app.register_blueprint(feature_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.test import test_bp
+        app.register_blueprint(test_bp)
+    except: pass

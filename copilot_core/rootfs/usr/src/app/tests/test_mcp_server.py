@@ -38,3 +38,27 @@ def test_mcp_tools_list_exposes_pilotsuite_tools() -> None:
     assert "pilotsuite.get_mood" in names
     assert "pilotsuite.get_brain_graph" in names
     assert "pilotsuite.search_memory" in names
+
+
+def test_mcp_web_search_tool_exists() -> None:
+    """Phase 2: Web search via SearXNG should be available."""
+    client = _make_client()
+    resp = client.post("/mcp", json={"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    tools = payload["result"]["tools"]
+    names = {t["name"] for t in tools}
+    assert "pilotsuite.search_web" in names, "MCP Phase 2: search_web tool missing"
+
+
+def test_mcp_web_search_tool_schema() -> None:
+    """Phase 2: Web search tool should have correct schema."""
+    client = _make_client()
+    resp = client.post("/mcp", json={"jsonrpc": "2.0", "id": 4, "method": "tools/list"})
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    tools = payload["result"]["tools"]
+    web_search = next((t for t in tools if t["name"] == "pilotsuite.search_web"), None)
+    assert web_search is not None, "search_web tool not found"
+    assert "query" in web_search["inputSchema"]["properties"], "query parameter missing"
+    assert web_search["inputSchema"]["properties"]["query"]["type"] == "string"
