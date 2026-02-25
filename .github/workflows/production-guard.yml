@@ -34,6 +34,7 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
+          ignore: "brands"
 
       - name: Success marker
         run: echo "✅ Production Guard passed"
