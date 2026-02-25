@@ -88,61 +88,132 @@
       },
       "modules": {
         "title": "Modules",
-        "description": "Enable and configure PilotSuite modules.",
+        "description": "Select a module to configure.",
+        "menu_options": {
+          "module_media": "Media players",
+          "module_forwarder": "Events forwarder",
+          "module_seed": "Suggestion seed",
+          "module_user_prefs": "User preferences",
+          "module_waste": "Waste reminders",
+          "module_birthday": "Birthday reminders",
+          "module_ha_errors": "HA error digest",
+          "module_devlog": "Dev log push",
+          "module_watchdog": "Watchdog",
+          "module_pilotsuite_ux": "PilotSuite UI",
+          "back": "Back"
+        }
+      },
+      "module_media": {
+        "title": "Media Players",
+        "description": "Configure media player entities for music and TV.",
         "data": {
-          "media_music_players": "Music players (csv)",
-          "media_tv_players": "TV players (csv)",
-          "suggestion_seed_entities": "Suggestion seed sensors (csv, optional)",
-          "seed_allowed_domains": "Seed allowlist domains (csv)",
-          "seed_blocked_domains": "Seed blocklist domains (csv)",
-          "seed_max_offers_per_hour": "Seed: max offers per hour",
-          "seed_min_seconds_between_offers": "Seed: min seconds between offers",
-          "seed_max_offers_per_update": "Seed: max offers per sensor update",
-          "watchdog_enabled": "Enable watchdog polling",
-          "watchdog_interval_seconds": "Watchdog interval (seconds)",
-          "enable_user_preferences": "Enable user preferences",
+          "media_music_players": "Music players",
+          "media_tv_players": "TV players"
+        }
+      },
+      "module_forwarder": {
+        "title": "Events Forwarder",
+        "description": "Configure which events are forwarded to PilotSuite Core.",
+        "data": {
           "events_forwarder_enabled": "Enable events forwarder",
-          "events_forwarder_flush_interval_seconds": "Forwarder flush interval (seconds)",
-          "events_forwarder_max_batch": "Forwarder max batch size",
+          "events_forwarder_flush_interval_seconds": "Flush interval (seconds)",
+          "events_forwarder_max_batch": "Max batch size",
           "events_forwarder_forward_call_service": "Forward call_service events",
-          "events_forwarder_idempotency_ttl_seconds": "Forwarder idempotency TTL (seconds)",
-          "events_forwarder_persistent_queue_enabled": "Persistent forwarder queue",
+          "events_forwarder_idempotency_ttl_seconds": "Idempotency TTL (seconds)",
+          "events_forwarder_persistent_queue_enabled": "Persistent queue",
           "events_forwarder_persistent_queue_max_size": "Persistent queue max size",
           "events_forwarder_persistent_queue_flush_interval_seconds": "Persistent queue flush interval (seconds)",
           "events_forwarder_include_habitus_zones": "Forward Habitus zone entities",
           "events_forwarder_include_media_players": "Forward media players",
-          "events_forwarder_additional_entities": "Additional entities to forward (csv)",
-          "pilotsuite_show_safety_backup_buttons": "Show safety-backup buttons",
-          "pilotsuite_show_dev_surface_buttons": "Show debug/dev buttons",
-          "pilotsuite_show_graph_bridge_buttons": "Show graph-to-candidates buttons",
-          "ha_errors_digest_enabled": "HA error digest",
-          "ha_errors_digest_interval_seconds": "Error digest interval (seconds)",
-          "ha_errors_digest_max_lines": "Error digest max lines",
-          "devlog_push_enabled": "Push logs to Core",
-          "devlog_push_interval_seconds": "Log push interval (seconds)",
-          "devlog_push_path": "Core log endpoint",
-          "devlog_push_max_lines": "Log push max lines",
-          "devlog_push_max_chars": "Log push max chars",
+          "events_forwarder_additional_entities": "Additional entities to forward"
+        }
+      },
+      "module_seed": {
+        "title": "Suggestion Seed",
+        "description": "Configure suggestion seed sensors and limits.",
+        "data": {
+          "suggestion_seed_entities": "Seed sensor entities",
+          "seed_allowed_domains": "Allowlist domains (csv)",
+          "seed_blocked_domains": "Blocklist domains (csv)",
+          "seed_max_offers_per_hour": "Max offers per hour",
+          "seed_min_seconds_between_offers": "Min seconds between offers",
+          "seed_max_offers_per_update": "Max offers per sensor update"
+        }
+      },
+      "module_user_prefs": {
+        "title": "User Preferences",
+        "description": "Per-user tracking and Multi-User Preference Learning (MUPL).",
+        "data": {
           "user_preference_enabled": "Per-user preference tracking",
-          "tracked_users": "Tracked users (csv person.entity_ids)",
-          "primary_user": "Primary user (person.entity_id)",
-          "user_learning_mode": "Learning mode (passive/active/hybrid)",
+          "tracked_users": "Tracked users",
+          "primary_user": "Primary user",
+          "user_learning_mode": "Learning mode",
           "mupl_enabled": "Multi-User Preference Learning",
           "mupl_privacy_mode": "MUPL privacy mode",
           "mupl_min_interactions": "MUPL min interactions",
-          "mupl_retention_days": "MUPL data retention (days)",
-          "waste_enabled": "Waste collection reminders",
-          "waste_entities": "Waste sensor entities (csv)",
-          "waste_tts_enabled": "Waste TTS announcements",
-          "waste_tts_entity": "Waste TTS entity",
-          "waste_reminder_evening_hour": "Waste evening reminder hour",
-          "waste_reminder_morning_hour": "Waste morning reminder hour",
-          "birthday_enabled": "Birthday reminders",
-          "birthday_calendar_entities": "Birthday calendar entities (csv)",
-          "birthday_lookahead_days": "Birthday lookahead days",
-          "birthday_tts_enabled": "Birthday TTS announcements",
-          "birthday_tts_entity": "Birthday TTS entity",
-          "birthday_reminder_hour": "Birthday reminder hour"
+          "mupl_retention_days": "MUPL data retention (days)"
+        }
+      },
+      "module_waste": {
+        "title": "Waste Collection Reminders",
+        "description": "Configure waste collection sensors and TTS reminders.",
+        "data": {
+          "waste_enabled": "Enable waste reminders",
+          "waste_entities": "Waste sensor entities",
+          "waste_tts_enabled": "TTS announcements",
+          "waste_tts_entity": "TTS media player entity",
+          "waste_reminder_evening_hour": "Evening reminder hour (0-23)",
+          "waste_reminder_morning_hour": "Morning reminder hour (0-23)"
+        }
+      },
+      "module_birthday": {
+        "title": "Birthday Reminders",
+        "description": "Configure birthday calendar and TTS reminders.",
+        "data": {
+          "birthday_enabled": "Enable birthday reminders",
+          "birthday_calendar_entities": "Calendar entities",
+          "birthday_lookahead_days": "Lookahead days",
+          "birthday_tts_enabled": "TTS announcements",
+          "birthday_tts_entity": "TTS media player entity",
+          "birthday_reminder_hour": "Morning reminder hour (0-23)"
+        }
+      },
+      "module_ha_errors": {
+        "title": "HA Error Digest",
+        "description": "Periodically forward HA error log entries to PilotSuite Core.",
+        "data": {
+          "ha_errors_digest_enabled": "Enable HA error digest",
+          "ha_errors_digest_interval_seconds": "Digest interval (seconds)",
+          "ha_errors_digest_max_lines": "Max lines per digest"
+        }
+      },
+      "module_devlog": {
+        "title": "Dev Log Push",
+        "description": "Push HA logs to PilotSuite Core for analysis.",
+        "data": {
+          "devlog_push_enabled": "Enable log push",
+          "devlog_push_interval_seconds": "Push interval (seconds)",
+          "devlog_push_path": "Core log endpoint",
+          "devlog_push_max_lines": "Max lines",
+          "devlog_push_max_chars": "Max chars"
+        }
+      },
+      "module_watchdog": {
+        "title": "Watchdog",
+        "description": "Polling watchdog to keep the connection to Core alive.",
+        "data": {
+          "watchdog_enabled": "Enable watchdog polling",
+          "watchdog_interval_seconds": "Watchdog interval (seconds)",
+          "enable_user_preferences": "Enable user preferences"
+        }
+      },
+      "module_pilotsuite_ux": {
+        "title": "PilotSuite UI",
+        "description": "Toggle visibility of advanced button groups in the dashboard.",
+        "data": {
+          "pilotsuite_show_safety_backup_buttons": "Show safety-backup buttons",
+          "pilotsuite_show_dev_surface_buttons": "Show debug/dev buttons",
+          "pilotsuite_show_graph_bridge_buttons": "Show graph-to-candidates buttons"
         }
       },
       "entity_tags": {
