@@ -1903,3 +1903,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.webrtc import webrtc_bp
         app.register_blueprint(webrtc_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.sip import sip_bp
+        app.register_blueprint(sip_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.voip import voip_bp
+        app.register_blueprint(voip_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.rtp import rtp_bp
+        app.register_blueprint(rtp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.rtsp import rtsp_bp
+        app.register_blueprint(rtsp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.srt import srt_bp
+        app.register_blueprint(srt_bp)
+    except: pass
