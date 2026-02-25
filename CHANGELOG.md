@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v8.1.1 (2026-02-25)
+- RFC-Phase 2 Core Tools implementiert
+- Scene Automation Skills (create_scene_from_behavior, list_scenes)
+- Multi-Zone Audio Control (group_zones, ungroup_zones)
+- Security & Access (door_status, lock_door, unlock_door)
+- Maintenance & Diagnostics (system_health, restart_service)
+- Calendar & Scheduling (upcoming_events, optimal_time)
+- Weather-Based Automation (weather_trigger)
+- MCP-compatible API mit input schemas
+- Pytest: 608 passed
+
 ## v8.1.0 (2026-02-25)
 - HACS Release Pipeline (v8.1.0)
 - HA Dashboard API Endpoints (v7.11.0)
