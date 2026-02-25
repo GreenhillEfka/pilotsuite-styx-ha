@@ -947,3 +947,11 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         _LOGGER.info("Registered Input Boolean API (/api/v1/input_boolean/*)")
     except Exception:
         _LOGGER.exception("Failed to register Input Boolean API")
+
+    # Register Bulk Operations API (v7.27.0)
+    try:
+        from copilot_core.api.v1.bulk import bulk_bp
+        app.register_blueprint(bulk_bp)
+        _LOGGER.info("Registered Bulk Operations API (/api/v1/bulk/*)")
+    except Exception:
+        _LOGGER.exception("Failed to register Bulk Operations API")
