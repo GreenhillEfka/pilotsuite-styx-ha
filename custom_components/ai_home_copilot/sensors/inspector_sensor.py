@@ -15,7 +15,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up inspector sensor."""
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    coordinator = entry_data.get("coordinator")
+    if coordinator is None:
+        return
     
     entities = [
         InspectorSensor(coordinator, "zones", "Habitus Zones", "mdi:floor-plan"),

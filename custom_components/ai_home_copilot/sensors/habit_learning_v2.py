@@ -180,7 +180,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up habit learning sensors from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("coordinator")
+    if coordinator is None:
+        return
     
     sensors = [
         HabitLearningSensor(coordinator),

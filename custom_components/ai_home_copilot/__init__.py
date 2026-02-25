@@ -537,7 +537,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             entry_store["_onboarding_shown"] = True
     except Exception:
-        _LOGGER.debug("Onboarding notification skipped: %s", exc_info=True)
+        _LOGGER.debug("Onboarding notification skipped", exc_info=True)
 
     return True
 

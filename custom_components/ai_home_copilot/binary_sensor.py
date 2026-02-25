@@ -23,8 +23,8 @@ from .unifi_context_entities import build_unifi_binary_entities
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data.get("coordinator")
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    coordinator = data.get("coordinator") if isinstance(data, dict) else None
     if coordinator is None:
         _LOGGER.error("Coordinator not available for %s, skipping binary_sensor setup", entry.entry_id)
         return
