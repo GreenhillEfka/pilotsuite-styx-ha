@@ -1423,3 +1423,23 @@ def register_blueprints(app: Flask, services: dict = None) -> None:
         from copilot_core.api.v1.mac import mac_bp
         app.register_blueprint(mac_bp)
     except: pass
+    try:
+        from copilot_core.api.v1.snmp import snmp_bp
+        app.register_blueprint(snmp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.smtp import smtp_bp
+        app.register_blueprint(smtp_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.imap import imap_bp
+        app.register_blueprint(imap_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.pop3 import pop3_bp
+        app.register_blueprint(pop3_bp)
+    except: pass
+    try:
+        from copilot_core.api.v1.ftp import ftp_bp
+        app.register_blueprint(ftp_bp)
+    except: pass
