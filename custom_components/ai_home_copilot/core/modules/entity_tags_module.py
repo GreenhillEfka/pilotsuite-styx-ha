@@ -1,4 +1,4 @@
-"""Entity Tags Module — manual + automatic entity tagging for PilotSuite.
+"""Entity Tags Module v2 — Manual + automatic entity tagging for PilotSuite.
 
 Provides a way for users to assign custom tags to HA entities, enabling
 modules to query "give me all entities tagged as Licht" instead of blindly
@@ -7,8 +7,19 @@ scanning all entities.
 Features:
 - Manual tagging via config flow UI
 - Auto "Styx" tagging: every entity Styx interacts with gets auto-tagged
-- User-labeled "Styx" entities are monitored by PilotSuite
+- Auto zone tagging: entities added to Habitus zones get tagged
+- Auto area tagging: entities get tagged based on their HA area
+- Auto domain tagging: entities get tagged based on their HA domain
+- HA Labels integration: reads native HA labels as PilotSuite tags
 - Tags visible in LLM context, sensors, and queryable by modules
+
+Tag types:
+  - styx         → Auto: entities Styx interacted with
+  - zone_*       → Auto: entities in Habitus zones
+  - area_*       → Auto: entities in HA areas
+  - domain_*     → Auto: entities by HA domain
+  - ha_label_*   → Synced from HA native labels
+  - (custom)     → Manual: user-defined tags
 """
 from __future__ import annotations
 
@@ -36,7 +47,7 @@ class EntityTagsModule(CopilotModule):
 
     @property
     def version(self) -> str:
-        return "0.2.0"
+        return "0.3.0"
 
     def __init__(self):
         self._tags: dict = {}   # tag_id -> EntityTag
@@ -56,7 +67,7 @@ class EntityTagsModule(CopilotModule):
         ctx.hass.data["ai_home_copilot"][ctx.entry_id]["entity_tags_module"] = self
 
         _LOGGER.info(
-            "EntityTagsModule setup: %d tags loaded",
+            "EntityTagsModule v2 setup: %d tags loaded",
             len(self._tags),
         )
 
@@ -105,9 +116,13 @@ class EntityTagsModule(CopilotModule):
     def get_summary(self) -> dict[str, Any]:
         """Structured summary for sensor attributes."""
         styx_count = len(self.get_styx_entities())
+        zone_tags = self.get_zone_tags()
+        area_tags = self.get_area_tags()
         return {
             "tag_count": len(self._tags),
             "styx_tagged_count": styx_count,
+            "zone_tag_count": len(zone_tags),
+            "area_tag_count": len(area_tags),
             "tags": [
                 {
                     "tag_id": t.tag_id,
@@ -191,6 +206,10 @@ class EntityTagsModule(CopilotModule):
             "garten": "#34d399",   # green
             "flur": "#fbbf24",     # yellow
             "garage": "#6b7280",   # gray
+            "keller": "#78716c",   # stone
+            "ess": "#a78bfa",      # violet
+            "wasch": "#38bdf8",    # sky
+            "dach": "#d97706",     # amber
         }
         color = STYX_TAG_COLOR  # default purple
         zone_lower = zone_name.lower()
@@ -226,13 +245,66 @@ class EntityTagsModule(CopilotModule):
 
         return len(new_ids)
 
+    async def async_auto_tag_by_area(
+        self, area_id: str, area_name: str, entity_ids: list[str]
+    ) -> int:
+        """Auto-tag entities by their HA area.
+
+        Creates a tag per area (e.g. 'area_wohnzimmer') and assigns all entities
+        that belong to that area. This bridges HA areas with PilotSuite tags.
+
+        Returns the number of newly tagged entities.
+        """
+        if not self._hass or not entity_ids or not area_id:
+            return 0
+
+        from ...entity_tags_store import async_upsert_tag
+
+        tag_id = f"area_{area_id}"
+        tag_name = f"Area: {area_name}"
+
+        current_tag = self._tags.get(tag_id)
+        current_ids = set(current_tag.entity_ids) if current_tag else set()
+        new_ids = [eid for eid in entity_ids if eid not in current_ids]
+
+        if not new_ids and current_tag:
+            return 0
+
+        merged = list(current_ids | set(entity_ids))
+        await async_upsert_tag(
+            self._hass,
+            tag_id=tag_id,
+            name=tag_name,
+            entity_ids=merged,
+            color="#94a3b8",  # slate
+            icon="mdi:home-map-marker",
+            module_hints=["ha_area", area_id],
+        )
+        await self.reload_from_storage()
+
+        if new_ids:
+            _LOGGER.info(
+                "Auto-tagged %d entities with area %s (total: %d)",
+                len(new_ids), area_id, len(merged),
+            )
+        return len(new_ids)
+
     def get_zone_tags(self) -> list:
         """Return all zone-related tags."""
         return [t for t in self._tags.values() if "habitus" in t.module_hints or t.tag_id.startswith("zone_")]
 
+    def get_area_tags(self) -> list:
+        """Return all area-related tags."""
+        return [t for t in self._tags.values() if "ha_area" in t.module_hints or t.tag_id.startswith("area_")]
+
     def get_entities_for_zone(self, zone_id: str) -> list[str]:
         """Return entity_ids tagged for a specific zone."""
         tag_id = zone_id.replace(":", "_")
+        return self.get_entities_by_tag(tag_id)
+
+    def get_entities_for_area(self, area_id: str) -> list[str]:
+        """Return entity_ids tagged for a specific HA area."""
+        tag_id = f"area_{area_id}"
         return self.get_entities_by_tag(tag_id)
 
     async def async_auto_tag_from_zone_suggestions(
@@ -307,6 +379,53 @@ class EntityTagsModule(CopilotModule):
         )
         return len(new_ids)
 
+    async def async_sync_ha_labels(self) -> int:
+        """Sync HA native labels as PilotSuite tags.
+
+        Reads entities' label assignments from the entity registry and creates
+        corresponding PilotSuite tags prefixed with 'ha_label_'.
+
+        Returns the number of label tags synced.
+        """
+        if not self._hass:
+            return 0
+
+        from homeassistant.helpers import entity_registry
+        ent_reg = entity_registry.async_get(self._hass)
+        from ...entity_tags_store import async_upsert_tag
+
+        # Collect entity_ids by label
+        label_entities: dict[str, list[str]] = {}
+        for entity_id, entry in ent_reg.entities.items():
+            if entry.disabled_by is not None:
+                continue
+            labels = getattr(entry, "labels", None)
+            if not labels:
+                continue
+            for label in labels:
+                label_entities.setdefault(label, []).append(entity_id)
+
+        synced = 0
+        for label_id, entity_ids in label_entities.items():
+            tag_id = f"ha_label_{label_id}"
+            tag_name = f"Label: {label_id}"
+            await async_upsert_tag(
+                self._hass,
+                tag_id=tag_id,
+                name=tag_name,
+                entity_ids=entity_ids,
+                color="#e2e8f0",  # light gray
+                icon="mdi:label",
+                module_hints=["ha_label", label_id],
+            )
+            synced += 1
+
+        if synced > 0:
+            await self.reload_from_storage()
+            _LOGGER.info("Synced %d HA labels as PilotSuite tags", synced)
+
+        return synced
+
     # ------------------------------------------------------------------
     # LLM Context
     # ------------------------------------------------------------------
@@ -315,17 +434,32 @@ class EntityTagsModule(CopilotModule):
         """Inject tag info into LLM system prompt."""
         if not self._tags:
             return ""
-        lines = ["Manuelle Entitäts-Tags:"]
+        lines = ["Entity-Tags:"]
         for tag in self._tags.values():
             if not tag.entity_ids:
                 continue
             sample = tag.entity_ids[:5]
-            suffix = " …" if len(tag.entity_ids) > 5 else ""
-            marker = " [auto]" if tag.tag_id == STYX_TAG_ID else ""
+            suffix = " ..." if len(tag.entity_ids) > 5 else ""
+            # Identify tag type
+            if tag.tag_id == STYX_TAG_ID:
+                marker = " [auto:styx]"
+            elif tag.tag_id.startswith("zone_"):
+                marker = " [auto:zone]"
+            elif tag.tag_id.startswith("area_"):
+                marker = " [auto:area]"
+            elif tag.tag_id.startswith("ha_label_"):
+                marker = " [ha:label]"
+            elif tag.tag_id.startswith("domain_"):
+                marker = " [auto:domain]"
+            else:
+                marker = ""
             lines.append(f"  [{tag.name}]{marker}: {', '.join(sample)}{suffix}")
         styx_count = len(self.get_styx_entities())
         if styx_count > 0:
-            lines.append(f"  Styx hat insgesamt {styx_count} Entitäten berührt.")
+            lines.append(f"  Styx hat insgesamt {styx_count} Entitaeten beruehrt.")
+        zone_count = len(self.get_zone_tags())
+        if zone_count > 0:
+            lines.append(f"  {zone_count} Habitus-Zonen mit Tags verbunden.")
         return "\n".join(lines) if len(lines) > 1 else ""
 
 

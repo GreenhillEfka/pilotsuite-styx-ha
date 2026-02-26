@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## v9.1.0 (2026-02-26) — HA API INTEGRATION + DEVICE DISCOVERY + LABELS
+
+### Added
+- **EntityDiscoveryModule v2**: Now collects devices (manufacturer, model, sw_version) + HA labels + floor info from all registries.
+  - Area resolution: entity → device → area (per HA API docs: area_id is NOT in REST /api/states).
+  - Domain-specific extras: media_player sources, climate HVAC modes, light color modes, cover positions.
+  - Auto-tags zone suggestions from Core response.
+- **Entity Tags v2**: New tag types: `area_*` (HA area tags), `ha_label_*` (synced from HA native labels).
+  - `async_auto_tag_by_area()` — bridges HA areas with PilotSuite tags.
+  - `async_sync_ha_labels()` — imports HA native labels as PilotSuite tags.
+  - Enhanced LLM context with tag type markers ([auto:zone], [auto:area], [ha:label]).
+- **ha_discovery.py v2**: Comprehensive HA export script using REST + WebSocket API.
+  - WebSocket: `config/entity_registry/list`, `config/device_registry/list`, `config/area_registry/list`, `config/floor_registry/list`, `config/label_registry/list`.
+  - 18 role patterns (DE+EN), 14 zone keywords, entity-device enrichment.
+
+### Changed
+- **EntityDiscoveryModule**: Bumped to v2.0.0. Now pushes devices alongside entities+areas. Sync methods are synchronous (no unnecessary async).
+- **EntityTagsModule**: Bumped to v0.3.0. Added zone colors for keller, esszimmer, waschkueche, dachboden.
+- **Version**: `manifest.json` → `9.1.0`. Paired with Core `v9.1.0`.
+
 ## v9.0.0 (2026-02-26) — ARCHITECTURE OVERHAUL + EVENTBUS + TAG SYSTEM
 
 ### Added
