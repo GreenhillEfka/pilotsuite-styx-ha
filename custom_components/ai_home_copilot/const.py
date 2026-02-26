@@ -137,6 +137,20 @@ DEFAULT_SEED_MAX_OFFERS_PER_HOUR = 10
 DEFAULT_SEED_MIN_SECONDS_BETWEEN_OFFERS = 30
 DEFAULT_SEED_MAX_OFFERS_PER_UPDATE = 3
 
+# Ollama LLM service (forwarded to Core add-on)
+CONF_OLLAMA_HOST = "ollama_host"
+CONF_OLLAMA_PORT = "ollama_port"
+DEFAULT_OLLAMA_HOST = "localhost"
+DEFAULT_OLLAMA_PORT = 11435
+
+# SearXNG web search (forwarded to Core add-on)
+CONF_SEARXNG_ENABLED = "searxng_enabled"
+CONF_SEARXNG_HOST = "searxng_host"
+CONF_SEARXNG_PORT = "searxng_port"
+DEFAULT_SEARXNG_ENABLED = False
+DEFAULT_SEARXNG_HOST = ""
+DEFAULT_SEARXNG_PORT = 4041
+
 HEADER_AUTH = "X-Auth-Token"
 
 # User Preference Module (Multi-user learning)

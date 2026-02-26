@@ -213,6 +213,40 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(self, user_input: dict | None = None) -> FlowResult:
         return await self.async_step_manual_setup(user_input)
 
+    # ── Wizard step handlers ────────────────────────────────────────
+    # HA dispatches form submissions to async_step_<step_id>.
+    # Each wizard form uses step_id="wizard_*", so we need stub handlers
+    # that route back into the main wizard dispatcher.
+
+    async def async_step_wizard_discovery(self, user_input: dict | None = None) -> FlowResult:
+        if not hasattr(self, "_wizard_step"):
+            self._wizard_step = STEP_DISCOVERY
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_wizard_zones(self, user_input: dict | None = None) -> FlowResult:
+        self._wizard_step = STEP_ZONES
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_wizard_zone_entities(self, user_input: dict | None = None) -> FlowResult:
+        self._wizard_step = STEP_ZONE_ENTITIES
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_wizard_entities(self, user_input: dict | None = None) -> FlowResult:
+        self._wizard_step = STEP_ENTITIES
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_wizard_features(self, user_input: dict | None = None) -> FlowResult:
+        self._wizard_step = STEP_FEATURES
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_wizard_network(self, user_input: dict | None = None) -> FlowResult:
+        self._wizard_step = STEP_NETWORK
+        return await self.async_step_wizard(user_input)
+
+    async def async_step_wizard_review(self, user_input: dict | None = None) -> FlowResult:
+        self._wizard_step = STEP_REVIEW
+        return await self.async_step_wizard(user_input)
+
     # ── Wizard dispatcher ────────────────────────────────────────────
 
     async def async_step_wizard(self, user_input: dict | None = None) -> FlowResult:

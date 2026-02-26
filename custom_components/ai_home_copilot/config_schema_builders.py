@@ -11,6 +11,16 @@ from .const import (
     CONF_TOKEN,
     CONF_TEST_LIGHT,
     CONF_WEBHOOK_URL,
+    CONF_OLLAMA_HOST,
+    CONF_OLLAMA_PORT,
+    CONF_SEARXNG_ENABLED,
+    CONF_SEARXNG_HOST,
+    CONF_SEARXNG_PORT,
+    DEFAULT_OLLAMA_HOST,
+    DEFAULT_OLLAMA_PORT,
+    DEFAULT_SEARXNG_ENABLED,
+    DEFAULT_SEARXNG_HOST,
+    DEFAULT_SEARXNG_PORT,
     CONF_MEDIA_MUSIC_PLAYERS,
     CONF_MEDIA_TV_PLAYERS,
     CONF_SUGGESTION_SEED_ENTITIES,
@@ -150,7 +160,7 @@ def _as_entity_list(value: object) -> list[str]:
 
 
 def build_network_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
-    """Build schema fields for network settings (HOST, PORT, TOKEN)."""
+    """Build schema fields for network settings (HOST, PORT, TOKEN, Ollama, SearXNG)."""
     test_light_default = data.get(CONF_TEST_LIGHT) or None
     return {
         vol.Optional(CONF_WEBHOOK_URL, default=webhook_url): str,
@@ -164,6 +174,26 @@ def build_network_schema(data: dict, webhook_url: str, token_hint: str) -> dict:
                 selector.EntitySelectorConfig(domain="light", multiple=False),
             ),
         ),
+        vol.Optional(
+            CONF_OLLAMA_HOST,
+            default=data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
+        ): str,
+        vol.Optional(
+            CONF_OLLAMA_PORT,
+            default=data.get(CONF_OLLAMA_PORT, DEFAULT_OLLAMA_PORT),
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+        vol.Optional(
+            CONF_SEARXNG_ENABLED,
+            default=data.get(CONF_SEARXNG_ENABLED, DEFAULT_SEARXNG_ENABLED),
+        ): bool,
+        vol.Optional(
+            CONF_SEARXNG_HOST,
+            default=data.get(CONF_SEARXNG_HOST, DEFAULT_SEARXNG_HOST),
+        ): str,
+        vol.Optional(
+            CONF_SEARXNG_PORT,
+            default=data.get(CONF_SEARXNG_PORT, DEFAULT_SEARXNG_PORT),
+        ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
     }
 
 

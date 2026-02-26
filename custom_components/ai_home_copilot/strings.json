@@ -128,14 +128,25 @@
       },
       "connection": {
         "title": "Connection",
-        "description": "PilotSuite Core connection settings.",
+        "description": "PilotSuite Core connection and service settings.",
         "data": {
           "webhook_url": "Webhook URL (copy into Core)",
-          "host": "Host",
-          "port": "Port",
+          "host": "Core Host",
+          "port": "Core Port",
           "token": "API token",
           "_clear_token": "Clear token",
-          "test_light_entity_id": "Test light (for toggle button)"
+          "test_light_entity_id": "Test light (for toggle button)",
+          "ollama_host": "Ollama Host",
+          "ollama_port": "Ollama Port",
+          "searxng_enabled": "SearXNG enabled",
+          "searxng_host": "SearXNG Host",
+          "searxng_port": "SearXNG Port"
+        },
+        "data_description": {
+          "ollama_host": "Hostname of the Ollama instance (default: localhost)",
+          "ollama_port": "Port of the Ollama instance (default: 11435)",
+          "searxng_host": "Hostname of the SearXNG instance (leave empty to disable)",
+          "searxng_port": "Port of the SearXNG instance (default: 4041)"
         }
       },
       "modules": {
