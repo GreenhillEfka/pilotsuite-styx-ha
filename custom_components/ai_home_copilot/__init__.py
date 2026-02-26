@@ -84,43 +84,74 @@ _MODULE_IMPORTS = {
     "entity_discovery": (".core.modules.entity_discovery", "EntityDiscoveryModule"),
 }
 
-_MODULES = [
+# ---------------------------------------------------------------------------
+# Module Tier Classification
+# ---------------------------------------------------------------------------
+# Tier 0 — KERNEL: always loaded, no opt-out.  Without these, nothing works.
+# Tier 1 — BRAIN:  always loaded when Core is reachable (intelligence layer).
+# Tier 2 — CONTEXT: loaded when relevant HA entities are present.
+# Tier 3 — EXTENSIONS: explicitly enabled by the user.
+# ---------------------------------------------------------------------------
+_TIER_0_KERNEL = [
     "legacy",
     "coordinator_module",
     "performance_scaling",
     "events_forwarder",
-    "history_backfill",
-    "dev_surface",
-    "habitus_miner",
-    "ops_runbook",
-    "unifi_module",
+    "entity_tags",
+]
+
+_TIER_1_BRAIN = [
     "brain_graph_sync",
+    "knowledge_graph_sync",
+    "habitus_miner",
     "candidate_poller",
-    "automation_adoption",
-    "zone_sync",
-    "media_zones",
     "mood",
     "mood_context",
+    "zone_sync",
+    "history_backfill",
+    "entity_discovery",
+]
+
+_TIER_2_CONTEXT = [
     "energy_context",
-    "network",
     "weather_context",
-    "knowledge_graph_sync",
-    "ml_context",
+    "media_zones",
     "camera_context",
-    "quick_search",
+    "network",
+    "ml_context",
     "voice_context",
+    "person_tracking",
+]
+
+_TIER_3_EXTENSIONS = [
+    "scene_module",
+    "homekit_bridge",
+    "frigate_bridge",
+    "calendar_module",
     "home_alerts",
     "character_module",
     "waste_reminder",
     "birthday_reminder",
-    "entity_tags",
-    "entity_discovery",
-    "person_tracking",
-    "frigate_bridge",
-    "scene_module",
-    "homekit_bridge",
-    "calendar_module",
+    "automation_adoption",
+    "dev_surface",
+    "ops_runbook",
+    "unifi_module",
+    "quick_search",
 ]
+
+# Expose tier info for dashboard / status reporting.
+MODULE_TIERS: dict[str, int] = {}
+for _name in _TIER_0_KERNEL:
+    MODULE_TIERS[_name] = 0
+for _name in _TIER_1_BRAIN:
+    MODULE_TIERS[_name] = 1
+for _name in _TIER_2_CONTEXT:
+    MODULE_TIERS[_name] = 2
+for _name in _TIER_3_EXTENSIONS:
+    MODULE_TIERS[_name] = 3
+
+# Boot order — Tier 0 first, then Tier 1, then Tier 2, then Tier 3.
+_MODULES = _TIER_0_KERNEL + _TIER_1_BRAIN + _TIER_2_CONTEXT + _TIER_3_EXTENSIONS
 
 _LEGACY_SENSOR_UNIQUE_ID_MIGRATIONS: dict[str, str] = {
     "_automation_suggestions": "copilot_automation_suggestions",

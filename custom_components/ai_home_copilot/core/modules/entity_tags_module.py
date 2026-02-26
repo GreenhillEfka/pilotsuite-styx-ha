@@ -37,6 +37,101 @@ STYX_TAG_NAME = "Styx"
 STYX_TAG_COLOR = "#8b5cf6"  # Purple
 STYX_TAG_ICON = "mdi:robot"
 
+# ---------------------------------------------------------------------------
+# Neuron ↔ Tag mapping — maps tag patterns to neuron categories.
+# Used by NeuronTagResolver to auto-assign entities to context/state/mood.
+# ---------------------------------------------------------------------------
+NEURON_TAG_MAPPING: dict[str, str] = {
+    # Explicit neuron tags (highest priority)
+    "styx:neuron:kontext": "context",
+    "styx:neuron:zustand": "state",
+    "styx:neuron:stimmung": "mood",
+    # Device-class based mapping
+    "licht": "context",
+    "light": "context",
+    "helligkeit": "context",
+    "illuminance": "context",
+    "temperatur": "state",
+    "temperature": "state",
+    "luftfeuchtigkeit": "state",
+    "humidity": "state",
+    "bewegung": "context",
+    "motion": "context",
+    "praesenz": "context",
+    "presence": "context",
+    "occupancy": "context",
+    "energie": "state",
+    "energy": "state",
+    "power": "state",
+    "media_player": "mood",
+    "musik": "mood",
+    "music": "mood",
+    "klima": "state",
+    "climate": "state",
+    "wetter": "context",
+    "weather": "context",
+    "kalender": "mood",
+    "calendar": "mood",
+    # Zone-type based mapping
+    "zone:wohnbereich": "context",
+    "zone:wohnzimmer": "context",
+    "zone:schlafzimmer": "mood",
+    "zone:kueche": "context",
+    "zone:bad": "state",
+    "zone:badezimmer": "state",
+    "zone:buero": "context",
+    "zone:flur": "context",
+    "zone:kinderzimmer": "mood",
+    "zone:garten": "context",
+}
+
+
+class NeuronTagResolver:
+    """Resolve entities for neuron categories based on tags.
+
+    Scans entity tags, HA labels, zone assignments, and device classes
+    to automatically determine which entities belong to context / state / mood
+    neuron groups.
+    """
+
+    def resolve_entities(
+        self,
+        tags_module: "EntityTagsModule",
+    ) -> dict[str, list[str]]:
+        """Return auto-resolved neuron entity assignments.
+
+        Returns dict with keys ``context_entities``, ``state_entities``,
+        ``mood_entities`` — each a deduplicated list of entity_ids.
+        """
+        result: dict[str, set[str]] = {"context": set(), "state": set(), "mood": set()}
+
+        all_tags = tags_module.get_all_tags()
+        for tag in all_tags:
+            tag_id = str(getattr(tag, "tag_id", "") or "").lower()
+            tag_name = str(getattr(tag, "name", "") or "").lower()
+            entity_ids = list(getattr(tag, "entity_ids", []) or [])
+
+            if not entity_ids:
+                continue
+
+            # 1. Check explicit neuron-tag matches (styx:neuron:*)
+            category = NEURON_TAG_MAPPING.get(tag_id)
+            if category:
+                result[category].update(entity_ids)
+                continue
+
+            # 2. Check tag_id / tag_name against known patterns
+            for pattern, cat in NEURON_TAG_MAPPING.items():
+                if pattern in tag_id or pattern in tag_name:
+                    result[cat].update(entity_ids)
+                    break
+
+        return {
+            "context_entities": sorted(result["context"]),
+            "state_entities": sorted(result["state"]),
+            "mood_entities": sorted(result["mood"]),
+        }
+
 
 class EntityTagsModule(CopilotModule):
     """Module managing user-defined and auto-generated entity tags."""

@@ -781,7 +781,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     # ── Neurons ──────────────────────────────────────────────────────
 
     async def async_step_neurons(self, user_input: dict | None = None) -> FlowResult:
-        """Configure neural system entities."""
+        """Configure neural system entities (auto-resolved from tags when empty)."""
         if user_input is not None:
             for field in (CONF_NEURON_CONTEXT_ENTITIES, CONF_NEURON_STATE_ENTITIES, CONF_NEURON_MOOD_ENTITIES):
                 if field in user_input:
@@ -790,5 +790,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             return self._create_merged_entry(user_input)
 
         data = self._effective_config()
+
+        # Auto-resolve neuron entities from tag system when not yet configured.
+        try:
+            from .core.modules.entity_tags_module import get_entity_tags_module, NeuronTagResolver
+            tags_mod = get_entity_tags_module(self.hass, self._entry.entry_id)
+            if tags_mod is not None:
+                resolved = NeuronTagResolver().resolve_entities(tags_mod)
+                # Only fill empty fields — user overrides take precedence.
+                if not data.get(CONF_NEURON_CONTEXT_ENTITIES):
+                    data[CONF_NEURON_CONTEXT_ENTITIES] = resolved["context_entities"]
+                if not data.get(CONF_NEURON_STATE_ENTITIES):
+                    data[CONF_NEURON_STATE_ENTITIES] = resolved["state_entities"]
+                if not data.get(CONF_NEURON_MOOD_ENTITIES):
+                    data[CONF_NEURON_MOOD_ENTITIES] = resolved["mood_entities"]
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Tag-based neuron auto-resolve failed (non-blocking)")
+
         schema = vol.Schema(build_neuron_schema(data))
         return self.async_show_form(step_id="neurons", data_schema=schema)

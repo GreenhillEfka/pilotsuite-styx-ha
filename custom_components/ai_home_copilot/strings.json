@@ -133,18 +133,24 @@
           "webhook_url": "Webhook URL (copy into Core)",
           "host": "Core Host",
           "port": "Core Port",
-          "token": "API token",
-          "_clear_token": "Clear token",
+          "token": "API Token",
+          "_clear_token": "Clear saved token",
           "test_light_entity_id": "Test light (for toggle button)",
           "ollama_host": "Ollama Host",
           "ollama_port": "Ollama Port",
-          "searxng_enabled": "SearXNG enabled",
+          "searxng_enabled": "SearXNG Web Search",
           "searxng_host": "SearXNG Host",
           "searxng_port": "SearXNG Port"
         },
         "data_description": {
+          "host": "Hostname or IP of the PilotSuite Core add-on (default: homeassistant.local)",
+          "port": "Port of the PilotSuite Core add-on (default: 8909)",
+          "token": "Optional token for authenticated API access. Leave empty if not configured.",
+          "_clear_token": "Enable this to remove the currently saved API token.",
+          "test_light_entity_id": "A light entity used for the toggle test button (optional).",
           "ollama_host": "Hostname of the Ollama instance (default: localhost)",
           "ollama_port": "Port of the Ollama instance (default: 11435)",
+          "searxng_enabled": "Enable SearXNG web search for the AI assistant.",
           "searxng_host": "Hostname of the SearXNG instance (leave empty to disable)",
           "searxng_port": "Port of the SearXNG instance (default: 4041)"
         }
@@ -446,7 +452,7 @@
       },
       "neurons": {
         "title": "Neural System Configuration",
-        "description": "Configure context, state, and mood neurons for the PilotSuite neural system. Entities assigned here will be used for pattern recognition and mood evaluation.",
+        "description": "Configure context, state, and mood neurons. Entities are auto-resolved from your tags and Habitus zones when fields are empty. Manual selections override auto-resolution.",
         "data": {
           "neuron_enabled": "Enable Neural System",
           "neuron_evaluation_interval": "Evaluation Interval (seconds)",
@@ -455,9 +461,10 @@
           "neuron_mood_entities": "Mood Neuron Entities"
         },
         "data_description": {
-          "neuron_context_entities": "Entities for context neurons (presence, time, weather, etc.)",
-          "neuron_state_entities": "Entities for state neurons (energy, comfort, stress, etc.)",
-          "neuron_mood_entities": "Entities that influence mood (lights, media, climate, etc.)"
+          "neuron_evaluation_interval": "How often the neural system evaluates state changes (10-3600 seconds).",
+          "neuron_context_entities": "Entities for context neurons (presence, light, motion, weather). Auto-filled from tags like 'licht', 'bewegung', zone assignments.",
+          "neuron_state_entities": "Entities for state neurons (temperature, humidity, energy, climate). Auto-filled from tags like 'temperatur', 'energie'.",
+          "neuron_mood_entities": "Entities influencing mood (media, music, calendar). Auto-filled from tags like 'musik', 'media_player'."
         }
       },
       "generate_dashboard": {
