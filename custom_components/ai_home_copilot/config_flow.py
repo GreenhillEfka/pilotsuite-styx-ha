@@ -58,6 +58,7 @@ from .const import (
     DEFAULT_PORT,
     DOMAIN,
     INTEGRATION_UNIQUE_ID,
+    ensure_defaults,
 )
 from .setup_wizard import SetupWizard
 
@@ -114,13 +115,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 DEFAULT_PORT,
             )
 
-        config = {
+        config = ensure_defaults({
             CONF_HOST: host,
             CONF_PORT: port,
             CONF_TOKEN: "",
             CONF_ENTITY_PROFILE: DEFAULT_ENTITY_PROFILE,
             "assistant_name": "Styx",
-        }
+        })
 
         # Best-effort connectivity check (non-blocking)
         try:
@@ -173,10 +174,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             name = user_input.get("assistant_name", "Styx")
             title = f"{name} — PilotSuite ({user_input[CONF_HOST]}:{user_input[CONF_PORT]})"
-            user_input.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+            full_config = ensure_defaults(user_input)
             await self.async_set_unique_id(INTEGRATION_UNIQUE_ID)
             self._abort_if_unique_id_configured()
-            return self.async_create_entry(title=title, data=user_input)
+            return self.async_create_entry(title=title, data=full_config)
 
         discovered = await discover_reachable_core_endpoint(
             self.hass,
@@ -273,7 +274,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Final step: create entry
         if next_step is None:
             final_config, title = build_final_config(self._data)
-            final_config.setdefault(CONF_ENTITY_PROFILE, DEFAULT_ENTITY_PROFILE)
+            final_config = ensure_defaults(final_config)
             try:
                 preferred_port = int(final_config.get(CONF_PORT, DEFAULT_PORT))
             except (TypeError, ValueError):

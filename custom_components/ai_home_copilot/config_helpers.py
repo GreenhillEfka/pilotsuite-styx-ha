@@ -8,7 +8,7 @@ import aiohttp
 
 from homeassistant.core import HomeAssistant
 
-from .const import DEFAULT_HOST, DEFAULT_PORT
+from .const import DEFAULT_HOST, DEFAULT_PORT, ensure_defaults
 from .core_endpoint import build_base_url, build_candidate_hosts, normalize_host_port
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,7 +57,12 @@ def merge_config_data(
     entry_options: dict | None,
     updates: dict | None = None,
 ) -> dict:
-    """Merge entry data/options plus updates for stable options persistence."""
+    """Merge entry data/options plus updates for stable options persistence.
+
+    Missing keys are backfilled from DEFAULTS_MAP so that options flow
+    always persists a complete configuration, even when the user only
+    edits a single module step.
+    """
     merged: dict = {}
     if isinstance(entry_data, dict):
         merged.update(entry_data)
@@ -65,7 +70,7 @@ def merge_config_data(
         merged.update(entry_options)
     if isinstance(updates, dict):
         merged.update(updates)
-    return merged
+    return ensure_defaults(merged)
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> None:

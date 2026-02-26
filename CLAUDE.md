@@ -142,7 +142,7 @@ custom_components/ai_home_copilot/
 
 ## Aktueller Stand
 
-### Version v9.5.0
+### Version v9.6.0
 
 - **Tests:** 574 passed, 5 skipped
 - **Python-Dateien:** 319
@@ -152,6 +152,7 @@ custom_components/ai_home_copilot/
 - Brain Graph Visualization (vis.js) + Summary Sensor
 - 7-Tab YAML Dashboard Generator (System, Neuronen, Brain, Core, Media, Habitus, ML)
 - 28/28 Options-Flow Steps mit data_description, _effective_config() Preservation
+- DEFAULTS_MAP + ensure_defaults() fuer vollstaendige Konfiguration bei ZeroConfig/QuickStart
 - DeviceInfo Dataclass (HA Best Practice)
 - PilotSuite Branding durchgaengig
 - HA 2024.1.0+ Mindestversion
