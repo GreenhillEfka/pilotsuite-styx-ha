@@ -4,7 +4,7 @@ Quick orientation for the Home Assistant integration repository (`pilotsuite-sty
 
 ## Current Baseline
 
-- Version: `8.9.0`
+- Version: `9.0.0`
 - Domain: `ai_home_copilot` (kept for backward compatibility)
 - Product name/UI: `PilotSuite - Styx`
 - Companion backend: `pilotsuite-styx-core` (Core API default port `8909`)

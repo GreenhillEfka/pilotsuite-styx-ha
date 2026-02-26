@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## v9.0.0 (2026-02-26) — ARCHITECTURE OVERHAUL + EVENTBUS + TAG SYSTEM
+
+### Added
+- **EventBus Architecture**: Thread-safe pub/sub EventBus for inter-module communication (topics: `zone.*`, `mood.*`, `neuron.*`, `candidate.*`, `graph.*`, `event.*`).
+- **Bidirectional Zone Sync**: New `ZoneSyncModule` with hash-based dedup, syncs zones via `/api/v1/habitus/zones/sync` (fallback to legacy endpoint).
+- **Automation Adoption Module**: `AutomationAdoptionModule` converts Core suggestions into HA automations (`adopt_suggestion`, `dismiss_suggestion` services).
+- **Coordinator Module**: Dedicated `CoordinatorModule` for coordinator lifecycle management (extracted from legacy).
+- **Habitus Zone Dashboard Card**: Comprehensive Lovelace card generator with zone overview, mood gauges (comfort/joy/frugality), entity lists, news/warnings, household quick actions.
+- **Zone Auto-Tagging**: `EntityTagsModule.async_auto_tag_zone_entities()` — automatic zone + Styx tagging when entities are assigned to Habitus zones.
+- **Entity Search API**: Searchable entity dropdown data from Core via `/api/v1/entities/search`, `/domains`, `/by-area`.
+
+### Changed
+- **Zone Sync**: `config_zones_flow.py` now tries new API first (`/api/v1/habitus/zones/sync`), falls back to legacy.
+- **Module Registry**: 3 new modules registered in `__init__.py`: `coordinator_module`, `automation_adoption`, `zone_sync`.
+- **Tag System**: Dual-layer tags (manual + automatic zone/Styx tags) with role-based colors per zone.
+
+### Version
+- `manifest.json` → `9.0.0`
+- Paired with Core `v9.0.0`.
+
 ## v8.12.1 (2026-02-26)
 - compat(core): paired with Core `v8.12.1` Habitus recommendation apply endpoint (`/api/v1/hub/habitus/management/apply_zone`).
 - compat(core): HomeKit auto-sync metadata now returned on zone lifecycle/bootstrap responses and consumed in dashboard flow.

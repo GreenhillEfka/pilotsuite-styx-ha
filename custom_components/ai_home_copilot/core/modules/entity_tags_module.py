@@ -161,6 +161,80 @@ class EntityTagsModule(CopilotModule):
         _LOGGER.info("Auto-tagged %d entities with Styx (total: %d)", len(new_ids), len(merged))
         return len(new_ids)
 
+    async def async_auto_tag_zone_entities(
+        self, zone_id: str, zone_name: str, entity_ids: list[str]
+    ) -> int:
+        """Auto-tag entities with their Habitus zone when added to a zone.
+
+        Creates a tag per zone (e.g. 'zone:wohnzimmer') and assigns all zone entities.
+        This connects the entity tag system with the Habitus zone system.
+
+        Returns the number of newly tagged entities.
+        """
+        if not self._hass or not entity_ids or not zone_id:
+            return 0
+
+        from ...entity_tags_store import async_upsert_tag
+
+        # Zone tag ID: use zone_id directly (already prefixed with 'zone:')
+        tag_id = zone_id.replace(":", "_")  # zone:wohnzimmer → zone_wohnzimmer
+        tag_name = f"Zone: {zone_name}"
+
+        # Zone tag color from role mapping
+        zone_colors = {
+            "bad": "#22d3ee",      # cyan
+            "kueche": "#fb923c",   # orange
+            "wohn": "#34d399",     # green
+            "schlaf": "#6366f1",   # indigo
+            "buero": "#60a5fa",    # blue
+            "kinder": "#f472b6",   # pink
+            "garten": "#34d399",   # green
+            "flur": "#fbbf24",     # yellow
+            "garage": "#6b7280",   # gray
+        }
+        color = STYX_TAG_COLOR  # default purple
+        zone_lower = zone_name.lower()
+        for key, col in zone_colors.items():
+            if key in zone_lower:
+                color = col
+                break
+
+        current_tag = self._tags.get(tag_id)
+        current_ids = set(current_tag.entity_ids) if current_tag else set()
+        new_ids = [eid for eid in entity_ids if eid not in current_ids]
+
+        merged = list(current_ids | set(entity_ids))
+        await async_upsert_tag(
+            self._hass,
+            tag_id=tag_id,
+            name=tag_name,
+            entity_ids=merged,
+            color=color,
+            icon="mdi:map-marker-radius",
+            module_hints=["habitus", "zone", zone_id],
+        )
+        await self.reload_from_storage()
+
+        if new_ids:
+            _LOGGER.info(
+                "Auto-tagged %d entities with zone %s (total: %d)",
+                len(new_ids), zone_id, len(merged),
+            )
+
+        # Also auto-tag with Styx (zone entities are Styx-relevant)
+        await self.async_auto_tag_styx(entity_ids)
+
+        return len(new_ids)
+
+    def get_zone_tags(self) -> list:
+        """Return all zone-related tags."""
+        return [t for t in self._tags.values() if "habitus" in t.module_hints or t.tag_id.startswith("zone_")]
+
+    def get_entities_for_zone(self, zone_id: str) -> list[str]:
+        """Return entity_ids tagged for a specific zone."""
+        tag_id = zone_id.replace(":", "_")
+        return self.get_entities_by_tag(tag_id)
+
     # ------------------------------------------------------------------
     # LLM Context
     # ------------------------------------------------------------------
