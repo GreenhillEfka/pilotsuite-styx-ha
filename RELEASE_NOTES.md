@@ -2,6 +2,11 @@
 
 > Hinweis: Fuer die vollstaendige Historie siehe `CHANGELOG.md`.
 
+## v10.1.2 (2026-02-26)
+
+- HA Best Practice: `single_config_entry` im Manifest aktiviert (verhindert multiple Config-Entries/Duplikate).
+- Paired Release: Core `v10.1.2`
+
 ## v10.1.1 (2026-02-26)
 
 - Fix: Versionsync/Metadaten konsolidiert (Repo + Integration) und Status/Doku nachgezogen.

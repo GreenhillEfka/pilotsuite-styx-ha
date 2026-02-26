@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v10.1.2 (2026-02-26) — HA DOCS COMPLIANCE
+
+### Changed
+- HA Best Practice: `single_config_entry` im Integration-Manifest aktiviert (verhindert multiple Config-Entries/Duplikate).
+
 ## v10.1.1 (2026-02-26) — VERSION SYNC + DOCS
 
 ### Fixed
