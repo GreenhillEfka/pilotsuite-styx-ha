@@ -150,7 +150,7 @@ class EntityTagsModule(CopilotModule):
         self._entry_id: Optional[str] = None
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
-        """Load tags from storage and register in hass.data."""
+        """Load tags from storage, sync HA labels, and register in hass.data."""
         self._hass = ctx.hass
         self._entry_id = ctx.entry_id
 
@@ -160,6 +160,18 @@ class EntityTagsModule(CopilotModule):
         ctx.hass.data.setdefault("ai_home_copilot", {})
         ctx.hass.data["ai_home_copilot"].setdefault(ctx.entry_id, {})
         ctx.hass.data["ai_home_copilot"][ctx.entry_id]["entity_tags_module"] = self
+
+        # Auto-sync HA labels + device-class tags on startup (best-effort).
+        try:
+            synced = await self.async_sync_ha_labels()
+            _LOGGER.debug("HA label sync: %d tags synced", synced)
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("HA label sync on startup failed (non-blocking)")
+
+        try:
+            await self.async_auto_tag_neuron_entities()
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Neuron entity auto-tag on startup failed (non-blocking)")
 
         _LOGGER.info(
             "EntityTagsModule v2 setup: %d tags loaded",
@@ -520,6 +532,53 @@ class EntityTagsModule(CopilotModule):
             _LOGGER.info("Synced %d HA labels as PilotSuite tags", synced)
 
         return synced
+
+    async def async_auto_tag_neuron_entities(self) -> int:
+        """Auto-tag entities with their neuron category (context/state/mood).
+
+        Runs the NeuronTagResolver, then creates/updates three special tags:
+          - styx:neuron:kontext  → all context neuron entities
+          - styx:neuron:zustand  → all state neuron entities
+          - styx:neuron:stimmung → all mood neuron entities
+
+        Returns the total number of unique entities tagged.
+        """
+        if not self._hass:
+            return 0
+
+        from ...entity_tags_store import async_upsert_tag
+
+        resolved = NeuronTagResolver().resolve_entities(self)
+        total = 0
+
+        tag_defs = [
+            ("styx:neuron:kontext", "Styx - Neuronen: Kontext",
+             resolved["context_entities"], "#60a5fa", "mdi:eye"),
+            ("styx:neuron:zustand", "Styx - Neuronen: Zustand",
+             resolved["state_entities"], "#34d399", "mdi:gauge"),
+            ("styx:neuron:stimmung", "Styx - Neuronen: Stimmung",
+             resolved["mood_entities"], "#fb923c", "mdi:emoticon"),
+        ]
+
+        for tag_id, tag_name, entity_ids, color, icon in tag_defs:
+            if not entity_ids:
+                continue
+            await async_upsert_tag(
+                self._hass,
+                tag_id=tag_id.replace(":", "_"),
+                name=tag_name,
+                entity_ids=entity_ids,
+                color=color,
+                icon=icon,
+                module_hints=["neuron", "auto"],
+            )
+            total += len(entity_ids)
+
+        if total > 0:
+            await self.reload_from_storage()
+            _LOGGER.info("Auto-tagged %d entities with neuron categories", total)
+
+        return total
 
     # ------------------------------------------------------------------
     # LLM Context

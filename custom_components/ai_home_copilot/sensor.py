@@ -210,6 +210,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         PipelineHealthSensor(coordinator),
         LlmHealthSensor(coordinator),
         AgentStatusSensor(coordinator),
+        ModuleStatusSensor(hass, entry),
         # Habitus Zones
         HabitusZonesSensor(coordinator, entry),
         HabitusZonesV2CountSensor(coordinator, entry),
@@ -547,9 +548,59 @@ class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):
         return self.coordinator.data.get("version", "unknown")
 
 
+class ModuleStatusSensor(SensorEntity):
+    """Aggregated module status sensor showing tier/state/last activity."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:view-module"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_module_status"
+        self._attr_name = "PilotSuite Module Status"
+
+    @property
+    def native_value(self) -> str:
+        from .core.runtime import CopilotRuntime
+        runtime = CopilotRuntime.get(self._hass)
+        statuses = runtime.get_module_statuses(self._entry.entry_id)
+        if not statuses:
+            return "loading"
+        active = sum(1 for s in statuses.values() if s.state == "active")
+        errors = sum(1 for s in statuses.values() if s.state == "error")
+        if errors > 0:
+            return f"{active} active, {errors} errors"
+        return f"{active}/{len(statuses)} active"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        from .core.runtime import CopilotRuntime
+        from . import MODULE_TIERS
+        runtime = CopilotRuntime.get(self._hass)
+        statuses = runtime.get_module_statuses(self._entry.entry_id)
+        modules = []
+        for name, status in statuses.items():
+            modules.append({
+                "module": name,
+                "tier": MODULE_TIERS.get(name, 3),
+                "state": status.state,
+                "setup_ms": round(status.setup_time * 1000, 1),
+                "error": status.error,
+                "last_activity": status.last_activity,
+            })
+        modules.sort(key=lambda m: (m["tier"], m["module"]))
+        return {
+            "modules": modules,
+            "total": len(statuses),
+            "active": sum(1 for s in statuses.values() if s.state == "active"),
+            "errors": sum(1 for s in statuses.values() if s.state == "error"),
+        }
+
+
 class ZoneOccupancySensor(SensorEntity):
     """Sensor for zone occupancy tracking."""
-    
+
     _attr_has_entity_name = True
     _attr_icon = "mdi:home-account"
     
