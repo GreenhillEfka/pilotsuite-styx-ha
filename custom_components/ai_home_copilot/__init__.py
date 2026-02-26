@@ -81,6 +81,7 @@ _MODULE_IMPORTS = {
     "coordinator_module": (".core.modules.coordinator_module", "CoordinatorModule"),
     "automation_adoption": (".core.modules.automation_adoption", "AutomationAdoptionModule"),
     "zone_sync": (".core.modules.zone_sync_module", "ZoneSyncModule"),
+    "entity_discovery": (".core.modules.entity_discovery", "EntityDiscoveryModule"),
 }
 
 _MODULES = [
@@ -113,6 +114,7 @@ _MODULES = [
     "waste_reminder",
     "birthday_reminder",
     "entity_tags",
+    "entity_discovery",
     "person_tracking",
     "frigate_bridge",
     "scene_module",

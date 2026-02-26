@@ -235,6 +235,78 @@ class EntityTagsModule(CopilotModule):
         tag_id = zone_id.replace(":", "_")
         return self.get_entities_by_tag(tag_id)
 
+    async def async_auto_tag_from_zone_suggestions(
+        self, suggestions: list[dict[str, Any]]
+    ) -> int:
+        """Bulk auto-tag entities from Core zone-suggestions response.
+
+        Expects list of:
+          {zone_id: "zone:wohnzimmer", zone_name: "Wohnzimmer", entity_ids: [...]}
+
+        Returns total number of newly tagged entities.
+        """
+        total_new = 0
+        for suggestion in suggestions:
+            zone_id = suggestion.get("zone_id", "")
+            zone_name = suggestion.get("zone_name", "")
+            entity_ids = suggestion.get("entity_ids", [])
+            if zone_id and entity_ids:
+                count = await self.async_auto_tag_zone_entities(
+                    zone_id, zone_name, entity_ids
+                )
+                total_new += count
+        return total_new
+
+    async def async_auto_tag_by_domain(
+        self, domain: str, tag_id: str, tag_name: str,
+        color: str = "#6366f1", icon: str = "mdi:tag"
+    ) -> int:
+        """Auto-tag all entities of a specific domain.
+
+        Useful for domain-based grouping (e.g., all lights, all media_players).
+        Returns the number of newly tagged entities.
+        """
+        if not self._hass:
+            return 0
+
+        from homeassistant.helpers import entity_registry
+        ent_reg = entity_registry.async_get(self._hass)
+
+        domain_entities = [
+            eid for eid, entry in ent_reg.entities.items()
+            if entry.domain == domain and entry.disabled_by is None
+        ]
+
+        if not domain_entities:
+            return 0
+
+        from ...entity_tags_store import async_upsert_tag
+
+        current_tag = self._tags.get(tag_id)
+        current_ids = set(current_tag.entity_ids) if current_tag else set()
+        new_ids = [eid for eid in domain_entities if eid not in current_ids]
+
+        if not new_ids:
+            return 0
+
+        merged = list(current_ids | set(domain_entities))
+        await async_upsert_tag(
+            self._hass,
+            tag_id=tag_id,
+            name=tag_name,
+            entity_ids=merged,
+            color=color,
+            icon=icon,
+            module_hints=["domain", domain],
+        )
+        await self.reload_from_storage()
+
+        _LOGGER.info(
+            "Auto-tagged %d entities of domain '%s' with tag '%s'",
+            len(new_ids), domain, tag_id,
+        )
+        return len(new_ids)
+
     # ------------------------------------------------------------------
     # LLM Context
     # ------------------------------------------------------------------
