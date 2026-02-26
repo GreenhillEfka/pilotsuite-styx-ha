@@ -13,6 +13,7 @@ from ..const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_GET_DASHBOARD_PATTERNS = "get_dashboard_patterns"
+DASHBOARD_CARDS_ENDPOINT = "/api/v1/habitus/dashboard_cards"
 
 GET_DASHBOARD_PATTERNS_SCHEMA = vol.Schema(
     {
@@ -46,7 +47,7 @@ async def async_setup_habitus_dashboard_cards_services(hass: HomeAssistant) -> N
 
         try:
             # Call core API endpoint
-            url = f"/api/v1/habitus/dashboard_cards?type={pattern_type}&format={output_format}"
+            url = f"{DASHBOARD_CARDS_ENDPOINT}?type={pattern_type}&format={output_format}"
             result = await api.async_get(url)
             
             if not result:

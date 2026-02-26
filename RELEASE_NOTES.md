@@ -2,6 +2,12 @@
 
 > Hinweis: Fuer die vollstaendige Historie siehe `CHANGELOG.md`.
 
+## v10.1.3 (2026-02-26)
+
+- Core/HA Versionschutz: Major/Minor Mismatch wird als Repairs-Hinweis angezeigt.
+- Contract-Tests fuer wichtige Core Endpoint-Pfade.
+- Paired Release: Core `v10.1.3`
+
 ## v10.1.2 (2026-02-26)
 
 - HA Best Practice: `single_config_entry` im Manifest aktiviert (verhindert multiple Config-Entries/Duplikate).

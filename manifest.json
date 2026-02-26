@@ -11,7 +11,7 @@
   ],
   "homeassistant": "2024.1.0",
   "iot_class": "local_polling",
-  "version": "10.1.2",
+  "version": "10.1.3",
   "documentation": "https://github.com/GreenhillEfka/pilotsuite-styx-ha",
   "issue_tracker": "https://github.com/GreenhillEfka/pilotsuite-styx-ha/issues",
   "codeowners": [

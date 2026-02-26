@@ -198,6 +198,10 @@
       "title": "PilotSuite Vorschlag: {title}",
       "description": "PilotSuite hat einen Vorschlags-Seed aus {source} erkannt. Erkannte Entitaeten: {entities}.\n\nAuszug: {excerpt}\n\nNutze den sicheren A>B Blueprint und bestaetige anschliessend per Fix."
     },
+    "core_version_mismatch": {
+      "title": "PilotSuite Core/HA Versionskonflikt",
+      "description": "PilotSuite hat einen Versionskonflikt zwischen dem **Core Add-on** und der **HA Integration** erkannt.\n\n- Core: {core_version} (unter {host}:{port})\n- HA Integration: {integration_version}\n\nPilotSuite erwartet **gleiche Major/Minor-Versionen** fuer maximale Kompatibilitaet. Bitte aktualisiere die aeltere Komponente:\n1. Core Add-on aktualisieren (Einstellungen > Add-ons)\n2. HA Integration aktualisieren (HACS > Integrationen)\n\nDanach Home Assistant einmal neu starten."
+    },
     "log_manifest_parse_error": {
       "title": "Custom Integration hat ungueltiges manifest.json: {integration}",
       "description": "Home Assistant meldete Fehler beim Parsen von manifest.json. Das kann den Start verhindern. Klicke Fix, um die Integration zu deaktivieren (reversibel)."

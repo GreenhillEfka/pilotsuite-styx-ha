@@ -198,6 +198,10 @@
       "title": "PilotSuite suggestion: {title}",
       "description": "PilotSuite picked up a suggestion seed from {source}. Detected entities: {entities}.\n\nExcerpt: {excerpt}\n\nUse the safe A>B blueprint to create an automation if it makes sense, then click Fix and confirm."
     },
+    "core_version_mismatch": {
+      "title": "PilotSuite Core/HA version mismatch",
+      "description": "PilotSuite detected a version mismatch between the **Core add-on** and the **HA integration**.\n\n- Core: {core_version} (at {host}:{port})\n- HA integration: {integration_version}\n\nPilotSuite expects **matching major/minor versions** for best compatibility. Please update the older component:\n1. Update the Core add-on (Settings > Add-ons)\n2. Update the HA integration (HACS > Integrations)\n\nAfter updating, restart Home Assistant once."
+    },
     "log_manifest_parse_error": {
       "title": "Custom integration has invalid manifest.json: {integration}",
       "description": "Home Assistant reported errors parsing manifest.json for this custom integration. This can prevent startup or break other components. Click Fix to disable the integration (reversible)."

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v10.1.3 (2026-02-26) — COMPAT GUARDRAILS
+
+### Added
+- Core/HA Versionschutz: Major/Minor Mismatch wird als Repairs-Hinweis angezeigt (Update-Anleitung im Issue).
+
+### Fixed
+- Contract-Test fuer Habitus Dashboard Cards Endpoint-Pfad (`/api/v1/habitus/dashboard_cards`).
+
 ## v10.1.2 (2026-02-26) — HA DOCS COMPLIANCE
 
 ### Changed
