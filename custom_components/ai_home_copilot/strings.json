@@ -21,6 +21,56 @@
           "entity_profile": "Entity Profile",
           "test_light_entity_id": "Test Light (optional)"
         }
+      },
+      "wizard_discovery": {
+        "title": "Quick Start — Discovery",
+        "description": "Quick Start uses intelligent defaults based on your HA setup. Auto-discovery will scan for compatible devices.",
+        "data": {
+          "quick_start": "Use Quick Start defaults",
+          "auto_discover": "Auto-discover devices"
+        }
+      },
+      "wizard_zones": {
+        "title": "Zone Selection",
+        "description": "Found {found_zones} zones in your Home Assistant. Select which zones to include in PilotSuite. {hint}",
+        "data": {
+          "selected_zones": "Zones"
+        }
+      },
+      "wizard_zone_entities": {
+        "title": "Zone Entities",
+        "description": "Configure entities for {zone_count} selected zones. {hint}"
+      },
+      "wizard_entities": {
+        "title": "Media Players",
+        "description": "Select your media players for music and TV control.",
+        "data": {
+          "music_players": "Music players",
+          "tv_players": "TV players"
+        }
+      },
+      "wizard_features": {
+        "title": "Feature Selection",
+        "description": "Choose which PilotSuite features to enable.",
+        "data": {
+          "features": "Features"
+        }
+      },
+      "wizard_network": {
+        "title": "Network Configuration",
+        "description": "Configure the connection to PilotSuite Core.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "token": "API Token"
+        }
+      },
+      "wizard_review": {
+        "title": "Review Configuration",
+        "description": "{summary}",
+        "data": {
+          "confirm": "Confirm and create"
+        }
       }
     },
     "error": {
