@@ -366,7 +366,67 @@ TAB 7: SYSTEM
 └── HA Entity Discovery (Status + Export)
 ```
 
-### 2.4 Brain Graph + Neuronenlayer Visualisierung
+### 2.4 Core Add-on: Service-Architektur (IST)
+
+Der Core initialisiert **41 Services** und registriert **51+ Blueprints**.
+
+#### Systemkritische Core-Services (Tier 0+1)
+| Service | Funktion | Abhaengigkeiten |
+|---------|----------|-----------------|
+| `event_bus` | Zentraler Event-Hub (pub/sub) | keine |
+| `brain_graph_service` | Entity-Beziehungsgraph (max 500 Knoten, 1500 Kanten) | event_bus |
+| `event_processor` | Event→Graph Pipeline | brain_graph_service, event_bus |
+| `habitus_service` | A→B Pattern Mining (>=5 Events triggern Mining) | event_processor |
+| `mood_service` | 3D Stimmungs-Scoring (Comfort/Joy/Frugality) | neuron_manager |
+| `neuron_manager` | Neuronale Pipeline (60s Evaluationsintervall) | event_bus |
+| `candidate_store` | Automations-Kandidaten Staging | habitus_service |
+| `llm_provider` | Ollama + Cloud Fallback + SearXNG | keine |
+| `tag_registry` | Tag System v0.2 | keine |
+| `webhook_pusher` | HA Event Sync | keine |
+
+#### Neuronensystem im Core (3-Schichten)
+
+**Kontext-Neuronen (objektive Umgebung):**
+- PresenceNeuron — Person.home States, Zonen-Praesenz
+- TimeOfDayNeuron — Stundenbasierter Zeitkontext
+- LightLevelNeuron — Sonnenposition + Lux-Sensor
+- WeatherNeuron — Temperatur, Feuchte, Wetterlage
+- UniFiContextNeuron — Netzwerk-Qualitaet (optional)
+
+**Zustands-Neuronen (geglaettete Indikatoren):**
+- EnergyLevelNeuron — Aktivitaet vs. Baseline
+- StressIndexNeuron — Berechnet aus Events (Bewegung, Laerm)
+- RoutineStabilityNeuron — Abweichung von Mustern
+- ComfortIndexNeuron — Temperatur/Feuchte-Komfort
+- AttentionLoadNeuron — Aktives Engagement
+- PVForecastNeuron — Solar-Produktion (optional)
+
+**Stimmungs-Neuronen (aggregierte Zustaende):**
+- RelaxMoodNeuron — Niedriger Stress + gedimmtes Licht
+- FocusMoodNeuron — Hohe Aufmerksamkeit + helles Licht
+- ActiveMoodNeuron — Hohe Energie + Praesenz
+- SleepMoodNeuron — Hohe Schlafschuld + Nacht
+- AlertMoodNeuron — Anomalie erkannt
+- SocialMoodNeuron — Multi-Person + Media aktiv
+
+**Pipeline-Ablauf:**
+```
+Kontext → Zustand → Stimmung → Glaettung → Dominante Stimmung → Vorschlaege
+(alle 60s)
+```
+
+#### Dashboard HTML-Struktur (IST: 274 KB, 7 Tabs)
+```
+Tab 1: Styx       — Brain-Canvas (SVG), Pipeline-Status, Chat, Suggestions, History
+Tab 2: Habitus    — Regeln, Zonen, Trend-Chart, Szenen, Bootstrap, Recommendations
+Tab 3: Stimmung   — Zone-Moods, Stats-Grid, Trend-Chart
+Tab 4: Module     — 21 Module-Kacheln, Config-Form, Media, News, Muell, Geburtstage
+Tab 5: System     — Health-Summary, Self-Repair, Diagnostik
+Tab 6: Haushalt   — Familie, Praesenz
+Tab 7: Settings   — LLM, Routing, Modelle, Empfohlene, Modell-Verwaltung, API, Memory, RAG
+```
+
+### 2.5 Brain Graph + Neuronenlayer Visualisierung
 
 #### Brain Graph (Canvas-basiert)
 ```javascript
