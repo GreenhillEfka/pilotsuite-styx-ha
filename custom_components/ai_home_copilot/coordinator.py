@@ -356,6 +356,12 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
             try:
                 status = await self.api.async_get_status()
 
+                # Core capabilities (best-effort; used for module/UX gating).
+                try:
+                    capabilities = await self.api.async_get("/api/v1/capabilities")
+                except Exception:  # noqa: BLE001
+                    capabilities = {}
+
                 # Get mood from neural system
                 mood_data = await self.api.async_get_mood()
 
@@ -392,6 +398,7 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 return {
                     "ok": bool(status.ok) if status.ok is not None else True,
                     "version": status.version or "unknown",
+                    "capabilities": capabilities,
                     "mood": mood_data,
                     "neurons": neurons_data.get("neurons", {}),
                     "dominant_mood": mood_data.get("mood", "unknown"),

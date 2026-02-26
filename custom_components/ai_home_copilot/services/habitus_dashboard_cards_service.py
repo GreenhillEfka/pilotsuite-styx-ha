@@ -46,7 +46,7 @@ async def async_setup_habitus_dashboard_cards_services(hass: HomeAssistant) -> N
 
         try:
             # Call core API endpoint
-            url = f"/habitus/dashboard_cards?type={pattern_type}&format={output_format}"
+            url = f"/api/v1/habitus/dashboard_cards?type={pattern_type}&format={output_format}"
             result = await api.async_get(url)
             
             if not result:

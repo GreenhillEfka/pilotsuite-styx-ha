@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## v10.1.1 (2026-02-26) — VERSION SYNC + DOCS
+
+### Fixed
+- Versionen/Metadaten konsolidiert (Repo `manifest.json` + Integration `manifest.json` + Status/Doku).
+
+## v10.1.0 (2026-02-26) — COORDINATOR COMPLETE + SENSOR FIXES
+
+### Fixed
+- Sensor-Datenpfade bereinigt, fehlende Sensoren ergänzt, Coordinator-Flow vervollständigt.
+
+## v10.0.1 (2026-02-26) — OVERRIDE MODES + MUSIKWOLKE + HABITUS CONTROLS
+
+### Added
+- Override-Mode Sensoren.
+
+### Changed
+- Musikwolke Dashboard + Habitus Controls erweitert.
+
+## v10.0.0 (2026-02-26) — MODULE SYSTEM + ZONE AUTOMATION
+
+### Added
+- Modul-System-Konsolidierung + Zone-Automation Grundlage (HA-Seite).
+
 ## v9.1.0 (2026-02-26) — HA API INTEGRATION + DEVICE DISCOVERY + LABELS
 
 ### Added

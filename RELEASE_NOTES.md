@@ -1,4 +1,20 @@
-# Release Notes v9.0.0 (2026-02-26)
+# Release Notes - PilotSuite Styx HA
+
+> Hinweis: Fuer die vollstaendige Historie siehe `CHANGELOG.md`.
+
+## v10.1.1 (2026-02-26)
+
+- Fix: Versionsync/Metadaten konsolidiert (Repo + Integration) und Status/Doku nachgezogen.
+- Paired Release: Core `v10.1.1`
+
+## v10.1.0 (2026-02-26)
+
+- Fix: Sensor-Datenpfade bereinigt, fehlende Sensoren ergänzt, Coordinator vervollständigt.
+- Paired Release: Core `v10.1.0`
+
+---
+
+## v9.0.0 (2026-02-26)
 
 **Version:** 9.0.0
 **Date:** 2026-02-26

@@ -13,7 +13,7 @@ API Endpoints covered:
 - /api/v1/search/entities - Filter entities
 - /api/v1/search/index - Update search index (POST)
 - /api/v1/search/stats - Search statistics
-- /habitus/dashboard_cards - Dashboard cards
+- /api/v1/habitus/dashboard_cards - Dashboard cards
 - /health - Health check
 - /version - Version info
 - /api/v1/candidates - Pipeline candidates
