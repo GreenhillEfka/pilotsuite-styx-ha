@@ -6,12 +6,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from ...blueprints import async_install_blueprints
-from ...const import DOMAIN
+from ...const import DOMAIN, ensure_defaults
 from ...devlog_push import async_setup_devlog_push
 from ...ha_errors_digest import async_setup_ha_errors_digest
 from ...seed_adapter import async_setup_seed_adapter
 from ...media_setup import async_setup_media_context, async_unload_media_context
 from ...media_context_v2_setup import async_setup_media_context_v2, async_unload_media_context_v2
+from ...automation_engine import async_setup_automation_engine, async_unload_automation_engine
 from ...webhook import async_register_webhook, async_unregister_webhook
 from ...coordinator import CopilotDataUpdateCoordinator
 from ...core_v1 import async_fetch_core_capabilities
@@ -31,7 +32,7 @@ class LegacyModule:
         hass: HomeAssistant = ctx.hass
         entry: ConfigEntry = ctx.entry
 
-        coordinator = CopilotDataUpdateCoordinator(hass, entry.data | entry.options)
+        coordinator = CopilotDataUpdateCoordinator(hass, ensure_defaults(entry.data | entry.options))
 
         # Ship blueprints with the integration (no automations are created).
         await async_install_blueprints(hass)
@@ -115,6 +116,13 @@ class LegacyModule:
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Legacy setup: failed to setup seed adapter")
 
+        # Zone Automation Engine (v10.0.0):
+        # Presence detection, brightness tracking, light automation, media control.
+        try:
+            await async_setup_automation_engine(hass, entry, coordinator.api)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Legacy setup: failed to setup automation engine")
+
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async def async_unload_entry(self, ctx: ModuleContext) -> bool:
@@ -147,6 +155,7 @@ class LegacyModule:
 
             await async_unload_media_context(hass, entry)
             await async_unload_media_context_v2(hass, entry)
+            await async_unload_automation_engine(hass, entry)
 
             hass.data[DOMAIN].pop(entry.entry_id, None)
 
