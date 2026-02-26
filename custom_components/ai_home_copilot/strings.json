@@ -143,6 +143,7 @@
           "searxng_port": "SearXNG Port"
         },
         "data_description": {
+          "webhook_url": "Read-only webhook URL for Core to push real-time updates to HA. Copy this into Core config.",
           "host": "Hostname or IP of the PilotSuite Core add-on (default: homeassistant.local)",
           "port": "Port of the PilotSuite Core add-on (default: 8909)",
           "token": "Optional token for authenticated API access. Leave empty if not configured.",
@@ -178,6 +179,10 @@
         "data": {
           "media_music_players": "Music players",
           "media_tv_players": "TV players"
+        },
+        "data_description": {
+          "media_music_players": "Media player entities used for music playback (e.g. Sonos, HomePod).",
+          "media_tv_players": "Media player entities used for TV/video playback (e.g. Apple TV, Chromecast)."
         }
       },
       "module_forwarder": {
@@ -195,6 +200,19 @@
           "events_forwarder_include_habitus_zones": "Forward Habitus zone entities",
           "events_forwarder_include_media_players": "Forward media players",
           "events_forwarder_additional_entities": "Additional entities to forward"
+        },
+        "data_description": {
+          "events_forwarder_enabled": "Enable real-time event forwarding from Home Assistant to PilotSuite Core.",
+          "events_forwarder_flush_interval_seconds": "How often queued events are sent to Core (default: 5 seconds).",
+          "events_forwarder_max_batch": "Maximum number of events per batch (default: 50).",
+          "events_forwarder_forward_call_service": "Also forward call_service events (e.g. light.turn_on).",
+          "events_forwarder_idempotency_ttl_seconds": "Deduplication window for identical events (default: 60s).",
+          "events_forwarder_persistent_queue_enabled": "Queue events on disk to survive restarts.",
+          "events_forwarder_persistent_queue_max_size": "Max events in persistent queue (default: 5000).",
+          "events_forwarder_persistent_queue_flush_interval_seconds": "Persistent queue flush interval (default: 30s).",
+          "events_forwarder_include_habitus_zones": "Automatically forward events from all Habitus zone entities.",
+          "events_forwarder_include_media_players": "Automatically forward events from configured media players.",
+          "events_forwarder_additional_entities": "Extra entity_ids to monitor (comma-separated or multi-select)."
         }
       },
       "module_seed": {
@@ -207,6 +225,14 @@
           "seed_max_offers_per_hour": "Max offers per hour",
           "seed_min_seconds_between_offers": "Min seconds between offers",
           "seed_max_offers_per_update": "Max offers per sensor update"
+        },
+        "data_description": {
+          "suggestion_seed_entities": "Sensor entities that trigger automation suggestions (e.g. motion, door sensors).",
+          "seed_allowed_domains": "Only generate suggestions for these domains (comma-separated, e.g. light,switch).",
+          "seed_blocked_domains": "Never generate suggestions for these domains (comma-separated).",
+          "seed_max_offers_per_hour": "Rate limit: max suggestions per hour (default: 3).",
+          "seed_min_seconds_between_offers": "Minimum delay between consecutive suggestions (default: 300).",
+          "seed_max_offers_per_update": "Max suggestions per single sensor state change (default: 1)."
         }
       },
       "module_user_prefs": {
@@ -221,6 +247,16 @@
           "mupl_privacy_mode": "MUPL privacy mode",
           "mupl_min_interactions": "MUPL min interactions",
           "mupl_retention_days": "MUPL data retention (days)"
+        },
+        "data_description": {
+          "user_preference_enabled": "Track individual user preferences for personalized suggestions.",
+          "tracked_users": "HA person entities to track (e.g. person.max, person.anna).",
+          "primary_user": "The primary user whose preferences take priority in conflicts.",
+          "user_learning_mode": "Learning mode: observe (silent), suggest (proposals), or auto (automatic).",
+          "mupl_enabled": "Enable Multi-User Preference Learning for multi-person households.",
+          "mupl_privacy_mode": "Privacy mode: aggregate (anonymized) or individual (per-person).",
+          "mupl_min_interactions": "Minimum interactions before generating suggestions (default: 10).",
+          "mupl_retention_days": "How long preference data is kept (default: 90 days)."
         }
       },
       "module_waste": {
@@ -233,6 +269,14 @@
           "waste_tts_entity": "TTS media player entity",
           "waste_reminder_evening_hour": "Evening reminder hour (0-23)",
           "waste_reminder_morning_hour": "Morning reminder hour (0-23)"
+        },
+        "data_description": {
+          "waste_enabled": "Enable waste collection reminders with optional TTS announcements.",
+          "waste_entities": "Sensor entities that provide waste collection schedules.",
+          "waste_tts_enabled": "Announce upcoming waste collection via TTS speakers.",
+          "waste_tts_entity": "Media player entity for TTS announcements (e.g. media_player.kitchen_speaker).",
+          "waste_reminder_evening_hour": "Hour (0-23) for evening-before reminder (default: 20).",
+          "waste_reminder_morning_hour": "Hour (0-23) for morning-of reminder (default: 7)."
         }
       },
       "module_birthday": {
@@ -245,6 +289,14 @@
           "birthday_tts_enabled": "TTS announcements",
           "birthday_tts_entity": "TTS media player entity",
           "birthday_reminder_hour": "Morning reminder hour (0-23)"
+        },
+        "data_description": {
+          "birthday_enabled": "Enable birthday tracking and reminder notifications.",
+          "birthday_calendar_entities": "Calendar entities containing birthday events (e.g. calendar.birthdays).",
+          "birthday_lookahead_days": "How many days ahead to check for upcoming birthdays (default: 7).",
+          "birthday_tts_enabled": "Announce birthdays via TTS speakers.",
+          "birthday_tts_entity": "Media player entity for TTS birthday announcements.",
+          "birthday_reminder_hour": "Hour (0-23) for the morning birthday reminder (default: 8)."
         }
       },
       "module_ha_errors": {
@@ -254,6 +306,11 @@
           "ha_errors_digest_enabled": "Enable HA error digest",
           "ha_errors_digest_interval_seconds": "Digest interval (seconds)",
           "ha_errors_digest_max_lines": "Max lines per digest"
+        },
+        "data_description": {
+          "ha_errors_digest_enabled": "Periodically send HA error log entries to Core for analysis.",
+          "ha_errors_digest_interval_seconds": "How often to collect and send error log entries (default: 300s).",
+          "ha_errors_digest_max_lines": "Maximum log lines per digest batch (default: 50)."
         }
       },
       "module_devlog": {
@@ -265,6 +322,13 @@
           "devlog_push_path": "Core log endpoint",
           "devlog_push_max_lines": "Max lines",
           "devlog_push_max_chars": "Max chars"
+        },
+        "data_description": {
+          "devlog_push_enabled": "Enable periodic push of HA logs to PilotSuite Core.",
+          "devlog_push_interval_seconds": "How often to push log entries (default: 120s).",
+          "devlog_push_path": "Core API endpoint for log ingestion (default: /api/v1/logs).",
+          "devlog_push_max_lines": "Maximum log lines per push (default: 100).",
+          "devlog_push_max_chars": "Maximum characters per push (default: 50000)."
         }
       },
       "module_watchdog": {
@@ -274,6 +338,11 @@
           "watchdog_enabled": "Enable watchdog polling",
           "watchdog_interval_seconds": "Watchdog interval (seconds)",
           "enable_user_preferences": "Enable user preferences"
+        },
+        "data_description": {
+          "watchdog_enabled": "Enable periodic health checks to keep the connection to Core alive.",
+          "watchdog_interval_seconds": "How often to ping Core (default: 60s).",
+          "enable_user_preferences": "Enable user preference tracking within the watchdog module."
         }
       },
       "module_pilotsuite_ux": {
@@ -284,6 +353,12 @@
           "pilotsuite_show_safety_backup_buttons": "Show safety-backup buttons",
           "pilotsuite_show_dev_surface_buttons": "Show debug/dev buttons",
           "pilotsuite_show_graph_bridge_buttons": "Show graph-to-candidates buttons"
+        },
+        "data_description": {
+          "entity_profile": "core = essential entities only, full = all entities including debug/dev.",
+          "pilotsuite_show_safety_backup_buttons": "Show safety and backup buttons in the PilotSuite panel.",
+          "pilotsuite_show_dev_surface_buttons": "Show debug and developer buttons (only for advanced users).",
+          "pilotsuite_show_graph_bridge_buttons": "Show Brain Graph → Candidate pipeline buttons."
         }
       },
       "entity_tags": {
@@ -304,6 +379,12 @@
           "tag_name": "Tag name",
           "tag_entities": "Entities to assign",
           "tag_color": "Color (hex, e.g. #fbbf24)"
+        },
+        "data_description": {
+          "tag_id": "Unique slug identifier (lowercase, no spaces). Used internally for matching (e.g. 'licht', 'temperatur').",
+          "tag_name": "Display name shown in the UI and neuron system (e.g. 'Licht', 'Temperatur').",
+          "tag_entities": "Select which entities should be tagged. These become relevant for the neuron system.",
+          "tag_color": "Hex color code for visual identification in dashboards (e.g. #fbbf24 for yellow)."
         }
       },
       "edit_tag": {
@@ -312,6 +393,10 @@
         "data": {
           "tag_id": "Tag to edit",
           "tag_entities": "Entities to assign"
+        },
+        "data_description": {
+          "tag_id": "Select which tag to modify.",
+          "tag_entities": "Update the entities assigned to this tag. Changes affect neuron auto-resolution."
         }
       },
       "delete_tag": {
@@ -319,6 +404,9 @@
         "description": "{hint}",
         "data": {
           "tag_id": "Tag to delete"
+        },
+        "data_description": {
+          "tag_id": "Select which tag to permanently remove. Entities will be untagged."
         }
       },
       "habitus_zones": {
@@ -339,6 +427,9 @@
         "description": "PilotSuite Core analyzed your Home Assistant entities and suggests the following zones. Select which zones to adopt.",
         "data": {
           "adopt_zones": "Zones to adopt"
+        },
+        "data_description": {
+          "adopt_zones": "Select zones to import from Core suggestions. Entities will be auto-tagged."
         }
       },
       "dashboard_info": {
@@ -346,6 +437,9 @@
         "description": "PilotSuite now uses the Core/React dashboard as the primary management UI. Legacy YAML dashboards are optional and disabled by default.",
         "data": {
           "back_to_menu": "Back to Habitus zone menu"
+        },
+        "data_description": {
+          "back_to_menu": "Return to the Habitus zones menu."
         }
       },
       "backup_restore": {
@@ -360,6 +454,9 @@
         "title": "Import config snapshot",
         "data": {
           "source": "Source"
+        },
+        "data_description": {
+          "source": "Choose how to import: from a file path or by pasting JSON directly."
         }
       },
       "import_snapshot_path": {
@@ -367,12 +464,18 @@
         "description": "{hint}",
         "data": {
           "path": "Snapshot path"
+        },
+        "data_description": {
+          "path": "Absolute path to the snapshot JSON file on the HA host (e.g. /config/pilotsuite-styx/snapshot.json)."
         }
       },
       "import_snapshot_paste": {
         "title": "Paste snapshot JSON",
         "data": {
           "json": "Snapshot JSON"
+        },
+        "data_description": {
+          "json": "Paste the full snapshot JSON content. Must be valid JSON."
         }
       },
       "import_snapshot_confirm": {
@@ -380,6 +483,9 @@
         "description": "This will import {zones} Habitus zones and update options from the snapshot.\n\nTokens are not imported unless explicitly included (redacted values keep your current token).",
         "data": {
           "confirm": "Yes, import now"
+        },
+        "data_description": {
+          "confirm": "Confirm to overwrite current zones and options with snapshot data."
         }
       },
       "create_zone": {
@@ -405,12 +511,36 @@
           "cover_entity_ids": "Cover / shutter entities",
           "lock_entity_ids": "Lock entities",
           "optional_entity_ids": "Other entities"
+        },
+        "data_description": {
+          "area_ids": "Select HA areas to pre-fill entities from. Multiple areas can be combined into one zone.",
+          "name": "The zone display name (e.g. 'Wohnzimmer', 'Buero'). Used in tags and neuron system.",
+          "motion_entity_id": "Primary motion/presence sensor for this zone. Drives context neurons.",
+          "light_entity_ids": "Light entities in this zone. Auto-tagged as context neurons.",
+          "brightness_entity_ids": "Illuminance/brightness sensors. Auto-tagged as context neurons.",
+          "noise_entity_ids": "Noise/sound level sensors (optional).",
+          "humidity_entity_ids": "Humidity sensors. Auto-tagged as state neurons.",
+          "co2_entity_ids": "CO2 sensors. Auto-tagged as state neurons.",
+          "temperature_entity_ids": "Temperature sensors. Auto-tagged as state neurons.",
+          "heating_entity_ids": "Climate/heating entities. Auto-tagged as state neurons.",
+          "camera_entity_ids": "Camera entities for visual context (optional).",
+          "media_entity_ids": "Media players in this zone. Auto-tagged as mood neurons.",
+          "power_entity_ids": "Power/wattage sensors for energy monitoring.",
+          "energy_entity_ids": "Energy consumption sensors.",
+          "door_entity_ids": "Door contact sensors for context awareness.",
+          "window_entity_ids": "Window contact sensors.",
+          "cover_entity_ids": "Cover/shutter entities for context.",
+          "lock_entity_ids": "Lock entities for security context.",
+          "optional_entity_ids": "Any other entities relevant to this zone."
         }
       },
       "edit_zone": {
         "title": "Edit Habitus zone",
         "data": {
           "zone_id": "Zone"
+        },
+        "data_description": {
+          "zone_id": "Select the zone to edit."
         }
       },
       "edit_zone_form": {
@@ -435,12 +565,36 @@
           "cover_entity_ids": "Cover / shutter entities",
           "lock_entity_ids": "Lock entities",
           "optional_entity_ids": "Other entities"
+        },
+        "data_description": {
+          "area_ids": "Select HA areas to pre-fill entities from. Multiple areas can be combined into one zone.",
+          "name": "The zone display name (e.g. 'Wohnzimmer', 'Buero'). Used in tags and neuron system.",
+          "motion_entity_id": "Primary motion/presence sensor for this zone. Drives context neurons.",
+          "light_entity_ids": "Light entities in this zone. Auto-tagged as context neurons.",
+          "brightness_entity_ids": "Illuminance/brightness sensors. Auto-tagged as context neurons.",
+          "noise_entity_ids": "Noise/sound level sensors (optional).",
+          "humidity_entity_ids": "Humidity sensors. Auto-tagged as state neurons.",
+          "co2_entity_ids": "CO2 sensors. Auto-tagged as state neurons.",
+          "temperature_entity_ids": "Temperature sensors. Auto-tagged as state neurons.",
+          "heating_entity_ids": "Climate/heating entities. Auto-tagged as state neurons.",
+          "camera_entity_ids": "Camera entities for visual context (optional).",
+          "media_entity_ids": "Media players in this zone. Auto-tagged as mood neurons.",
+          "power_entity_ids": "Power/wattage sensors for energy monitoring.",
+          "energy_entity_ids": "Energy consumption sensors.",
+          "door_entity_ids": "Door contact sensors for context awareness.",
+          "window_entity_ids": "Window contact sensors.",
+          "cover_entity_ids": "Cover/shutter entities for context.",
+          "lock_entity_ids": "Lock entities for security context.",
+          "optional_entity_ids": "Any other entities relevant to this zone."
         }
       },
       "delete_zone": {
         "title": "Delete Habitus zone",
         "data": {
           "zone_id": "Zone"
+        },
+        "data_description": {
+          "zone_id": "Select the zone to permanently delete."
         }
       },
       "bulk_edit": {
@@ -448,6 +602,9 @@
         "description": "{hint}",
         "data": {
           "zones": "Zones (YAML or JSON)"
+        },
+        "data_description": {
+          "zones": "Paste a YAML or JSON list of zones. Each zone needs at least id, name, and entity_ids."
         }
       },
       "neurons": {
@@ -461,6 +618,7 @@
           "neuron_mood_entities": "Mood Neuron Entities"
         },
         "data_description": {
+          "neuron_enabled": "Enable the neural system for automatic entity evaluation and mood/context/state tracking.",
           "neuron_evaluation_interval": "How often the neural system evaluates state changes (10-3600 seconds).",
           "neuron_context_entities": "Entities for context neurons (presence, light, motion, weather). Auto-filled from tags like 'licht', 'bewegung', zone assignments.",
           "neuron_state_entities": "Entities for state neurons (temperature, humidity, energy, climate). Auto-filled from tags like 'temperatur', 'energie'.",
@@ -472,6 +630,9 @@
         "description": "Creates a Lovelace YAML dashboard file for all Habitus zones. The file is saved in the pilotsuite-styx/ configuration folder (with legacy mirror in ai_home_copilot/).",
         "data": {
           "confirm": "Generate dashboard"
+        },
+        "data_description": {
+          "confirm": "Confirm to generate a new Lovelace YAML dashboard from your Habitus zones."
         }
       },
       "publish_dashboard": {
@@ -479,6 +640,9 @@
         "description": "Copies the latest generated dashboard to www/pilotsuite-styx/ for easy download (with legacy mirror in www/ai_home_copilot/).",
         "data": {
           "confirm": "Publish dashboard"
+        },
+        "data_description": {
+          "confirm": "Confirm to copy the dashboard to the www folder for download."
         }
       }
     },

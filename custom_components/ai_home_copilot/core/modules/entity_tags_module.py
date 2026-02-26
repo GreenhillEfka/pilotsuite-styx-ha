@@ -86,12 +86,56 @@ NEURON_TAG_MAPPING: dict[str, str] = {
 }
 
 
+DEVICE_CLASS_NEURON_MAP: dict[str, str] = {
+    # HA device_class → neuron category
+    "illuminance": "context",
+    "motion": "context",
+    "occupancy": "context",
+    "presence": "context",
+    "light": "context",
+    "opening": "context",
+    "door": "context",
+    "window": "context",
+    "temperature": "state",
+    "humidity": "state",
+    "energy": "state",
+    "power": "state",
+    "current": "state",
+    "voltage": "state",
+    "gas": "state",
+    "water": "state",
+    "pressure": "state",
+    "pm25": "state",
+    "pm10": "state",
+    "co2": "state",
+    "co": "state",
+    "battery": "state",
+    "signal_strength": "state",
+}
+
+DOMAIN_NEURON_MAP: dict[str, str] = {
+    # HA domain → neuron category
+    "light": "context",
+    "binary_sensor": "context",
+    "media_player": "mood",
+    "climate": "state",
+    "weather": "context",
+    "calendar": "mood",
+    "cover": "context",
+    "lock": "context",
+    "fan": "state",
+    "humidifier": "state",
+}
+
+
 class NeuronTagResolver:
     """Resolve entities for neuron categories based on tags.
 
-    Scans entity tags, HA labels, zone assignments, and device classes
-    to automatically determine which entities belong to context / state / mood
-    neuron groups.
+    Resolution order (each entity can belong to multiple categories):
+      1. Explicit neuron tags (styx:neuron:kontext/zustand/stimmung)
+      2. Tag pattern matching against NEURON_TAG_MAPPING
+      3. HA device_class from entity_registry
+      4. HA domain fallback from entity_registry
     """
 
     def resolve_entities(
@@ -105,7 +149,10 @@ class NeuronTagResolver:
         """
         result: dict[str, set[str]] = {"context": set(), "state": set(), "mood": set()}
 
+        # --- Phase 1: Tag-based resolution ---
         all_tags = tags_module.get_all_tags()
+        tag_resolved: set[str] = set()  # entity_ids resolved via tags
+
         for tag in all_tags:
             tag_id = str(getattr(tag, "tag_id", "") or "").lower()
             tag_name = str(getattr(tag, "name", "") or "").lower()
@@ -118,13 +165,45 @@ class NeuronTagResolver:
             category = NEURON_TAG_MAPPING.get(tag_id)
             if category:
                 result[category].update(entity_ids)
+                tag_resolved.update(entity_ids)
                 continue
 
-            # 2. Check tag_id / tag_name against known patterns
+            # 2. Check tag_id / tag_name against ALL known patterns (no break —
+            #    an entity can land in multiple categories via different patterns)
+            matched = False
             for pattern, cat in NEURON_TAG_MAPPING.items():
                 if pattern in tag_id or pattern in tag_name:
                     result[cat].update(entity_ids)
-                    break
+                    tag_resolved.update(entity_ids)
+                    matched = True
+            # If no NEURON_TAG_MAPPING pattern matched, the tag is irrelevant
+            if not matched:
+                continue
+
+        # --- Phase 2: device_class / domain fallback from entity_registry ---
+        hass = tags_module._hass
+        if hass is not None:
+            try:
+                from homeassistant.helpers import entity_registry
+                ent_reg = entity_registry.async_get(hass)
+                for entity_id, entry in ent_reg.entities.items():
+                    if entry.disabled_by is not None:
+                        continue
+                    if entity_id in tag_resolved:
+                        continue  # already resolved via tags
+
+                    # 3. device_class mapping
+                    dc = str(entry.device_class or entry.original_device_class or "").lower()
+                    if dc and dc in DEVICE_CLASS_NEURON_MAP:
+                        result[DEVICE_CLASS_NEURON_MAP[dc]].add(entity_id)
+                        continue
+
+                    # 4. domain fallback
+                    domain = entry.domain or ""
+                    if domain in DOMAIN_NEURON_MAP:
+                        result[DOMAIN_NEURON_MAP[domain]].add(entity_id)
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("entity_registry scan in NeuronTagResolver failed (non-blocking)")
 
         return {
             "context_entities": sorted(result["context"]),
@@ -167,6 +246,12 @@ class EntityTagsModule(CopilotModule):
             _LOGGER.debug("HA label sync: %d tags synced", synced)
         except Exception:  # noqa: BLE001
             _LOGGER.debug("HA label sync on startup failed (non-blocking)")
+
+        try:
+            dc_count = await self.async_auto_tag_by_device_class()
+            _LOGGER.debug("Device-class auto-tag: %d classes tagged", dc_count)
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Device-class auto-tag on startup failed (non-blocking)")
 
         try:
             await self.async_auto_tag_neuron_entities()
@@ -532,6 +617,82 @@ class EntityTagsModule(CopilotModule):
             _LOGGER.info("Synced %d HA labels as PilotSuite tags", synced)
 
         return synced
+
+    async def async_auto_tag_by_device_class(self) -> int:
+        """Auto-tag entities by their HA device_class.
+
+        Scans the entity registry and creates PilotSuite tags for device
+        classes that map to neuron categories.  For example, all entities
+        with device_class ``temperature`` get a tag ``deviceclass_temperature``.
+        Existing HA labels like "Licht" are already synced via
+        ``async_sync_ha_labels``; this method covers *device_class* which is
+        a separate HA concept.
+
+        Returns the number of new device-class tags created.
+        """
+        if not self._hass:
+            return 0
+
+        from homeassistant.helpers import entity_registry
+        from ...entity_tags_store import async_upsert_tag
+
+        ent_reg = entity_registry.async_get(self._hass)
+
+        # Collect entity_ids by device_class
+        dc_entities: dict[str, list[str]] = {}
+        for entity_id, entry in ent_reg.entities.items():
+            if entry.disabled_by is not None:
+                continue
+            dc = str(entry.device_class or entry.original_device_class or "").lower().strip()
+            if dc:
+                dc_entities.setdefault(dc, []).append(entity_id)
+
+        created = 0
+        dc_icons = {
+            "temperature": "mdi:thermometer",
+            "humidity": "mdi:water-percent",
+            "illuminance": "mdi:brightness-5",
+            "motion": "mdi:motion-sensor",
+            "occupancy": "mdi:account-multiple",
+            "energy": "mdi:lightning-bolt",
+            "power": "mdi:flash",
+            "battery": "mdi:battery",
+            "door": "mdi:door",
+            "window": "mdi:window-open",
+            "co2": "mdi:molecule-co2",
+            "pressure": "mdi:gauge",
+            "light": "mdi:lightbulb",
+        }
+        for dc, entity_ids in dc_entities.items():
+            tag_id = f"deviceclass_{dc}"
+            # Capitalize nicely for display
+            tag_name = f"Geräteklasse: {dc.replace('_', ' ').title()}"
+            icon = dc_icons.get(dc, "mdi:tag")
+
+            current_tag = self._tags.get(tag_id)
+            current_ids = set(current_tag.entity_ids) if current_tag else set()
+            new_ids = [eid for eid in entity_ids if eid not in current_ids]
+
+            if not new_ids and current_tag:
+                continue
+
+            merged = sorted(set(list(current_ids) + entity_ids))
+            await async_upsert_tag(
+                self._hass,
+                tag_id=tag_id,
+                name=tag_name,
+                entity_ids=merged,
+                color="#a78bfa",  # violet
+                icon=icon,
+                module_hints=["device_class", dc],
+            )
+            created += 1
+
+        if created > 0:
+            await self.reload_from_storage()
+            _LOGGER.info("Auto-tagged entities for %d device classes", created)
+
+        return created
 
     async def async_auto_tag_neuron_entities(self) -> int:
         """Auto-tag entities with their neuron category (context/state/mood).
