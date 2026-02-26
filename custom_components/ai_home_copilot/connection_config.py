@@ -5,20 +5,24 @@ from typing import Any, Mapping
 
 from homeassistant.config_entries import ConfigEntry
 
-from .const import CONF_HOST, CONF_PORT, CONF_TOKEN, DEFAULT_HOST, DEFAULT_PORT
+from .const import CONF_HOST, CONF_PORT, CONF_TOKEN, DEFAULT_HOST, DEFAULT_PORT, ensure_defaults
 from .core_endpoint import build_base_url, normalize_host_port
 
 _LEGACY_TOKEN_KEYS = ("auth_token", "access_token", "api_token")
 
 
 def merged_entry_config(entry: ConfigEntry) -> dict[str, Any]:
-    """Return merged entry config with options overriding data."""
+    """Return merged entry config with options overriding data.
+
+    Missing keys are filled from DEFAULTS_MAP so callers always see
+    every configurable option with a safe fallback value.
+    """
     merged: dict[str, Any] = {}
     if isinstance(entry.data, Mapping):
         merged.update(entry.data)
     if isinstance(entry.options, Mapping):
         merged.update(entry.options)
-    return merged
+    return ensure_defaults(merged)
 
 
 def resolve_core_connection_from_mapping(config: Mapping[str, Any]) -> tuple[str, int, str]:

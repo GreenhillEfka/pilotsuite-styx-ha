@@ -230,12 +230,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         NeuronActivitySensor(coordinator),
         # Brain Graph & Habitus
         BrainGraphSummarySensor(coordinator),
+        BrainGraphSensor(coordinator),
         HabitusRulesSummarySensor(coordinator),
+        HabitusRulesSensor(coordinator),
         HabitusMinerRuleCountSensor(coordinator),
         HabitusMinerStatusSensor(coordinator),
         HabitusMinerTopRuleSensor(coordinator),
         BrainArchitectureSensor(coordinator),
         BrainActivitySensor(coordinator),
+        # Neuron Layers + Core Modules + RAG
+        NeuronLayerSensor(coordinator),
+        CoreModulesSensor(coordinator),
+        RAGStatusSensor(coordinator),
     ])
 
     # ── TIER 2: CONTEXT — conditional on available entities ──────
@@ -576,26 +582,232 @@ class ModuleStatusSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         from .core.runtime import CopilotRuntime
-        from . import MODULE_TIERS
         runtime = CopilotRuntime.get(self._hass)
         statuses = runtime.get_module_statuses(self._entry.entry_id)
         modules = []
         for name, status in statuses.items():
             modules.append({
                 "module": name,
-                "tier": MODULE_TIERS.get(name, 3),
+                "tier": status.tier,
+                "tier_label": status.tier_label,
                 "state": status.state,
                 "setup_ms": round(status.setup_time * 1000, 1),
                 "error": status.error,
                 "last_activity": status.last_activity,
+                "last_heartbeat": status.last_heartbeat,
             })
         modules.sort(key=lambda m: (m["tier"], m["module"]))
+
+        # Per-tier summary
+        tier_summary = {}
+        for m in modules:
+            label = m["tier_label"]
+            tier_summary.setdefault(label, {"active": 0, "error": 0, "total": 0})
+            tier_summary[label]["total"] += 1
+            if m["state"] == "active":
+                tier_summary[label]["active"] += 1
+            elif m["state"] == "error":
+                tier_summary[label]["error"] += 1
+
+        total_setup_ms = sum(m["setup_ms"] for m in modules)
         return {
             "modules": modules,
             "total": len(statuses),
             "active": sum(1 for s in statuses.values() if s.state == "active"),
             "errors": sum(1 for s in statuses.values() if s.state == "error"),
+            "total_setup_ms": round(total_setup_ms, 1),
+            "tiers": tier_summary,
         }
+
+
+class NeuronLayerSensor(CopilotBaseEntity, SensorEntity):
+    """Sensor exposing neuron layer breakdown (context/state/mood) from Core."""
+
+    _attr_name = "Neuron Layers"
+    _attr_unique_id = "ai_home_copilot_neuron_layers"
+    _attr_icon = "mdi:layers-triple"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        neurons = self.coordinator.data.get("neurons", {})
+        if not neurons:
+            return "inactive"
+        total = sum(
+            len(v) if isinstance(v, dict) else 0
+            for v in neurons.values()
+        )
+        return f"{total} neurons"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        neurons = self.coordinator.data.get("neurons", {})
+        mood = self.coordinator.data.get("mood", {})
+
+        # Build per-layer summary
+        layers = {}
+        for layer_name in ("context", "state", "mood"):
+            layer_data = neurons.get(layer_name, {})
+            if isinstance(layer_data, dict):
+                neurons_in_layer = []
+                for n_name, n_state in layer_data.items():
+                    entry = {"name": n_name}
+                    if isinstance(n_state, dict):
+                        entry["value"] = n_state.get("value", 0)
+                        entry["confidence"] = n_state.get("confidence", 0)
+                        entry["trend"] = n_state.get("trend", "stable")
+                    neurons_in_layer.append(entry)
+                layers[layer_name] = {
+                    "count": len(neurons_in_layer),
+                    "neurons": sorted(neurons_in_layer, key=lambda n: n.get("value", 0), reverse=True),
+                }
+            else:
+                layers[layer_name] = {"count": 0, "neurons": []}
+
+        return {
+            "layers": layers,
+            "dominant_mood": mood.get("mood", "unknown"),
+            "mood_confidence": mood.get("confidence", 0.0),
+            "total_neurons": sum(layer["count"] for layer in layers.values()),
+            "pipeline": "context → state → mood → suggestions",
+        }
+
+
+class BrainGraphSensor(CopilotBaseEntity, SensorEntity):
+    """Sensor providing Brain Graph visualization data from Core add-on."""
+
+    _attr_name = "Brain Graph Visualization"
+    _attr_unique_id = "ai_home_copilot_brain_graph"
+    _attr_icon = "mdi:graph-outline"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        brain = self.coordinator.data.get("brain_summary", {})
+        summary = brain.get("summary", {})
+        nodes = summary.get("total_nodes", 0)
+        edges = summary.get("total_edges", 0)
+        if not nodes:
+            return "empty"
+        return f"{nodes} nodes, {edges} edges"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        brain = self.coordinator.data.get("brain_summary", {})
+        if not brain.get("ok"):
+            return {"status": "unavailable"}
+
+        summary = brain.get("summary", {})
+        top_nodes = brain.get("top_nodes", [])
+        top_edges = brain.get("top_edges", [])
+
+        # Build visualization-ready structure (d3.js / vis.js compatible)
+        vis_nodes = [
+            {
+                "id": n.get("id"),
+                "label": n.get("label", n.get("id", "")),
+                "group": n.get("kind", "unknown"),
+                "value": n.get("score", 0),
+            }
+            for n in top_nodes[:20]
+        ]
+        vis_edges = [
+            {
+                "from": e.get("from"),
+                "to": e.get("to"),
+                "label": e.get("type", ""),
+                "value": e.get("weight", 0),
+            }
+            for e in top_edges[:30]
+        ]
+
+        return {
+            "total_nodes": summary.get("total_nodes", 0),
+            "total_edges": summary.get("total_edges", 0),
+            "nodes_by_kind": summary.get("nodes_by_kind", {}),
+            "edges_by_type": summary.get("edges_by_type", {}),
+            "vis_nodes": vis_nodes,
+            "vis_edges": vis_edges,
+            "top_nodes": top_nodes[:10],
+            "top_edges": top_edges[:10],
+        }
+
+
+class HabitusRulesSensor(CopilotBaseEntity, SensorEntity):
+    """Sensor showing Habitus rules / pattern summary from Core."""
+
+    _attr_name = "Habitus Rules"
+    _attr_unique_id = "ai_home_copilot_habitus_rules"
+    _attr_icon = "mdi:head-lightbulb"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        rules = self.coordinator.data.get("habitus_rules", {})
+        count = rules.get("total_rules", rules.get("count", 0))
+        if not count:
+            return "no rules"
+        return f"{count} rules"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        return self.coordinator.data.get("habitus_rules", {})
+
+
+class CoreModulesSensor(CopilotBaseEntity, SensorEntity):
+    """Sensor exposing Core add-on module states (from /api/v1/modules/)."""
+
+    _attr_name = "Core Modules"
+    _attr_unique_id = "ai_home_copilot_core_modules"
+    _attr_icon = "mdi:puzzle"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        core_mods = self.coordinator.data.get("core_modules", {})
+        if not core_mods:
+            return "unavailable"
+        active = sum(1 for v in core_mods.values() if v == "active")
+        return f"{active}/{len(core_mods)} active"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        return {"modules": self.coordinator.data.get("core_modules", {})}
+
+
+class RAGStatusSensor(CopilotBaseEntity, SensorEntity):
+    """Sensor showing RAG (knowledge retrieval) system status."""
+
+    _attr_name = "RAG Status"
+    _attr_unique_id = "ai_home_copilot_rag_status"
+    _attr_icon = "mdi:book-search"
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        rag = self.coordinator.data.get("rag_status", {})
+        if not rag:
+            return "unavailable"
+        return rag.get("status", "unknown")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        return self.coordinator.data.get("rag_status", {})
 
 
 class ZoneOccupancySensor(SensorEntity):

@@ -348,56 +348,126 @@ async def async_generate_pilotsuite_dashboard(
     else:
         core_base = f"http://{host}:{port}"
 
+    # ── VIEW 1: SYSTEM OVERVIEW ──────────────────────────────────────
     intro = _markdown_card(
-        "Übersicht",
+        "PilotSuite Styx",
         f"""
-Dieses Dashboard wird von **PilotSuite** generiert (governance-first).
+**System-Dashboard** — generiert von PilotSuite (governance-first).
 
-**Quicklinks (Core):**
-- Health: [{core_base}/health]({core_base}/health)
-- Version: [{core_base}/version]({core_base}/version)
-- Events: [{core_base}/api/v1/events]({core_base}/api/v1/events)
-
-**Hinweis:** In YAML-Dashboards ist der visuelle Editor nicht verfügbar. Änderungen kommen über **Generate** (Buttons) + Browser-Reload.
+**Core:** [{core_base}/health]({core_base}/health)
+| [{core_base}/version]({core_base}/version)
 """,
     )
 
-    grid_cards = [
-        _entities_card("Status", overview_entities),
-        _entities_card("Betrieb (sicher)", operations_entities),
-        _entities_card("Dashboards (Generate)", dashboards_entities),
-        _entities_card("Core API", core_entities),
+    system_entities = _compact_entities([
+        *overview_entities,
+        _resolve_entity(hass, [
+            "sensor.ai_home_copilot_pipeline_health",
+            "sensor.pilotsuite_styx_pipeline_health",
+        ]),
+        _resolve_entity(hass, [
+            "sensor.ai_home_copilot_llm_health",
+            "sensor.pilotsuite_styx_llm_health",
+        ]),
+    ])
+
+    module_status_entity = _resolve_entity(hass, [
+        "sensor.pilotsuite_styx_pilotsuite_module_status",
+        f"sensor.{entry.entry_id}_module_status",
+    ])
+    module_entities: list[str] = []
+    if module_status_entity:
+        module_entities.append(module_status_entity)
+    core_modules_entity = _resolve_entity(hass, [
+        "sensor.ai_home_copilot_core_modules",
+    ])
+    if core_modules_entity:
+        module_entities.append(core_modules_entity)
+    rag_status_entity = _resolve_entity(hass, [
+        "sensor.ai_home_copilot_rag_status",
+    ])
+    if rag_status_entity:
+        module_entities.append(rag_status_entity)
+
+    system_grid_cards = [
+        _entities_card("Systemstatus", system_entities),
+        _entities_card("Module & Core", module_entities),
+        _entities_card("Betrieb", operations_entities),
     ]
     if resource_entities:
-        grid_cards.append(_entities_card("Systemressourcen", resource_entities))
+        system_grid_cards.append(_entities_card("Systemressourcen", resource_entities))
+    system_grid_cards.append(_entities_card("Dashboards", dashboards_entities))
 
-    grid = _grid_card(grid_cards, columns=2)
+    system_grid = _grid_card(system_grid_cards, columns=2)
+    views.append(_view("System", "copilot-system", "mdi:cog", "\n\n".join([intro, system_grid])))
 
-    views.append(_view("PilotSuite", "copilot", "mdi:robot-outline", "\n\n".join([intro, grid])))
+    # ── VIEW 2: NEURONEN & STIMMUNG ──────────────────────────────────
+    mood_entities_list = _existing_entities(hass, [
+        "sensor.ai_home_copilot_mood",
+        "sensor.ai_home_copilot_mood_confidence",
+        "sensor.ai_home_copilot_neuron_activity",
+        "sensor.ai_home_copilot_neuron_layers",
+    ])
+    neuron_14_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_presence_room",
+        "sensor.ai_home_copilot_presence_person",
+        "sensor.ai_home_copilot_activity_level",
+        "sensor.ai_home_copilot_activity_stillness",
+        "sensor.ai_home_copilot_time_of_day",
+        "sensor.ai_home_copilot_day_type",
+        "sensor.ai_home_copilot_routine_stability",
+        "sensor.ai_home_copilot_light_level",
+        "sensor.ai_home_copilot_noise_level",
+        "sensor.ai_home_copilot_weather_context",
+        "sensor.ai_home_copilot_calendar_load",
+        "sensor.ai_home_copilot_attention_load",
+        "sensor.ai_home_copilot_stress_proxy",
+        "sensor.ai_home_copilot_energy_proxy",
+    ])
+    media_neuron_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_media_activity",
+        "sensor.ai_home_copilot_media_intensity",
+    ])
 
-    # Mood + Neurons view (Lovelace custom cards from Core Add-on)
-    mood_card = (
-        "      - type: custom:ha-copilot-mood-card\n"
-        "        entity: sensor.ai_home_copilot_mood\n"
-        "        title: Stimmung\n"
-        "        show_emotions: 5\n"
-    )
-    neurons_card = (
-        "      - type: custom:ha-copilot-neurons-card\n"
-        "        entity: sensor.ai_home_copilot_neuron_activity\n"
-        "        title: Neuronen\n"
-    )
-    mood_neurons_grid = _grid_card([mood_card, neurons_card], columns=2)
+    neuron_grid_cards = [
+        _entities_card("Stimmung", mood_entities_list),
+    ]
+    if neuron_14_entities:
+        neuron_grid_cards.append(_entities_card("Kontext-Neuronen (14)", neuron_14_entities))
+    if media_neuron_entities:
+        neuron_grid_cards.append(_entities_card("Media-Neuronen", media_neuron_entities))
+
+    neuron_grid = _grid_card(neuron_grid_cards, columns=2)
     views.append(
-        _view(
-            "Stimmung & Neuronen",
-            "copilot-mood-neurons",
-            "mdi:head-heart-outline",
-            mood_neurons_grid,
-        )
+        _view("Neuronen", "copilot-neurons", "mdi:head-heart-outline", neuron_grid)
     )
 
-    # Core view
+    # ── VIEW 3: BRAIN GRAPH ──────────────────────────────────────────
+    brain_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_brain_graph_summary",
+        "sensor.ai_home_copilot_brain_graph",
+        "sensor.ai_home_copilot_brain_architecture",
+        "sensor.ai_home_copilot_brain_activity",
+    ])
+    habitus_rule_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_habitus_rules_summary",
+        "sensor.ai_home_copilot_habitus_rules",
+        "sensor.ai_home_copilot_habitus_miner_rule_count",
+        "sensor.ai_home_copilot_habitus_miner_status",
+        "sensor.ai_home_copilot_habitus_miner_top_rule",
+    ])
+
+    brain_grid_cards = [
+        _entities_card("Brain Graph", brain_entities),
+        _entities_card("Habitus Regeln", habitus_rule_entities),
+        _entities_card("Core API", core_entities),
+    ]
+    brain_grid = _grid_card(brain_grid_cards, columns=2)
+    views.append(
+        _view("Brain Graph", "copilot-brain", "mdi:graph", brain_grid)
+    )
+
+    # ── VIEW 4: CORE & API ──────────────────────────────────────────
     views.append(
         _view(
             "Core",
@@ -408,9 +478,11 @@ Dieses Dashboard wird von **PilotSuite** generiert (governance-first).
                     _entities_card("Core-Tools", core_entities),
                     _markdown_card(
                         "Hinweise",
-                        """
+                        f"""
+Core-API: [{core_base}/api/v1/events]({core_base}/api/v1/events)
+
 Wenn `/api/v1/events` leer bleibt:
-- **Forwarder-Status** prüfen
+- **Forwarder-Status** pruefen
 - ein Licht toggeln, das in einer Habitus-Zone liegt
 - **HA-Fehler** holen (Thread-Safety / POST-Fehler)
 """,
@@ -472,7 +544,29 @@ Wenn `/api/v1/events` leer bleibt:
             )
         )
 
-    # Entwicklung / Dev Surface (immer nützlich, bewusst leichtgewichtig)
+    # ── VIEW: ML & ENERGY INTELLIGENCE ─────────────────────────────
+    ml_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_energy_insight",
+        "sensor.ai_home_copilot_energy_recommendation",
+        "sensor.ai_home_copilot_habit_learning",
+        "sensor.ai_home_copilot_habit_prediction",
+        "sensor.ai_home_copilot_sequence_prediction",
+        "sensor.ai_home_copilot_anomaly_alert",
+        "sensor.ai_home_copilot_alert_history",
+        "sensor.ai_home_copilot_predictive_automation",
+        "sensor.ai_home_copilot_predictive_automation_details",
+    ])
+    if ml_entities:
+        views.append(
+            _view(
+                "ML & Energie",
+                "copilot-ml",
+                "mdi:brain",
+                _entities_card("ML Intelligence", ml_entities),
+            )
+        )
+
+    # Entwicklung / Dev Surface (immer nuetzlich, bewusst leichtgewichtig)
     views.append(
         _view(
             "Entwicklung",
