@@ -147,6 +147,72 @@ def _camera_card_yaml(title: str, entity_id: str) -> str:
     )
 
 
+def _gauge_card_yaml(title: str, entity_id: str, *, min_val: int = 0, max_val: int = 100,
+                     severity_green: int = 70, severity_yellow: int = 40, severity_red: int = 20) -> str:
+    return (
+        "      - type: gauge\n"
+        f"        entity: {entity_id}\n"
+        f"        name: {title}\n"
+        f"        min: {min_val}\n"
+        f"        max: {max_val}\n"
+        "        severity:\n"
+        f"          green: {severity_green}\n"
+        f"          yellow: {severity_yellow}\n"
+        f"          red: {severity_red}\n"
+    )
+
+
+def _thermostat_card_yaml(entity_id: str) -> str:
+    return (
+        "      - type: thermostat\n"
+        f"        entity: {entity_id}\n"
+    )
+
+
+def _picture_glance_yaml(title: str, camera_entity: str, overlay_entities: list[str]) -> str:
+    lines = [
+        "      - type: picture-glance",
+        f"        title: {title}",
+        f"        camera_image: {camera_entity}",
+        "        entities:",
+    ]
+    for eid in overlay_entities[:6]:
+        lines.append(f"          - {eid}")
+    return "\n".join(lines)
+
+
+def _mini_graph_yaml(title: str, entities: list[str], *, hours: int = 24) -> str:
+    """Sensor card with graph line (built-in sensor card)."""
+    if not entities:
+        return ""
+    lines = [
+        "      - type: sensor",
+        f"        entity: {entities[0]}",
+        f"        name: {title}",
+        "        graph: line",
+        f"        hours_to_show: {hours}",
+        "        detail: 2",
+    ]
+    return "\n".join(lines)
+
+
+def _horizontal_stack_yaml(cards: list[str]) -> str:
+    if not cards:
+        return ""
+    return "      - type: horizontal-stack\n        cards:\n" + "\n".join(
+        c.replace("      - ", "          - ", 1) for c in cards if c
+    )
+
+
+def _zone_header_yaml(zone_name: str, entity_count: int, role_count: int) -> str:
+    return (
+        "      - type: markdown\n"
+        f"        title: {zone_name}\n"
+        "        content: |\n"
+        f"          **Habitus Zone** | {entity_count} Entities | {role_count} Rollen\n"
+    )
+
+
 def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     """Return a YAML snippet for one Lovelace view.
 
@@ -228,6 +294,11 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
 
     cards: list[str] = []
 
+    # Zone header with summary
+    role_count = sum(1 for r in roles.values() if r)
+    total_entities = len(z.entity_ids)
+    cards.append(_zone_header_yaml(zone_name, total_entities, role_count))
+
     # Licht
     lights = roles.get("lights") or []
     if lights:
@@ -242,20 +313,37 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
             )
         cards.append(_entities_card_yaml("Licht", lights, show_header_toggle=True))
 
-    # Cover / Schloss / Heizung / Media
+    # Cover / Schloss
     if roles.get("cover"):
         cards.append(_entities_card_yaml("Rollo / Cover", roles.get("cover") or []))
     if roles.get("lock"):
-        cards.append(_entities_card_yaml("Schloss", roles.get("lock") or []))
-    if roles.get("heating"):
-        cards.append(_entities_card_yaml("Heizung", roles.get("heating") or []))
+        cards.append(_entities_card_yaml("Schloss", roles.get("lock") or [], secondary_info="last-changed"))
+
+    # Heizung — enhanced with thermostat cards
+    heating = roles.get("heating") or []
+    if heating:
+        climate_entities = [e for e in heating if e.startswith("climate.")]
+        other_heating = [e for e in heating if not e.startswith("climate.")]
+        for clim in climate_entities[:2]:
+            cards.append(_thermostat_card_yaml(clim))
+        if other_heating:
+            cards.append(_entities_card_yaml("Heizung", other_heating))
+
+    # Media
     if roles.get("media"):
-        cards.append(_entities_card_yaml("Media / Lautstärke", roles.get("media") or []))
+        cards.append(_entities_card_yaml("Media / Lautstärke", roles.get("media") or [], secondary_info="last-changed"))
+
+    # Camera — enhanced with picture-glance overlay
     if roles.get("camera"):
         cams = roles.get("camera") or []
-        cards.append(_entities_card_yaml("Kameras", cams))
+        overlay_eids = (motion or [])[:2] + (lights or [])[:2]
         for cam in cams[:4]:
-            cards.append(_camera_card_yaml("Kamera Live", cam))
+            if overlay_eids:
+                cards.append(_picture_glance_yaml("Kamera Live", cam, overlay_eids))
+            else:
+                cards.append(_camera_card_yaml("Kamera Live", cam))
+        if len(cams) > 1:
+            cards.append(_entities_card_yaml("Kameras", cams))
 
     # Motion/Präsenz (mit letzter Änderung)
     motion = roles.get("motion") or []
@@ -264,25 +352,43 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
 
     # Tür/Fenster
     if roles.get("door"):
-        cards.append(_entities_card_yaml("Türsensor", roles.get("door") or []))
+        cards.append(_entities_card_yaml("Türsensor", roles.get("door") or [], secondary_info="last-changed"))
     if roles.get("window"):
-        cards.append(_entities_card_yaml("Fenstersensor", roles.get("window") or []))
+        cards.append(_entities_card_yaml("Fenstersensor", roles.get("window") or [], secondary_info="last-changed"))
 
-    # Messwerte (mit mehr Graphen)
+    # Messwerte — enhanced with gauge cards and mini graphs
     brightness = roles.get("brightness") or []
     if brightness:
+        gauge_graphs: list[str] = []
+        for b_eid in brightness[:2]:
+            gauge_graphs.append(_mini_graph_yaml("Helligkeit", [b_eid], hours=12))
+        if gauge_graphs:
+            cards.append(_horizontal_stack_yaml(gauge_graphs))
         cards.append(_entities_card_yaml("Helligkeit", brightness))
         cards.append(_history_graph_yaml("Helligkeit — Verlauf (24h)", brightness))
 
     temperature = roles.get("temperature") or []
     if temperature:
         cards.extend(_maybe_avg_card("temperature", "Temperatur Ø", temperature))
+        # Gauge card for first temperature sensor
+        if temperature:
+            cards.append(_gauge_card_yaml(
+                "Temperatur", temperature[0],
+                min_val=10, max_val=35,
+                severity_green=22, severity_yellow=18, severity_red=15,
+            ))
         cards.append(_entities_card_yaml("Temperatur", temperature))
         cards.append(_history_graph_yaml("Temperatur — Verlauf (24h)", temperature))
 
     humidity = roles.get("humidity") or []
     if humidity:
         cards.extend(_maybe_avg_card("humidity", "Luftfeuchte Ø", humidity))
+        if humidity:
+            cards.append(_gauge_card_yaml(
+                "Luftfeuchte", humidity[0],
+                min_val=0, max_val=100,
+                severity_green=55, severity_yellow=40, severity_red=25,
+            ))
         cards.append(_entities_card_yaml("Luftfeuchte", humidity))
         cards.append(_history_graph_yaml("Luftfeuchte — Verlauf (24h)", humidity))
 
@@ -297,16 +403,32 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     illuminance = roles.get("illuminance") or []
     if illuminance:
         cards.extend(_maybe_avg_card("illuminance", "Beleuchtungsstärke Ø", illuminance))
+        if illuminance:
+            cards.append(_gauge_card_yaml(
+                "Beleuchtungsstärke", illuminance[0],
+                min_val=0, max_val=1000,
+                severity_green=300, severity_yellow=100, severity_red=50,
+            ))
         cards.append(_entities_card_yaml("Beleuchtungsstärke", illuminance))
         cards.append(_history_graph_yaml("Beleuchtungsstärke — Verlauf (24h)", illuminance))
 
     co2 = roles.get("co2") or []
     if co2:
+        cards.append(_gauge_card_yaml(
+            "CO₂", co2[0],
+            min_val=300, max_val=2000,
+            severity_green=800, severity_yellow=1000, severity_red=1500,
+        ))
         cards.append(_entities_card_yaml("CO₂", co2))
         cards.append(_history_graph_yaml("CO₂ — Verlauf (24h)", co2))
 
     noise = roles.get("noise") or []
     if noise:
+        cards.append(_gauge_card_yaml(
+            "Lärm", noise[0],
+            min_val=20, max_val=100,
+            severity_green=45, severity_yellow=60, severity_red=75,
+        ))
         cards.append(_entities_card_yaml("Lärm", noise))
         cards.append(_history_graph_yaml("Lärm — Verlauf (24h)", noise))
 
@@ -318,6 +440,12 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     power = roles.get("power") or []
     if power:
         cards.extend(_maybe_avg_card("power", "Leistung Ø", power))
+        if power:
+            cards.append(_gauge_card_yaml(
+                "Leistung (W)", power[0],
+                min_val=0, max_val=3000,
+                severity_green=500, severity_yellow=1500, severity_red=2500,
+            ))
         cards.append(_entities_card_yaml("Strom (Leistung)", power))
         cards.append(_history_graph_yaml("Strom — Verlauf (24h)", power))
 
@@ -339,6 +467,8 @@ def _lovelace_yaml_for_zone(hass: HomeAssistant, z: HabitusZoneV2) -> str:
     key_signals.extend((lights or [])[:6])
     key_signals.extend((roles.get("media") or [])[:4])
     key_signals.extend((roles.get("heating") or [])[:2])
+    key_signals.extend((temperature or [])[:2])
+    key_signals.extend((humidity or [])[:2])
 
     cards.append(_history_graph_yaml("Übersicht — Verlauf (24h)", key_signals))
     cards.append(_logbook_yaml("Übersicht — Logbuch (24h)", key_signals))

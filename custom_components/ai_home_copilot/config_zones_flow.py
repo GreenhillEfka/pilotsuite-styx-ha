@@ -36,6 +36,12 @@ _ROLE_FIELD_MAP: dict[str, str] = {
     "heating": "heating_entity_ids",
     "camera": "camera_entity_ids",
     "media": "media_entity_ids",
+    "power": "power_entity_ids",
+    "energy": "energy_entity_ids",
+    "door": "door_entity_ids",
+    "window": "window_entity_ids",
+    "cover": "cover_entity_ids",
+    "lock": "lock_entity_ids",
 }
 
 _ROLE_LABELS: dict[str, str] = {
@@ -47,6 +53,12 @@ _ROLE_LABELS: dict[str, str] = {
     "heating": "Heizung/Klima",
     "camera": "Kamera",
     "media": "Media",
+    "power": "Leistung",
+    "energy": "Energie",
+    "door": "Tuer",
+    "window": "Fenster",
+    "cover": "Rollo/Cover",
+    "lock": "Schloss",
 }
 
 
@@ -152,6 +164,10 @@ def _infer_optional_role(entity_id: str) -> str:
         return "media"
     if domain == "climate":
         return "heating"
+    if domain == "cover":
+        return "cover"
+    if domain == "lock":
+        return "lock"
     if domain in ("switch", "number", "input_number", "water_heater") and any(
         key in eid for key in ("heat", "heiz", "boiler", "therm")
     ):
@@ -168,6 +184,17 @@ def _infer_optional_role(entity_id: str) -> str:
             return "brightness"
         if "temp" in eid:
             return "temperature"
+        if any(key in eid for key in ("power", "watt", "leistung")):
+            return "power"
+        if any(key in eid for key in ("energy", "kwh", "verbrauch", "energie")):
+            return "energy"
+
+    if domain == "binary_sensor":
+        if any(key in eid for key in ("door", "tuer", "tür")):
+            return "door"
+        if any(key in eid for key in ("window", "fenster")):
+            return "window"
+
     return "other"
 
 
@@ -311,6 +338,24 @@ def _build_zone_form_schema(
     )
     fields[vol.Optional("media_entity_ids", default=role_entity_ids.get("media", []))] = selector.EntitySelector(
         selector.EntitySelectorConfig(domain=["media_player"], multiple=True)
+    )
+    fields[vol.Optional("power_entity_ids", default=role_entity_ids.get("power", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor"], multiple=True)
+    )
+    fields[vol.Optional("energy_entity_ids", default=role_entity_ids.get("energy", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor"], multiple=True)
+    )
+    fields[vol.Optional("door_entity_ids", default=role_entity_ids.get("door", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("window_entity_ids", default=role_entity_ids.get("window", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("cover_entity_ids", default=role_entity_ids.get("cover", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["cover"], multiple=True)
+    )
+    fields[vol.Optional("lock_entity_ids", default=role_entity_ids.get("lock", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["lock"], multiple=True)
     )
     fields[vol.Optional("optional_entity_ids", default=optional_entity_ids)] = selector.EntitySelector(
         selector.EntitySelectorConfig(multiple=True)
@@ -543,7 +588,8 @@ async def async_step_zone_form(
             description_placeholders=placeholders,
         )
 
-    role_order = ("brightness", "noise", "humidity", "co2", "temperature", "heating", "camera", "media")
+    role_order = ("brightness", "noise", "humidity", "co2", "temperature", "heating", "camera", "media",
+                  "power", "energy", "door", "window", "cover", "lock")
     entity_ids = [motion] + lights
     for role in role_order:
         entity_ids.extend(role_entities.get(role, []))

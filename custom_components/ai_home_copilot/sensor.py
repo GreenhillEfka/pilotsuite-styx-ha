@@ -169,6 +169,8 @@ from .sensors.system_integration_sensor import SystemIntegrationSensor
 from .sensors.brain_architecture_sensor import BrainArchitectureSensor
 from .sensors.brain_activity_sensor import BrainActivitySensor
 from .sensors.rag_status_sensor import RagPipelineStatusSensor
+from .sensors.music_cloud_sensor import MusicCloudSensor, MusicCloudZonesSensor
+from .sensors.light_module_sensor import LightModuleSensor, LightModuleZonesSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -429,6 +431,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         SystemIntegrationSensor(coordinator),
         BrainArchitectureSensor(coordinator),
         BrainActivitySensor(coordinator),
+    ])
+
+    # Music Cloud Sensors (Zone-Following Music)
+    entities.extend([
+        MusicCloudSensor(coordinator),
+        MusicCloudZonesSensor(coordinator),
+    ])
+
+    # Adaptive Light Module Sensors (Presence/Brightness/Circadian)
+    entities.extend([
+        LightModuleSensor(coordinator),
+        LightModuleZonesSensor(coordinator),
     ])
 
     # Camera Context Sensors (Habitus Camera Integration)

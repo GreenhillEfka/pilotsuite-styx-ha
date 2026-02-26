@@ -50,6 +50,95 @@ STEP_FEATURES = "features"
 STEP_NETWORK = "network"
 STEP_REVIEW = "review"
 
+# Smart German zone templates for auto-suggestion
+# Maps common German room names to expected entity roles and keywords
+ZONE_TEMPLATES: dict[str, dict] = {
+    "wohnbereich": {
+        "name": "Wohnbereich",
+        "icon": "mdi:sofa",
+        "roles": ["lights", "media", "motion", "temperature", "brightness"],
+        "keywords": ["wohn", "living", "lounge", "stube"],
+        "priority": "high",
+    },
+    "schlafbereich": {
+        "name": "Schlafbereich",
+        "icon": "mdi:bed",
+        "roles": ["lights", "motion", "temperature", "humidity", "cover"],
+        "keywords": ["schlaf", "bed", "sleep", "schlafzimmer"],
+        "priority": "high",
+    },
+    "kochbereich": {
+        "name": "Kochbereich",
+        "icon": "mdi:stove",
+        "roles": ["lights", "motion", "temperature", "humidity", "co2", "power"],
+        "keywords": ["kuch", "küch", "kitchen", "cook", "kochen"],
+        "priority": "high",
+    },
+    "badbereich": {
+        "name": "Badbereich",
+        "icon": "mdi:shower",
+        "roles": ["lights", "motion", "humidity", "temperature", "heating"],
+        "keywords": ["bad", "bath", "dusch", "shower", "wc", "toilet"],
+        "priority": "high",
+    },
+    "buero": {
+        "name": "Büro / Arbeitsbereich",
+        "icon": "mdi:desk",
+        "roles": ["lights", "motion", "temperature", "brightness", "co2", "noise"],
+        "keywords": ["büro", "buero", "office", "arbeit", "work", "desk"],
+        "priority": "medium",
+    },
+    "flur": {
+        "name": "Flurbereich",
+        "icon": "mdi:door-open",
+        "roles": ["lights", "motion", "door"],
+        "keywords": ["flur", "hall", "corridor", "gang", "diele"],
+        "priority": "medium",
+    },
+    "eingang": {
+        "name": "Eingangsbereich",
+        "icon": "mdi:door",
+        "roles": ["lights", "motion", "camera", "lock", "door"],
+        "keywords": ["eingang", "entrance", "entry", "haustür", "front"],
+        "priority": "medium",
+    },
+    "garten": {
+        "name": "Gartenbereich",
+        "icon": "mdi:flower",
+        "roles": ["lights", "motion", "camera", "temperature", "brightness"],
+        "keywords": ["garten", "garden", "terrasse", "balkon", "outdoor", "aussen", "außen"],
+        "priority": "low",
+    },
+    "keller": {
+        "name": "Kellerbereich",
+        "icon": "mdi:home-floor-negative-1",
+        "roles": ["lights", "motion", "humidity", "temperature"],
+        "keywords": ["keller", "basement", "cellar", "untergeschoss"],
+        "priority": "low",
+    },
+    "kinderzimmer": {
+        "name": "Kinderzimmer",
+        "icon": "mdi:baby-face-outline",
+        "roles": ["lights", "motion", "temperature", "humidity", "noise", "camera"],
+        "keywords": ["kind", "child", "nursery", "spielzimmer", "kids"],
+        "priority": "medium",
+    },
+    "esszimmer": {
+        "name": "Essbereich",
+        "icon": "mdi:silverware-fork-knife",
+        "roles": ["lights", "motion", "temperature"],
+        "keywords": ["ess", "dining", "speise"],
+        "priority": "medium",
+    },
+    "garage": {
+        "name": "Garage",
+        "icon": "mdi:garage",
+        "roles": ["lights", "motion", "camera", "cover", "door"],
+        "keywords": ["garage", "carport", "stellplatz"],
+        "priority": "low",
+    },
+}
+
 
 class SetupWizard:
     """Manages the setup wizard flow."""
@@ -141,27 +230,48 @@ class SetupWizard:
         return discovered
     
     def get_zone_suggestions(self) -> List[Dict]:
-        """Get suggested zones based on discovered areas."""
+        """Get suggested zones based on discovered areas with smart template matching."""
         zones = self._discovered_entities.get("zones", [])
-        
-        # Prioritize zones with entities
+
+        # Prioritize zones with entities and match to German templates
         prioritized = []
+        ent_reg = entity_registry.async_get(self._hass)
+
         for zone in zones:
             entity_count = 0
-            # Count entities in this zone
-            ent_reg = entity_registry.async_get(self._hass)
             for entity_id, entry in ent_reg.entities.items():
                 if entry.area_id == zone["area_id"]:
                     entity_count += 1
-            
+
+            # Match zone name to German templates
+            zone_name_lower = (zone.get("name") or "").lower()
+            matched_template = None
+            for tpl_key, tpl in ZONE_TEMPLATES.items():
+                if any(kw in zone_name_lower for kw in tpl["keywords"]):
+                    matched_template = tpl
+                    break
+
+            tpl_priority = matched_template["priority"] if matched_template else "low"
+            tpl_icon = matched_template["icon"] if matched_template else zone.get("icon", "mdi:home-circle")
+            tpl_roles = matched_template["roles"] if matched_template else []
+
+            # Compute combined priority score
+            priority_scores = {"high": 3, "medium": 2, "low": 1}
+            entity_score = 3 if entity_count > 5 else 2 if entity_count > 2 else 1
+            combined_score = priority_scores.get(tpl_priority, 1) + entity_score
+
             prioritized.append({
                 **zone,
                 "entity_count": entity_count,
-                "priority": "high" if entity_count > 5 else "medium" if entity_count > 2 else "low",
+                "priority": "high" if combined_score >= 5 else "medium" if combined_score >= 3 else "low",
+                "template": matched_template["name"] if matched_template else None,
+                "suggested_roles": tpl_roles,
+                "icon": tpl_icon,
             })
-        
-        # Sort by entity count
-        prioritized.sort(key=lambda z: z["entity_count"], reverse=True)
+
+        # Sort by combined priority then entity count
+        priority_order = {"high": 0, "medium": 1, "low": 2}
+        prioritized.sort(key=lambda z: (priority_order.get(z["priority"], 3), -z["entity_count"]))
         return prioritized
     
     def get_zone_info(self, zone_id: str) -> Dict:

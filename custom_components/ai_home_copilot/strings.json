@@ -428,7 +428,21 @@
           "name": "Display name",
           "motion_entity_id": "Motion / presence entity",
           "light_entity_ids": "Lights (one or more)",
-          "optional_entity_ids": "Optional entities"
+          "brightness_entity_ids": "Brightness / illuminance sensors",
+          "noise_entity_ids": "Noise / sound sensors",
+          "humidity_entity_ids": "Humidity sensors",
+          "co2_entity_ids": "CO2 sensors",
+          "temperature_entity_ids": "Temperature sensors",
+          "heating_entity_ids": "Heating / climate entities",
+          "camera_entity_ids": "Camera entities",
+          "media_entity_ids": "Media player entities",
+          "power_entity_ids": "Power / wattage sensors",
+          "energy_entity_ids": "Energy consumption sensors",
+          "door_entity_ids": "Door sensors",
+          "window_entity_ids": "Window sensors",
+          "cover_entity_ids": "Cover / shutter entities",
+          "lock_entity_ids": "Lock entities",
+          "optional_entity_ids": "Other entities"
         }
       },
       "edit_zone": {
@@ -444,7 +458,21 @@
           "name": "Display name",
           "motion_entity_id": "Motion / presence entity",
           "light_entity_ids": "Lights (one or more)",
-          "optional_entity_ids": "Optional entities"
+          "brightness_entity_ids": "Brightness / illuminance sensors",
+          "noise_entity_ids": "Noise / sound sensors",
+          "humidity_entity_ids": "Humidity sensors",
+          "co2_entity_ids": "CO2 sensors",
+          "temperature_entity_ids": "Temperature sensors",
+          "heating_entity_ids": "Heating / climate entities",
+          "camera_entity_ids": "Camera entities",
+          "media_entity_ids": "Media player entities",
+          "power_entity_ids": "Power / wattage sensors",
+          "energy_entity_ids": "Energy consumption sensors",
+          "door_entity_ids": "Door sensors",
+          "window_entity_ids": "Window sensors",
+          "cover_entity_ids": "Cover / shutter entities",
+          "lock_entity_ids": "Lock entities",
+          "optional_entity_ids": "Other entities"
         }
       },
       "delete_zone": {
