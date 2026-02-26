@@ -377,6 +377,12 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 # Get habit learning data from ML context if available
                 habit_data = await self._get_habit_learning_data()
 
+                # Get Override Modes status (best-effort)
+                override_modes = await self._get_override_modes()
+
+                # Get Music Cloud status (best-effort)
+                music_cloud = await self._get_music_cloud_status()
+
                 return {
                     "ok": bool(status.ok) if status.ok is not None else True,
                     "version": status.version or "unknown",
@@ -391,6 +397,8 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     "brain_summary": brain_summary,
                     "habitus_rules": habitus_rules,
                     "rag_status": rag_status,
+                    "override_modes": override_modes,
+                    "music_cloud": music_cloud,
                 }
             except CopilotApiError as err:
                 last_err = err
@@ -416,6 +424,27 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.warning("PilotSuite API unreachable after 3 attempts: %s", last_err)
         raise UpdateFailed(f"API unavailable after retries: {last_err}") from last_err
     
+    async def _get_override_modes(self) -> dict[str, Any]:
+        """Fetch override modes status from Core (best-effort)."""
+        try:
+            return await self.api.async_get("/api/v1/modes")
+        except Exception:  # noqa: BLE001
+            return {}
+
+    async def _get_music_cloud_status(self) -> dict[str, Any]:
+        """Fetch Music Cloud status from Core (best-effort)."""
+        try:
+            result = await self.api.async_get("/api/v1/media/cloud/status")
+            config = await self.api.async_get("/api/v1/media/cloud/config")
+            groups = await self.api.async_get("/api/v1/media/cloud/groups")
+            return {
+                "status": result,
+                "config": config.get("config", {}) if isinstance(config, dict) else {},
+                "active_groups": groups.get("groups", []) if isinstance(groups, dict) else [],
+            }
+        except Exception:  # noqa: BLE001
+            return {}
+
     async def _get_habit_learning_data(self) -> dict[str, Any]:
         """Get habit learning data from ML context."""
         try:
