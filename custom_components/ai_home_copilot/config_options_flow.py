@@ -56,6 +56,7 @@ def _normalize_entity_list(value: object) -> list[str]:
 class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._entry = config_entry
+        self._editing_zone_id: str | None = None
         ConfigSnapshotOptionsFlow.__init__(self, config_entry)
 
     def _effective_config(self) -> dict:
@@ -324,14 +325,133 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 "create_zone",
                 "edit_zone",
                 "delete_zone",
-                "dashboard_info",
+                "suggest_zones",
                 "bulk_edit",
+                "dashboard_info",
                 "back",
             ],
         )
 
+    async def async_step_suggest_zones(self, user_input: dict | None = None) -> FlowResult:
+        """Fetch zone suggestions from Core and let user adopt them."""
+        import aiohttp
+        from homeassistant.helpers.aiohttp_client import async_get_clientsession
+        from .habitus_zones_store_v2 import HabitusZoneV2, async_get_zones_v2, async_set_zones_v2
+        from .core_endpoint import build_base_url, DEFAULT_CORE_PORT
+
+        config = self._effective_config()
+        host = str(config.get("host", "")).strip()
+        try:
+            port = int(config.get("port", DEFAULT_CORE_PORT))
+        except (TypeError, ValueError):
+            port = DEFAULT_CORE_PORT
+        token = str(config.get("token") or "").strip()
+
+        if user_input is not None:
+            selected = user_input.get("adopt_zones", [])
+            if not selected:
+                return await self.async_step_habitus_zones()
+
+            suggestions = getattr(self, "_zone_suggestions", [])
+            existing_zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+            existing_ids = {z.zone_id for z in existing_zones}
+            new_zones = list(existing_zones)
+
+            for suggestion in suggestions:
+                zid = suggestion.get("zone_id", "")
+                if zid not in selected or zid in existing_ids:
+                    continue
+
+                entity_roles = suggestion.get("entity_roles", {})
+                all_entity_ids = suggestion.get("recommended_entities", [])
+
+                ent_map = {}
+                for role, eids in entity_roles.items():
+                    if eids:
+                        ent_map[role] = tuple(eids)
+
+                new_zone = HabitusZoneV2(
+                    zone_id=zid,
+                    name=suggestion.get("name", zid),
+                    entity_ids=tuple(all_entity_ids),
+                    entities=ent_map or None,
+                    metadata={"source": "core_suggestion"},
+                )
+                new_zones.append(new_zone)
+
+            try:
+                await async_set_zones_v2(self.hass, self._entry.entry_id, new_zones)
+                from .config_zones_flow import _sync_zones_to_core
+                await _sync_zones_to_core(self.hass, config, new_zones)
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("Failed to save suggested zones")
+
+            return await self.async_step_habitus_zones()
+
+        # Fetch suggestions from Core
+        suggestions = []
+        if host:
+            base = build_base_url(host, port).rstrip("/")
+            headers: dict[str, str] = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+                headers["X-Auth-Token"] = token
+
+            session = async_get_clientsession(self.hass)
+            try:
+                async with session.get(
+                    f"{base}/api/v1/hub/habitus/management/recommendations",
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        suggestions = data.get("zones", [])
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("Could not fetch zone suggestions from Core")
+
+        if not suggestions:
+            return self.async_abort(reason="no_suggestions")
+
+        self._zone_suggestions = suggestions
+
+        existing_zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+        existing_ids = {z.zone_id for z in existing_zones}
+
+        options = []
+        for s in suggestions:
+            zid = s.get("zone_id", "")
+            name = s.get("name", zid)
+            count = s.get("recommended_count", 0)
+            if zid and zid not in existing_ids:
+                options.append(
+                    selector.SelectOptionDict(
+                        value=zid,
+                        label=f"{name} ({count} entities)",
+                    )
+                )
+
+        if not options:
+            return self.async_abort(reason="no_new_suggestions")
+
+        schema = vol.Schema(
+            {
+                vol.Required("adopt_zones"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=options,
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="suggest_zones", data_schema=schema)
+
     async def async_step_dashboard_info(self, user_input: dict | None = None) -> FlowResult:
         """Inform users that React/Core dashboard is primary; YAML is legacy."""
+        if user_input is not None:
+            return await self.async_step_habitus_zones()
+
         schema = vol.Schema({vol.Optional("back_to_menu", default=True): bool})
         return self.async_show_form(
             step_id="dashboard_info",
@@ -396,7 +516,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             return self.async_show_form(step_id="edit_zone", data_schema=schema)
 
         zid = str(user_input.get("zone_id", ""))
+        self._editing_zone_id = zid
         return await async_step_zone_form(self, mode="edit", user_input=None, zone_id=zid)
+
+    async def async_step_edit_zone_form(self, user_input: dict | None = None) -> FlowResult:
+        """Handle the edit zone form submission."""
+        zone_id = self._editing_zone_id
+        if not zone_id:
+            return await self.async_step_habitus_zones()
+        return await async_step_zone_form(self, mode="edit", user_input=user_input, zone_id=zone_id)
 
     async def async_step_delete_zone(self, user_input: dict | None = None) -> FlowResult:
         from .habitus_zones_store_v2 import async_get_zones_v2, async_set_zones_v2
@@ -426,6 +554,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         zid = str(user_input.get("zone_id", ""))
         remain = [z for z in zones if z.zone_id != zid]
         await async_set_zones_v2(self.hass, self._entry.entry_id, remain)
+
+        # Sync deletion to Core
+        try:
+            from .config_zones_flow import _sync_zones_to_core
+            config = self._effective_config()
+            await _sync_zones_to_core(self.hass, config, remain)
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Zone sync to Core after delete failed (non-blocking)")
+
         return await self.async_step_habitus_zones()
 
     async def async_step_bulk_edit(self, user_input: dict | None = None) -> FlowResult:
@@ -467,6 +604,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     errors={"base": "invalid_json"},
                     description_placeholders={"hint": f"Parse/validation error: {err}"},
                 )
+
+            # Sync to Core after bulk edit
+            try:
+                from .config_zones_flow import _sync_zones_to_core
+                config = self._effective_config()
+                all_zones = await async_get_zones_v2(self.hass, self._entry.entry_id)
+                await _sync_zones_to_core(self.hass, config, all_zones)
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("Zone sync to Core after bulk edit failed (non-blocking)")
 
             return await self.async_step_habitus_zones()
 

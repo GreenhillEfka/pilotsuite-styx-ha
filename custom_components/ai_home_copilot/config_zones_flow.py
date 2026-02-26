@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import area_registry, device_registry, entity_registry, selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -446,6 +447,60 @@ async def get_zone_entity_suggestions(hass: HomeAssistant, zone_name: str) -> di
     return suggestions
 
 
+async def _sync_zones_to_core(
+    hass: HomeAssistant,
+    config: dict,
+    zones: list,
+) -> None:
+    """Push zone data to Core API (fire-and-forget)."""
+    import aiohttp
+    from .core_endpoint import build_base_url, DEFAULT_CORE_PORT
+
+    host = str(config.get("host", "")).strip()
+    try:
+        port = int(config.get("port", DEFAULT_CORE_PORT))
+    except (TypeError, ValueError):
+        port = DEFAULT_CORE_PORT
+    if not host:
+        return
+
+    base = build_base_url(host, port).rstrip("/")
+    token = str(config.get("token") or config.get("auth_token") or "").strip()
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        headers["X-Auth-Token"] = token
+
+    session = async_get_clientsession(hass)
+
+    zone_payload = []
+    for z in zones:
+        item: dict[str, Any] = {
+            "zone_id": z.zone_id,
+            "name": z.name,
+            "entity_ids": list(z.entity_ids),
+        }
+        if z.entities:
+            item["entities"] = {k: list(v) for k, v in z.entities.items()}
+        if z.metadata and isinstance(z.metadata, dict):
+            item["metadata"] = z.metadata
+        zone_payload.append(item)
+
+    try:
+        async with session.post(
+            f"{base}/api/v1/hub/zones/sync",
+            json={"zones": zone_payload},
+            headers=headers,
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as resp:
+            if resp.status in (200, 201):
+                _LOGGER.debug("Synced %d zones to Core", len(zone_payload))
+            else:
+                _LOGGER.debug("Core zone sync returned %s", resp.status)
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.debug("Core zone sync failed (non-blocking): %s", exc)
+
+
 async def async_step_zone_form(
     flow,
     *,
@@ -651,4 +706,14 @@ async def async_step_zone_form(
 
     await create_zone_tag(flow.hass, zid, zone_name)
     await tag_zone_entities(flow.hass, zid, uniq)
+
+    # Sync all zones to Core API (fire-and-forget)
+    try:
+        from .config_helpers import merge_config_data
+        config = merge_config_data(entry.data, entry.options)
+        all_zones = await async_get_zones_v2(flow.hass, entry.entry_id)
+        await _sync_zones_to_core(flow.hass, config, all_zones)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Zone sync to Core after save failed (non-blocking)")
+
     return await flow.async_step_habitus_zones()
