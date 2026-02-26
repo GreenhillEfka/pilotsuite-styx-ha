@@ -37,6 +37,101 @@ STYX_TAG_NAME = "Styx"
 STYX_TAG_COLOR = "#8b5cf6"  # Purple
 STYX_TAG_ICON = "mdi:robot"
 
+# ---------------------------------------------------------------------------
+# Neuron ↔ Tag mapping — maps tag patterns to neuron categories.
+# Used by NeuronTagResolver to auto-assign entities to context/state/mood.
+# ---------------------------------------------------------------------------
+NEURON_TAG_MAPPING: dict[str, str] = {
+    # Explicit neuron tags (highest priority)
+    "styx:neuron:kontext": "context",
+    "styx:neuron:zustand": "state",
+    "styx:neuron:stimmung": "mood",
+    # Device-class based mapping
+    "licht": "context",
+    "light": "context",
+    "helligkeit": "context",
+    "illuminance": "context",
+    "temperatur": "state",
+    "temperature": "state",
+    "luftfeuchtigkeit": "state",
+    "humidity": "state",
+    "bewegung": "context",
+    "motion": "context",
+    "praesenz": "context",
+    "presence": "context",
+    "occupancy": "context",
+    "energie": "state",
+    "energy": "state",
+    "power": "state",
+    "media_player": "mood",
+    "musik": "mood",
+    "music": "mood",
+    "klima": "state",
+    "climate": "state",
+    "wetter": "context",
+    "weather": "context",
+    "kalender": "mood",
+    "calendar": "mood",
+    # Zone-type based mapping
+    "zone:wohnbereich": "context",
+    "zone:wohnzimmer": "context",
+    "zone:schlafzimmer": "mood",
+    "zone:kueche": "context",
+    "zone:bad": "state",
+    "zone:badezimmer": "state",
+    "zone:buero": "context",
+    "zone:flur": "context",
+    "zone:kinderzimmer": "mood",
+    "zone:garten": "context",
+}
+
+
+class NeuronTagResolver:
+    """Resolve entities for neuron categories based on tags.
+
+    Scans entity tags, HA labels, zone assignments, and device classes
+    to automatically determine which entities belong to context / state / mood
+    neuron groups.
+    """
+
+    def resolve_entities(
+        self,
+        tags_module: "EntityTagsModule",
+    ) -> dict[str, list[str]]:
+        """Return auto-resolved neuron entity assignments.
+
+        Returns dict with keys ``context_entities``, ``state_entities``,
+        ``mood_entities`` — each a deduplicated list of entity_ids.
+        """
+        result: dict[str, set[str]] = {"context": set(), "state": set(), "mood": set()}
+
+        all_tags = tags_module.get_all_tags()
+        for tag in all_tags:
+            tag_id = str(getattr(tag, "tag_id", "") or "").lower()
+            tag_name = str(getattr(tag, "name", "") or "").lower()
+            entity_ids = list(getattr(tag, "entity_ids", []) or [])
+
+            if not entity_ids:
+                continue
+
+            # 1. Check explicit neuron-tag matches (styx:neuron:*)
+            category = NEURON_TAG_MAPPING.get(tag_id)
+            if category:
+                result[category].update(entity_ids)
+                continue
+
+            # 2. Check tag_id / tag_name against known patterns
+            for pattern, cat in NEURON_TAG_MAPPING.items():
+                if pattern in tag_id or pattern in tag_name:
+                    result[cat].update(entity_ids)
+                    break
+
+        return {
+            "context_entities": sorted(result["context"]),
+            "state_entities": sorted(result["state"]),
+            "mood_entities": sorted(result["mood"]),
+        }
+
 
 class EntityTagsModule(CopilotModule):
     """Module managing user-defined and auto-generated entity tags."""
@@ -55,7 +150,7 @@ class EntityTagsModule(CopilotModule):
         self._entry_id: Optional[str] = None
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
-        """Load tags from storage and register in hass.data."""
+        """Load tags from storage, sync HA labels, and register in hass.data."""
         self._hass = ctx.hass
         self._entry_id = ctx.entry_id
 
@@ -65,6 +160,18 @@ class EntityTagsModule(CopilotModule):
         ctx.hass.data.setdefault("ai_home_copilot", {})
         ctx.hass.data["ai_home_copilot"].setdefault(ctx.entry_id, {})
         ctx.hass.data["ai_home_copilot"][ctx.entry_id]["entity_tags_module"] = self
+
+        # Auto-sync HA labels + device-class tags on startup (best-effort).
+        try:
+            synced = await self.async_sync_ha_labels()
+            _LOGGER.debug("HA label sync: %d tags synced", synced)
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("HA label sync on startup failed (non-blocking)")
+
+        try:
+            await self.async_auto_tag_neuron_entities()
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Neuron entity auto-tag on startup failed (non-blocking)")
 
         _LOGGER.info(
             "EntityTagsModule v2 setup: %d tags loaded",
@@ -425,6 +532,53 @@ class EntityTagsModule(CopilotModule):
             _LOGGER.info("Synced %d HA labels as PilotSuite tags", synced)
 
         return synced
+
+    async def async_auto_tag_neuron_entities(self) -> int:
+        """Auto-tag entities with their neuron category (context/state/mood).
+
+        Runs the NeuronTagResolver, then creates/updates three special tags:
+          - styx:neuron:kontext  → all context neuron entities
+          - styx:neuron:zustand  → all state neuron entities
+          - styx:neuron:stimmung → all mood neuron entities
+
+        Returns the total number of unique entities tagged.
+        """
+        if not self._hass:
+            return 0
+
+        from ...entity_tags_store import async_upsert_tag
+
+        resolved = NeuronTagResolver().resolve_entities(self)
+        total = 0
+
+        tag_defs = [
+            ("styx:neuron:kontext", "Styx - Neuronen: Kontext",
+             resolved["context_entities"], "#60a5fa", "mdi:eye"),
+            ("styx:neuron:zustand", "Styx - Neuronen: Zustand",
+             resolved["state_entities"], "#34d399", "mdi:gauge"),
+            ("styx:neuron:stimmung", "Styx - Neuronen: Stimmung",
+             resolved["mood_entities"], "#fb923c", "mdi:emoticon"),
+        ]
+
+        for tag_id, tag_name, entity_ids, color, icon in tag_defs:
+            if not entity_ids:
+                continue
+            await async_upsert_tag(
+                self._hass,
+                tag_id=tag_id.replace(":", "_"),
+                name=tag_name,
+                entity_ids=entity_ids,
+                color=color,
+                icon=icon,
+                module_hints=["neuron", "auto"],
+            )
+            total += len(entity_ids)
+
+        if total > 0:
+            await self.reload_from_storage()
+            _LOGGER.info("Auto-tagged %d entities with neuron categories", total)
+
+        return total
 
     # ------------------------------------------------------------------
     # LLM Context

@@ -714,12 +714,13 @@ async def async_step_zone_form(
     await create_zone_tag(flow.hass, zid, zone_name)
     await tag_zone_entities(flow.hass, zid, uniq)
 
-    # Auto-tag entities with zone via EntityTagsModule (v9.0)
+    # Auto-tag entities with zone + update neuron categories (v9.0 / v9.2)
     try:
         from .core.modules.entity_tags_module import get_entity_tags_module
         tags_mod = get_entity_tags_module(flow.hass, entry.entry_id)
         if tags_mod:
             await tags_mod.async_auto_tag_zone_entities(zid, zone_name, uniq)
+            await tags_mod.async_auto_tag_neuron_entities()
     except Exception:  # noqa: BLE001
         _LOGGER.debug("Auto-tagging zone entities failed (non-blocking)")
 

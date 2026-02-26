@@ -9,7 +9,6 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .const import DOMAIN, SIGNAL_CONTEXT_ENTITIES_REFRESH
-from .debug import DebugModeSensor
 from .entity import CopilotBaseEntity
 from .entity_profile import is_full_entity_profile
 from .media_entities import (
@@ -30,7 +29,6 @@ from .media_context_v2_entities import (
 from .habitus_zones_entities_v2 import (
     HabitusZonesSensor,
     HabitusZonesV2CountSensor,
-    HabitusZonesV2StatesSensor,
     HabitusZonesV2HealthSensor,
 )
 from .habitus_zones_store_v2 import async_get_zones_v2
@@ -58,7 +56,7 @@ from .forwarder_quality_entities import (
 from .inventory_entities import CopilotInventoryLastRunSensor
 from .habitus_miner_entities import (
     HabitusMinerRuleCountSensor,
-    HabitusMinerStatusSensor, 
+    HabitusMinerStatusSensor,
     HabitusMinerTopRuleSensor,
 )
 from .pipeline_health_entities import PipelineHealthSensor
@@ -66,11 +64,6 @@ from .sensors.mood_sensor import (
     MoodSensor,
     MoodConfidenceSensor,
     NeuronActivitySensor,
-)
-from .sensors.neuron_dashboard import (
-    NeuronDashboardSensor,
-    MoodHistorySensor,
-    SuggestionSensor,
 )
 from .sensors.voice_context import (
     VoiceContextSensor,
@@ -93,7 +86,6 @@ from .sensors.predictive_automation import (
     PredictiveAutomationSensor,
     PredictiveAutomationDetailsSensor,
 )
-from .sensors.inspector_sensor import InspectorSensor
 from .sensors.neurons_14 import (
     PresenceRoomSensor,
     PresencePersonSensor,
@@ -112,11 +104,6 @@ from .sensors.neurons_14 import (
     MediaActivitySensor,
     MediaIntensitySensor,
 )
-from .mood_dashboard import (
-    MoodDashboardEntity,
-    MoodHistoryEntity,
-    MoodExplanationEntity,
-)
 from .calendar_context import CalendarContextEntity
 from .suggestion_panel import SuggestionQueue
 from .camera_entities import (
@@ -130,32 +117,11 @@ from .camera_entities import (
 from .unifi_context_entities import build_unifi_sensor_entities
 from .weather_context_entities import build_weather_entities
 
-# Mobile Dashboard Cards
-from .mobile_dashboard_cards import (
-    MobileDashboardSensor,
-    MobileQuickActionsSensor,
-    MobileEntityGridSensor,
-)
-
-# Regional Sensors (v5.16.0+)
+# Active feature sensors (v5.16.0+)
 from .sensors.weather_warning_sensor import WeatherWarningSensor
-from .sensors.fuel_price_sensor import FuelPriceSensor
-from .sensors.tariff_sensor import TariffSensor
 from .sensors.proactive_alert_sensor import ProactiveAlertSensor
 from .sensors.energy_forecast_sensor import EnergyForecastSensor
 from .sensors.agent_status_sensor import AgentStatusSensor
-from .sensors.onboarding_sensor import OnboardingSensor
-from .sensors.battery_optimizer_sensor import BatteryOptimizerSensor
-from .sensors.heat_pump_sensor import HeatPumpSensor
-from .sensors.ev_charging_sensor import EVChargingSensor
-from .sensors.hub_dashboard_sensor import (
-    HubDashboardSensor,
-    HubPluginsSensor,
-    HubMultiHomeSensor,
-)
-from .sensors.predictive_maintenance_sensor import PredictiveMaintenanceSensor
-from .sensors.anomaly_detection_sensor import AnomalyDetectionSensor
-from .sensors.gas_meter_sensor import GasMeterSensor
 from .sensors.habitus_zone_sensor import HabitusZoneSensor
 from .sensors.light_intelligence_sensor import LightIntelligenceSensor
 from .sensors.zone_mode_sensor import ZoneModeSensor
@@ -191,7 +157,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 CoreApiV1StatusSensor(coordinator, entry),
                 HabitusZonesSensor(coordinator, entry),
                 HabitusZonesV2CountSensor(coordinator, entry),
-                HabitusZonesV2StatesSensor(coordinator, entry),
                 HabitusZonesV2HealthSensor(coordinator, entry),
                 PipelineHealthSensor(coordinator),
                 MoodSensor(coordinator),
@@ -238,42 +203,137 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
         return new_entities
 
+    # ── TIER 0: KERNEL — always created ────────────────────────────
     entities = [
         CopilotVersionSensor(coordinator),
         CoreApiV1StatusSensor(coordinator, entry),
+        PipelineHealthSensor(coordinator),
+        LlmHealthSensor(coordinator),
+        AgentStatusSensor(coordinator),
+        ModuleStatusSensor(hass, entry),
         # Habitus Zones
         HabitusZonesSensor(coordinator, entry),
         HabitusZonesV2CountSensor(coordinator, entry),
-        HabitusZonesV2StatesSensor(coordinator, entry),
         HabitusZonesV2HealthSensor(coordinator, entry),
+        # System Health
         SystemHealthEntityCountSensor(coordinator),
         SystemHealthSqliteDbSizeSensor(coordinator),
-        # Mesh Monitoring (Z-Wave / Zigbee)
-        ZWaveNetworkHealthSensor(hass, entry),
-        ZWaveDevicesOnlineSensor(hass, entry),
-        ZWaveBatteryOverviewSensor(hass, entry),
-        ZigbeeNetworkHealthSensor(hass, entry),
-        ZigbeeDevicesOnlineSensor(hass, entry),
-        ZigbeeBatteryOverviewSensor(hass, entry),
-        # Mesh Dashboard (Overview & Topology)
-        MeshNetworkOverviewSensor(hass, entry),
-        ZWaveMeshTopologySensor(hass, entry),
-        ZigbeeMeshTopologySensor(hass, entry),
         CopilotInventoryLastRunSensor(coordinator),
-        HabitusMinerRuleCountSensor(coordinator),
-        HabitusMinerStatusSensor(coordinator),
-        HabitusMinerTopRuleSensor(coordinator),
-        PipelineHealthSensor(coordinator),
         RagPipelineStatusSensor(coordinator),
-        DebugModeSensor(hass, entry),
+    ]
+
+    # ── TIER 1: BRAIN — always created (intelligence layer) ──────
+    entities.extend([
         # Mood Sensors (Neural System)
         MoodSensor(coordinator),
         MoodConfidenceSensor(coordinator),
         NeuronActivitySensor(coordinator),
-        # Voice Context Sensors (HA Assist)
-        VoiceContextSensor(coordinator),
-        VoicePromptSensor(coordinator),
-        # 14 Neuron Sensors (Original Plan)
+        # Brain Graph & Habitus
+        BrainGraphSummarySensor(coordinator),
+        HabitusRulesSummarySensor(coordinator),
+        HabitusMinerRuleCountSensor(coordinator),
+        HabitusMinerStatusSensor(coordinator),
+        HabitusMinerTopRuleSensor(coordinator),
+        BrainArchitectureSensor(coordinator),
+        BrainActivitySensor(coordinator),
+    ])
+
+    # ── TIER 2: CONTEXT — conditional on available entities ──────
+
+    # Events Forwarder quality sensors
+    if isinstance(data, dict) and data.get("events_forwarder_state") is not None:
+        entities.extend([
+            EventsForwarderQueueDepthSensor(coordinator, entry),
+            EventsForwarderDroppedTotalSensor(coordinator, entry),
+            EventsForwarderErrorStreakSensor(coordinator, entry),
+        ])
+
+    # Media players (only if configured)
+    media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
+    if media_coordinator is not None:
+        entities.extend([
+            MusicNowPlayingSensor(media_coordinator),
+            MusicPrimaryAreaSensor(media_coordinator),
+            TvPrimaryAreaSensor(media_coordinator),
+            TvSourceSensor(media_coordinator),
+            MusicActiveCountSensor(media_coordinator),
+            TvActiveCountSensor(media_coordinator),
+        ])
+
+    # Media Context v2 sensor entities
+    media_coordinator_v2 = data.get("media_coordinator_v2") if isinstance(data, dict) else None
+    if media_coordinator_v2 is not None:
+        entities.extend([
+            ActiveModeSensor(media_coordinator_v2),
+            ActiveTargetSensor(media_coordinator_v2),
+            ActiveZoneSensor(media_coordinator_v2),
+            ConfigValidationSensor(media_coordinator_v2),
+            DebugInfoSensor(media_coordinator_v2),
+        ])
+
+    # Mesh Monitoring (only if Z-Wave / Zigbee entities exist in HA)
+    from homeassistant.helpers import entity_registry
+    ent_reg = entity_registry.async_get(hass)
+    _all_entity_ids = set(ent_reg.entities.keys())
+    _has_zwave = any(eid.startswith("zwave_js.") or ".zwave" in eid for eid in _all_entity_ids)
+    _has_zigbee = any("zigbee" in eid or "zha." in eid for eid in _all_entity_ids)
+
+    if _has_zwave or _has_zigbee:
+        entities.append(MeshNetworkOverviewSensor(hass, entry))
+    if _has_zwave:
+        entities.extend([
+            ZWaveNetworkHealthSensor(hass, entry),
+            ZWaveDevicesOnlineSensor(hass, entry),
+            ZWaveBatteryOverviewSensor(hass, entry),
+            ZWaveMeshTopologySensor(hass, entry),
+        ])
+    if _has_zigbee:
+        entities.extend([
+            ZigbeeNetworkHealthSensor(hass, entry),
+            ZigbeeDevicesOnlineSensor(hass, entry),
+            ZigbeeBatteryOverviewSensor(hass, entry),
+            ZigbeeMeshTopologySensor(hass, entry),
+        ])
+
+    # Voice Context Sensors (only if HA Assist is configured)
+    _has_voice = any(eid.startswith("assist_pipeline.") or eid.startswith("stt.") for eid in _all_entity_ids)
+    if _has_voice:
+        entities.extend([
+            VoiceContextSensor(coordinator),
+            VoicePromptSensor(coordinator),
+        ])
+
+    # Camera Context Sensors (only if cameras exist)
+    camera_entities_list = await _discover_camera_entities_for_sensors(hass)
+    if camera_entities_list:
+        entities.extend([
+            CameraMotionHistorySensor(coordinator, entry),
+            CameraPresenceHistorySensor(coordinator, entry),
+            CameraActivityHistorySensor(coordinator, entry),
+            CameraZoneActivitySensor(coordinator, entry),
+        ])
+        for cam_id, cam_name in camera_entities_list:
+            entities.append(ActivityCamera(coordinator, entry, cam_id, cam_name))
+            entities.append(ZoneCamera(coordinator, entry, cam_id, cam_name))
+
+    # Habitus zone aggregate sensors (e.g., Temperatur Ø / Luftfeuchte Ø)
+    try:
+        zones = await async_get_zones_v2(hass, entry.entry_id)
+        for z in zones:
+            entities.extend(
+                build_zone_average_sensors(
+                    hass=hass,
+                    coordinator=coordinator,
+                    zone_id=z.zone_id,
+                    zone_name=z.name,
+                    entities_by_role=z.entities,
+                )
+            )
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 14 Neuron Sensors
+    entities.extend([
         PresenceRoomSensor(coordinator, hass),
         PresencePersonSensor(coordinator, hass),
         ActivityLevelSensor(coordinator, hass),
@@ -290,81 +350,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         EnergyProxySensor(coordinator, hass),
         MediaActivitySensor(coordinator, hass),
         MediaIntensitySensor(coordinator, hass),
-        # Energy Insights (ML-based)
+    ])
+
+    # ML-based sensors (Energy Insights, Habit Learning, Anomaly, Predictive)
+    entities.extend([
         EnergyInsightSensor(coordinator),
         EnergyRecommendationSensor(coordinator),
-        # Habit Learning v2 (ML-based)
         HabitLearningSensor(coordinator),
         HabitPredictionSensor(coordinator),
         SequencePredictionSensor(coordinator),
-        # Anomaly Detection (ML-based)
         AnomalyAlertSensor(coordinator),
         AlertHistorySensor(coordinator),
-        # Predictive Automation (ML-based)
         PredictiveAutomationSensor(coordinator),
         PredictiveAutomationDetailsSensor(coordinator),
-        # Inspector Sensors (internal state visibility)
-        InspectorSensor(coordinator, "zones", "Habitus Zones", "mdi:floor-plan"),
-        InspectorSensor(coordinator, "tags", "Active Tags", "mdi:tag-multiple"),
-        InspectorSensor(coordinator, "character", "Character Profile", "mdi:account-cog"),
-        InspectorSensor(coordinator, "mood", "Current Mood", "mdi:emoticon"),
-        # Brain Graph & Habitus rules (from Core API)
-        BrainGraphSummarySensor(coordinator),
-        HabitusRulesSummarySensor(coordinator),
-    ]
-
-    # Events Forwarder quality sensors (v0.1 kernel)
-    if isinstance(data, dict) and data.get("events_forwarder_state") is not None:
-        entities.extend(
-            [
-                EventsForwarderQueueDepthSensor(coordinator, entry),
-                EventsForwarderDroppedTotalSensor(coordinator, entry),
-                EventsForwarderErrorStreakSensor(coordinator, entry),
-            ]
-        )
-
-    media_coordinator = data.get("media_coordinator") if isinstance(data, dict) else None
-    if media_coordinator is not None:
-        entities.extend(
-            [
-                MusicNowPlayingSensor(media_coordinator),
-                MusicPrimaryAreaSensor(media_coordinator),
-                TvPrimaryAreaSensor(media_coordinator),
-                TvSourceSensor(media_coordinator),
-                MusicActiveCountSensor(media_coordinator),
-                TvActiveCountSensor(media_coordinator),
-            ]
-        )
-    
-    # Media Context v2 sensor entities
-    media_coordinator_v2 = data.get("media_coordinator_v2") if isinstance(data, dict) else None
-    if media_coordinator_v2 is not None:
-        entities.extend(
-            [
-                ActiveModeSensor(media_coordinator_v2),
-                ActiveTargetSensor(media_coordinator_v2),
-                ActiveZoneSensor(media_coordinator_v2),
-                ConfigValidationSensor(media_coordinator_v2),
-                DebugInfoSensor(media_coordinator_v2),
-            ]
-        )
-
-    # Add optional Habitus zone aggregate sensors (e.g., Temperatur Ø / Luftfeuchte Ø).
-    try:
-        zones = await async_get_zones_v2(hass, entry.entry_id)
-        for z in zones:
-            entities.extend(
-                build_zone_average_sensors(
-                    hass=hass,
-                    coordinator=coordinator,
-                    zone_id=z.zone_id,
-                    zone_name=z.name,
-                    entities_by_role=z.entities,
-                )
-            )
-    except Exception:  # noqa: BLE001
-        # Best-effort: never break setup because of aggregates.
-        pass
+    ])
 
     # User Preference sensors
     user_pref_module = data.get("user_preference_module")
@@ -380,14 +379,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         for user_id in user_pref_data.get("users", {}).keys():
             entities.append(UserPreferenceSensor(hass, entry, user_pref_data, user_id))
 
-    # Mood Dashboard entities (Neural System)
-    entities.extend([
-        MoodDashboardEntity(entry.entry_id),
-        MoodHistoryEntity(entry.entry_id),
-        MoodExplanationEntity(entry.entry_id),
-    ])
-
-    # Calendar Context entity (Neural System)
+    # Calendar Context entity
     calendar_config = data.get("calendar_context", {}) if isinstance(data, dict) else {}
     if calendar_config.get("enabled", False):
         from .calendar_context import CalendarContextModule
@@ -396,31 +388,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         entities.append(CalendarContextEntity(entry.entry_id, module))
         data["calendar_context_module"] = module
 
-    # Mobile Dashboard Cards (Mobile-optimized UI)
-    entities.extend([
-        MobileDashboardSensor(hass, entry),
-        MobileQuickActionsSensor(hass, entry),
-        MobileEntityGridSensor(hass, entry),
-    ])
-
-    # Regional Sensors (v5.16.0+) — PV, prices, weather, alerts, forecast
+    # ── TIER 3: Feature sensors (functional, not hardware-dependent) ──
     entities.extend([
         WeatherWarningSensor(coordinator),
-        FuelPriceSensor(coordinator),
-        TariffSensor(coordinator),
         ProactiveAlertSensor(coordinator),
         EnergyForecastSensor(coordinator),
-        AgentStatusSensor(coordinator),
-        OnboardingSensor(coordinator),
-        BatteryOptimizerSensor(coordinator),
-        HeatPumpSensor(coordinator),
-        EVChargingSensor(coordinator),
-        HubDashboardSensor(coordinator),
-        HubPluginsSensor(coordinator),
-        HubMultiHomeSensor(coordinator),
-        PredictiveMaintenanceSensor(coordinator),
-        AnomalyDetectionSensor(coordinator),
-        GasMeterSensor(coordinator),
         HabitusZoneSensor(coordinator),
         LightIntelligenceSensor(coordinator),
         ZoneModeSensor(coordinator),
@@ -431,38 +403,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         PresenceIntelligenceSensor(coordinator),
         NotificationIntelligenceSensor(coordinator),
         SystemIntegrationSensor(coordinator),
-        BrainArchitectureSensor(coordinator),
-        BrainActivitySensor(coordinator),
     ])
 
-    # Music Cloud Sensors (Zone-Following Music)
+    # Music Cloud Sensors
     entities.extend([
         MusicCloudSensor(coordinator),
         MusicCloudZonesSensor(coordinator),
     ])
 
-    # Adaptive Light Module Sensors (Presence/Brightness/Circadian)
+    # Adaptive Light Module Sensors
     entities.extend([
         LightModuleSensor(coordinator),
         LightModuleZonesSensor(coordinator),
     ])
-
-    # LLM Health Sensor (Circuit Breaker + Usage Tracking)
-    entities.append(LlmHealthSensor(coordinator))
-
-    # Camera Context Sensors (Habitus Camera Integration)
-    entities.extend([
-        CameraMotionHistorySensor(coordinator, entry),
-        CameraPresenceHistorySensor(coordinator, entry),
-        CameraActivityHistorySensor(coordinator, entry),
-        CameraZoneActivitySensor(coordinator, entry),
-    ])
-    
-    # Camera Activity and Zone Sensors (auto-discover cameras)
-    camera_entities = await _discover_camera_entities_for_sensors(hass)
-    for cam_id, cam_name in camera_entities:
-        entities.append(ActivityCamera(coordinator, entry, cam_id, cam_name))
-        entities.append(ZoneCamera(coordinator, entry, cam_id, cam_name))
 
     # Home Alerts Sensors (Battery, Climate, Presence, System alerts)
     from .core.modules.home_alerts_module import get_home_alerts_module
@@ -595,9 +548,59 @@ class CopilotVersionSensor(CopilotBaseEntity, SensorEntity):
         return self.coordinator.data.get("version", "unknown")
 
 
+class ModuleStatusSensor(SensorEntity):
+    """Aggregated module status sensor showing tier/state/last activity."""
+
+    _attr_has_entity_name = True
+    _attr_icon = "mdi:view-module"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self._hass = hass
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_module_status"
+        self._attr_name = "PilotSuite Module Status"
+
+    @property
+    def native_value(self) -> str:
+        from .core.runtime import CopilotRuntime
+        runtime = CopilotRuntime.get(self._hass)
+        statuses = runtime.get_module_statuses(self._entry.entry_id)
+        if not statuses:
+            return "loading"
+        active = sum(1 for s in statuses.values() if s.state == "active")
+        errors = sum(1 for s in statuses.values() if s.state == "error")
+        if errors > 0:
+            return f"{active} active, {errors} errors"
+        return f"{active}/{len(statuses)} active"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        from .core.runtime import CopilotRuntime
+        from . import MODULE_TIERS
+        runtime = CopilotRuntime.get(self._hass)
+        statuses = runtime.get_module_statuses(self._entry.entry_id)
+        modules = []
+        for name, status in statuses.items():
+            modules.append({
+                "module": name,
+                "tier": MODULE_TIERS.get(name, 3),
+                "state": status.state,
+                "setup_ms": round(status.setup_time * 1000, 1),
+                "error": status.error,
+                "last_activity": status.last_activity,
+            })
+        modules.sort(key=lambda m: (m["tier"], m["module"]))
+        return {
+            "modules": modules,
+            "total": len(statuses),
+            "active": sum(1 for s in statuses.values() if s.state == "active"),
+            "errors": sum(1 for s in statuses.values() if s.state == "error"),
+        }
+
+
 class ZoneOccupancySensor(SensorEntity):
     """Sensor for zone occupancy tracking."""
-    
+
     _attr_has_entity_name = True
     _attr_icon = "mdi:home-account"
     

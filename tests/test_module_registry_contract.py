@@ -14,14 +14,32 @@ def _load_module_specs() -> tuple[dict[str, tuple[str, str]], list[str], Path]:
     module_imports: dict[str, tuple[str, str]] | None = None
     modules_list: list[str] | None = None
 
+    # Collect tier lists for combining into _MODULES
+    tier_lists: dict[str, list[str]] = {}
+
     for node in tree.body:
         if not isinstance(node, ast.Assign):
             continue
         for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "_MODULE_IMPORTS":
+            if not isinstance(target, ast.Name):
+                continue
+            name = target.id
+            if name == "_MODULE_IMPORTS":
                 module_imports = ast.literal_eval(node.value)
-            if isinstance(target, ast.Name) and target.id == "_MODULES":
-                modules_list = ast.literal_eval(node.value)
+            elif name == "_MODULES":
+                # _MODULES may be a plain list or a BinOp concatenation
+                try:
+                    modules_list = ast.literal_eval(node.value)
+                except (ValueError, TypeError):
+                    # Build from tier lists that were already parsed
+                    modules_list = []
+                    for tier_name in ("_TIER_0_KERNEL", "_TIER_1_BRAIN", "_TIER_2_CONTEXT", "_TIER_3_EXTENSIONS"):
+                        modules_list.extend(tier_lists.get(tier_name, []))
+            elif name.startswith("_TIER_"):
+                try:
+                    tier_lists[name] = ast.literal_eval(node.value)
+                except (ValueError, TypeError):
+                    pass
 
     assert module_imports is not None
     assert modules_list is not None

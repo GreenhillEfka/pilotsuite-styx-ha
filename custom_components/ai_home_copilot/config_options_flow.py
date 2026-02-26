@@ -23,6 +23,15 @@ from .const import (
     CONF_TOKEN,
     CONF_TEST_LIGHT,
     CONF_WEBHOOK_URL,
+    CONF_OLLAMA_HOST,
+    CONF_OLLAMA_PORT,
+    CONF_SEARXNG_ENABLED,
+    CONF_SEARXNG_HOST,
+    CONF_SEARXNG_PORT,
+    DEFAULT_OLLAMA_HOST,
+    DEFAULT_OLLAMA_PORT,
+    DEFAULT_SEARXNG_HOST,
+    DEFAULT_SEARXNG_PORT,
     CONF_MEDIA_MUSIC_PLAYERS,
     CONF_MEDIA_TV_PLAYERS,
     CONF_SUGGESTION_SEED_ENTITIES,
@@ -67,6 +76,64 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         """Persist options without dropping unrelated keys from previous steps."""
         return self.async_create_entry(title="", data=merge_config_data(self._entry.data, self._entry.options, updates))
 
+    async def _push_service_config_to_core(self, user_input: dict, data: dict) -> None:
+        """Push Ollama/SearXNG config to Core add-on (best effort)."""
+        import aiohttp
+        from homeassistant.helpers.aiohttp_client import async_get_clientsession
+        from .core_endpoint import build_base_url, DEFAULT_CORE_PORT
+
+        host = str(user_input.get(CONF_HOST) or data.get(CONF_HOST, "")).strip()
+        try:
+            port = int(user_input.get(CONF_PORT) or data.get(CONF_PORT, DEFAULT_CORE_PORT))
+        except (TypeError, ValueError):
+            port = DEFAULT_CORE_PORT
+        token = str(user_input.get(CONF_TOKEN) or data.get(CONF_TOKEN, "") or "").strip()
+        if not host:
+            return
+
+        ollama_host = str(user_input.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST) or "").strip()
+        try:
+            ollama_port = int(user_input.get(CONF_OLLAMA_PORT, DEFAULT_OLLAMA_PORT))
+        except (TypeError, ValueError):
+            ollama_port = DEFAULT_OLLAMA_PORT
+        searxng_enabled = bool(user_input.get(CONF_SEARXNG_ENABLED, False))
+        searxng_host = str(user_input.get(CONF_SEARXNG_HOST, DEFAULT_SEARXNG_HOST) or "").strip()
+        try:
+            searxng_port = int(user_input.get(CONF_SEARXNG_PORT, DEFAULT_SEARXNG_PORT))
+        except (TypeError, ValueError):
+            searxng_port = DEFAULT_SEARXNG_PORT
+
+        payload = {}
+        if ollama_host:
+            payload["ollama_url"] = f"http://{ollama_host}:{ollama_port}"
+        if searxng_host:
+            payload["searxng_enabled"] = searxng_enabled
+            payload["searxng_base_url"] = f"http://{searxng_host}:{searxng_port}"
+
+        if not payload:
+            return
+
+        base = build_base_url(host, port).rstrip("/")
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+            headers["X-Auth-Token"] = token
+
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.post(
+                f"{base}/api/v1/config/services",
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status == 200:
+                    _LOGGER.info("Pushed Ollama/SearXNG config to Core")
+                else:
+                    _LOGGER.debug("Core config push returned %s", resp.status)
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Could not push service config to Core (non-blocking)")
+
     async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
         return self.async_show_menu(
             step_id="init",
@@ -109,6 +176,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                     user_input[CONF_TEST_LIGHT] = existing_test_light
                 else:
                     user_input.pop(CONF_TEST_LIGHT, None)
+
+            # Push Ollama/SearXNG config to Core (best effort, non-blocking)
+            await self._push_service_config_to_core(user_input, data)
 
             return self._create_merged_entry(user_input)
 
@@ -711,7 +781,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
     # ── Neurons ──────────────────────────────────────────────────────
 
     async def async_step_neurons(self, user_input: dict | None = None) -> FlowResult:
-        """Configure neural system entities."""
+        """Configure neural system entities (auto-resolved from tags when empty)."""
         if user_input is not None:
             for field in (CONF_NEURON_CONTEXT_ENTITIES, CONF_NEURON_STATE_ENTITIES, CONF_NEURON_MOOD_ENTITIES):
                 if field in user_input:
@@ -720,5 +790,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
             return self._create_merged_entry(user_input)
 
         data = self._effective_config()
+
+        # Auto-resolve neuron entities from tag system when not yet configured.
+        try:
+            from .core.modules.entity_tags_module import get_entity_tags_module, NeuronTagResolver
+            tags_mod = get_entity_tags_module(self.hass, self._entry.entry_id)
+            if tags_mod is not None:
+                resolved = NeuronTagResolver().resolve_entities(tags_mod)
+                # Only fill empty fields — user overrides take precedence.
+                if not data.get(CONF_NEURON_CONTEXT_ENTITIES):
+                    data[CONF_NEURON_CONTEXT_ENTITIES] = resolved["context_entities"]
+                if not data.get(CONF_NEURON_STATE_ENTITIES):
+                    data[CONF_NEURON_STATE_ENTITIES] = resolved["state_entities"]
+                if not data.get(CONF_NEURON_MOOD_ENTITIES):
+                    data[CONF_NEURON_MOOD_ENTITIES] = resolved["mood_entities"]
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Tag-based neuron auto-resolve failed (non-blocking)")
+
         schema = vol.Schema(build_neuron_schema(data))
         return self.async_show_form(step_id="neurons", data_schema=schema)
