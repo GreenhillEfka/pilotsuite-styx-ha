@@ -139,6 +139,7 @@ from .sensors.music_cloud_sensor import MusicCloudSensor, MusicCloudZonesSensor
 from .sensors.light_module_sensor import LightModuleSensor, LightModuleZonesSensor
 from .sensors.llm_health_sensor import LlmHealthSensor
 from .sensors.override_mode_sensors import OVERRIDE_MODE_SENSORS
+from .sensors.zone_automation_sensor import ZONE_AUTOMATION_SENSORS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -426,6 +427,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     # Override Mode & Enhanced Music Cloud Sensors
     for sensor_cls in OVERRIDE_MODE_SENSORS:
+        entities.append(sensor_cls(coordinator))
+
+    # Zone Automation Sensors
+    for sensor_cls in ZONE_AUTOMATION_SENSORS:
         entities.append(sensor_cls(coordinator))
 
     # Home Alerts Sensors (Battery, Climate, Presence, System alerts)
