@@ -486,19 +486,26 @@ async def _sync_zones_to_core(
             item["metadata"] = z.metadata
         zone_payload.append(item)
 
-    try:
-        async with session.post(
-            f"{base}/api/v1/hub/zones/sync",
-            json={"zones": zone_payload},
-            headers=headers,
-            timeout=aiohttp.ClientTimeout(total=10),
-        ) as resp:
-            if resp.status in (200, 201):
-                _LOGGER.debug("Synced %d zones to Core", len(zone_payload))
-            else:
-                _LOGGER.debug("Core zone sync returned %s", resp.status)
-    except Exception as exc:  # noqa: BLE001
-        _LOGGER.debug("Core zone sync failed (non-blocking): %s", exc)
+    # Try new Habitus Zones API first, fall back to legacy Hub endpoint
+    sync_ok = False
+    for endpoint in ("/api/v1/habitus/zones/sync", "/api/v1/hub/zones/sync"):
+        try:
+            async with session.post(
+                f"{base}{endpoint}",
+                json={"zones": zone_payload, "full_sync": True},
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status in (200, 201):
+                    _LOGGER.debug("Synced %d zones to Core via %s", len(zone_payload), endpoint)
+                    sync_ok = True
+                    break
+                _LOGGER.debug("Core zone sync via %s returned %s", endpoint, resp.status)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("Core zone sync via %s failed: %s", endpoint, exc)
+
+    if not sync_ok:
+        _LOGGER.debug("Core zone sync failed on all endpoints (non-blocking)")
 
 
 async def async_step_zone_form(
