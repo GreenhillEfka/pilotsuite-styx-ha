@@ -5,6 +5,8 @@ Generates Lovelace YAML cards for the Habitus Dashboard including:
 - Musikwolke panel (volume, favorites, coordinator status, grouping)
 - Light module panel (brightness ratio, circadian presets, threshold slider)
 - Presence module panel (timeout config, sensor status)
+- Zone automation panel (occupancy, subsystem evaluations)
+- Heating panel (override target temp)
 - Per-zone status overview
 
 All cards reference entities from the ai_home_copilot integration.
@@ -40,22 +42,26 @@ def generate_override_modes_card() -> dict[str, Any]:
                 "title": "Aktiver Modus",
                 "entities": [
                     {
-                        "entity": _sensor_id("override_mode_active"),
+                        "entity": _sensor_id("override_mode"),
                         "name": "Aktiver Modus",
                         "icon": "mdi:toggle-switch",
                     },
                     {
-                        "entity": _sensor_id("override_mode_count"),
+                        "entity": _sensor_id("override_modes_active"),
                         "name": "Aktive Modi",
                         "icon": "mdi:counter",
                     },
                     {
-                        "entity": _sensor_id("music_allowed"),
+                        "entity": _sensor_id("music_cloud_erlaubt"),
                         "name": "Musik erlaubt",
                     },
                     {
-                        "entity": _sensor_id("light_allowed"),
+                        "entity": _sensor_id("licht_auto_erlaubt"),
                         "name": "Licht Auto erlaubt",
+                    },
+                    {
+                        "entity": _sensor_id("heizung_override"),
+                        "name": "Heizung Override",
                     },
                 ],
             },
@@ -141,12 +147,12 @@ def generate_musikwolke_card() -> dict[str, Any]:
                 "title": "Status",
                 "entities": [
                     {
-                        "entity": _sensor_id("music_cloud_status"),
+                        "entity": _sensor_id("musikwolke_status"),
                         "name": "Musikwolke Status",
                         "icon": "mdi:cloud-outline",
                     },
                     {
-                        "entity": _sensor_id("music_cloud_coordinator"),
+                        "entity": _sensor_id("musikwolke_koordinator"),
                         "name": "Koordinator",
                         "icon": "mdi:speaker-group",
                     },
@@ -156,49 +162,14 @@ def generate_musikwolke_card() -> dict[str, Any]:
                         "icon": "mdi:volume-medium",
                     },
                     {
-                        "entity": _sensor_id("music_now_playing"),
-                        "name": "Aktueller Track",
-                        "icon": "mdi:music",
+                        "entity": _sensor_id("music_cloud"),
+                        "name": "Zonen-Following",
+                        "icon": "mdi:music-circle",
                     },
                     {
-                        "entity": _sensor_id("music_active_count"),
-                        "name": "Aktive Zonen",
+                        "entity": _sensor_id("music_cloud_zones"),
+                        "name": "Konfigurierte Zonen",
                         "icon": "mdi:speaker-multiple",
-                    },
-                ],
-            },
-            {
-                "type": "horizontal-stack",
-                "cards": [
-                    {
-                        "type": "button",
-                        "name": "Leiser",
-                        "icon": "mdi:volume-minus",
-                        "tap_action": {
-                            "action": "call-service",
-                            "service": "button.press",
-                            "target": {"entity_id": _button_id("volume_down")},
-                        },
-                    },
-                    {
-                        "type": "button",
-                        "name": "Stumm",
-                        "icon": "mdi:volume-mute",
-                        "tap_action": {
-                            "action": "call-service",
-                            "service": "button.press",
-                            "target": {"entity_id": _button_id("volume_mute")},
-                        },
-                    },
-                    {
-                        "type": "button",
-                        "name": "Lauter",
-                        "icon": "mdi:volume-plus",
-                        "tap_action": {
-                            "action": "call-service",
-                            "service": "button.press",
-                            "target": {"entity_id": _button_id("volume_up")},
-                        },
                     },
                 ],
             },
@@ -206,11 +177,13 @@ def generate_musikwolke_card() -> dict[str, Any]:
                 "type": "markdown",
                 "title": "Sonos Favoriten",
                 "content": (
-                    "{% set mc = state_attr('sensor.pilotsuite_styx_music_cloud_status', 'enabled') %}\n"
-                    "{% if mc %}\n"
-                    "Musikwolke ist **aktiv**. Wähle einen Favoriten zum Abspielen.\n"
-                    "{% else %}\n"
+                    "{% set status = states('sensor.pilotsuite_styx_musikwolke_status') %}\n"
+                    "{% if status == 'Deaktiviert' %}\n"
                     "Musikwolke ist **deaktiviert**.\n"
+                    "{% elif 'Aktiv' in status %}\n"
+                    "Musikwolke ist **aktiv** mit {{ status }}.\n"
+                    "{% else %}\n"
+                    "Musikwolke ist **bereit** und wartet auf Präsenzerkennung.\n"
                     "{% endif %}"
                 ),
             },
@@ -229,7 +202,7 @@ def generate_light_module_card() -> dict[str, Any]:
                 "title": "Adaptives Licht",
                 "entities": [
                     {
-                        "entity": _sensor_id("light_module_status"),
+                        "entity": _sensor_id("light_module"),
                         "name": "Lichtmodul Status",
                         "icon": "mdi:lightbulb-auto",
                     },
@@ -237,6 +210,16 @@ def generate_light_module_card() -> dict[str, Any]:
                         "entity": _sensor_id("light_module_zones"),
                         "name": "Konfigurierte Zonen",
                         "icon": "mdi:floor-plan",
+                    },
+                    {
+                        "entity": _sensor_id("light_level"),
+                        "name": "Lichtlevel",
+                        "icon": "mdi:brightness-6",
+                    },
+                    {
+                        "entity": _sensor_id("light_intelligence"),
+                        "name": "Licht-Intelligenz",
+                        "icon": "mdi:lightbulb-on",
                     },
                 ],
             },
@@ -246,24 +229,13 @@ def generate_light_module_card() -> dict[str, Any]:
                 "content": (
                     "| Preset | Farbtemp | Helligkeit |\n"
                     "|--------|----------|------------|\n"
-                    "| 🌙 Nacht | 2200K | 15% |\n"
-                    "| 🌅 Abend | 2700K | 60% |\n"
-                    "| ☀️ Tag | 4500K | 100% |\n"
-                    "| 🎯 Fokus | 5500K | 100% |\n"
-                    "| 🎬 Film | 2400K | 10% |\n"
-                    "| 😌 Entspannung | 3000K | 40% |"
+                    "| Nacht | 2200K | 15% |\n"
+                    "| Abend | 2700K | 60% |\n"
+                    "| Tag | 4500K | 100% |\n"
+                    "| Fokus | 5500K | 100% |\n"
+                    "| Film | 2400K | 10% |\n"
+                    "| Entspannung | 3000K | 40% |"
                 ),
-            },
-            {
-                "type": "entities",
-                "title": "Helligkeitsschwelle",
-                "entities": [
-                    {
-                        "entity": _sensor_id("light_level"),
-                        "name": "Aktuelle Helligkeit",
-                        "icon": "mdi:brightness-6",
-                    },
-                ],
             },
         ],
     }
@@ -305,6 +277,32 @@ def generate_presence_module_card() -> dict[str, Any]:
     }
 
 
+def generate_zone_automation_card() -> dict[str, Any]:
+    """Generate the Zone Automation overview card."""
+    return {
+        "type": "vertical-stack",
+        "title": "Zonen-Automation",
+        "cards": [
+            {
+                "type": "entities",
+                "title": "Zonen Status",
+                "entities": [
+                    {
+                        "entity": _sensor_id("zone_automation"),
+                        "name": "Zone Automation",
+                        "icon": "mdi:home-automation",
+                    },
+                    {
+                        "entity": _sensor_id("belegte_zonen"),
+                        "name": "Belegte Zonen",
+                        "icon": "mdi:account-group",
+                    },
+                ],
+            },
+        ],
+    }
+
+
 def generate_zone_status_card(zone_name: str, zone_id: str) -> dict[str, Any]:
     """Generate a per-zone status card."""
     return {
@@ -319,10 +317,11 @@ def generate_zone_status_card(zone_name: str, zone_id: str) -> dict[str, Any]:
                     "---\n"
                     "| Subsystem | Status |\n"
                     "|-----------|--------|\n"
-                    "| 🎵 Musikwolke | {{ states('sensor.pilotsuite_styx_music_cloud_status') }} |\n"
-                    "| 💡 Licht | {{ states('sensor.pilotsuite_styx_light_module_status') }} |\n"
-                    "| 👤 Präsenz | {{ states('sensor.pilotsuite_styx_presence_room') }} |\n"
-                    "| 🎭 Override | {{ states('sensor.pilotsuite_styx_override_mode_active') }} |"
+                    "| Musikwolke | {{ states('sensor.pilotsuite_styx_musikwolke_status') }} |\n"
+                    "| Licht | {{ states('sensor.pilotsuite_styx_light_module') }} |\n"
+                    "| Präsenz | {{ states('sensor.pilotsuite_styx_presence_room') }} |\n"
+                    "| Override | {{ states('sensor.pilotsuite_styx_override_mode') }} |\n"
+                    "| Heizung | {{ states('sensor.pilotsuite_styx_heizung_override') }} |"
                 ),
             },
         ],
@@ -348,6 +347,7 @@ def generate_full_habitus_dashboard(zones: list[dict[str, Any]] | None = None) -
         generate_musikwolke_card(),
         generate_light_module_card(),
         generate_presence_module_card(),
+        generate_zone_automation_card(),
     ]
 
     if zones:

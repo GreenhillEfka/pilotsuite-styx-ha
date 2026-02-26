@@ -383,6 +383,12 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 # Get Music Cloud status (best-effort)
                 music_cloud = await self._get_music_cloud_status()
 
+                # Get Light Module status (best-effort)
+                light_module = await self._get_light_module_status()
+
+                # Get Zone Automation status (best-effort)
+                zone_automation = await self._get_zone_automation_status()
+
                 return {
                     "ok": bool(status.ok) if status.ok is not None else True,
                     "version": status.version or "unknown",
@@ -399,6 +405,8 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     "rag_status": rag_status,
                     "override_modes": override_modes,
                     "music_cloud": music_cloud,
+                    "light_module": light_module,
+                    "zone_automation": zone_automation,
                 }
             except CopilotApiError as err:
                 last_err = err
@@ -441,6 +449,35 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 "status": result,
                 "config": config.get("config", {}) if isinstance(config, dict) else {},
                 "active_groups": groups.get("groups", []) if isinstance(groups, dict) else [],
+            }
+        except Exception:  # noqa: BLE001
+            return {}
+
+    async def _get_light_module_status(self) -> dict[str, Any]:
+        """Fetch Light Module status from Core (best-effort)."""
+        try:
+            status = await self.api.async_get("/api/v1/light-module/status")
+            config = await self.api.async_get("/api/v1/light-module/config")
+            presets = await self.api.async_get("/api/v1/light-module/presets")
+            return {
+                "enabled": status.get("ok", False),
+                "active_zones": len(status.get("zones", [])),
+                "zones": status.get("zones", []),
+                "config": config.get("config", {}),
+                "presets": presets.get("presets", {}),
+            }
+        except Exception:  # noqa: BLE001
+            return {}
+
+    async def _get_zone_automation_status(self) -> dict[str, Any]:
+        """Fetch Zone Automation status from Core (best-effort)."""
+        try:
+            status = await self.api.async_get("/api/v1/zone-automation/status")
+            configs = await self.api.async_get("/api/v1/zone-automation/config")
+            return {
+                "total_zones": status.get("count", 0),
+                "zones": status.get("zones", []),
+                "configs": configs.get("configs", []),
             }
         except Exception:  # noqa: BLE001
             return {}

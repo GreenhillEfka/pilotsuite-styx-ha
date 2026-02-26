@@ -23,26 +23,27 @@ class LightModuleSensor(CopilotBaseEntity, SensorEntity):
         if not self.coordinator.data:
             return None
         lm = self.coordinator.data.get("light_module", {})
+        if not lm:
+            return "Nicht verfügbar"
         if lm.get("enabled"):
             active_zones = lm.get("active_zones", 0)
-            return f"Active ({active_zones} zones)"
-        return "disabled"
+            return f"Aktiv ({active_zones} Zonen)"
+        return "Deaktiviert"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         if not self.coordinator.data:
             return {}
         lm = self.coordinator.data.get("light_module", {})
+        config = lm.get("config", {})
+        presets = lm.get("presets", {})
         return {
             "enabled": lm.get("enabled", False),
             "active_zones": lm.get("active_zones", 0),
-            "color_temp_k": lm.get("color_temp_k"),
-            "brightness_pct": lm.get("brightness_pct"),
-            "mode": lm.get("mode", "circadian"),
-            "presence_active": lm.get("presence_active", False),
-            "outdoor_lux": lm.get("outdoor_lux"),
-            "indoor_lux": lm.get("indoor_lux"),
-            "ratio": lm.get("ratio"),
+            "circadian_enabled": config.get("circadian_enabled", True),
+            "brightness_ratio_enabled": config.get("brightness_ratio_enabled", True),
+            "presence_enabled": config.get("presence_enabled", True),
+            "available_presets": list(presets.keys()) if isinstance(presets, dict) else [],
         }
 
 
@@ -66,8 +67,14 @@ class LightModuleZonesSensor(CopilotBaseEntity, SensorEntity):
         if not self.coordinator.data:
             return {}
         lm = self.coordinator.data.get("light_module", {})
+        zones = lm.get("zones", [])
+        zone_ids = []
+        for z in zones:
+            if isinstance(z, dict):
+                zone_ids.append(z.get("zone_id", ""))
+            elif isinstance(z, str):
+                zone_ids.append(z)
         return {
-            "zones": lm.get("zones", []),
-            "circadian_enabled": lm.get("circadian_enabled", True),
-            "presence_mode": lm.get("presence_mode", "auto"),
+            "zones": zone_ids,
+            "total": len(zone_ids),
         }
