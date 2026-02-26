@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v8.12.1 (2026-02-26)
+- compat(core): paired with Core `v8.12.1` Habitus recommendation apply endpoint (`/api/v1/hub/habitus/management/apply_zone`).
+- compat(core): HomeKit auto-sync metadata now returned on zone lifecycle/bootstrap responses and consumed in dashboard flow.
+- chore(version): integration + repo manifest aligned to `8.12.1`.
+
 ## v8.12.0 (2026-02-26)
 - compat(core): paired with Core `v8.12.0` multi-room Habitus recommendation payload (`room_ids`, `room_candidates`) and improved bootstrap flow.
 - ux(habitus): React dashboard now consumes richer recommendation data for room-aware zone prefill and edit flow.
