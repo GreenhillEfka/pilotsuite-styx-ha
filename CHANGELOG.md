@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v8.12.0 (2026-02-26)
+- compat(core): paired with Core `v8.12.0` multi-room Habitus recommendation payload (`room_ids`, `room_candidates`) and improved bootstrap flow.
+- ux(habitus): React dashboard now consumes richer recommendation data for room-aware zone prefill and edit flow.
+- compat(homekit): HomeKit zone cards now surface explicit connectivity state (`zone_present`) from Core API.
+- chore(version): integration + repo manifest aligned to `8.12.0`.
+
 ## v8.11.0 (2026-02-25)
 - compat(core): paired with Core `v8.11.0` system observability endpoints (`/api/v1/system/*`) for dashboard health/resource/sensor views.
 - chore(version): integration + repo manifest aligned to `8.11.0`.
