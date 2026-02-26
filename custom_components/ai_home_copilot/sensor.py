@@ -171,6 +171,7 @@ from .sensors.brain_activity_sensor import BrainActivitySensor
 from .sensors.rag_status_sensor import RagPipelineStatusSensor
 from .sensors.music_cloud_sensor import MusicCloudSensor, MusicCloudZonesSensor
 from .sensors.light_module_sensor import LightModuleSensor, LightModuleZonesSensor
+from .sensors.llm_health_sensor import LlmHealthSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -197,6 +198,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 MoodConfidenceSensor(coordinator),
                 AgentStatusSensor(coordinator),
                 RagPipelineStatusSensor(coordinator),
+                LlmHealthSensor(coordinator),
             ],
             True,
         )
@@ -444,6 +446,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         LightModuleSensor(coordinator),
         LightModuleZonesSensor(coordinator),
     ])
+
+    # LLM Health Sensor (Circuit Breaker + Usage Tracking)
+    entities.append(LlmHealthSensor(coordinator))
 
     # Camera Context Sensors (Habitus Camera Integration)
     entities.extend([

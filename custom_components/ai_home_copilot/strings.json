@@ -122,7 +122,8 @@
           "habitus_zones": "Habitus zones",
           "entity_tags": "Entity tags",
           "neurons": "Neurons",
-          "backup_restore": "Backup / restore"
+          "backup_restore": "Backup / restore",
+          "generate_dashboard": "Dashboard generieren"
         }
       },
       "connection": {
