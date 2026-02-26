@@ -4,11 +4,13 @@ This module provides lazy loading of sensor modules for better performance.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 # Lazy loading pattern - import from submodules only when needed
 # This reduces startup time by deferring imports of large modules
 
 # Phase 5: Notification & Scene Intelligence sensors
-if False:  # noqa: F821
+if TYPE_CHECKING:
     from .notification_sensor import NotificationSensor
     from .scene_intelligence_sensor import SceneIntelligenceSensor
 

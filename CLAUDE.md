@@ -142,18 +142,19 @@ custom_components/ai_home_copilot/
 
 ## Aktueller Stand
 
-### Version v7.7.23
+### Version v9.5.0
 
-- **Tests:** 538 passed, 5 skipped
-- 30+ Module vollstaendig implementiert und registriert
+- **Tests:** 574 passed, 5 skipped
+- **Python-Dateien:** 319
+- 35 Module in 4 Tiers (Core, Context, Intelligence, Dashboard), alle mit Status-Tracking
 - 110+ Entities (94+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
+- 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
+- Brain Graph Visualization (vis.js) + Summary Sensor
+- 7-Tab YAML Dashboard Generator (System, Neuronen, Brain, Core, Media, Habitus, ML)
+- 28/28 Options-Flow Steps mit data_description, _effective_config() Preservation
 - DeviceInfo Dataclass (HA Best Practice)
 - PilotSuite Branding durchgaengig
 - HA 2024.1.0+ Mindestversion
-- Connection-Normalisierung (Legacy-Token-Migration)
-- Core Endpoint Unification (Sensor-API-Calls)
-- Unique-ID-Migration (host:port → stabile IDs)
-- Legacy-Device Cleanup
 
 ---
 

@@ -222,8 +222,8 @@ class PerformanceScalingModule:
                     if line.startswith("VmRSS:"):
                         kb = int(line.split()[1])
                         return round(kb / 1024, 1)
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Failed to read /proc/self/status for memory info")
         return 0.0
 
     def _check_alerts(self) -> List[Dict[str, Any]]:
@@ -376,8 +376,8 @@ class PerformanceScalingModule:
                             if kb > 0:
                                 return round(kb / 1024, 1)
                         break
-        except Exception:
-            pass
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Failed to read cgroup memory limit")
 
         env_limit = os.environ.get("HASS_MEMORY_LIMIT_MB")
         if env_limit:
