@@ -125,6 +125,22 @@ def __getattr__(name: str):
         from .scene_intelligence_sensor import SceneIntelligenceSensor
         return SceneIntelligenceSensor
     
+    # Music Cloud sensors (zone-following music)
+    if name == "MusicCloudSensor":
+        from .music_cloud_sensor import MusicCloudSensor
+        return MusicCloudSensor
+    if name == "MusicCloudZonesSensor":
+        from .music_cloud_sensor import MusicCloudZonesSensor
+        return MusicCloudZonesSensor
+
+    # Light Module sensors (adaptive lighting)
+    if name == "LightModuleSensor":
+        from .light_module_sensor import LightModuleSensor
+        return LightModuleSensor
+    if name == "LightModuleZonesSensor":
+        from .light_module_sensor import LightModuleZonesSensor
+        return LightModuleZonesSensor
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -163,4 +179,9 @@ __all__ = [
     "HabitLearningSensor",
     "HabitPredictionSensor",
     "SequencePredictionSensor",
+    # Music Cloud & Light Module
+    "MusicCloudSensor",
+    "MusicCloudZonesSensor",
+    "LightModuleSensor",
+    "LightModuleZonesSensor",
 ]

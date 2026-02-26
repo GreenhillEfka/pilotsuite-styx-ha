@@ -1,6 +1,6 @@
 # PilotSuite Installation (HA Integration)
 
-Stand: **v8.11.0**
+Stand: **v9.0.0**
 
 ## Schnellpfad
 

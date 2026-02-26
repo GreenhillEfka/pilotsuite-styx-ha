@@ -5,6 +5,14 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
 > Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
 
+## [9.0.0] - 2026-02-26
+- Architektur-Overhaul: EventBus, bidirektionale Zonensync, Tag-System v2.
+- Neue Module: CoordinatorModule, AutomationAdoptionModule, ZoneSyncModule.
+- Entity Search API fuer suchbare Dropdowns.
+- Habitus Zone Dashboard Card mit Mood-Gauges und Quick Actions.
+- Automatische Zone-Tags bei Entity-Zuordnung.
+- Versionsmetadaten auf `9.0.0` synchronisiert.
+
 ## [8.11.0] - 2026-02-25
 - Kompatibilitaetsrelease zur Core-Paarung `8.11.0`.
 - React-Dashboard nutzt neue Core-Systemuebersicht (`/api/v1/system/*`) fuer Ressourcen-/Sensor-/Zonenstatus.

@@ -1,6 +1,6 @@
 # PilotSuite Styx – Setup (HA + Core)
 
-Stand: **v8.11.0**
+Stand: **v9.0.0**
 
 ## 1) Core Add-on installieren
 

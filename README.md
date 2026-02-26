@@ -6,7 +6,7 @@
 
 Home Assistant Custom Integration fuer **PilotSuite — Styx**, einen privacy-first, lokalen KI-Assistenten der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlaegt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt **94+ Sensoren**, **30 Module** und **Dashboard Cards** in Home Assistant bereit.
+Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt **94+ Sensoren**, **31 Module** und **Dashboard Cards** in Home Assistant bereit.
 
 ## Schnellstart
 

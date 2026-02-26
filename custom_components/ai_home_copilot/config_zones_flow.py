@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import area_registry, device_registry, entity_registry, selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +37,12 @@ _ROLE_FIELD_MAP: dict[str, str] = {
     "heating": "heating_entity_ids",
     "camera": "camera_entity_ids",
     "media": "media_entity_ids",
+    "power": "power_entity_ids",
+    "energy": "energy_entity_ids",
+    "door": "door_entity_ids",
+    "window": "window_entity_ids",
+    "cover": "cover_entity_ids",
+    "lock": "lock_entity_ids",
 }
 
 _ROLE_LABELS: dict[str, str] = {
@@ -47,6 +54,12 @@ _ROLE_LABELS: dict[str, str] = {
     "heating": "Heizung/Klima",
     "camera": "Kamera",
     "media": "Media",
+    "power": "Leistung",
+    "energy": "Energie",
+    "door": "Tuer",
+    "window": "Fenster",
+    "cover": "Rollo/Cover",
+    "lock": "Schloss",
 }
 
 
@@ -152,6 +165,10 @@ def _infer_optional_role(entity_id: str) -> str:
         return "media"
     if domain == "climate":
         return "heating"
+    if domain == "cover":
+        return "cover"
+    if domain == "lock":
+        return "lock"
     if domain in ("switch", "number", "input_number", "water_heater") and any(
         key in eid for key in ("heat", "heiz", "boiler", "therm")
     ):
@@ -168,6 +185,17 @@ def _infer_optional_role(entity_id: str) -> str:
             return "brightness"
         if "temp" in eid:
             return "temperature"
+        if any(key in eid for key in ("power", "watt", "leistung")):
+            return "power"
+        if any(key in eid for key in ("energy", "kwh", "verbrauch", "energie")):
+            return "energy"
+
+    if domain == "binary_sensor":
+        if any(key in eid for key in ("door", "tuer", "tür")):
+            return "door"
+        if any(key in eid for key in ("window", "fenster")):
+            return "window"
+
     return "other"
 
 
@@ -312,6 +340,24 @@ def _build_zone_form_schema(
     fields[vol.Optional("media_entity_ids", default=role_entity_ids.get("media", []))] = selector.EntitySelector(
         selector.EntitySelectorConfig(domain=["media_player"], multiple=True)
     )
+    fields[vol.Optional("power_entity_ids", default=role_entity_ids.get("power", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor"], multiple=True)
+    )
+    fields[vol.Optional("energy_entity_ids", default=role_entity_ids.get("energy", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["sensor"], multiple=True)
+    )
+    fields[vol.Optional("door_entity_ids", default=role_entity_ids.get("door", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("window_entity_ids", default=role_entity_ids.get("window", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["binary_sensor"], multiple=True)
+    )
+    fields[vol.Optional("cover_entity_ids", default=role_entity_ids.get("cover", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["cover"], multiple=True)
+    )
+    fields[vol.Optional("lock_entity_ids", default=role_entity_ids.get("lock", []))] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["lock"], multiple=True)
+    )
     fields[vol.Optional("optional_entity_ids", default=optional_entity_ids)] = selector.EntitySelector(
         selector.EntitySelectorConfig(multiple=True)
     )
@@ -399,6 +445,67 @@ async def get_zone_entity_suggestions(hass: HomeAssistant, zone_name: str) -> di
         _LOGGER.debug("Could not get zone suggestions: %s", ex)
 
     return suggestions
+
+
+async def _sync_zones_to_core(
+    hass: HomeAssistant,
+    config: dict,
+    zones: list,
+) -> None:
+    """Push zone data to Core API (fire-and-forget)."""
+    import aiohttp
+    from .core_endpoint import build_base_url, DEFAULT_CORE_PORT
+
+    host = str(config.get("host", "")).strip()
+    try:
+        port = int(config.get("port", DEFAULT_CORE_PORT))
+    except (TypeError, ValueError):
+        port = DEFAULT_CORE_PORT
+    if not host:
+        return
+
+    base = build_base_url(host, port).rstrip("/")
+    token = str(config.get("token") or config.get("auth_token") or "").strip()
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        headers["X-Auth-Token"] = token
+
+    session = async_get_clientsession(hass)
+
+    zone_payload = []
+    for z in zones:
+        item: dict[str, Any] = {
+            "zone_id": z.zone_id,
+            "name": z.name,
+            "entity_ids": list(z.entity_ids),
+        }
+        if z.entities:
+            item["entities"] = {k: list(v) for k, v in z.entities.items()}
+        if z.metadata and isinstance(z.metadata, dict):
+            item["metadata"] = z.metadata
+        zone_payload.append(item)
+
+    # Try new Habitus Zones API first, fall back to legacy Hub endpoint
+    sync_ok = False
+    for endpoint in ("/api/v1/habitus/zones/sync", "/api/v1/hub/zones/sync"):
+        try:
+            async with session.post(
+                f"{base}{endpoint}",
+                json={"zones": zone_payload, "full_sync": True},
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status in (200, 201):
+                    _LOGGER.debug("Synced %d zones to Core via %s", len(zone_payload), endpoint)
+                    sync_ok = True
+                    break
+                _LOGGER.debug("Core zone sync via %s returned %s", endpoint, resp.status)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("Core zone sync via %s failed: %s", endpoint, exc)
+
+    if not sync_ok:
+        _LOGGER.debug("Core zone sync failed on all endpoints (non-blocking)")
 
 
 async def async_step_zone_form(
@@ -543,7 +650,8 @@ async def async_step_zone_form(
             description_placeholders=placeholders,
         )
 
-    role_order = ("brightness", "noise", "humidity", "co2", "temperature", "heating", "camera", "media")
+    role_order = ("brightness", "noise", "humidity", "co2", "temperature", "heating", "camera", "media",
+                  "power", "energy", "door", "window", "cover", "lock")
     entity_ids = [motion] + lights
     for role in role_order:
         entity_ids.extend(role_entities.get(role, []))
@@ -605,4 +713,23 @@ async def async_step_zone_form(
 
     await create_zone_tag(flow.hass, zid, zone_name)
     await tag_zone_entities(flow.hass, zid, uniq)
+
+    # Auto-tag entities with zone via EntityTagsModule (v9.0)
+    try:
+        from .core.modules.entity_tags_module import get_entity_tags_module
+        tags_mod = get_entity_tags_module(flow.hass, entry.entry_id)
+        if tags_mod:
+            await tags_mod.async_auto_tag_zone_entities(zid, zone_name, uniq)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Auto-tagging zone entities failed (non-blocking)")
+
+    # Sync all zones to Core API (fire-and-forget)
+    try:
+        from .config_helpers import merge_config_data
+        config = merge_config_data(entry.data, entry.options)
+        all_zones = await async_get_zones_v2(flow.hass, entry.entry_id)
+        await _sync_zones_to_core(flow.hass, config, all_zones)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Zone sync to Core after save failed (non-blocking)")
+
     return await flow.async_step_habitus_zones()

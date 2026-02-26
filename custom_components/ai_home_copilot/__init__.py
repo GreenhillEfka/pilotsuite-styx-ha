@@ -78,10 +78,15 @@ _MODULE_IMPORTS = {
     "scene_module": (".core.modules.scene_module", "SceneModule"),
     "homekit_bridge": (".core.modules.homekit_bridge", "HomeKitBridgeModule"),
     "calendar_module": (".core.modules.calendar_module", "CalendarModule"),
+    "coordinator_module": (".core.modules.coordinator_module", "CoordinatorModule"),
+    "automation_adoption": (".core.modules.automation_adoption", "AutomationAdoptionModule"),
+    "zone_sync": (".core.modules.zone_sync_module", "ZoneSyncModule"),
+    "entity_discovery": (".core.modules.entity_discovery", "EntityDiscoveryModule"),
 }
 
 _MODULES = [
     "legacy",
+    "coordinator_module",
     "performance_scaling",
     "events_forwarder",
     "history_backfill",
@@ -91,6 +96,8 @@ _MODULES = [
     "unifi_module",
     "brain_graph_sync",
     "candidate_poller",
+    "automation_adoption",
+    "zone_sync",
     "media_zones",
     "mood",
     "mood_context",
@@ -107,6 +114,7 @@ _MODULES = [
     "waste_reminder",
     "birthday_reminder",
     "entity_tags",
+    "entity_discovery",
     "person_tracking",
     "frigate_bridge",
     "scene_module",

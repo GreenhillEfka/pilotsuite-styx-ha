@@ -21,6 +21,56 @@
           "entity_profile": "Entity Profile",
           "test_light_entity_id": "Test Light (optional)"
         }
+      },
+      "wizard_discovery": {
+        "title": "Quick Start — Discovery",
+        "description": "Quick Start uses intelligent defaults based on your HA setup. Auto-discovery will scan for compatible devices.",
+        "data": {
+          "quick_start": "Use Quick Start defaults",
+          "auto_discover": "Auto-discover devices"
+        }
+      },
+      "wizard_zones": {
+        "title": "Zone Selection",
+        "description": "Found {found_zones} zones in your Home Assistant. Select which zones to include in PilotSuite. {hint}",
+        "data": {
+          "selected_zones": "Zones"
+        }
+      },
+      "wizard_zone_entities": {
+        "title": "Zone Entities",
+        "description": "Configure entities for {zone_count} selected zones. {hint}"
+      },
+      "wizard_entities": {
+        "title": "Media Players",
+        "description": "Select your media players for music and TV control.",
+        "data": {
+          "music_players": "Music players",
+          "tv_players": "TV players"
+        }
+      },
+      "wizard_features": {
+        "title": "Feature Selection",
+        "description": "Choose which PilotSuite features to enable.",
+        "data": {
+          "features": "Features"
+        }
+      },
+      "wizard_network": {
+        "title": "Network Configuration",
+        "description": "Configure the connection to PilotSuite Core.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "token": "API Token"
+        }
+      },
+      "wizard_review": {
+        "title": "Review Configuration",
+        "description": "{summary}",
+        "data": {
+          "confirm": "Confirm and create"
+        }
       }
     },
     "error": {
@@ -72,7 +122,8 @@
           "habitus_zones": "Habitus zones",
           "entity_tags": "Entity tags",
           "neurons": "Neurons",
-          "backup_restore": "Backup / restore"
+          "backup_restore": "Backup / restore",
+          "generate_dashboard": "Dashboard generieren"
         }
       },
       "connection": {
@@ -253,80 +304,24 @@
           "tag_id": "Tag to delete"
         }
       },
-      "settings_legacy": {
-        "title": "PilotSuite settings",
-        "description": "Configure PilotSuite.",
-        "data": {
-          "webhook_url": "Webhook URL",
-          "host": "Host",
-          "port": "Port",
-          "token": "API token",
-          "test_light_entity_id": "Test light",
-          "media_music_players": "Music players",
-          "media_tv_players": "TV players",
-          "suggestion_seed_entities": "Suggestion seed sensors",
-          "seed_allowed_domains": "Seed allowlist domains",
-          "seed_blocked_domains": "Seed blocklist domains",
-          "seed_max_offers_per_hour": "Seed: max offers per hour",
-          "seed_min_seconds_between_offers": "Seed: min seconds between offers",
-          "seed_max_offers_per_update": "Seed: max offers per sensor update",
-          "watchdog_enabled": "Enable watchdog polling",
-          "watchdog_interval_seconds": "Watchdog interval (seconds)",
-          "events_forwarder_enabled": "Enable events forwarder",
-          "events_forwarder_flush_interval_seconds": "Forwarder flush interval",
-          "events_forwarder_max_batch": "Forwarder max batch size",
-          "events_forwarder_forward_call_service": "Forward call_service events",
-          "events_forwarder_idempotency_ttl_seconds": "Forwarder idempotency TTL",
-          "events_forwarder_persistent_queue_enabled": "Persistent forwarder queue",
-          "events_forwarder_persistent_queue_max_size": "Persistent queue max size",
-          "events_forwarder_persistent_queue_flush_interval_seconds": "Persistent queue flush interval",
-          "devlog_push_enabled": "Push logs to Core",
-          "devlog_push_interval_seconds": "Log push interval",
-          "devlog_push_path": "Core log endpoint",
-          "devlog_push_max_lines": "Log push max lines",
-          "devlog_push_max_chars": "Log push max chars",
-          "ha_errors_digest_enabled": "HA error digest",
-          "ha_errors_digest_interval_seconds": "Error digest interval",
-          "ha_errors_digest_max_lines": "Error digest max lines",
-          "pilotsuite_show_safety_backup_buttons": "Show safety-backup buttons",
-          "pilotsuite_show_dev_surface_buttons": "Show debug/dev buttons",
-          "pilotsuite_show_graph_bridge_buttons": "Show graph-to-candidates buttons",
-          "enable_user_preferences": "Enable user preferences",
-          "events_forwarder_include_habitus_zones": "Forward Habitus zone entities",
-          "events_forwarder_include_media_players": "Forward media players",
-          "events_forwarder_additional_entities": "Additional entities to forward",
-          "user_preference_enabled": "Per-user preference tracking",
-          "tracked_users": "Tracked users",
-          "primary_user": "Primary user",
-          "user_learning_mode": "Learning mode",
-          "mupl_enabled": "Multi-User Preference Learning",
-          "mupl_privacy_mode": "MUPL privacy mode",
-          "mupl_min_interactions": "MUPL min interactions",
-          "mupl_retention_days": "MUPL data retention (days)",
-          "waste_enabled": "Waste collection reminders",
-          "waste_entities": "Waste sensor entities",
-          "waste_tts_enabled": "Waste TTS announcements",
-          "waste_tts_entity": "Waste TTS entity",
-          "waste_reminder_evening_hour": "Waste evening reminder hour",
-          "waste_reminder_morning_hour": "Waste morning reminder hour",
-          "birthday_enabled": "Birthday reminders",
-          "birthday_calendar_entities": "Birthday: calendar entities (auto-detect if empty)",
-          "birthday_lookahead_days": "Birthday: lookahead days",
-          "birthday_tts_enabled": "Birthday: enable TTS announcements",
-          "birthday_tts_entity": "Birthday: TTS media player entity",
-          "birthday_reminder_hour": "Birthday: morning reminder hour (0-23)"
-        }
-      },
       "habitus_zones": {
         "title": "Habitus zones",
-        "description": "Create and manage curated zones (independent from Home Assistant Areas). Each zone requires motion/presence + at least one light.",
+        "description": "Create and manage curated zones (independent from Home Assistant Areas). Each zone needs at least one entity.",
         "menu_options": {
           "create_zone": "Create zone",
           "edit_zone": "Edit zone",
           "delete_zone": "Delete zone",
-          "dashboard_info": "Dashboard mode info",
+          "suggest_zones": "Suggest zones from Core",
           "bulk_edit": "Bulk edit (YAML/JSON)",
+          "dashboard_info": "Dashboard mode info",
           "back": "Back"
+        }
+      },
+      "suggest_zones": {
+        "title": "Suggest zones",
+        "description": "PilotSuite Core analyzed your Home Assistant entities and suggests the following zones. Select which zones to adopt.",
+        "data": {
+          "adopt_zones": "Zones to adopt"
         }
       },
       "dashboard_info": {
@@ -378,7 +373,21 @@
           "name": "Display name",
           "motion_entity_id": "Motion / presence entity",
           "light_entity_ids": "Lights (one or more)",
-          "optional_entity_ids": "Optional entities"
+          "brightness_entity_ids": "Brightness / illuminance sensors",
+          "noise_entity_ids": "Noise / sound sensors",
+          "humidity_entity_ids": "Humidity sensors",
+          "co2_entity_ids": "CO2 sensors",
+          "temperature_entity_ids": "Temperature sensors",
+          "heating_entity_ids": "Heating / climate entities",
+          "camera_entity_ids": "Camera entities",
+          "media_entity_ids": "Media player entities",
+          "power_entity_ids": "Power / wattage sensors",
+          "energy_entity_ids": "Energy consumption sensors",
+          "door_entity_ids": "Door sensors",
+          "window_entity_ids": "Window sensors",
+          "cover_entity_ids": "Cover / shutter entities",
+          "lock_entity_ids": "Lock entities",
+          "optional_entity_ids": "Other entities"
         }
       },
       "edit_zone": {
@@ -394,7 +403,21 @@
           "name": "Display name",
           "motion_entity_id": "Motion / presence entity",
           "light_entity_ids": "Lights (one or more)",
-          "optional_entity_ids": "Optional entities"
+          "brightness_entity_ids": "Brightness / illuminance sensors",
+          "noise_entity_ids": "Noise / sound sensors",
+          "humidity_entity_ids": "Humidity sensors",
+          "co2_entity_ids": "CO2 sensors",
+          "temperature_entity_ids": "Temperature sensors",
+          "heating_entity_ids": "Heating / climate entities",
+          "camera_entity_ids": "Camera entities",
+          "media_entity_ids": "Media player entities",
+          "power_entity_ids": "Power / wattage sensors",
+          "energy_entity_ids": "Energy consumption sensors",
+          "door_entity_ids": "Door sensors",
+          "window_entity_ids": "Window sensors",
+          "cover_entity_ids": "Cover / shutter entities",
+          "lock_entity_ids": "Lock entities",
+          "optional_entity_ids": "Other entities"
         }
       },
       "delete_zone": {
@@ -450,6 +473,13 @@
       "generation_failed": "Failed to generate dashboard: {error}",
       "publish_failed": "Failed to publish dashboard: {error}",
       "no_dashboard_generated": "No dashboard has been generated yet. {hint}"
+    },
+    "abort": {
+      "no_zones": "No Habitus zones configured yet. Create a zone first.",
+      "no_suggestions": "No zone suggestions available. Make sure PilotSuite Core is running and has access to Home Assistant entities.",
+      "no_new_suggestions": "All suggested zones have already been adopted. Use 'Create zone' to add custom zones.",
+      "dashboard_generated": "Dashboard generated successfully at {path}.",
+      "dashboard_published": "Dashboard published at {url}."
     }
   }
 }

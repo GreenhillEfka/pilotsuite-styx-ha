@@ -1,8 +1,8 @@
 # PilotSuite HACS Integration -- Benutzerhandbuch
 
-> Version 3.8.1 | Letzte Aktualisierung: Februar 2026
+> Version 9.0.0 | Letzte Aktualisierung: Februar 2026
 
-Dieses Handbuch beschreibt die vollstaendige Einrichtung und Nutzung der PilotSuite HACS Integration fuer Home Assistant. Die Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt 94+ Sensoren, 28 Module und Dashboard Cards in Home Assistant bereit.
+Dieses Handbuch beschreibt die vollstaendige Einrichtung und Nutzung der PilotSuite HACS Integration fuer Home Assistant. Die Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt 94+ Sensoren, 31 Module und Dashboard Cards in Home Assistant bereit.
 
 **Voraussetzung:** Das Core Add-on muss installiert und gestartet sein, bevor die Integration konfiguriert wird.
 

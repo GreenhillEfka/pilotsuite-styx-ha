@@ -1,6 +1,6 @@
 # PilotSuite Setup Guide
 
-Stand: **v8.11.0**
+Stand: **v9.0.0**
 
 Diese Datei ist die kompakte Referenz. Die vollständige Anleitung liegt in `SETUP.md`.
 
