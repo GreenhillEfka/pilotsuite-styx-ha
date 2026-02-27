@@ -45,6 +45,8 @@ from .const import (
     CONF_PRIMARY_USER,
     CONF_WASTE_TTS_ENTITY,
     CONF_BIRTHDAY_TTS_ENTITY,
+    CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
+    CONF_ZONE_AUTOMATION_GRACE_PERIOD_S,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -212,6 +214,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 "module_user_prefs",
                 "module_waste",
                 "module_birthday",
+                "module_zone_automation",
                 "module_ha_errors",
                 "module_devlog",
                 "module_watchdog",
@@ -328,6 +331,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         return self.async_show_form(
             step_id="module_birthday",
             data_schema=vol.Schema(build_birthday_schema(data)),
+        )
+
+    # ── Module: Zone Automation ──────────────────────────────────────
+
+    async def async_step_module_zone_automation(self, user_input: dict | None = None) -> FlowResult:
+        """Zone automation settings (brightness threshold, presence grace period)."""
+        if user_input is not None:
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        from .config_schema_builders import build_zone_automation_schema
+        return self.async_show_form(
+            step_id="module_zone_automation",
+            data_schema=vol.Schema(build_zone_automation_schema(data)),
         )
 
     # ── Module: HA Errors Digest ─────────────────────────────────────

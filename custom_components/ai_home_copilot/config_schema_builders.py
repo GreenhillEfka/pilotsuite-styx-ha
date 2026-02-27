@@ -146,6 +146,10 @@ from .const import (
     CONF_ENTITY_PROFILE,
     DEFAULT_ENTITY_PROFILE,
     ENTITY_PROFILES,
+    CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
+    DEFAULT_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
+    CONF_ZONE_AUTOMATION_GRACE_PERIOD_S,
+    DEFAULT_ZONE_AUTOMATION_GRACE_PERIOD_S,
 )
 
 
@@ -540,6 +544,20 @@ def build_birthday_schema(data: dict) -> dict:
     }
 
 
+def build_zone_automation_schema(data: dict) -> dict:
+    """Build schema fields for zone automation settings (brightness threshold, grace period)."""
+    return {
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
+            default=data.get(CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD, DEFAULT_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD),
+        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_GRACE_PERIOD_S,
+            default=data.get(CONF_ZONE_AUTOMATION_GRACE_PERIOD_S, DEFAULT_ZONE_AUTOMATION_GRACE_PERIOD_S),
+        ): vol.All(vol.Coerce(int), vol.Range(min=30, max=3600)),
+    }
+
+
 def build_modules_schema(data: dict) -> dict:
     """Build schema for the modules options step (all module toggles + settings)."""
     fields: dict = {}
@@ -557,6 +575,7 @@ def build_modules_schema(data: dict) -> dict:
     fields.update(build_user_prefs_schema(data))
     fields.update(build_waste_schema(data))
     fields.update(build_birthday_schema(data))
+    fields.update(build_zone_automation_schema(data))
     return fields
 
 

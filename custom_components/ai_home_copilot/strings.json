@@ -166,6 +166,7 @@
           "module_user_prefs": "User preferences",
           "module_waste": "Waste reminders",
           "module_birthday": "Birthday reminders",
+          "module_zone_automation": "Zone automation",
           "module_ha_errors": "HA error digest",
           "module_devlog": "Dev log push",
           "module_watchdog": "Watchdog",
@@ -297,6 +298,18 @@
           "birthday_tts_enabled": "Announce birthdays via TTS speakers.",
           "birthday_tts_entity": "Media player entity for TTS birthday announcements.",
           "birthday_reminder_hour": "Hour (0-23) for the morning birthday reminder (default: 8)."
+        }
+      },
+      "module_zone_automation": {
+        "title": "Zone Automation",
+        "description": "Configure brightness threshold and presence grace period for zone automation.",
+        "data": {
+          "zone_automation_brightness_threshold": "Brightness threshold (%)",
+          "zone_automation_grace_period_s": "Presence grace period (seconds)"
+        },
+        "data_description": {
+          "zone_automation_brightness_threshold": "Controls how sensitive the zone light automation reacts to brightness changes. 0% = brightness is ignored, 100% = lights always turn on when occupied (default: 50%).",
+          "zone_automation_grace_period_s": "Seconds after last detected presence before the zone is considered vacant and automations (lights, heating) switch to eco mode (default: 300s = 5 min)."
         }
       },
       "module_ha_errors": {
