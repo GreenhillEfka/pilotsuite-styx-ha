@@ -53,7 +53,7 @@ class EntityDiscoveryModule(CopilotModule):
 
     @property
     def version(self) -> str:
-        return "2.0.0"
+        return "2.1.0"
 
     def __init__(self):
         self._hass: Optional[HomeAssistant] = None
@@ -63,6 +63,8 @@ class EntityDiscoveryModule(CopilotModule):
         self._entity_count: int = 0
         self._area_count: int = 0
         self._device_count: int = 0
+        self._last_classification_count: int = 0
+        self._last_high_confidence_count: int = 0
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         """Set up entity discovery and initial sync."""
@@ -130,6 +132,9 @@ class EntityDiscoveryModule(CopilotModule):
             zone_suggestions = result.get("zone_suggestions", [])
         if zone_suggestions:
             await self._auto_tag_zone_suggestions(zone_suggestions)
+
+        # Run ML-style entity classification for enhanced auto-tagging
+        await self.async_classify_entities()
 
         return result
 
@@ -335,6 +340,95 @@ class EntityDiscoveryModule(CopilotModule):
         except Exception:
             _LOGGER.debug("Zone auto-tagging failed (non-blocking)")
 
+    async def async_classify_entities(self) -> list[dict[str, Any]]:
+        """Run ML-style classification on all HA entities.
+
+        Uses the entity_classifier module to analyze entity ID patterns,
+        device classes, units of measurement, and name keywords (DE + EN)
+        to determine each entity's role and suggest zone assignments.
+
+        Returns a list of classification result dicts for downstream consumers.
+        """
+        if not self._hass:
+            return []
+
+        try:
+            from ...entity_classifier import (
+                classify_all_entities,
+                group_by_zone,
+                suggest_zone_entities,
+            )
+
+            classifications = await classify_all_entities(self._hass)
+
+            self._last_classification_count = len(classifications)
+            self._last_high_confidence_count = sum(
+                1 for c in classifications if c.confidence > 0.8
+            )
+
+            # Auto-tag high-confidence classifications via entity_tags_module
+            try:
+                from .entity_tags_module import get_entity_tags_module
+                tags_mod = get_entity_tags_module(self._hass, self._entry_id) if self._entry_id else None
+                if tags_mod:
+                    # Group by zone and auto-tag zone entities
+                    zones = group_by_zone(classifications)
+                    for zone_name, zone_classifications in zones.items():
+                        if zone_name == "_unassigned":
+                            continue
+                        zone_entity_ids = [
+                            c.entity_id for c in zone_classifications
+                            if c.confidence >= 0.7
+                        ]
+                        if zone_entity_ids:
+                            zone_id = f"zone:{zone_name.lower().replace(' ', '_')}"
+                            await tags_mod.async_auto_tag_zone_entities(
+                                zone_id, zone_name, zone_entity_ids,
+                            )
+
+                    # Auto-tag by classified role using domain tag map
+                    from ...const import DOMAIN_TAG_MAP
+                    role_entities: dict[str, list[str]] = {}
+                    for c in classifications:
+                        if c.confidence >= 0.7 and c.role != "unknown":
+                            role_entities.setdefault(c.role, []).append(c.entity_id)
+
+                    for role, entity_ids in role_entities.items():
+                        # Find matching domain tag from DOMAIN_TAG_MAP
+                        for domain, (tag_id, tag_name, color, icon) in DOMAIN_TAG_MAP.items():
+                            if tag_id == role or tag_name.lower() == role:
+                                await tags_mod.async_auto_tag_by_domain(
+                                    domain, tag_id, tag_name, color, icon,
+                                )
+                                break
+
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("Classification auto-tagging failed (non-blocking)")
+
+            _LOGGER.info(
+                "Entity classification complete: %d total, %d high confidence",
+                self._last_classification_count,
+                self._last_high_confidence_count,
+            )
+
+            # Return serializable dicts for API consumers
+            return [
+                {
+                    "entity_id": c.entity_id,
+                    "domain": c.domain,
+                    "device_class": c.device_class,
+                    "role": c.role,
+                    "zone_hint": c.zone_hint,
+                    "confidence": c.confidence,
+                    "tags": c.tags,
+                }
+                for c in classifications
+            ]
+
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Entity classification failed (non-blocking)")
+            return []
+
     def get_summary(self) -> dict[str, Any]:
         """Summary for sensor attributes."""
         return {
@@ -343,4 +437,6 @@ class EntityDiscoveryModule(CopilotModule):
             "device_count": self._device_count,
             "last_sync": self._last_sync,
             "resync_interval": RESYNC_INTERVAL,
+            "classification_count": self._last_classification_count,
+            "high_confidence_count": self._last_high_confidence_count,
         }
