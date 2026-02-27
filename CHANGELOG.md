@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v10.1.6 (2026-02-27) — ZONE MANAGEMENT + CLIMATE/HEATING + MODULE CONFIG
+
+### Added
+- Sensors: `ZoneHeatingStatusSensor` (heating zone count + per-zone targets), `ZoneBrightnessThresholdSensor` (average indoor lux + per-zone brightness ratios).
+- Dashboard views: Zonen-Automation (zone automation sensors), Wetter & Kalender (weather + calendar + birthdays + waste), Haushalt (persons, network, tags).
+- Options flow: `module_zone_automation` step for brightness threshold (0-100%) and presence grace period (30-3600s).
+- Constants: `CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD`, `CONF_ZONE_AUTOMATION_GRACE_PERIOD_S` with sensible defaults.
+
+### Changed
+- Paired Release: Core `v10.1.6` (climate-aware zone evaluation, Habitus Miner pattern/trend tracking, anomaly detection, network T0 device counts).
+
 ## v10.1.5 (2026-02-27) — CORE WIRING + HABITUS MINER + SHOPPING LIST
 
 ### Changed

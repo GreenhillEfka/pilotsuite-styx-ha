@@ -160,17 +160,39 @@
         "title": "Modules",
         "description": "Select a module to configure.",
         "menu_options": {
+          "module_mood": "Mood system",
           "module_media": "Media players",
           "module_forwarder": "Events forwarder",
           "module_seed": "Suggestion seed",
           "module_user_prefs": "User preferences",
           "module_waste": "Waste reminders",
           "module_birthday": "Birthday reminders",
+          "module_zone_automation": "Zone automation",
           "module_ha_errors": "HA error digest",
           "module_devlog": "Dev log push",
           "module_watchdog": "Watchdog",
           "module_pilotsuite_ux": "PilotSuite UI",
           "back": "Back"
+        }
+      },
+      "module_mood": {
+        "title": "Mood System",
+        "description": "Configure the mood inference engine. The mood system combines discrete states (relax, focus, active, night, away, neutral) with continuous dimensions (comfort, frugality, joy, energy, stress) for each Habitus zone.",
+        "data": {
+          "mood_enabled": "Enable mood system",
+          "mood_dashboard_enabled": "Enable mood dashboard sensors",
+          "mood_ema_alpha": "EMA smoothing alpha",
+          "mood_softmax_temperature": "Softmax temperature",
+          "mood_dwell_time_seconds": "Minimum dwell time (seconds)",
+          "mood_history_retention_days": "History retention (days)"
+        },
+        "data_description": {
+          "mood_enabled": "Enable automatic mood inference from entity states. Zones get a mood profile with discrete state + continuous dimensions.",
+          "mood_dashboard_enabled": "Expose mood dimension sensors (comfort, joy, energy, stress, frugality) for Lovelace cards and automations.",
+          "mood_ema_alpha": "Exponential Moving Average alpha (0.05-0.95). Lower = smoother transitions, higher = faster response to changes. Default: 0.3.",
+          "mood_softmax_temperature": "Softmax temperature for mood state selection. Lower = more decisive (picks dominant mood), higher = more exploratory. Default: 1.0.",
+          "mood_dwell_time_seconds": "Minimum time (seconds) in a mood state before transitioning. Prevents rapid oscillation. Default: 600s (10 min).",
+          "mood_history_retention_days": "Number of days to keep mood history in the database. Default: 30 days."
         }
       },
       "module_media": {
@@ -297,6 +319,18 @@
           "birthday_tts_enabled": "Announce birthdays via TTS speakers.",
           "birthday_tts_entity": "Media player entity for TTS birthday announcements.",
           "birthday_reminder_hour": "Hour (0-23) for the morning birthday reminder (default: 8)."
+        }
+      },
+      "module_zone_automation": {
+        "title": "Zone Automation",
+        "description": "Configure brightness threshold and presence grace period for zone automation.",
+        "data": {
+          "zone_automation_brightness_threshold": "Brightness threshold (%)",
+          "zone_automation_grace_period_s": "Presence grace period (seconds)"
+        },
+        "data_description": {
+          "zone_automation_brightness_threshold": "Controls how sensitive the zone light automation reacts to brightness changes. 0% = brightness is ignored, 100% = lights always turn on when occupied (default: 50%).",
+          "zone_automation_grace_period_s": "Seconds after last detected presence before the zone is considered vacant and automations (lights, heating) switch to eco mode (default: 300s = 5 min)."
         }
       },
       "module_ha_errors": {

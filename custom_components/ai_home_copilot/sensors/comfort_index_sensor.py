@@ -1,7 +1,13 @@
-"""Comfort Index Sensor for PilotSuite (v5.7.0).
+"""Comfort Index Sensor for PilotSuite (v6.0.0).
 
 Exposes a composite comfort score (0-100) and lighting suggestions
 as a Home Assistant sensor with rich attributes.
+
+The underlying v6.0 comfort model uses:
+- Gaussian bell curves for temperature/humidity scoring (ISO 7730 inspired)
+- Steadman heat index for thermal interaction
+- Sigmoid decay for CO2 (WHO guidelines)
+- Circadian sine-wave model for light targets
 """
 from __future__ import annotations
 
@@ -34,6 +40,11 @@ class ComfortIndexSensor(CopilotBaseEntity):
         self._comfort_data: dict[str, Any] | None = None
 
     @property
+    def available(self) -> bool:
+        """Only available when comfort data has been fetched successfully."""
+        return self._comfort_data is not None and self._comfort_data.get("ok", False)
+
+    @property
     def native_value(self) -> float | None:
         """Return comfort score as state."""
         if self._comfort_data and self._comfort_data.get("ok"):
@@ -50,7 +61,7 @@ class ComfortIndexSensor(CopilotBaseEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return comfort details."""
+        """Return comfort details with per-factor breakdown."""
         attrs: dict[str, Any] = {
             "comfort_url": (
                 f"{self._core_base_url()}/api/v1/comfort"
@@ -64,13 +75,28 @@ class ComfortIndexSensor(CopilotBaseEntity):
             attrs["grade"] = self._comfort_data.get("grade")
             attrs["zone_id"] = self._comfort_data.get("zone_id")
             attrs["suggestions"] = self._comfort_data.get("suggestions", [])
+            attrs["model_version"] = "6.0"
 
+            # Per-factor breakdown (temperature, humidity, thermal_interaction,
+            # air_quality, light)
+            worst_factor = None
+            worst_score = 101.0
             for reading in self._comfort_data.get("readings", []):
-                factor = reading["factor"]
-                attrs[f"{factor}_score"] = reading["score"]
-                attrs[f"{factor}_status"] = reading["status"]
-                if reading["raw_value"] is not None:
+                factor = reading.get("factor", "unknown")
+                score = reading.get("score", 0)
+                attrs[f"{factor}_score"] = score
+                attrs[f"{factor}_status"] = reading.get("status", "unknown")
+                attrs[f"{factor}_weight"] = reading.get("weight", 0)
+                if reading.get("raw_value") is not None:
                     attrs[f"{factor}_value"] = reading["raw_value"]
+                # Track worst factor for quick diagnostics
+                if score < worst_score:
+                    worst_score = score
+                    worst_factor = factor
+
+            if worst_factor:
+                attrs["limiting_factor"] = worst_factor
+                attrs["limiting_factor_score"] = worst_score
 
         return attrs
 

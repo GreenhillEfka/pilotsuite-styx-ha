@@ -573,6 +573,72 @@ Wenn `/api/v1/events` leer bleibt:
             )
         )
 
+    # ── VIEW: ZONE AUTOMATION ────────────────────────────────────────
+    zone_auto_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_zone_automation",
+        "sensor.ai_home_copilot_belegte_zonen",
+        "sensor.ai_home_copilot_zonenheizung_status",
+        "sensor.ai_home_copilot_zonen_helligkeit",
+        "sensor.ai_home_copilot_override_mode",
+        "sensor.ai_home_copilot_licht_auto_erlaubt",
+        "sensor.ai_home_copilot_heizung_override",
+    ])
+    if zone_auto_entities:
+        views.append(
+            _view(
+                "Zonen-Automation",
+                "copilot-zone-auto",
+                "mdi:home-automation",
+                _entities_card("Zonen-Automation", zone_auto_entities),
+            )
+        )
+
+    # ── VIEW: WETTER & KALENDER ──────────────────────────────────────
+    weather_entities = _existing_entities(hass, [
+        "weather.forecast_home",
+        "weather.home",
+        "sensor.ai_home_copilot_weather_context",
+        "sensor.ai_home_copilot_weather_warning",
+    ])
+    calendar_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_calendar_load",
+        "sensor.ai_home_copilot_calendar",
+        "sensor.ai_home_copilot_birthday_today",
+        "sensor.ai_home_copilot_birthday_next",
+        "sensor.ai_home_copilot_waste_next_collection",
+        "sensor.ai_home_copilot_waste_today",
+    ])
+    weather_calendar_cards = []
+    if weather_entities:
+        weather_calendar_cards.append(_entities_card("Wetter", weather_entities))
+    if calendar_entities:
+        weather_calendar_cards.append(_entities_card("Kalender & Erinnerungen", calendar_entities))
+    if weather_calendar_cards:
+        views.append(
+            _view(
+                "Wetter & Kalender",
+                "copilot-weather",
+                "mdi:weather-partly-cloudy",
+                _grid_card(weather_calendar_cards, columns=2),
+            )
+        )
+
+    # ── VIEW: HAUSHALT ──────────────────────────────────────────────
+    household_entities = _existing_entities(hass, [
+        "sensor.ai_home_copilot_persons_home",
+        "sensor.ai_home_copilot_network_health",
+        "sensor.ai_home_copilot_entity_tags",
+    ])
+    if household_entities:
+        views.append(
+            _view(
+                "Haushalt",
+                "copilot-household",
+                "mdi:home-account",
+                _entities_card("Haushalt", household_entities),
+            )
+        )
+
     # Entwicklung / Dev Surface (immer nuetzlich, bewusst leichtgewichtig)
     views.append(
         _view(
