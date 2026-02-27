@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projektueberblick
 
-**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 94+ Sensoren, 30 Module und Dashboard Cards in Home Assistant bereit.
+**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 100+ Sensoren, 35 Module und Dashboard Cards in Home Assistant bereit.
 
 **Gegenstueck:** [pilotsuite-styx-core](../pilotsuite-styx-core) -- Core Add-on (Backend, Brain Graph, Habitus, Mood Engine)
 
-- **Domain:** `ai_home_copilot` ( technisch, nicht aendern)
+- **Domain:** `ai_home_copilot` (technisch, nicht aendern)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Lizenz:** Privat, alle Rechte vorbehalten
 
@@ -22,76 +22,120 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Syntax-Check
 python -m py_compile $(find custom_components/ai_home_copilot -name '*.py')
 
-# Tests ausfuehren
+# JSON validieren
+python -c "import json; json.load(open('custom_components/ai_home_copilot/strings.json'))"
+
+# Alle Tests
 python -m pytest tests/ -v --tb=short -x
+
+# Einzelne Test-Datei
+python -m pytest tests/test_coordinator.py -v --tb=short
+
+# Test nach Name
+python -m pytest tests/ -v --tb=short -k "test_mood_sensor"
 
 # Tests mit Coverage
 python -m pytest tests/ -v --tb=short --cov=custom_components/ai_home_copilot --cov-report=term-missing -x
 
 # Security Scan
 bandit -r custom_components/ai_home_copilot -ll --skip B101,B404,B603
-
-# JSON validieren
-python -c "import json; json.load(open('custom_components/ai_home_copilot/strings.json'))"
-
-# HACS validieren (lokal)
-hacs validate custom_components/ai_home_copilot
 ```
 
 ---
 
 ## Architektur
 
-### Dual-Repo-Struktur
+### Setup-Kette (Boot)
 
 ```
-Home Assistant
-+-- HACS Integration (ai_home_copilot)      <-- dieses Repo
-|     Sensoren, Buttons, Dashboard Cards
-|     HTTP REST API (Token-Auth)
-|     v
-+-- Core Add-on (copilot_core) Port 8909    <-- separates Repo
-      Backend, Brain Graph, Habitus, Mood Engine
+__init__.py
+  ├── _MODULE_IMPORTS dict (35 Module)
+  ├── _TIER_0..3 Listen (Boot-Reihenfolge)
+  └── async_setup_entry()
+        ├── CopilotRuntime (core/runtime.py)
+        │     └── fuer jedes Modul: module.async_setup_entry(ctx)
+        │           └── LegacyModule (Tier 0, erste)
+        │                 ├── CopilotDataUpdateCoordinator erstellen
+        │                 ├── async_config_entry_first_refresh()  ← try/except!
+        │                 ├── Webhook registrieren
+        │                 └── Platform Forwarding (sensor, button, binary_sensor, number, select, text)
+        ├── async_register_all_services()
+        └── Device-Registry Cleanup
 ```
 
-### Custom Component mit 22+ Modulen
+**Kritisch:** Wenn `async_config_entry_first_refresh()` eine Exception wirft und diese nicht in `legacy.py` gefangen wird, ueberspringt die Runtime das gesamte Legacy-Modul → KEINE Entities werden erstellt. Fix: try/except mit leerer Baseline-Datenstruktur in `coordinator.data`.
 
-Die Integration nutzt ein **Coordinator-Pattern** (Home Assistant `DataUpdateCoordinator`). Alle Module implementieren das `CopilotModule`-Interface aus `core/modules/module.py` mit standardisiertem Lifecycle:
+### Modul-Tier-System (35 Module)
 
-- `async_setup_entry()` -- Modul initialisieren
-- `async_unload_entry()` -- Modul entladen
-- `async_reload_entry()` -- Modul neu laden (optional)
+Module werden in `__init__.py` klassifiziert und in Tier-Reihenfolge gestartet:
 
-Module werden ueber `core/runtime.py` registriert und gestartet.
+| Tier | Name | Verhalten | Module |
+|------|------|-----------|--------|
+| 0 | KERNEL | Immer geladen, kein Opt-out | legacy, coordinator_module, performance_scaling, events_forwarder, entity_tags, brain_graph_sync |
+| 1 | BRAIN | Geladen wenn Core erreichbar | knowledge_graph_sync, habitus_miner, candidate_poller, mood, mood_context, zone_sync, history_backfill, entity_discovery, scene_module, person_tracking, automation_adoption |
+| 2 | CONTEXT | Geladen wenn relevante HA-Entities vorhanden | energy_context, weather_context, media_zones, camera_context, network, ml_context, voice_context |
+| 3 | EXTENSIONS | Explizit aktiviert | homekit_bridge, frigate_bridge, calendar_module, home_alerts, character_module, waste_reminder, birthday_reminder, dev_surface, ops_runbook, unifi_module, quick_search |
 
-### Wichtige Module
+Jedes Modul implementiert das `CopilotModule`-Protocol aus `core/module.py`:
 
-| Modul | Datei | Funktion |
-|-------|-------|----------|
-| EventsForwarder | `events_forwarder.py` | HA Events an Core senden (batched, PII-redacted) |
-| HabitusMiner | `habitus_miner.py` | Pattern-Discovery und Zone-Management |
-| CandidatePoller | `candidate_poller.py` | Vorschlaege vom Core abholen |
-| BrainGraphSync | `brain_graph_sync.py` | Brain Graph Synchronisation |
-| MoodModule | `mood_module.py` | Mood-Orchestrierung via Core API |
-| MoodContextModule | `mood_context_module.py` | Mood-Kontext fuer Vorschlaege/LLM |
-| MediaContextModule | `media_context_module.py` | Media-Player Tracking |
-| EnergyContextModule | `energy_context_module.py` | Energiemonitoring |
-| WeatherContextModule | `weather_context_module.py` | Wetter-Integration |
-| UniFiModule | `unifi_module.py` | Netzwerk-Ueberwachung |
-| MLContextModule | `ml_context_module.py` | ML-Kontext und Features |
-| UserPreferenceModule | `user_preference_module.py` | Multi-User Preference Learning |
-| CharacterModule | `character_module.py` | CoPilot-Persoenlichkeit |
-| HomeAlertsModule | `home_alerts_module.py` | Kritische Zustandsueberwachung |
-| VoiceContext | `voice_context.py` | Sprachsteuerungs-Kontext |
-| KnowledgeGraphSync | `knowledge_graph_sync.py` | Knowledge Graph Synchronisation |
-| HouseholdModule | (neu) | Familienkonfiguration und Altersgruppen |
+```python
+class CopilotModule(Protocol):
+    @property
+    def name(self) -> str: ...
+    async def async_setup_entry(self, ctx: ModuleContext) -> None: ...
+    async def async_unload_entry(self, ctx: ModuleContext) -> bool: ...
+```
 
-### Kommunikation mit Core Add-on
+Module-Fehler werden gefangen und geloggt — ein fehlendes Modul stoppt nicht den Boot.
 
-- HTTP REST API ueber `CopilotApiClient` (in `coordinator.py`)
-- Token-basierte Authentifizierung (X-Auth-Token / Bearer)
-- Webhook Push fuer Echtzeit-Updates vom Core
-- Standard-Port: 8909
+### Coordinator (Datenhub)
+
+`CopilotDataUpdateCoordinator` in `coordinator.py` ist der zentrale Datenhub:
+
+- Polling: 120s Fallback-Intervall
+- Primaer: Webhook Push vom Core (Echtzeit)
+- Endpoint-Failover: Primaere URL → Fallback-Kandidaten (host.docker.internal, internal_url, external_url)
+- Auth: `Authorization: Bearer {token}` + `X-Auth-Token: {token}`
+- Failover-Trigger: 404, 405, 408, 429, >= 500 (nicht bei 401/403)
+
+**coordinator.data Shape:**
+```python
+{
+    "ok": bool,              # Core erreichbar?
+    "version": str,
+    "mood": {"state": str, "confidence": float, "dimensions": {
+        "comfort": float, "frugality": float, "joy": float,
+        "energy": float, "stress": float
+    }},
+    "neurons": dict,         # Alle Neuron-Zustaende
+    "dominant_mood": str,
+    "habit_summary": dict,
+    "predictions": list,     # Automation-Kandidaten
+    "brain_summary": dict,
+}
+```
+
+### Config Flow und Options Flow
+
+**Zwei separate Dateien:**
+- `config_flow.py` — Ersteinrichtung: `user` (Menu) → `zero_config` | `quick_start` | `manual_setup`
+- `config_options_flow.py` — Nachtraegliche Konfiguration: `init` (Menu) → `connection` | `modules` | `habitus_zones` | `entity_tags` | `neurons` | `backup_restore` | `generate_dashboard`
+
+**Wichtige Patterns:**
+- `_effective_config()` = merge(entry.data, entry.options) — liest immer den aktuellen Stand
+- `_create_merged_entry(updates)` — bewahrt alle nicht geaenderten Keys
+- `ensure_defaults(config)` fuellt fehlende Keys aus `DEFAULTS_MAP` (const.py)
+- `merged_entry_config()` aus `connection_config.py` — zentrale Config-Zusammenfuehrung
+- `single_config_entry: true` in manifest.json — nur eine Instanz erlaubt
+
+### Entity-Basisklasse
+
+Alle Entities erben von `CopilotBaseEntity` (in `entity.py`), die `CoordinatorEntity` erweitert:
+- `device_info` via `DeviceInfo` Dataclass (nicht dict)
+- `_core_base_url()` mit Failover-Logik
+- `_core_headers()` fuer Bearer + X-Auth-Token
+- `_fetch(path, timeout_s)` fuer direkte Core-API-Aufrufe
+- `unique_id` Prefix: `ai_home_copilot_`
 
 ---
 
@@ -99,17 +143,9 @@ Module werden ueber `core/runtime.py` registriert und gestartet.
 
 ### Domain und Entity-IDs
 
-- **DOMAIN bleibt `ai_home_copilot`** -- auch nach Umbenennung zu PilotSuite aendert sich die technische Domain nicht
+- **DOMAIN bleibt `ai_home_copilot`** — auch nach Umbenennung zu PilotSuite aendert sich die technische Domain nicht
 - Entity-ID Prefix: `sensor.ai_home_copilot_*`, `button.ai_home_copilot_*`, etc.
 - Unique-ID Format: `ai_home_copilot_{feature}_{name}`
-
-### Basisklasse
-
-Alle Entities erben von `CopilotBaseEntity` (in `entity.py`), die wiederum `CoordinatorEntity` erweitert. Dies stellt sicher:
-
-- Einheitliche `device_info` fuer das Geraet im HA-Device-Registry
-- Konsistente `unique_id`-Generierung
-- Automatische Coordinator-Anbindung
 
 ### Code-Stil
 
@@ -122,45 +158,30 @@ Alle Entities erben von `CopilotBaseEntity` (in `entity.py`), die wiederum `Coor
 
 ```
 custom_components/ai_home_copilot/
-+-- __init__.py              # Integration Setup
-+-- coordinator.py           # DataUpdateCoordinator + API Client
-+-- entity.py                # CopilotBaseEntity Basisklasse
-+-- const.py                 # Konstanten, DOMAIN, Config Keys
-+-- manifest.json            # HA Manifest
-+-- config_flow.py           # Config + Options Flow
-+-- services_setup.py        # Service-Registrierungen
-+-- core/
-|   +-- runtime.py           # Modul-Registry und Lifecycle
-|   +-- modules/             # 22+ Module (CopilotModule Interface)
-+-- sensors/                 # Sensor-Entities (80+)
-+-- button*.py               # Button-Entities
-+-- dashboard_cards/         # Lovelace Card Generatoren
-+-- ml/                      # ML Pattern Recognition
-+-- translations/            # DE + EN Translations
+├── __init__.py              # Integration Setup, Modul-Registrierung, Tier-Klassifikation
+├── coordinator.py           # DataUpdateCoordinator + API Client + Endpoint Failover
+├── entity.py                # CopilotBaseEntity Basisklasse
+├── const.py                 # Konstanten, DOMAIN, Config Keys, DEFAULTS_MAP
+├── manifest.json            # HA Manifest (single_config_entry=true)
+├── config_flow.py           # Config Flow (Ersteinrichtung)
+├── config_options_flow.py   # Options Flow (29 Menu-Steps)
+├── config_helpers.py        # CSV Parsing, Validierung, Discovery
+├── config_schema_builders.py # Dynamische Schema-Generierung
+├── connection_config.py     # merged_entry_config(), resolve_core_connection()
+├── services_setup.py        # Service-Registrierungen
+├── core/
+│   ├── runtime.py           # CopilotRuntime, ModuleStatus, Lifecycle
+│   ├── module.py            # CopilotModule Protocol, ModuleContext
+│   ├── registry.py          # Dynamische Modul-Instanziierung
+│   └── modules/             # 35 Module (CopilotModule Interface)
+├── sensors/                 # Sensor-Entities (100+)
+├── button*.py               # Button-Entities (30+)
+├── api/                     # Knowledge Graph, User Preference APIs
+├── dashboard_cards/         # Lovelace Card Generatoren
+├── ml/                      # ML Pattern Recognition
+├── translations/            # DE + EN Translations
+└── strings.json             # UI Translations + Flow Descriptions (muss valides JSON sein)
 ```
-
----
-
-## Aktueller Stand
-
-### Version v10.2.0
-
-- **Tests:** 579 passed, 5 skipped
-- **Python-Dateien:** 325+
-- 36 Module in 4 Tiers (Core, Context, Intelligence, Dashboard), alle mit Status-Tracking
-- 115+ Entities (100+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
-- **Mood Sensoren v3.0:** 8 Mood-Sensoren (Stimmung, Konfidenz, Comfort, Joy, Energy, Stress, Frugality, Neuron Activity)
-- **Mood Module v3.0:** Echtzeit-Mood-Orchestrierung via Core REST API statt lokaler Simulation
-- **Mood Context v3.0:** Nested `dimensions` Format mit Rueckwaertskompatibilitaet
-- **Options Flow: Mood System** Konfiguration (EMA Alpha, Softmax Temperature, Dwell Time, History Retention)
-- 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
-- Brain Graph Visualization (vis.js) + Summary Sensor
-- 7-Tab YAML Dashboard Generator (System, Neuronen, Brain, Core, Media, Habitus, ML)
-- 29/29 Options-Flow Steps mit data_description, _effective_config() Preservation
-- DEFAULTS_MAP + ensure_defaults() fuer vollstaendige Konfiguration bei ZeroConfig/QuickStart
-- DeviceInfo Dataclass (HA Best Practice)
-- PilotSuite Branding durchgaengig
-- HA 2024.1.0+ Mindestversion
 
 ---
 
@@ -169,40 +190,12 @@ custom_components/ai_home_copilot/
 - Aenderungen am DOMAIN-String `ai_home_copilot` sind NICHT erlaubt
 - Neue Entities muessen `CopilotBaseEntity` als Basisklasse verwenden
 - `device_info` muss `DeviceInfo` Dataclass verwenden (nicht dict)
-- Neue Module muessen das `CopilotModule`-Interface implementieren
+- Neue Module muessen das `CopilotModule`-Protocol implementieren und in `_MODULE_IMPORTS` + passenden Tier in `__init__.py` registriert werden
 - Alle unique_ids muessen global eindeutig sein (Prefix `ai_home_copilot_`)
-- Tests liegen in `/tests/` und verwenden pytest
-- Dokumentation in Deutsch bevorzugt
-
-### Module Lifecycle
-
-```python
-class MyModule:
-    @property
-    def name(self) -> str:
-        return "my_module"
-
-    async def async_setup_entry(self, ctx: ModuleContext) -> None:
-        # Listener registrieren, Background-Tasks starten
-        self._unsub = async_track_state_change_event(ctx.hass, ...)
-        self._task = asyncio.create_task(self._background_loop())
-
-    async def async_unload_entry(self, ctx: ModuleContext) -> bool:
-        # Listener entfernen, Tasks canceln
-        if self._unsub:
-            self._unsub()
-        if self._task and not self._task.done():
-            self._task.cancel()
-        return True
-```
-
-### Coordinator Pattern
-
-Der `CopilotDataUpdateCoordinator` (in `coordinator.py`) ist der zentrale Datenhub:
-- Polling-Intervall: 120s (Fallback)
-- Primaere Updates via Webhook Push (Echtzeit)
-- `coordinator.data` enthaelt: status, mood, neurons, habit_summary, predictions
-- `coordinator.data["mood"]` v3.0 Format: `{state, confidence, dimensions: {comfort, frugality, joy, energy, stress}, state_probabilities, ...}`
+- `coordinator.data` ist `None` bis zum ersten Refresh → Entities muessen mit `if self.data` absichern
+- `strings.json` Struktur: `config.step` = nur Config-Flow-Steps, `options.step` = Options-Flow-Steps, `issues` = HA Repair Definitions
+- `class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):` ist valide Python Metaclass-Syntax; `config_entries.FlowHandler` existiert NICHT
+- Wenn ein Import in der Kette von `config_flow.py` auf Modul-Ebene fehlschlaegt → "Invalid handler specified"
 
 ### Projektprinzipien
 
@@ -213,28 +206,20 @@ Der `CopilotDataUpdateCoordinator` (in `coordinator.py`) ist der zentrale Datenh
 | **Governance-first** | Vorschlaege vor Aktionen, Human-in-the-Loop |
 | **Safe Defaults** | Sicherheitsrelevante Aktionen immer Manual Mode |
 
-### PR-Checkliste
-
-- [ ] Changelog updated (if user-visible)
-- [ ] Docs updated (if applicable)
-- [ ] Privacy-first (no secrets, no personal defaults)
-- [ ] Safe defaults (caps/limits; persistence off by default)
-- [ ] Governance-first (no silent actions)
-
 ---
 
 ## Wichtige Dateien
 
 | Datei | Beschreibung |
 |-------|-------------|
-| `custom_components/ai_home_copilot/__init__.py` | Integration Setup, Modul-Registrierung |
-| `custom_components/ai_home_copilot/coordinator.py` | DataUpdateCoordinator + API Client |
+| `custom_components/ai_home_copilot/__init__.py` | Integration Setup, Modul-Registrierung, Tier-System |
+| `custom_components/ai_home_copilot/coordinator.py` | DataUpdateCoordinator + API Client + Failover |
 | `custom_components/ai_home_copilot/entity.py` | CopilotBaseEntity Basisklasse |
-| `custom_components/ai_home_copilot/const.py` | Alle Konstanten und Defaults |
-| `custom_components/ai_home_copilot/core/runtime.py` | Modul-Lifecycle |
+| `custom_components/ai_home_copilot/const.py` | Alle Konstanten, DEFAULTS_MAP, ensure_defaults() |
+| `custom_components/ai_home_copilot/config_flow.py` | Config Flow (3 Entry Points) |
+| `custom_components/ai_home_copilot/config_options_flow.py` | Options Flow (29 Steps) |
+| `custom_components/ai_home_copilot/connection_config.py` | Config Merge + Core Connection Resolution |
+| `custom_components/ai_home_copilot/core/runtime.py` | Modul-Lifecycle, ModuleStatus |
 | `custom_components/ai_home_copilot/core/module.py` | CopilotModule Protocol |
-| `custom_components/ai_home_copilot/forwarder_n3.py` | N3 Event Forwarder |
-| `custom_components/ai_home_copilot/habitus_zones_store_v2.py` | Zone Store |
-| `custom_components/ai_home_copilot/repairs.py` | Governance UI Flows |
-| `docs/ARCHITECTURE.md` | Vollstaendige Architektur-Dokumentation |
-| `docs/HANDBOOK.md` | Setup und Troubleshooting |
+| `custom_components/ai_home_copilot/core/modules/legacy.py` | Platform Forwarding, Coordinator Setup, Webhook |
+| `custom_components/ai_home_copilot/strings.json` | i18n + Flow Descriptions (muss valides JSON sein) |
