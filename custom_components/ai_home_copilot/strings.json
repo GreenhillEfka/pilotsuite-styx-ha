@@ -42,19 +42,19 @@
         "description": "Configure entities for {zone_count} selected zones. {hint}"
       },
       "wizard_entities": {
-        "title": "Geräte & Entitäten",
-        "description": "Wähle die relevanten Geräte aus deinem Smart Home. Nur passende Geräteklassen werden angezeigt.",
+        "title": "Devices & Entities",
+        "description": "Select the relevant devices from your smart home. Only matching device classes are shown.",
         "data": {
-          "music_players": "Musik-Lautsprecher",
-          "tv_players": "TV / Fernseher",
-          "lights": "Lichter",
-          "motion_sensors": "Bewegungsmelder",
-          "temperature_sensors": "Temperatursensoren",
-          "brightness_sensors": "Helligkeitssensoren",
-          "humidity_sensors": "Luftfeuchtesensoren",
-          "climate_devices": "Heizung / Klima",
-          "cover_devices": "Rollos / Jalousien",
-          "person_entities": "Haushaltsmitglieder (Personen)"
+          "music_players": "Music Players",
+          "tv_players": "TV / Displays",
+          "lights": "Lights",
+          "motion_sensors": "Motion Sensors",
+          "temperature_sensors": "Temperature Sensors",
+          "brightness_sensors": "Brightness Sensors",
+          "humidity_sensors": "Humidity Sensors",
+          "climate_devices": "Heating / Climate",
+          "cover_devices": "Covers / Shutters",
+          "person_entities": "Household Members (Persons)"
         }
       },
       "wizard_features": {
@@ -131,7 +131,7 @@
           "entity_tags": "Entity tags",
           "neurons": "Neurons",
           "backup_restore": "Backup / restore",
-          "generate_dashboard": "Dashboard generieren"
+          "generate_dashboard": "Generate dashboard"
         }
       },
       "connection": {

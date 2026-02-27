@@ -544,6 +544,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception("Failed to set up ZoneDetector")
 
+    # Auto-setup: create zones and tags from HA areas (first run only)
+    auto_setup_summary: dict | None = None
+    try:
+        from .auto_setup import async_run_auto_setup
+        entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        if isinstance(entry_store, dict) and not entry_store.get("_auto_setup_done"):
+            auto_setup_summary = await async_run_auto_setup(hass, entry)
+            entry_store["_auto_setup_done"] = True
+            _LOGGER.info("Auto-setup completed: %s", auto_setup_summary)
+    except Exception:
+        _LOGGER.exception("Auto-setup failed (non-critical)")
+
     # Register PilotSuite conversation agent (v3.10.0)
     try:
         from .conversation import async_setup_conversation
@@ -564,6 +576,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_register_card_resources(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to register Lovelace card resources")
+
+    # Register PilotSuite sidebar panel (v10.4.0)
+    try:
+        from .panel_setup import async_setup_panel
+        await async_setup_panel(hass, entry)
+    except Exception:
+        _LOGGER.exception("Failed to register PilotSuite sidebar panel")
 
     legacy_yaml_dashboards = _legacy_yaml_dashboards_enabled(entry)
 
@@ -638,24 +657,51 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             _LOGGER.exception("Failed to set up dashboard auto-refresh listener")
 
-    # Show onboarding notification on first setup (v3.12.0)
+    # Show onboarding notification on first setup (v3.12.0, enhanced v10.3.0)
     try:
         entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
         if isinstance(entry_store, dict) and not entry_store.get("_onboarding_shown"):
             from homeassistant.components.persistent_notification import async_create
+
+            # Build auto-setup summary lines if available
+            setup_lines = ""
+            if auto_setup_summary and isinstance(auto_setup_summary, dict):
+                zones_n = auto_setup_summary.get("zones_created", 0)
+                tagged_n = auto_setup_summary.get("entities_tagged", 0)
+                assigned_n = auto_setup_summary.get("entities_assigned", 0)
+                if zones_n or tagged_n:
+                    setup_lines = (
+                        "\n**Auto-setup results:**\n"
+                        f"- {zones_n} Habitus zone(s) created from your HA areas\n"
+                        f"- {assigned_n} entit(ies) assigned to zones\n"
+                        f"- {tagged_n} entit(ies) auto-tagged by domain\n\n"
+                    )
+
             async_create(
                 hass,
-                title="PilotSuite ready",
+                title="PilotSuite — Styx is ready",
                 message=(
-                    "Your local AI assistant **Styx** is set up and running.\n\n"
-                    "**Quick start:**\n"
-                    "- Open **Settings > Voice assistants** and select **PilotSuite** as your conversation agent\n"
-                    "- Dashboards (YAML) are generated under `/config/pilotsuite-styx/`\n"
-                    "  PilotSuite also tries to wire them into Lovelace automatically — check the\n"
-                    "  **PilotSuite Dashboard Wiring** notification (a restart may be required).\n"
-                    "  After changes: use **PilotSuite reload dashboards**.\n"
-                    "- Configure Habitus zones via **Settings > Integrations > PilotSuite > Configure**\n\n"
-                    "All processing runs locally on your Home Assistant — no cloud required."
+                    "Your local AI assistant **Styx** is set up and running.\n"
+                    f"{setup_lines}"
+                    "**Getting started (step by step):**\n\n"
+                    "1. **Set Styx as your conversation agent**\n"
+                    "   Go to **Settings > Voice assistants** and select **PilotSuite — Styx**.\n\n"
+                    "2. **Review your Habitus zones**\n"
+                    "   Open **[Settings > Integrations > PilotSuite > Configure]"
+                    f"(/config/integrations/integration/{DOMAIN})** "
+                    "and select **Habitus zones**. "
+                    "Zones were auto-created from your HA areas — review and adjust as needed.\n\n"
+                    "3. **Check entity tags**\n"
+                    "   In the same options flow, select **Entity tags** to see which entities "
+                    "were automatically tagged by domain (lights, sensors, media, etc.).\n\n"
+                    "4. **Open the PilotSuite Core dashboard**\n"
+                    "   Navigate to the **PilotSuite** panel in the sidebar or visit "
+                    "[the Core add-on](/hassio/ingress/copilot_core) "
+                    "for the full management UI with Brain Graph, Mood Engine, and more.\n\n"
+                    "5. **Fine-tune modules**\n"
+                    "   Back in **Configure**, explore **Modules** to enable/disable features "
+                    "like mood tracking, waste reminders, energy context, and more.\n\n"
+                    "All processing runs **locally** on your Home Assistant — no cloud required."
                 ),
                 notification_id=f"pilotsuite_onboarding_{entry.entry_id}",
             )
@@ -683,7 +729,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     user_pref_module = entry_data.get("user_preference_module")
     if user_pref_module:
         await user_pref_module.async_unload()
-    
+
+    # Remove PilotSuite sidebar panel (v10.4.0)
+    try:
+        from .panel_setup import async_remove_panel
+        await async_remove_panel(hass)
+    except Exception:
+        _LOGGER.debug("Could not remove PilotSuite sidebar panel", exc_info=True)
+
     # Unload Multi-User Preference Learning Module
     from .multi_user_preferences import _MUPL_MODULE_KEY
     mupl_module = entry_data.get(_MUPL_MODULE_KEY)

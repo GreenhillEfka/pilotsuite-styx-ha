@@ -5,8 +5,8 @@ This document is the active vision baseline for the dual-repo system:
 - HACS integration repo: `pilotsuite-styx-ha`
 
 Version baseline:
-- Core add-on: `10.1.4`
-- HA integration: `10.1.4`
+- Core add-on: `10.4.0`
+- HA integration: `10.4.0`
 - Core API port: `8909`
 
 ## Mission
@@ -129,8 +129,34 @@ Purpose:
 - keep dual-repo contract healthy,
 - provide a stable base for iterative feature work.
 
-## Beyond 7.8.x
-- Enhanced entity auto-discovery with ML-based zone inference
+## v10.4.0 — Consolidation & Auto-Setup
+
+### Phase 1: Setup Flow
+- Auto-setup from HA areas: zones + tags created automatically on first run
+- Enhanced onboarding notification with step-by-step guide
+- Normalized UI strings (English, domain-specific tags remain German)
+
+### Phase 2: Dashboard Consolidation
+- Unified sidebar panel (iframe to Core ingress)
+- Auto-registered Lovelace card resources
+- Legacy YAML dashboard generation (optional, disabled by default)
+
+### Phase 3: Zones & Auto-Tagging
+- ML-style entity classifier with 4-signal pipeline (domain, device_class, UOM, keywords)
+- Bilingual keyword matching (DE + EN)
+- Auto-suggest zones from HA areas with entity role assignment
+- Bulk auto-tag by domain/device_class (14 tag categories)
+- Manual override in options flow
+
+### Phase 4: Core Backend
+- New `/api/v1/auto-setup/suggest-zones` endpoint
+- New `/api/v1/auto-setup/auto-tag` endpoint
+- New `/api/v1/auto-setup/status` endpoint
+
+## Beyond 10.4.x
+- Enhanced Styx conversation agent with full Brain Graph context
+- Multi-turn conversations with persistent memory
+- Voice-first interaction patterns
 - Deeper RAG integration for household knowledge
 - Cross-home pattern sharing (federated learning)
 - Policy controls per risk class
