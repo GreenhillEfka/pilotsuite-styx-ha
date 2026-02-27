@@ -24,6 +24,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 
 from ...const import DOMAIN
 from ..module import CopilotModule, ModuleContext
@@ -187,6 +188,9 @@ class AutomationAnalyzerModule(CopilotModule):
         entry_data = hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})
         entry_data["automation_analysis"] = result
 
+        # Create HA Repair Issues from repair hints (self-healing)
+        await self._create_repair_issues(hass, entry, result.get("repair_hints", []))
+
         # Fire completion event
         hass.bus.async_fire(
             f"{DOMAIN}_automation_analysis_complete",
@@ -210,7 +214,86 @@ class AutomationAnalyzerModule(CopilotModule):
         entry_data = ctx.hass.data.get(DOMAIN, {}).get(ctx.entry.entry_id)
         if isinstance(entry_data, dict):
             entry_data.pop("automation_analysis", None)
+
+        # Clean up repair issues we created
+        try:
+            issue_reg = ir.async_get(ctx.hass)
+            for issue_id in list(issue_reg.issues):
+                if isinstance(issue_id, tuple) and issue_id[0] == DOMAIN:
+                    if isinstance(issue_id[1], str) and issue_id[1].startswith("automation_hint_"):
+                        ir.async_delete_issue(ctx.hass, DOMAIN, issue_id[1])
+        except Exception:
+            _LOGGER.debug("Could not clean up automation hint repair issues")
+
         return True
+
+    # ------------------------------------------------------------------
+    # Self-Healing: HA Repair Issues
+    # ------------------------------------------------------------------
+
+    async def _create_repair_issues(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        repair_hints: list[dict[str, Any]],
+    ) -> None:
+        """Create HA Repair Issues from analyzer repair hints.
+
+        Only ERROR and WARNING severity hints create repair issues.
+        Cleans up stale issues from previous runs first.
+        """
+        # Clean up old automation_hint_ issues
+        try:
+            issue_reg = ir.async_get(hass)
+            for issue_id in list(issue_reg.issues):
+                if isinstance(issue_id, tuple) and issue_id[0] == DOMAIN:
+                    if isinstance(issue_id[1], str) and issue_id[1].startswith("automation_hint_"):
+                        ir.async_delete_issue(hass, DOMAIN, issue_id[1])
+        except Exception:
+            _LOGGER.debug("Could not clean up old automation hint issues")
+
+        # Create new issues for ERROR and WARNING hints
+        created = 0
+        for i, hint in enumerate(repair_hints):
+            if isinstance(hint, dict):
+                severity = hint.get("severity", "info")
+                hint_type = hint.get("hint_type", "")
+                automation_id = hint.get("automation_id", "unknown")
+                message = hint.get("message", "")
+                fix_suggestion = hint.get("fix_suggestion", "")
+            else:
+                severity = getattr(hint, "severity", "info")
+                hint_type = getattr(hint, "hint_type", "")
+                automation_id = getattr(hint, "automation_id", "unknown")
+                message = getattr(hint, "message", "")
+                fix_suggestion = getattr(hint, "fix_suggestion", "")
+
+            if severity not in ("error", "warning"):
+                continue
+
+            issue_id = f"automation_hint_{i}_{hint_type}"
+            ha_severity = "error" if severity == "error" else "warning"
+
+            try:
+                ir.async_create_issue(
+                    hass,
+                    DOMAIN,
+                    issue_id,
+                    is_fixable=False,
+                    severity=ha_severity,
+                    translation_key="automation_repair_hint",
+                    translation_placeholders={
+                        "automation": automation_id,
+                        "message": message,
+                        "fix": fix_suggestion,
+                    },
+                )
+                created += 1
+            except Exception:
+                _LOGGER.debug("Failed to create repair issue for %s", automation_id)
+
+        if created:
+            _LOGGER.info("Created %d HA Repair Issues from automation analysis", created)
 
     # ------------------------------------------------------------------
     # Zone mapping

@@ -187,18 +187,32 @@ def _build_zone_grid(zones: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return grids
 
 
-def _build_persons_card() -> dict[str, Any]:
-    """Persons entities card."""
-    return {
-        "type": "entities",
-        "title": "Personen",
-        "entities": [
+def _build_persons_card(
+    persons: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Persons entities card.
+
+    Args:
+        persons: Optional list of person dicts with entity_id and name.
+                 Falls back to hardcoded list when None.
+    """
+    if persons:
+        entity_rows = [
+            {"entity": p["entity_id"], "name": p["name"]} for p in persons
+        ]
+    else:
+        # Hardcoded fallback for tests and offline generation
+        entity_rows = [
             {"entity": "person.andreas", "name": "Andreas"},
             {"entity": "person.efka", "name": "Efka"},
             {"entity": "person.mira", "name": "Mira"},
             {"entity": "person.pauli", "name": "Pauli"},
             {"entity": "person.steffi", "name": "Steffi"},
-        ],
+        ]
+    return {
+        "type": "entities",
+        "title": "Personen",
+        "entities": entity_rows,
     }
 
 
@@ -222,11 +236,15 @@ def _build_temperature_history(zones: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def generate_habitus_tab(zones: list[dict[str, Any]]) -> dict[str, Any]:
+def generate_habitus_tab(
+    zones: list[dict[str, Any]],
+    persons: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
     """Generate Tab 1: Habitus -- Mood, Zones, Persons, Temperatures.
 
     Args:
         zones: List of zone dicts from zones_config.json.
+        persons: Optional list of person dicts for dynamic discovery.
 
     Returns:
         Lovelace view configuration dict.
@@ -239,8 +257,8 @@ def generate_habitus_tab(zones: list[dict[str, Any]]) -> dict[str, Any]:
     # 2) Zone grid(s) -- dynamically from zones
     cards.extend(_build_zone_grid(zones))
 
-    # 3) Persons
-    cards.append(_build_persons_card())
+    # 3) Persons (dynamically discovered or hardcoded fallback)
+    cards.append(_build_persons_card(persons))
 
     # 4) Temperature history
     cards.append(_build_temperature_history(zones))
@@ -548,15 +566,66 @@ def _build_weather_section() -> dict[str, Any]:
     }
 
 
-def generate_hausverwaltung_tab() -> dict[str, Any]:
+def _build_dynamic_section(
+    title: str, entities: list[dict[str, str]], icon: str = "mdi:format-list-bulleted",
+) -> dict[str, Any]:
+    """Build an entities card from a list of dynamically discovered entities."""
+    if not entities:
+        return {"type": "markdown", "content": f"### {title}\n*Keine Entities erkannt*"}
+    rows = [{"entity": e["entity_id"], "name": e["name"]} for e in entities[:12]]
+    return {
+        "type": "entities",
+        "title": title,
+        "entities": rows,
+    }
+
+
+def generate_hausverwaltung_tab(
+    infrastructure: dict[str, list[dict[str, str]]] | None = None,
+) -> dict[str, Any]:
     """Generate Tab 2: Hausverwaltung.
 
-    Covers energy, heating, security, devices, network, and weather.
-    Entity-IDs are hardcoded (infrastructure entities not in zone config).
+    If infrastructure is provided (from dynamic discovery), uses discovered
+    entities. Otherwise falls back to hardcoded entity-IDs.
 
     Returns:
         Lovelace view configuration dict.
     """
+    if infrastructure:
+        cards: list[dict[str, Any]] = []
+        section_map = [
+            ("Energie", "energy", "mdi:flash"),
+            ("Heizung", "heating", "mdi:radiator"),
+            ("Sicherheit", "security", "mdi:shield-home"),
+            ("Netzwerk", "network", "mdi:lan"),
+            ("Wetter", "weather", "mdi:weather-cloudy"),
+        ]
+        for title, key, icon in section_map:
+            ents = infrastructure.get(key, [])
+            if ents:
+                cards.append(_build_dynamic_section(title, ents, icon))
+
+        # Always add hardcoded devices section (appliances not discoverable)
+        cards.append(_build_devices_section())
+
+        # Weather forecast card if weather entity exists
+        weather_ents = infrastructure.get("weather", [])
+        if weather_ents:
+            cards.append({
+                "type": "weather-forecast",
+                "entity": weather_ents[0]["entity_id"],
+                "show_forecast": True,
+            })
+
+        return {
+            "title": "Hausverwaltung",
+            "path": "hausverwaltung",
+            "icon": "mdi:home-city",
+            "badges": [],
+            "cards": cards or [_build_energy_section(), _build_heating_section()],
+        }
+
+    # Fallback: hardcoded sections
     return {
         "title": "Hausverwaltung",
         "path": "hausverwaltung",
@@ -808,12 +877,19 @@ def generate_styx_tab() -> dict[str, Any]:
 
 def generate_full_dashboard(
     zones: list[dict[str, Any]] | None = None,
+    persons: list[dict[str, str]] | None = None,
+    infrastructure: dict[str, list[dict[str, str]]] | None = None,
 ) -> dict[str, Any]:
     """Generate the complete 3-tab PilotSuite dashboard.
 
     Args:
         zones: Optional list of zone dicts. If None, zones_config.json
                is loaded automatically from data/.
+        persons: Optional list of person dicts (entity_id, name).
+                 If provided, replaces hardcoded persons card.
+        infrastructure: Optional dict of infra categories from dynamic
+                        discovery. If provided, Hausverwaltung tab uses
+                        discovered entities instead of hardcoded ones.
 
     Returns:
         Complete Lovelace dashboard configuration dict with three views.
@@ -825,8 +901,8 @@ def generate_full_dashboard(
     return {
         "title": "PilotSuite",
         "views": [
-            generate_habitus_tab(zones),
-            generate_hausverwaltung_tab(),
+            generate_habitus_tab(zones, persons=persons),
+            generate_hausverwaltung_tab(infrastructure=infrastructure),
             generate_styx_tab(),
         ],
     }

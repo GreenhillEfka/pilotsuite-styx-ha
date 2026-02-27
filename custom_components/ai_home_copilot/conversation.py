@@ -54,7 +54,19 @@ class StyxConversationAgent(AbstractConversationAgent):
                 language, "PilotSuite coordinator not available.", conversation_id
             )
 
-        messages = [{"role": "user", "content": user_input.text}]
+        # Build context-rich system prompt
+        messages: list[dict[str, str]] = []
+        try:
+            from .conversation_context import async_build_system_prompt
+            system_prompt = await async_build_system_prompt(
+                self.hass, self.entry, language=language,
+            )
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+        except Exception:
+            _LOGGER.debug("Could not build conversation context, proceeding without")
+
+        messages.append({"role": "user", "content": user_input.text})
 
         try:
             result = await coordinator.api.async_chat_completions(

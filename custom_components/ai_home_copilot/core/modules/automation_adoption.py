@@ -62,11 +62,21 @@ class AutomationAdoptionModule:
 
             await self._dismiss_candidate(hass, entry, candidate_id, call.data.get("reason", ""))
 
+        async def handle_adopt_from_suggestion(call: ServiceCall) -> None:
+            """Service: adopt directly from a suggestion (with YAML from analysis)."""
+            suggestion_id = call.data.get("suggestion_id", "")
+            if not suggestion_id:
+                _LOGGER.warning("adopt_from_suggestion called without suggestion_id")
+                return
+            await self._adopt_from_suggestion(hass, entry, suggestion_id)
+
         # Register services (idempotent)
         if not hass.services.has_service(DOMAIN, "adopt_suggestion"):
             hass.services.async_register(DOMAIN, "adopt_suggestion", handle_adopt_suggestion)
         if not hass.services.has_service(DOMAIN, "dismiss_suggestion"):
             hass.services.async_register(DOMAIN, "dismiss_suggestion", handle_dismiss_suggestion)
+        if not hass.services.has_service(DOMAIN, "adopt_from_suggestion"):
+            hass.services.async_register(DOMAIN, "adopt_from_suggestion", handle_adopt_from_suggestion)
 
         _LOGGER.info("AutomationAdoptionModule initialized")
 
@@ -173,7 +183,22 @@ class AutomationAdoptionModule:
         actions: list[dict[str, Any]],
         extra: dict[str, Any],
     ) -> dict[str, Any]:
-        """Build a HA automation config from candidate data."""
+        """Build a HA automation config from candidate data.
+
+        Parses trigger/condition/action from example_yaml if available,
+        otherwise builds actions from the candidate action list.
+        """
+        # Try parsing complete automation from example_yaml
+        example_yaml = extra.get("example_yaml", "")
+        if example_yaml:
+            parsed = self._parse_full_yaml_automation(example_yaml)
+            if parsed:
+                parsed.setdefault("alias", f"Styx: {suggestion[:60]}")
+                parsed.setdefault("description",
+                    f"Auto-generated from PilotSuite Styx candidate {candidate_id}")
+                return parsed
+
+        # Build from structured action data
         ha_actions = []
         for action in actions:
             domain = action.get("domain", "")
@@ -186,19 +211,173 @@ class AutomationAdoptionModule:
                 }
                 if entity_ids:
                     ha_action["target"] = {"entity_id": entity_ids}
-                # Add service data (brightness_pct, volume_level, etc.)
                 for key in ("brightness_pct", "volume_level", "preset_mode", "temperature"):
                     if key in action:
                         ha_action.setdefault("data", {})[key] = action[key]
                 ha_actions.append(ha_action)
 
+        # Try extracting triggers from example_yaml even without full parse
+        triggers = self._parse_yaml_triggers(example_yaml) if example_yaml else []
+
         return {
             "alias": f"Styx: {suggestion[:60]}",
             "description": f"Auto-generated from PilotSuite Styx candidate {candidate_id}",
-            "trigger": [],  # User configures trigger
+            "trigger": triggers,
             "action": ha_actions,
             "mode": "single",
         }
+
+    @staticmethod
+    def _parse_yaml_triggers(yaml_str: str) -> list[dict[str, Any]]:
+        """Extract trigger block from a YAML automation string."""
+        try:
+            import yaml
+            parsed = yaml.safe_load(yaml_str)
+            if isinstance(parsed, dict):
+                triggers = parsed.get("trigger", parsed.get("triggers", []))
+                if isinstance(triggers, list):
+                    return triggers
+                if isinstance(triggers, dict):
+                    return [triggers]
+        except Exception:
+            pass
+        return []
+
+    @staticmethod
+    def _parse_full_yaml_automation(yaml_str: str) -> dict[str, Any] | None:
+        """Parse a complete YAML automation (trigger + condition + action).
+
+        Returns a dict suitable for HA automation creation, or None.
+        """
+        try:
+            import yaml
+            parsed = yaml.safe_load(yaml_str)
+            if not isinstance(parsed, dict):
+                return None
+
+            # Must have at least trigger and action
+            triggers = parsed.get("trigger", parsed.get("triggers", []))
+            actions = parsed.get("action", parsed.get("actions", []))
+
+            if not triggers or not actions:
+                return None
+
+            result: dict[str, Any] = {
+                "trigger": triggers if isinstance(triggers, list) else [triggers],
+                "action": actions if isinstance(actions, list) else [actions],
+                "mode": parsed.get("mode", "single"),
+            }
+
+            # Optional fields
+            if "alias" in parsed:
+                result["alias"] = parsed["alias"]
+            if "description" in parsed:
+                result["description"] = parsed["description"]
+            conditions = parsed.get("condition", parsed.get("conditions"))
+            if conditions:
+                result["condition"] = conditions if isinstance(conditions, list) else [conditions]
+
+            return result
+        except Exception:
+            return None
+
+    async def _adopt_from_suggestion(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        suggestion_id: str,
+    ) -> None:
+        """Adopt an automation from a SuggestionPanel suggestion.
+
+        Looks up the suggestion in the store, parses its YAML evidence,
+        writes to automations.yaml, and triggers automation.reload.
+        """
+        entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+        store = entry_data.get("suggestion_store") if isinstance(entry_data, dict) else None
+        if not store:
+            _LOGGER.warning("No suggestion store for adopt_from_suggestion")
+            return
+
+        # Find the suggestion
+        suggestion = None
+        if hasattr(store, "queue") and hasattr(store.queue, "_pending"):
+            for s in store.queue._pending:
+                sid = s.suggestion_id if hasattr(s, "suggestion_id") else s.get("suggestion_id", "")
+                if sid == suggestion_id:
+                    suggestion = s
+                    break
+
+        if not suggestion:
+            _LOGGER.warning("Suggestion %s not found", suggestion_id)
+            return
+
+        # Extract YAML from evidence
+        evidence = suggestion.evidence if hasattr(suggestion, "evidence") else suggestion.get("evidence", [])
+        example_yaml = ""
+        for ev in evidence:
+            if isinstance(ev, dict) and ev.get("yaml"):
+                example_yaml = ev["yaml"]
+                break
+
+        if not example_yaml:
+            _LOGGER.warning("No example YAML in suggestion %s", suggestion_id)
+            return
+
+        # Parse and write
+        config = self._build_automation_config(
+            suggestion_id,
+            suggestion.pattern if hasattr(suggestion, "pattern") else suggestion.get("pattern", ""),
+            [],  # No structured actions, using YAML
+            {"example_yaml": example_yaml},
+        )
+
+        if config.get("trigger"):
+            await self._write_automation_yaml(hass, config)
+            _LOGGER.info("Adopted suggestion %s as automation: %s", suggestion_id, config.get("alias"))
+
+            # Mark as accepted in store
+            if hasattr(store.queue, "accept"):
+                store.queue.accept(suggestion_id, "styx_auto")
+                await store.async_save()
+        else:
+            _LOGGER.warning("Could not parse triggers from suggestion %s", suggestion_id)
+
+    @staticmethod
+    async def _write_automation_yaml(
+        hass: HomeAssistant,
+        config: dict,
+    ) -> None:
+        """Append an automation config to automations.yaml and reload."""
+        import yaml
+        from pathlib import Path
+
+        automations_path = Path(hass.config.path("automations.yaml"))
+
+        def _write():
+            existing = []
+            if automations_path.exists():
+                try:
+                    content = automations_path.read_text(encoding="utf-8")
+                    if content.strip():
+                        parsed = yaml.safe_load(content)
+                        if isinstance(parsed, list):
+                            existing = parsed
+                except Exception:
+                    pass
+
+            existing.append(config)
+            automations_path.write_text(
+                yaml.dump(existing, default_flow_style=False, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+
+        await hass.async_add_executor_job(_write)
+
+        # Reload automations
+        try:
+            await hass.services.async_call("automation", "reload", {}, blocking=False)
+        except Exception:
+            _LOGGER.debug("Automation reload after adoption failed (non-blocking)")
 
     def _get_api(self, hass: HomeAssistant, entry: ConfigEntry):
         """Get the CopilotApiClient from coordinator."""

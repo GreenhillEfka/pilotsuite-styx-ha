@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Domain:** `ai_home_copilot` (technisch, **NICHT aendern**)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Mindestversion:** HA 2024.1.0+
-- **Version:** 10.5.1
+- **Version:** 11.0.0
 
 ---
 
@@ -60,7 +60,7 @@ Home Assistant
 
 ### 4-Tier Modul-System
 
-35 Module in `__init__.py` (`_MODULE_IMPORTS` + `_TIER_*` Listen), geladen via `core/runtime.py`:
+36+ Module in `__init__.py` (`_MODULE_IMPORTS` + `_TIER_*` Listen), geladen via `core/runtime.py`:
 
 ```
 TIER 0 — KERNEL (6 Module, kein Opt-Out)
@@ -95,7 +95,8 @@ TIER 3 — ERWEITERUNGEN (12 Module, explizit aktivieren)
 | UserPreferenceModule | `core/modules/user_preference_module.py` | Multi-User Preference Learning |
 | ZoneBootstrapModule | `core/modules/zone_bootstrap.py` | Zone-Config in ZoneStore V2 laden |
 | LiveMoodEngine | `core/modules/live_mood_engine.py` | Lokale Comfort/Joy/Frugality |
-| AutomationAnalyzer | `core/modules/automation_analyzer.py` | HA-Automationen analysieren |
+| AutomationAnalyzer | `core/modules/automation_analyzer.py` | HA-Automationen analysieren + Self-Healing Repair Issues |
+| SuggestionLoader | `core/modules/suggestion_loader.py` | Suggestion-Queue aus allen Quellen befuellen |
 | CharacterModule | `character_module.py` | CoPilot-Persoenlichkeit |
 | HomeAlertsModule | `home_alerts_module.py` | Kritische Zustandsueberwachung |
 | VoiceContext | `voice_context.py` | Sprachsteuerungs-Kontext |
@@ -209,11 +210,11 @@ Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen
 
 ---
 
-## Aktueller Stand (v10.5.1)
+## Aktueller Stand (v11.0.0)
 
-- **Tests:** 752 passed, 4 skipped
-- **Python-Dateien:** 328 (alle kompilieren sauber)
-- 35+ Module in 4 Tiers (Kernel, Brain, Context, Extensions), alle mit Status-Tracking via `ModuleStatusSensor`
+- **Tests:** 845 passed, 4 skipped
+- **Python-Dateien:** 334 (alle kompilieren sauber)
+- 36+ Module in 4 Tiers (Kernel, Brain, Context, Extensions), alle mit Status-Tracking via `ModuleStatusSensor`
 - 140+ Entities (94+ Sensoren inkl. 3 Live-Mood-Dimensionen, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
 - 8 Mood-Sensoren v3.0 (State, Confidence, Comfort, Joy, Energy, Stress, Frugality, NeuronActivity)
 - 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
@@ -288,6 +289,8 @@ Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen
 | `custom_components/ai_home_copilot/data/zones_config.json` | 9 Habitus-Zonen, 141 Entities |
 | `custom_components/ai_home_copilot/data/initial_suggestions.json` | Initiale Vorschlaege |
 | `custom_components/ai_home_copilot/repairs.py` | Governance UI Flows |
+| `custom_components/ai_home_copilot/dashboard_pipeline.py` | Unified Dashboard Orchestrator |
+| `custom_components/ai_home_copilot/conversation_context.py` | Context-Rich System-Prompt Builder |
 | `docs/INTEGRATION_CONCEPT_v10.5.md` | Integrationskonzept mit Architektur |
 | `tests/conftest.py` | Globale HA-Mocks + Mock-Entity-Klassen |
 | `docs/ARCHITECTURE.md` | Vollstaendige Architektur-Dokumentation |

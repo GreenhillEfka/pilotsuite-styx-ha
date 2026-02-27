@@ -29,6 +29,33 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
+def _record_preference_feedback(
+    hass: HomeAssistant,
+    entry_id: str,
+    user: str,
+    suggestion_id: str,
+    *,
+    accepted: bool,
+) -> None:
+    """Record suggestion feedback in the MUPL (Multi-User Preference Learning) module."""
+    try:
+        entry_data = hass.data.get(DOMAIN, {}).get(entry_id, {})
+        if not isinstance(entry_data, dict):
+            return
+        mupl = entry_data.get("user_preference_module")
+        if mupl and hasattr(mupl, "learn_pattern"):
+            mupl.learn_pattern(
+                user=user or "default",
+                pattern_type="suggestion_feedback",
+                pattern_data={
+                    "suggestion_id": suggestion_id,
+                    "accepted": accepted,
+                },
+            )
+    except Exception:
+        _LOGGER.debug("Could not record preference feedback for suggestion %s", suggestion_id)
+
+
 class SuggestionStatus(str, Enum):
     """Status of a suggestion."""
     PENDING = "pending"
@@ -358,19 +385,21 @@ async def async_setup_suggestion_services(hass: HomeAssistant, entry_id: str) ->
         """Handle suggestion accept."""
         suggestion_id = call.data.get("suggestion_id")
         user = call.data.get("user", "")
-        
+
         if store.queue.accept(suggestion_id, user):
             _LOGGER.info("Accepted suggestion %s", suggestion_id)
             hass.async_create_task(store.async_save())
             hass.bus.async_fire(f"{DOMAIN}_suggestion_accepted", {"suggestion_id": suggestion_id})
-    
+            # Feedback to MUPL learning
+            _record_preference_feedback(hass, entry_id, user, suggestion_id, accepted=True)
+
     @callback
     def handle_reject(call):
         """Handle suggestion reject."""
         suggestion_id = call.data.get("suggestion_id")
         user = call.data.get("user", "")
         reason = call.data.get("reason", "")
-        
+
         if store.queue.reject(suggestion_id, user, reason):
             _LOGGER.info("Rejected suggestion %s", suggestion_id)
             hass.async_create_task(store.async_save())
@@ -378,6 +407,8 @@ async def async_setup_suggestion_services(hass: HomeAssistant, entry_id: str) ->
                 "suggestion_id": suggestion_id,
                 "reason": reason
             })
+            # Feedback to MUPL learning
+            _record_preference_feedback(hass, entry_id, user, suggestion_id, accepted=False)
     
     @callback
     def handle_snooze(call):
@@ -486,7 +517,20 @@ async def async_setup_suggestion_websocket(hass: HomeAssistant, entry_id: str) -
         conversation_id = msg.get("conversation_id")
 
         try:
-            messages = [{"role": "user", "content": user_message}]
+            # Build context-rich system prompt
+            messages = []
+            try:
+                from .conversation_context import async_build_system_prompt
+                entry_obj = hass.config_entries.async_get_entry(entry_id)
+                if entry_obj:
+                    system_prompt = await async_build_system_prompt(
+                        hass, entry_obj, language="de",
+                    )
+                    if system_prompt:
+                        messages.append({"role": "system", "content": system_prompt})
+            except Exception:
+                pass  # Fall through without context
+            messages.append({"role": "user", "content": user_message})
             result = await coordinator.async_chat_completions(
                 messages, conversation_id=conversation_id,
             )

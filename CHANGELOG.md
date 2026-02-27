@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## v11.0.0 (2026-02-27) — UNIFIED PIPELINE + CONTEXT-RICH CONVERSATION + SELF-HEALING
+
+### Added
+- **Dashboard Pipeline** (`dashboard_pipeline.py`): Unified Orchestrator ersetzt verstreute Dashboard-Aufrufe. Dynamische Person- und Infrastruktur-Erkennung aus HA-States.
+- **Conversation Context** (`conversation_context.py`): Context-Rich System-Prompt fuer den Styx Chat-Agent. Injiziert Mood, Zonen, Personen, Wetter, Vorschlaege und Automations-Analyse (max 2000 Zeichen).
+- **Suggestion Loader** (`core/modules/suggestion_loader.py`): Neues T1-Modul speist alle Suggestion-Quellen (initial_suggestions.json, Automation-Analyse, Webhooks) in die SuggestionQueue.
+- **Self-Healing**: AutomationAnalyzer erstellt jetzt automatisch HA Repair Issues aus ERROR/WARNING Hints. Translation-Key `automation_repair_hint` in strings.json.
+- **Automation Adoption Trigger-Parsing**: `_parse_yaml_triggers()` + `_parse_full_yaml_automation()` — extrahiert Trigger/Condition/Action aus YAML statt leerer `trigger: []`.
+- **Service `adopt_from_suggestion`**: Adoptiert Automationen direkt aus SuggestionPanel mit YAML-Parsing und `automations.yaml`-Schreibung.
+- **MUPL Feedback-Loop**: Accept/Reject in suggestion_panel.py meldet Feedback an UserPreferenceModule.
+- **Dynamischer Hausverwaltung-Tab**: `generate_hausverwaltung_tab(infrastructure=...)` entdeckt Energy/Heating/Security/Network/Weather Entities dynamisch.
+- **Dynamische Personen-Card**: `_build_persons_card(persons=...)` entdeckt `person.*` Entities dynamisch.
+- **65 neue Tests**: Dashboard Pipeline (15), Conversation Context (16), Suggestion Loader (12), Adoption Triggers (12), Self-Healing Issues (8).
+
+### Changed
+- **__init__.py**: Dashboard-Generierung auf unified `async_generate_unified_dashboard()` umgestellt (beide Bloecke: first-setup + auto-refresh).
+- **conversation.py**: System-Prompt-Injection vor User-Message an Core.
+- **suggestion_panel.py**: WebSocket Chat mit Context, Feedback-Loop zu MUPL.
+- **pilotsuite_3tab_generator.py**: `generate_full_dashboard()` akzeptiert optionale `persons` und `infrastructure` Parameter.
+- **Module-System**: suggestion_loader als 13. T1-Modul registriert (36+ Module gesamt).
+
+### Fixed
+- **Automation Adoption**: `trigger: []` durch echte YAML-Trigger-Parsing ersetzt.
+- **automation_analyzer.py**: `ir` als Top-Level-Import statt lazy Import.
+
+### Metrics
+- **Tests**: 845 passed, 4 skipped
+- **Python-Dateien**: 334 (kompilieren sauber)
+- **Module**: 36+ in 4 Tiers
+- **Neue Dateien**: 4 (+ 5 Test-Dateien)
+- **Geaenderte Dateien**: 8
+
+---
+
 ## v10.5.1 (2026-02-27) — LIVE SYSTEM INTEGRATION + AUTOMATION INTELLIGENCE
 
 ### Added

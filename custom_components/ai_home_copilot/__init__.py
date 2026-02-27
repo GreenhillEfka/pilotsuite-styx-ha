@@ -85,6 +85,7 @@ _MODULE_IMPORTS = {
     "zone_bootstrap": (".core.modules.zone_bootstrap", "ZoneBootstrapModule"),
     "live_mood_engine": (".core.modules.live_mood_engine", "LiveMoodEngine"),
     "automation_analyzer": (".core.modules.automation_analyzer", "AutomationAnalyzerModule"),
+    "suggestion_loader": (".core.modules.suggestion_loader", "SuggestionLoaderModule"),
 }
 
 # ---------------------------------------------------------------------------
@@ -118,6 +119,7 @@ _TIER_1_BRAIN = [
     "scene_module",              # T1: scene intelligence is brain-level
     "person_tracking",           # T1: household presence is brain-level
     "automation_adoption",       # T1: automation suggestions are brain-level
+    "suggestion_loader",         # T1: populates suggestion queue from all sources
 ]
 
 _TIER_2_CONTEXT = [
@@ -603,13 +605,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Auto-generate dashboard YAML files on first setup (legacy mode).
         try:
             from .dashboard_wiring import async_ensure_lovelace_dashboard_wiring
-            from .habitus_dashboard import async_generate_habitus_zones_dashboard
-            from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+            from .dashboard_pipeline import async_generate_unified_dashboard
 
             entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             if isinstance(entry_store, dict) and not entry_store.get("_dashboards_generated"):
-                await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
-                await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
+                await async_generate_unified_dashboard(hass, entry, notify=False)
                 wiring_state = await async_ensure_lovelace_dashboard_wiring(hass)
                 entry_store["_dashboards_generated"] = True
                 _LOGGER.info(
@@ -628,15 +628,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Keep dashboard YAML updated when Habitus zones change (legacy mode).
         try:
             from .habitus_zones_store_v2 import SIGNAL_HABITUS_ZONES_V2_UPDATED
-            from .habitus_dashboard import async_generate_habitus_zones_dashboard
-            from .pilotsuite_dashboard import async_generate_pilotsuite_dashboard
+            from .dashboard_pipeline import async_generate_unified_dashboard
 
             entry_store = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             if isinstance(entry_store, dict):
                 async def _async_refresh_dashboard(reason: str) -> None:
                     try:
-                        await async_generate_pilotsuite_dashboard(hass, entry, notify=False)
-                        await async_generate_habitus_zones_dashboard(hass, entry.entry_id, notify=False)
+                        await async_generate_unified_dashboard(hass, entry, notify=False)
                         _LOGGER.info("PilotSuite dashboards auto-regenerated (%s)", reason)
                     except Exception:
                         _LOGGER.exception("Failed to auto-regenerate PilotSuite dashboards (%s)", reason)
