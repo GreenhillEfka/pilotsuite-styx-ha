@@ -1,11 +1,8 @@
-"""Mood Module v0.2 - HA Integration for local mood inference.
+"""Mood Module v3.0 - HA Integration for Core mood API.
 
-Implements the mood_module v0.2 spec as a CopilotModule.
-Optimized with:
-- Proper type hints
-- Improved exception handling
-- Character system integration
-- Performance improvements
+Implements the mood_module spec as a CopilotModule.
+Fetches mood data from the Core Add-on via REST API and stores it
+in coordinator.data["mood"] using the v3.0 format.
 """
 from __future__ import annotations
 
@@ -17,17 +14,17 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, Event
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval, async_track_state_change_event
 import voluptuous as vol
 
 from ...const import DOMAIN
+from ...connection_config import resolve_core_connection
 from ..module import CopilotModule, ModuleContext
 from ..performance import get_mood_cache, TTLCache
 
 if TYPE_CHECKING:
-    # CharacterService is now CharacterModule in character_module.py
-    # Use forward ref to avoid circular import
-    pass
+    from .character_module import CharacterModule as CharacterService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,7 +64,9 @@ class MoodModule(CopilotModule):
         """Initialize the mood module."""
         self._hass: HomeAssistant | None = None
         self._entry_id: str | None = None
-        self._character_service: CharacterService | None = None
+        self._character_service: Any = None
+        self._core_api_base_url: str = "http://localhost:8909"
+        self._api_token: str = ""
 
     @property
     def name(self) -> str:
@@ -82,7 +81,12 @@ class MoodModule(CopilotModule):
         """
         self._hass = ctx.hass
         self._entry_id = ctx.entry.entry_id
-        
+
+        # Resolve Core connection from config entry
+        host, port, token = resolve_core_connection(ctx.entry)
+        self._core_api_base_url = f"http://{host}:{port}"
+        self._api_token = token
+
         # Initialize module data
         if DOMAIN not in ctx.hass.data:
             ctx.hass.data[DOMAIN] = {}
@@ -468,31 +472,41 @@ class MoodModule(CopilotModule):
             
             if result and result.get("ok"):
                 orchestration_result = result.get("result", {})
-                
+
                 # Apply character mood weights if available
                 if self._character_service and orchestration_result.get("mood"):
-                    base_mood = orchestration_result["mood"]
-                    weighted_mood = self._character_service.apply_mood_weights(base_mood)
-                    orchestration_result["mood"] = weighted_mood
-                
+                    try:
+                        base_mood = orchestration_result["mood"]
+                        apply_fn = getattr(self._character_service, "apply_mood_weights", None)
+                        if callable(apply_fn):
+                            weighted_mood = apply_fn(base_mood)
+                            orchestration_result["mood"] = weighted_mood
+                    except Exception as e:
+                        _LOGGER.debug("Character mood weighting failed: %s", e)
+
                 # Execute actions locally if not dry run
                 if not dry_run and not orchestration_result.get("skipped_reason"):
                     actions = orchestration_result.get("actions", {})
                     service_calls = actions.get("service_calls", [])
-                    
+
                     if service_calls:
                         await self._execute_service_calls(hass, service_calls)
-                
+
                 # Store result
                 entry_data["mood_module"]["last_orchestration"][zone_name] = {
                     **orchestration_result,
                     "timestamp": datetime.now().isoformat()
                 }
-                
-                _LOGGER.info("Zone %s mood orchestration completed: %s", 
+
+                # Update coordinator mood data if mood info is present
+                mood_info = orchestration_result.get("mood", {})
+                if mood_info:
+                    self._update_coordinator_mood(hass, entry_id, mood_info)
+
+                _LOGGER.info("Zone %s mood orchestration completed: %s",
                            zone_name, orchestration_result.get("mood", {}).get("mood"))
             else:
-                _LOGGER.error("Mood orchestration API call failed: %s", result)
+                _LOGGER.warning("Mood orchestration API call failed: %s", result)
                 
         except Exception as e:
             _LOGGER.error("Mood orchestration failed for zone %s: %s", zone_name, e)
@@ -568,6 +582,32 @@ class MoodModule(CopilotModule):
                 
         except Exception as e:
             _LOGGER.error("Failed to force mood for zone %s: %s", zone_name, e)
+
+    def _update_coordinator_mood(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        mood_info: Dict[str, Any],
+    ) -> None:
+        """Push mood data into the coordinator's data dict.
+
+        Args:
+            hass: Home Assistant instance.
+            entry_id: Config entry ID.
+            mood_info: Mood dict from Core API (v3.0 format).
+        """
+        try:
+            entry_data = hass.data.get(DOMAIN, {}).get(entry_id, {})
+            coordinator = entry_data.get("coordinator")
+            if coordinator is None:
+                return
+            if coordinator.data is None:
+                coordinator.data = {}
+            coordinator.data["mood"] = mood_info
+            coordinator.async_set_updated_data(coordinator.data)
+            _LOGGER.debug("Updated coordinator mood data: %s", mood_info.get("state", "unknown"))
+        except Exception as e:
+            _LOGGER.debug("Could not update coordinator mood: %s", e)
 
     async def _collect_sensor_data(
         self, 
@@ -659,38 +699,49 @@ class MoodModule(CopilotModule):
     async def _call_core_api(
         self,
         hass: HomeAssistant,
-        method: str, 
-        path: str, 
+        method: str,
+        path: str,
         data: Optional[Dict[str, Any]] = None
     ) -> Optional[APIResponse]:
-        """Call the Core Add-on API.
-        
+        """Call the Core Add-on API via real HTTP request.
+
         Args:
             hass: Home Assistant instance.
             method: HTTP method (GET, POST, etc.).
             path: API endpoint path.
             data: Request body data.
-            
+
         Returns:
             API response dictionary or None on error.
         """
-        # Get core add-on URL from hass data or config
-        core_url = "http://localhost:8909"  # Default, should be configurable
-        
         try:
-            # In production, this would make actual HTTP calls
-            # For now, simulate successful response
-            _LOGGER.debug("Would call Core API: %s %s with data: %s", method, path, data)
-            
-            # Simulate API response
-            return {
-                "ok": True,
-                "result": {
-                    "mood": {"mood": "relax", "confidence": 0.8},
-                    "skipped_reason": "Simulated response - Core API not connected"
-                }
+            session = async_get_clientsession(hass)
+            url = f"{self._core_api_base_url}{path}"
+            headers: Dict[str, str] = {}
+            if self._api_token:
+                headers["Authorization"] = f"Bearer {self._api_token}"
+                headers["X-Auth-Token"] = self._api_token
+
+            _LOGGER.debug("Calling Core API: %s %s", method, url)
+
+            kwargs: Dict[str, Any] = {
+                "headers": headers,
+                "timeout": aiohttp.ClientTimeout(total=10),
             }
-            
+            if data is not None:
+                kwargs["json"] = data
+
+            async with session.request(method, url, **kwargs) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    _LOGGER.warning("Core mood API returned %s: %s", resp.status, body[:200])
+                    return None
+
+                return await resp.json()
+
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Timeout calling Core API: %s %s", method, path)
+            return None
         except aiohttp.ClientError as e:
             _LOGGER.error("HTTP error calling Core API: %s", e)
             return None

@@ -156,12 +156,15 @@ class MoodContextModule(CopilotModule):
     
     async def _fetch_moods(self) -> None:
         """Fetch mood data from Core API and persist to HA cache."""
+        if self.hass is None:
+            return
         try:
+            import aiohttp as _aiohttp
             session = async_get_clientsession(self.hass)
             url = f"{self.core_api_base_url}/api/v1/mood"
             headers = {"Authorization": f"Bearer {self.api_token}"}
 
-            async with session.get(url, headers=headers, timeout=10) as resp:
+            async with session.get(url, headers=headers, timeout=_aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status != 200:
                     logger.warning("Core mood API returned %s", resp.status)
                     return
@@ -175,11 +178,12 @@ class MoodContextModule(CopilotModule):
                 self._using_cache = False
 
                 # Persist to HA local storage for restart resilience
-                try:
-                    from ...mood_store import async_save_moods
-                    await async_save_moods(self.hass, moods)
-                except Exception:
-                    logger.debug("Failed to persist moods to HA cache", exc_info=True)
+                if self.hass is not None:
+                    try:
+                        from ...mood_store import async_save_moods
+                        await async_save_moods(self.hass, moods)
+                    except Exception:
+                        logger.debug("Failed to persist moods to HA cache", exc_info=True)
 
                 logger.debug("Updated moods for %d zones", len(moods))
 
@@ -195,17 +199,35 @@ class MoodContextModule(CopilotModule):
     def _clamp(self, value: float, low: float = 0.0, high: float = 1.0) -> float:
         return max(low, min(high, value))
 
+    @staticmethod
+    def _dim(mood: Dict[str, Any], key: str, default: float = 0.5) -> float:
+        """Extract a dimension value from v3.0 nested or legacy flat format.
+
+        v3.0 stores dimensions in ``mood["dimensions"][key]``.
+        Legacy stores them flat as ``mood[key]``.
+        """
+        dims = mood.get("dimensions")
+        if isinstance(dims, dict) and key in dims:
+            try:
+                return float(dims[key])
+            except (TypeError, ValueError):
+                return default
+        try:
+            return float(mood.get(key, default))
+        except (TypeError, ValueError):
+            return default
+
     def _get_user_preference(self, user_id: str, zone_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Get user preference from UserPreferenceModule.
-        
+
         Args:
             user_id: The user ID to get preferences for
             zone_id: Optional zone ID for zone-specific preferences
-            
+
         Returns:
             User preferences dict with bias values, or None if not found
         """
-        if not user_id:
+        if not user_id or self.hass is None:
             return None
 
         # Use cached import to avoid repeated imports
@@ -214,13 +236,13 @@ class MoodContextModule(CopilotModule):
                 from .user_preference_module import UserPreferenceModule
                 self._user_pref_module_class = UserPreferenceModule
             except ImportError as e:
-                logger.debug(f"Could not import UserPreferenceModule: {e}")
+                logger.debug("Could not import UserPreferenceModule: %s", e)
                 return None
-        
+
         UserPreferenceModule = self._user_pref_module_class
-        
+
         dom = self.hass.data.get(DOMAIN, {})
-        
+
         # Try to get module directly from hass.data
         module = dom.get("user_preference_module")
         if isinstance(module, UserPreferenceModule):
@@ -248,18 +270,35 @@ class MoodContextModule(CopilotModule):
         if not pref:
             return dict(mood)
 
-        comfort = float(mood.get("comfort", 0.5))
-        frugality = float(mood.get("frugality", 0.5))
-        joy = float(mood.get("joy", 0.5))
+        comfort = self._dim(mood, "comfort")
+        frugality = self._dim(mood, "frugality")
+        joy = self._dim(mood, "joy")
 
-        comfort_bias = float(pref.get("comfort_bias", 0.0))
-        frugality_bias = float(pref.get("frugality_bias", 0.0))
-        joy_bias = float(pref.get("joy_bias", 0.0))
+        try:
+            comfort_bias = float(pref.get("comfort_bias", 0.0))
+        except (TypeError, ValueError):
+            comfort_bias = 0.0
+        try:
+            frugality_bias = float(pref.get("frugality_bias", 0.0))
+        except (TypeError, ValueError):
+            frugality_bias = 0.0
+        try:
+            joy_bias = float(pref.get("joy_bias", 0.0))
+        except (TypeError, ValueError):
+            joy_bias = 0.0
 
         weighted = dict(mood)
-        weighted["comfort"] = self._clamp(comfort + comfort_bias)
-        weighted["frugality"] = self._clamp(frugality + frugality_bias)
-        weighted["joy"] = self._clamp(joy + joy_bias)
+        # Write back into dimensions dict if v3.0 format, else flat
+        dims = weighted.get("dimensions")
+        if isinstance(dims, dict):
+            weighted["dimensions"] = dict(dims)
+            weighted["dimensions"]["comfort"] = self._clamp(comfort + comfort_bias)
+            weighted["dimensions"]["frugality"] = self._clamp(frugality + frugality_bias)
+            weighted["dimensions"]["joy"] = self._clamp(joy + joy_bias)
+        else:
+            weighted["comfort"] = self._clamp(comfort + comfort_bias)
+            weighted["frugality"] = self._clamp(frugality + frugality_bias)
+            weighted["joy"] = self._clamp(joy + joy_bias)
         return weighted
     
     def get_all_moods(self) -> Dict[str, Dict[str, Any]]:
@@ -278,12 +317,12 @@ class MoodContextModule(CopilotModule):
             return False  # No mood data, allow energy-saving
         
         # Suppress if entertainment is happening
-        if mood.get("joy", 0) > 0.6:
+        if self._dim(mood, "joy", 0.0) > 0.6:
             return True
-        
+
         # Suppress if comfort is prioritized
-        comfort = mood.get("comfort", 0.5)
-        frugality = mood.get("frugality", 0.5)
+        comfort = self._dim(mood, "comfort")
+        frugality = self._dim(mood, "frugality")
         if comfort > 0.7 and frugality < 0.5:
             return True
         
@@ -303,10 +342,10 @@ class MoodContextModule(CopilotModule):
                 "security": 1.0,
             }
         
-        joy = mood.get("joy", 0.5)
-        comfort = mood.get("comfort", 0.5)
-        frugality = mood.get("frugality", 0.5)
-        
+        joy = self._dim(mood, "joy")
+        comfort = self._dim(mood, "comfort")
+        frugality = self._dim(mood, "frugality")
+
         return {
             "energy_saving": max(0.0, (1 - joy) * frugality),
             "comfort": comfort,
@@ -316,7 +355,7 @@ class MoodContextModule(CopilotModule):
                 "comfort": round(comfort, 2),
                 "frugality": round(frugality, 2),
                 "joy": round(joy, 2),
-                "media_active": mood.get("media_active", False),
+                "media_active": mood.get("media_playing", mood.get("media_active", False)),
                 "time_of_day": mood.get("time_of_day", "unknown"),
             }
         }
@@ -333,17 +372,20 @@ class MoodContextModule(CopilotModule):
                 "average_joy": 0.5,
             }
         
-        avg_comfort = sum(m.get("comfort", 0.5) for m in moods) / len(moods)
-        avg_frugality = sum(m.get("frugality", 0.5) for m in moods) / len(moods)
-        avg_joy = sum(m.get("joy", 0.5) for m in moods) / len(moods)
-        
+        avg_comfort = sum(self._dim(m, "comfort") for m in moods) / len(moods)
+        avg_frugality = sum(self._dim(m, "frugality") for m in moods) / len(moods)
+        avg_joy = sum(self._dim(m, "joy") for m in moods) / len(moods)
+
         return {
             "zones_tracked": len(moods),
             "last_update": self._last_update.isoformat() if self._last_update else None,
             "average_comfort": round(avg_comfort, 2),
             "average_frugality": round(avg_frugality, 2),
             "average_joy": round(avg_joy, 2),
-            "zones_with_media": sum(1 for m in moods if m.get("media_active", False)),
+            "zones_with_media": sum(
+                1 for m in moods
+                if m.get("media_playing", m.get("media_active", False))
+            ),
         }
     
     # ===== Character System Integration =====
@@ -372,10 +414,10 @@ class MoodContextModule(CopilotModule):
                 "mood_summary": "unknown",
             }
         
-        joy = mood.get("joy", 0.5)
-        comfort = mood.get("comfort", 0.5)
-        frugality = mood.get("frugality", 0.5)
-        media_active = mood.get("media_active", False)
+        joy = self._dim(mood, "joy")
+        comfort = self._dim(mood, "comfort")
+        frugality = self._dim(mood, "frugality")
+        media_active = mood.get("media_playing", mood.get("media_active", False))
         time_of_day = mood.get("time_of_day", "unknown")
         
         # Determine energy level

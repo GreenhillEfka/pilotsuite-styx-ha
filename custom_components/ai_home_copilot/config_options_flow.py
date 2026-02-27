@@ -47,6 +47,18 @@ from .const import (
     CONF_BIRTHDAY_TTS_ENTITY,
     CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
     CONF_ZONE_AUTOMATION_GRACE_PERIOD_S,
+    CONF_MOOD_ENABLED,
+    CONF_MOOD_EMA_ALPHA,
+    CONF_MOOD_SOFTMAX_TEMPERATURE,
+    CONF_MOOD_DWELL_TIME_SECONDS,
+    CONF_MOOD_HISTORY_RETENTION_DAYS,
+    CONF_MOOD_DASHBOARD_ENABLED,
+    DEFAULT_MOOD_ENABLED,
+    DEFAULT_MOOD_EMA_ALPHA,
+    DEFAULT_MOOD_SOFTMAX_TEMPERATURE,
+    DEFAULT_MOOD_DWELL_TIME_SECONDS,
+    DEFAULT_MOOD_HISTORY_RETENTION_DAYS,
+    DEFAULT_MOOD_DASHBOARD_ENABLED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -208,6 +220,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
         return self.async_show_menu(
             step_id="modules",
             menu_options=[
+                "module_mood",
                 "module_media",
                 "module_forwarder",
                 "module_seed",
@@ -222,6 +235,52 @@ class OptionsFlowHandler(config_entries.OptionsFlow, ConfigSnapshotOptionsFlow):
                 "back",
             ],
         )
+
+    # ── Module: Mood System ────────────────────────────────────────
+
+    async def async_step_module_mood(self, user_input: dict | None = None) -> FlowResult:
+        """Mood system configuration — EMA, softmax, dwell time, history."""
+        if user_input is not None:
+            return self._create_merged_entry(user_input)
+
+        data = self._effective_config()
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_MOOD_ENABLED,
+                    default=data.get(CONF_MOOD_ENABLED, DEFAULT_MOOD_ENABLED),
+                ): bool,
+                vol.Required(
+                    CONF_MOOD_DASHBOARD_ENABLED,
+                    default=data.get(CONF_MOOD_DASHBOARD_ENABLED, DEFAULT_MOOD_DASHBOARD_ENABLED),
+                ): bool,
+                vol.Required(
+                    CONF_MOOD_EMA_ALPHA,
+                    default=data.get(CONF_MOOD_EMA_ALPHA, DEFAULT_MOOD_EMA_ALPHA),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0.05, max=0.95, step=0.05, mode=selector.NumberSelectorMode.SLIDER)
+                ),
+                vol.Required(
+                    CONF_MOOD_SOFTMAX_TEMPERATURE,
+                    default=data.get(CONF_MOOD_SOFTMAX_TEMPERATURE, DEFAULT_MOOD_SOFTMAX_TEMPERATURE),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=0.1, max=5.0, step=0.1, mode=selector.NumberSelectorMode.SLIDER)
+                ),
+                vol.Required(
+                    CONF_MOOD_DWELL_TIME_SECONDS,
+                    default=data.get(CONF_MOOD_DWELL_TIME_SECONDS, DEFAULT_MOOD_DWELL_TIME_SECONDS),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=60, max=3600, step=60, unit_of_measurement="s", mode=selector.NumberSelectorMode.SLIDER)
+                ),
+                vol.Required(
+                    CONF_MOOD_HISTORY_RETENTION_DAYS,
+                    default=data.get(CONF_MOOD_HISTORY_RETENTION_DAYS, DEFAULT_MOOD_HISTORY_RETENTION_DAYS),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=1, max=365, step=1, unit_of_measurement="d")
+                ),
+            }
+        )
+        return self.async_show_form(step_id="module_mood", data_schema=schema)
 
     # ── Module: Media ────────────────────────────────────────────────
 

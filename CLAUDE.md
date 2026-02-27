@@ -72,7 +72,8 @@ Module werden ueber `core/runtime.py` registriert und gestartet.
 | HabitusMiner | `habitus_miner.py` | Pattern-Discovery und Zone-Management |
 | CandidatePoller | `candidate_poller.py` | Vorschlaege vom Core abholen |
 | BrainGraphSync | `brain_graph_sync.py` | Brain Graph Synchronisation |
-| MoodContextModule | `mood_context_module.py` | Mood-Integration und Kontext |
+| MoodModule | `mood_module.py` | Mood-Orchestrierung via Core API |
+| MoodContextModule | `mood_context_module.py` | Mood-Kontext fuer Vorschlaege/LLM |
 | MediaContextModule | `media_context_module.py` | Media-Player Tracking |
 | EnergyContextModule | `energy_context_module.py` | Energiemonitoring |
 | WeatherContextModule | `weather_context_module.py` | Wetter-Integration |
@@ -142,16 +143,20 @@ custom_components/ai_home_copilot/
 
 ## Aktueller Stand
 
-### Version v9.6.0
+### Version v10.2.0
 
-- **Tests:** 574 passed, 5 skipped
-- **Python-Dateien:** 319
-- 35 Module in 4 Tiers (Core, Context, Intelligence, Dashboard), alle mit Status-Tracking
-- 110+ Entities (94+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
+- **Tests:** 579 passed, 5 skipped
+- **Python-Dateien:** 325+
+- 36 Module in 4 Tiers (Core, Context, Intelligence, Dashboard), alle mit Status-Tracking
+- 115+ Entities (100+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
+- **Mood Sensoren v3.0:** 8 Mood-Sensoren (Stimmung, Konfidenz, Comfort, Joy, Energy, Stress, Frugality, Neuron Activity)
+- **Mood Module v3.0:** Echtzeit-Mood-Orchestrierung via Core REST API statt lokaler Simulation
+- **Mood Context v3.0:** Nested `dimensions` Format mit Rueckwaertskompatibilitaet
+- **Options Flow: Mood System** Konfiguration (EMA Alpha, Softmax Temperature, Dwell Time, History Retention)
 - 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
 - Brain Graph Visualization (vis.js) + Summary Sensor
 - 7-Tab YAML Dashboard Generator (System, Neuronen, Brain, Core, Media, Habitus, ML)
-- 28/28 Options-Flow Steps mit data_description, _effective_config() Preservation
+- 29/29 Options-Flow Steps mit data_description, _effective_config() Preservation
 - DEFAULTS_MAP + ensure_defaults() fuer vollstaendige Konfiguration bei ZeroConfig/QuickStart
 - DeviceInfo Dataclass (HA Best Practice)
 - PilotSuite Branding durchgaengig
@@ -197,6 +202,7 @@ Der `CopilotDataUpdateCoordinator` (in `coordinator.py`) ist der zentrale Datenh
 - Polling-Intervall: 120s (Fallback)
 - Primaere Updates via Webhook Push (Echtzeit)
 - `coordinator.data` enthaelt: status, mood, neurons, habit_summary, predictions
+- `coordinator.data["mood"]` v3.0 Format: `{state, confidence, dimensions: {comfort, frugality, joy, energy, stress}, state_probabilities, ...}`
 
 ### Projektprinzipien
 

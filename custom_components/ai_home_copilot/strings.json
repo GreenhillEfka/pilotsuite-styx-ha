@@ -160,6 +160,7 @@
         "title": "Modules",
         "description": "Select a module to configure.",
         "menu_options": {
+          "module_mood": "Mood system",
           "module_media": "Media players",
           "module_forwarder": "Events forwarder",
           "module_seed": "Suggestion seed",
@@ -172,6 +173,26 @@
           "module_watchdog": "Watchdog",
           "module_pilotsuite_ux": "PilotSuite UI",
           "back": "Back"
+        }
+      },
+      "module_mood": {
+        "title": "Mood System",
+        "description": "Configure the mood inference engine. The mood system combines discrete states (relax, focus, active, night, away, neutral) with continuous dimensions (comfort, frugality, joy, energy, stress) for each Habitus zone.",
+        "data": {
+          "mood_enabled": "Enable mood system",
+          "mood_dashboard_enabled": "Enable mood dashboard sensors",
+          "mood_ema_alpha": "EMA smoothing alpha",
+          "mood_softmax_temperature": "Softmax temperature",
+          "mood_dwell_time_seconds": "Minimum dwell time (seconds)",
+          "mood_history_retention_days": "History retention (days)"
+        },
+        "data_description": {
+          "mood_enabled": "Enable automatic mood inference from entity states. Zones get a mood profile with discrete state + continuous dimensions.",
+          "mood_dashboard_enabled": "Expose mood dimension sensors (comfort, joy, energy, stress, frugality) for Lovelace cards and automations.",
+          "mood_ema_alpha": "Exponential Moving Average alpha (0.05-0.95). Lower = smoother transitions, higher = faster response to changes. Default: 0.3.",
+          "mood_softmax_temperature": "Softmax temperature for mood state selection. Lower = more decisive (picks dominant mood), higher = more exploratory. Default: 1.0.",
+          "mood_dwell_time_seconds": "Minimum time (seconds) in a mood state before transitioning. Prevents rapid oscillation. Default: 600s (10 min).",
+          "mood_history_retention_days": "Number of days to keep mood history in the database. Default: 30 days."
         }
       },
       "module_media": {
