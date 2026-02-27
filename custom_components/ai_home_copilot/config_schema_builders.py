@@ -150,6 +150,21 @@ from .const import (
     DEFAULT_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
     CONF_ZONE_AUTOMATION_GRACE_PERIOD_S,
     DEFAULT_ZONE_AUTOMATION_GRACE_PERIOD_S,
+    CONF_ZONE_AUTOMATION_SUN_FILTER_SECONDS,
+    DEFAULT_ZONE_AUTOMATION_SUN_FILTER_SECONDS,
+    CONF_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS,
+    DEFAULT_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS,
+    CONF_ZONE_AUTOMATION_ENABLED,
+    DEFAULT_ZONE_AUTOMATION_ENABLED,
+    CONF_ZONE_AUTOMATION_OUTDOOR_SENSOR,
+    DEFAULT_ZONE_AUTOMATION_OUTDOOR_SENSOR,
+    CONF_ZONE_AUTOMATION_LIGHT_MODE,
+    DEFAULT_ZONE_AUTOMATION_LIGHT_MODE,
+    LIGHT_MODES,
+    CONF_ZONE_AUTOMATION_PRESENCE_TIMEOUT,
+    DEFAULT_ZONE_AUTOMATION_PRESENCE_TIMEOUT,
+    CONF_ZONE_AUTOMATION_TARGET_LUX,
+    DEFAULT_ZONE_AUTOMATION_TARGET_LUX,
 )
 
 
@@ -545,16 +560,71 @@ def build_birthday_schema(data: dict) -> dict:
 
 
 def build_zone_automation_schema(data: dict) -> dict:
-    """Build schema fields for zone automation settings (brightness threshold, grace period)."""
+    """Build schema fields for zone automation settings."""
     return {
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_ENABLED,
+            default=data.get(CONF_ZONE_AUTOMATION_ENABLED, DEFAULT_ZONE_AUTOMATION_ENABLED),
+        ): bool,
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_LIGHT_MODE,
+            default=data.get(CONF_ZONE_AUTOMATION_LIGHT_MODE, DEFAULT_ZONE_AUTOMATION_LIGHT_MODE),
+        ): vol.In(LIGHT_MODES),
         vol.Optional(
             CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
             default=data.get(CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD, DEFAULT_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD),
-        ): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, max=100, step=5, unit_of_measurement="%",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_PRESENCE_TIMEOUT,
+            default=data.get(CONF_ZONE_AUTOMATION_PRESENCE_TIMEOUT, DEFAULT_ZONE_AUTOMATION_PRESENCE_TIMEOUT),
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=30, max=3600, step=30, unit_of_measurement="s",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
         vol.Optional(
             CONF_ZONE_AUTOMATION_GRACE_PERIOD_S,
             default=data.get(CONF_ZONE_AUTOMATION_GRACE_PERIOD_S, DEFAULT_ZONE_AUTOMATION_GRACE_PERIOD_S),
-        ): vol.All(vol.Coerce(int), vol.Range(min=30, max=3600)),
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=30, max=3600, step=30, unit_of_measurement="s",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_TARGET_LUX,
+            default=data.get(CONF_ZONE_AUTOMATION_TARGET_LUX, DEFAULT_ZONE_AUTOMATION_TARGET_LUX),
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=50, max=1000, step=25, unit_of_measurement="lx",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_OUTDOOR_SENSOR,
+            default=data.get(CONF_ZONE_AUTOMATION_OUTDOOR_SENSOR, DEFAULT_ZONE_AUTOMATION_OUTDOOR_SENSOR) or None,
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["sensor"], multiple=False)
+        ),
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS,
+            default=data.get(CONF_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS, DEFAULT_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS),
+        ): bool,
+        vol.Optional(
+            CONF_ZONE_AUTOMATION_SUN_FILTER_SECONDS,
+            default=data.get(CONF_ZONE_AUTOMATION_SUN_FILTER_SECONDS, DEFAULT_ZONE_AUTOMATION_SUN_FILTER_SECONDS),
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, max=600, step=30, unit_of_measurement="s",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
     }
 
 

@@ -98,10 +98,10 @@ _TIER_0_KERNEL = [
     "performance_scaling",
     "events_forwarder",
     "entity_tags",
+    "brain_graph_sync",          # T0: core graph is foundational
 ]
 
 _TIER_1_BRAIN = [
-    "brain_graph_sync",
     "knowledge_graph_sync",
     "habitus_miner",
     "candidate_poller",
@@ -110,6 +110,9 @@ _TIER_1_BRAIN = [
     "zone_sync",
     "history_backfill",
     "entity_discovery",
+    "scene_module",              # T1: scene intelligence is brain-level
+    "person_tracking",           # T1: household presence is brain-level
+    "automation_adoption",       # T1: automation suggestions are brain-level
 ]
 
 _TIER_2_CONTEXT = [
@@ -120,11 +123,9 @@ _TIER_2_CONTEXT = [
     "network",
     "ml_context",
     "voice_context",
-    "person_tracking",
 ]
 
 _TIER_3_EXTENSIONS = [
-    "scene_module",
     "homekit_bridge",
     "frigate_bridge",
     "calendar_module",
@@ -132,7 +133,6 @@ _TIER_3_EXTENSIONS = [
     "character_module",
     "waste_reminder",
     "birthday_reminder",
-    "automation_adoption",
     "dev_surface",
     "ops_runbook",
     "unifi_module",
