@@ -1,11 +1,11 @@
-"""Tests for PilotSuite Mood Sensors — all 8 mood sensor types.
+"""Tests for PilotSuite Mood Sensors v3.0 — all sensor types.
 
 Covers:
-- MoodSensor: state extraction from coordinator data
-- MoodConfidenceSensor: percentage conversion, attributes
-- NeuronActivitySensor: active neuron counting, history tracking
-- Comfort, Joy, Energy, Stress, Frugality dimensions (via coordinator data)
-- Stability tracking (rolling history)
+- MoodSensor: state extraction, mood history, stability tracking
+- MoodConfidenceSensor: percentage conversion via _safe_float, attributes
+- NeuronActivitySensor: active neuron counting, history via _handle_coordinator_update
+- Mood Dimensions (Comfort, Joy, Energy, Stress, Frugality) via _MoodDimensionSensor
+- LiveMoodDimensionSensor: per-zone mood averaging
 - Dimension fallback (missing/empty data)
 - safe_float helper
 """
@@ -19,6 +19,12 @@ from custom_components.ai_home_copilot.sensors.mood_sensor import (
     MoodSensor,
     MoodConfidenceSensor,
     NeuronActivitySensor,
+    MoodComfortSensor,
+    MoodJoySensor,
+    MoodEnergySensor,
+    MoodStressSensor,
+    MoodFrugalitySensor,
+    _safe_float,
 )
 
 
@@ -30,10 +36,19 @@ def _make_coordinator(data: dict | None = None):
     """Create a mock coordinator with given data."""
     coord = MagicMock()
     coord.data = data
+    coord.config_entry = MagicMock()
     return coord
 
 
-def safe_float(x, default: float = 0.0) -> float:
+def _make_sensor_with_write(sensor_cls, data):
+    """Create sensor and mock async_write_ha_state for tests calling _handle_coordinator_update."""
+    coord = _make_coordinator(data)
+    sensor = sensor_cls(coord)
+    sensor.async_write_ha_state = MagicMock()
+    return sensor
+
+
+def safe_float_local(x, default: float = 0.0) -> float:
     """Replicate the safe_float helper used across PilotSuite sensors."""
     try:
         if x is None:
@@ -52,33 +67,43 @@ def safe_float(x, default: float = 0.0) -> float:
 
 class TestSafeFloat:
     def test_normal_float(self):
-        assert safe_float(3.14) == 3.14
+        assert safe_float_local(3.14) == 3.14
 
     def test_integer(self):
-        assert safe_float(42) == 42.0
+        assert safe_float_local(42) == 42.0
 
     def test_string_number(self):
-        assert safe_float("2.5") == 2.5
+        assert safe_float_local("2.5") == 2.5
 
     def test_none_returns_default(self):
-        assert safe_float(None) == 0.0
-        assert safe_float(None, 5.0) == 5.0
+        assert safe_float_local(None) == 0.0
+        assert safe_float_local(None, 5.0) == 5.0
 
     def test_nan_returns_default(self):
-        assert safe_float(float("nan")) == 0.0
+        assert safe_float_local(float("nan")) == 0.0
 
     def test_inf_returns_default(self):
-        assert safe_float(float("inf")) == 0.0
-        assert safe_float(float("-inf")) == 0.0
+        assert safe_float_local(float("inf")) == 0.0
+        assert safe_float_local(float("-inf")) == 0.0
 
     def test_invalid_string_returns_default(self):
-        assert safe_float("not_a_number") == 0.0
+        assert safe_float_local("not_a_number") == 0.0
 
     def test_empty_string_returns_default(self):
-        assert safe_float("") == 0.0
+        assert safe_float_local("") == 0.0
 
     def test_custom_default(self):
-        assert safe_float(None, -1.0) == -1.0
+        assert safe_float_local(None, -1.0) == -1.0
+
+    def test_module_safe_float_handles_none(self):
+        """Test the actual module-level _safe_float."""
+        assert _safe_float(None) == 0.0
+
+    def test_module_safe_float_handles_string(self):
+        assert _safe_float("invalid") == 0.0
+
+    def test_module_safe_float_converts_float(self):
+        assert _safe_float(0.85) == 0.85
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +136,12 @@ class TestMoodSensor:
         coord = _make_coordinator({"mood": {"mood": "happy"}})
         sensor = MoodSensor(coord)
         assert sensor.native_value == "happy"
+
+    def test_native_value_from_state_key(self):
+        """v3.0: 'state' key is alternative to 'mood' key."""
+        coord = _make_coordinator({"mood": {"state": "focus"}})
+        sensor = MoodSensor(coord)
+        assert sensor.native_value == "focus"
 
     def test_extra_attributes_empty_when_no_data(self):
         coord = _make_coordinator(None)
@@ -157,6 +188,41 @@ class TestMoodSensor:
         attrs = sensor.extra_state_attributes
         assert len(attrs["emotions"]) == 1
         assert attrs["emotions"][0]["name"] == "joy"
+
+    def test_extra_attributes_dimensions(self):
+        """v3.0: dimensions are available in extra_state_attributes."""
+        coord = _make_coordinator({
+            "mood": {
+                "mood": "relax",
+                "dimensions": {"comfort": 0.8, "joy": 0.6, "energy": 0.4, "stress": 0.1, "frugality": 0.7},
+            }
+        })
+        sensor = MoodSensor(coord)
+        attrs = sensor.extra_state_attributes
+        assert attrs["comfort"] == 0.8
+        assert attrs["joy"] == 0.6
+        assert attrs["stress"] == 0.1
+
+    def test_mood_stability_tracking(self):
+        """v3.0: mood_stability is computed from history."""
+        coord = _make_coordinator({"mood": {"mood": "relax"}})
+        sensor = MoodSensor(coord)
+        # Access native_value multiple times to build history
+        for _ in range(5):
+            sensor.native_value
+        attrs = sensor.extra_state_attributes
+        assert attrs["mood_stability"] == 1.0  # all same mood
+
+    def test_mood_none_handled_gracefully(self):
+        """v3.0: mood=None returns 'unknown' instead of raising."""
+        coord = _make_coordinator({"mood": None})
+        sensor = MoodSensor(coord)
+        assert sensor.native_value == "unknown"
+
+    def test_mood_none_attributes_empty(self):
+        coord = _make_coordinator({"mood": None})
+        sensor = MoodSensor(coord)
+        assert sensor.extra_state_attributes == {}
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +272,28 @@ class TestMoodConfidenceSensor:
         sensor = MoodConfidenceSensor(coord)
         attrs = sensor.extra_state_attributes
         assert attrs["mood"] == "unknown"
+
+    def test_confidence_sensor_missing_confidence_key(self):
+        coord = _make_coordinator({"mood": {}})
+        sensor = MoodConfidenceSensor(coord)
+        assert sensor.native_value == 0
+
+    def test_confidence_sensor_string_confidence(self):
+        """_safe_float handles invalid string gracefully."""
+        coord = _make_coordinator({"mood": {"confidence": "invalid"}})
+        sensor = MoodConfidenceSensor(coord)
+        assert sensor.native_value == 0  # _safe_float returns 0.0 for "invalid"
+
+    def test_confidence_sensor_none_confidence(self):
+        coord = _make_coordinator({"mood": {"confidence": None}})
+        sensor = MoodConfidenceSensor(coord)
+        assert sensor.native_value == 0
+
+    def test_confidence_mood_none_handled(self):
+        """v3.0: mood=None returns 0 instead of crashing."""
+        coord = _make_coordinator({"mood": None})
+        sensor = MoodConfidenceSensor(coord)
+        assert sensor.native_value == 0
 
 
 # ---------------------------------------------------------------------------
@@ -258,29 +346,28 @@ class TestNeuronActivitySensor:
         assert attrs["total_neurons"] == 2
         assert len(attrs["active_neurons"]) == 1
 
-    def test_history_tracking(self):
-        coord = _make_coordinator({
+    def test_history_tracking_via_coordinator_update(self):
+        """v3.0: History is now tracked in _handle_coordinator_update, not extra_state_attributes."""
+        sensor = _make_sensor_with_write(NeuronActivitySensor, {
             "neurons": {
                 "presence": {"active": True, "value": 0.8},
             }
         })
-        sensor = NeuronActivitySensor(coord)
 
-        # Access attributes multiple times to build history
+        # Simulate coordinator updates to build history
         for _ in range(5):
-            sensor.extra_state_attributes
+            sensor._handle_coordinator_update()
 
         assert len(sensor._history) == 5
         assert all(h["value"] == 1 for h in sensor._history)
 
     def test_history_max_24_entries(self):
-        coord = _make_coordinator({
+        sensor = _make_sensor_with_write(NeuronActivitySensor, {
             "neurons": {"n1": {"active": True, "value": 0.5}},
         })
-        sensor = NeuronActivitySensor(coord)
 
         for _ in range(30):
-            sensor.extra_state_attributes
+            sensor._handle_coordinator_update()
 
         assert len(sensor._history) == 24
 
@@ -303,19 +390,95 @@ class TestNeuronActivitySensor:
 
 
 # ---------------------------------------------------------------------------
-# Mood Dimensions via Coordinator Data
+# Mood Dimension Sensors (v3.0 _MoodDimensionSensor subclasses)
+# ---------------------------------------------------------------------------
+
+class TestMoodDimensionSensors:
+    """Test dedicated dimension sensors (Comfort, Joy, Energy, Stress, Frugality)."""
+
+    def test_comfort_sensor_from_dimensions(self):
+        coord = _make_coordinator({
+            "mood": {"mood": "relax", "dimensions": {"comfort": 0.85}}
+        })
+        sensor = MoodComfortSensor(coord)
+        assert sensor.native_value == 85
+
+    def test_joy_sensor_from_dimensions(self):
+        coord = _make_coordinator({
+            "mood": {"mood": "happy", "dimensions": {"joy": 0.9}}
+        })
+        sensor = MoodJoySensor(coord)
+        assert sensor.native_value == 90
+
+    def test_energy_sensor_from_dimensions(self):
+        coord = _make_coordinator({
+            "mood": {"mood": "active", "dimensions": {"energy": 0.7}}
+        })
+        sensor = MoodEnergySensor(coord)
+        assert sensor.native_value == 70
+
+    def test_stress_sensor_from_dimensions(self):
+        coord = _make_coordinator({
+            "mood": {"mood": "stressed", "dimensions": {"stress": 0.8}}
+        })
+        sensor = MoodStressSensor(coord)
+        assert sensor.native_value == 80
+
+    def test_frugality_sensor_from_dimensions(self):
+        coord = _make_coordinator({
+            "mood": {"mood": "eco", "dimensions": {"frugality": 0.95}}
+        })
+        sensor = MoodFrugalitySensor(coord)
+        assert sensor.native_value == 95
+
+    def test_dimension_from_features_fallback(self):
+        """Dimensions fall back to features dict."""
+        coord = _make_coordinator({
+            "mood": {"mood": "relax", "features": {"comfort_index": 0.75}}
+        })
+        sensor = MoodComfortSensor(coord)
+        assert sensor.native_value == 75
+
+    def test_dimension_default_when_missing(self):
+        """Missing dimension returns 50 (0.5 * 100)."""
+        coord = _make_coordinator({"mood": {"mood": "unknown"}})
+        sensor = MoodComfortSensor(coord)
+        assert sensor.native_value == 50
+
+    def test_dimension_no_data(self):
+        """No coordinator data returns 50."""
+        coord = _make_coordinator(None)
+        sensor = MoodComfortSensor(coord)
+        assert sensor.native_value == 50
+
+    def test_dimension_mood_none(self):
+        """mood=None returns 50."""
+        coord = _make_coordinator({"mood": None})
+        sensor = MoodComfortSensor(coord)
+        assert sensor.native_value == 50
+
+    def test_dimension_extra_attributes(self):
+        coord = _make_coordinator({
+            "mood": {"mood": "relax", "zone": "wohnbereich", "dimensions": {"comfort": 0.8}}
+        })
+        sensor = MoodComfortSensor(coord)
+        attrs = sensor.extra_state_attributes
+        assert attrs["mood"] == "relax"
+        assert attrs["zone"] == "wohnbereich"
+        assert attrs["raw_value"] == 0.8
+
+
+# ---------------------------------------------------------------------------
+# Mood Dimensions via Coordinator Data (legacy test pattern)
 # ---------------------------------------------------------------------------
 
 class TestMoodDimensions:
-    """Test mood dimension values (comfort, joy, energy, stress, frugality)
-    as they flow through coordinator data to mood sensor attributes."""
+    """Test mood dimension values as they flow through coordinator data."""
 
     def test_comfort_dimension(self):
         coord = _make_coordinator({
             "mood": {"mood": "relax", "comfort": 0.85, "confidence": 0.9}
         })
-        sensor = MoodSensor(coord)
-        # Comfort is available in coordinator data
         assert coord.data["mood"]["comfort"] == 0.85
 
     def test_joy_dimension(self):
@@ -375,22 +538,10 @@ class TestDimensionFallback:
         assert sensor.native_value == 0
 
     def test_mood_sensor_none_mood_data(self):
+        """v3.0: mood=None is handled gracefully (returns 'unknown')."""
         coord = _make_coordinator({"mood": None})
         sensor = MoodSensor(coord)
-        # Known limitation: mood=None causes AttributeError.
-        # Test documents current behavior.
-        with pytest.raises(AttributeError):
-            _ = sensor.native_value
-
-    def test_confidence_sensor_string_confidence(self):
-        coord = _make_coordinator({"mood": {"confidence": "invalid"}})
-        sensor = MoodConfidenceSensor(coord)
-        # Should attempt int conversion but may fail; we test it doesn't crash
-        try:
-            val = sensor.native_value
-            assert isinstance(val, int)
-        except (TypeError, ValueError):
-            pass  # Acceptable - sensor handles bad data
+        assert sensor.native_value == "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -406,25 +557,24 @@ class TestStabilityTracking:
         assert sensor._history == []
 
     def test_history_grows_with_updates(self):
-        coord = _make_coordinator({
+        sensor = _make_sensor_with_write(NeuronActivitySensor, {
             "neurons": {"n1": {"active": True, "value": 0.5}},
         })
-        sensor = NeuronActivitySensor(coord)
 
-        sensor.extra_state_attributes
+        sensor._handle_coordinator_update()
         assert len(sensor._history) == 1
 
-        sensor.extra_state_attributes
+        sensor._handle_coordinator_update()
         assert len(sensor._history) == 2
 
     def test_history_values_track_active_count(self):
-        sensor = NeuronActivitySensor(_make_coordinator({
+        sensor = _make_sensor_with_write(NeuronActivitySensor, {
             "neurons": {
                 "n1": {"active": True, "value": 0.5},
                 "n2": {"active": True, "value": 0.3},
             },
-        }))
-        sensor.extra_state_attributes
+        })
+        sensor._handle_coordinator_update()
         assert sensor._history[-1]["value"] == 2
 
         # Change data to 1 active
@@ -434,13 +584,14 @@ class TestStabilityTracking:
                 "n2": {"active": False, "value": 0.0},
             },
         }
-        sensor.extra_state_attributes
+        sensor._handle_coordinator_update()
         assert sensor._history[-1]["value"] == 1
 
     def test_history_returned_in_attributes(self):
-        sensor = NeuronActivitySensor(_make_coordinator({
+        sensor = _make_sensor_with_write(NeuronActivitySensor, {
             "neurons": {"n1": {"active": True, "value": 0.5}},
-        }))
+        })
+        sensor._handle_coordinator_update()
         attrs = sensor.extra_state_attributes
         assert "history" in attrs
         assert len(attrs["history"]) == 1
@@ -468,7 +619,8 @@ class TestAsyncSetupEntry:
         add_entities.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_setup_creates_3_sensors(self):
+    async def test_setup_creates_sensors(self):
+        """v3.0: 8 coordinator sensors + 3 LiveMoodDimensionSensors = 11 total."""
         from custom_components.ai_home_copilot.sensors.mood_sensor import async_setup_entry
 
         coord = _make_coordinator({"mood": {"mood": "relax"}})
@@ -481,9 +633,11 @@ class TestAsyncSetupEntry:
         await async_setup_entry(hass, entry, add_entities)
         add_entities.assert_called_once()
         entities = add_entities.call_args[0][0]
-        assert len(entities) == 6
+        assert len(entities) == 11
         types = {type(e).__name__ for e in entities}
         assert types == {
             "MoodSensor", "MoodConfidenceSensor", "NeuronActivitySensor",
+            "MoodComfortSensor", "MoodJoySensor", "MoodEnergySensor",
+            "MoodStressSensor", "MoodFrugalitySensor",
             "LiveMoodDimensionSensor",
         }

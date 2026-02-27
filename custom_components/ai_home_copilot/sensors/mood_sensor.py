@@ -357,7 +357,7 @@ class NeuronActivitySensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
 
-def _safe_float(hass: HomeAssistant, entity_id: str, default: float = 0.0) -> float:
+def _safe_entity_float(hass: HomeAssistant, entity_id: str, default: float = 0.0) -> float:
     """Safely get a float value from an entity state."""
     state = hass.states.get(entity_id)
     if state is None or state.state in ("unknown", "unavailable", ""):

@@ -306,7 +306,7 @@ class TestSafeFetchLogic:
             )
             assert result == {"default": True}
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
     def test_safe_fetch_returns_value_on_success(self):
         """_safe_fetch should return the coroutine result on success."""
@@ -325,7 +325,7 @@ class TestSafeFetchLogic:
             )
             assert result == {"ok": True}
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
     def test_safe_fetch_passes_args_to_coroutine(self):
         """_safe_fetch should forward positional arguments."""
@@ -344,7 +344,7 @@ class TestSafeFetchLogic:
             )
             assert result == {"path": "/api/v1/test"}
 
-        asyncio.get_event_loop().run_until_complete(_run())
+        asyncio.run(_run())
 
 
 class TestHabitDataHelpers:
