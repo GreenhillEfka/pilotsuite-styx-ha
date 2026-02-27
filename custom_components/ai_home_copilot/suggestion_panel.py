@@ -37,11 +37,12 @@ def _record_preference_feedback(
     *,
     accepted: bool,
 ) -> None:
-    """Record suggestion feedback in the MUPL (Multi-User Preference Learning) module."""
+    """Record suggestion feedback locally (MUPL) and push to Core."""
     try:
         entry_data = hass.data.get(DOMAIN, {}).get(entry_id, {})
         if not isinstance(entry_data, dict):
             return
+        # Local MUPL learning
         mupl = entry_data.get("user_preference_module")
         if mupl and hasattr(mupl, "learn_pattern"):
             mupl.learn_pattern(
@@ -52,8 +53,35 @@ def _record_preference_feedback(
                     "accepted": accepted,
                 },
             )
+        # Push feedback to Core (fire-and-forget)
+        coordinator = entry_data.get("coordinator")
+        if coordinator and hasattr(coordinator, "api"):
+            hass.async_create_task(
+                _async_push_feedback_to_core(
+                    coordinator.api,
+                    user or "default",
+                    suggestion_id,
+                    "accepted" if accepted else "dismissed",
+                )
+            )
     except Exception:
         _LOGGER.debug("Could not record preference feedback for suggestion %s", suggestion_id)
+
+
+async def _async_push_feedback_to_core(api, user_id: str, suggestion_id: str, feedback_type: str) -> None:
+    """Push MUPL feedback to Core's user preference endpoint."""
+    try:
+        await api.async_post(
+            f"/api/v1/user/{user_id}/feedback",
+            {
+                "suggestion_id": suggestion_id,
+                "feedback_type": feedback_type,
+                "pattern": "",
+                "confidence_adjustment": 0.5 if feedback_type == "accepted" else -0.3,
+            },
+        )
+    except Exception:
+        _LOGGER.debug("Could not push feedback to Core for suggestion %s", suggestion_id)
 
 
 class SuggestionStatus(str, Enum):

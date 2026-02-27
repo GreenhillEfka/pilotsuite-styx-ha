@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## v11.1.0 (2026-02-27) — DUAL-REPO ARCHITECTURE + CORE SYNC + DEVICE ICON
+
+### Added
+- **Dual-Repo Architecture Document** (`docs/ARCHITECTURE_DUAL_REPO.md`): Gesamtkonzept fuer die parallele Entwicklung beider Repos (HA Integration = Sinne+Haende, Core = Gehirn+Stimme).
+- **Core MUPL Feedback** (`suggestion_panel.py`): Accept/Reject in SuggestionPanel sendet Feedback jetzt auch an Core (`POST /api/v1/user/<user_id>/feedback`), nicht nur lokal.
+- **Feedback History**: Core speichert Feedback-Verlauf pro Nutzer (max 1000 Eintraege).
+
+### Changed
+- **Version**: Bumped to 11.1.0 (Paired Release mit Core v11.1.0).
+- **CLAUDE.md**: Dual-Repo-Konzept integriert, Version aktualisiert.
+- **README.md**: Architektur-Diagramm aktualisiert, neues Gesamtkonzept-Dokument verlinkt.
+- **ARCHITECTURE.md**: Version + Modul-Zahlen aktualisiert, Verweis auf Gesamtkonzept.
+- **Core README.md + CLAUDE.md**: Dual-Repo-Konzept integriert.
+
+### Fixed
+- **Device Icon**: `icon.png` von 64x64 auf 256x256 aktualisiert fuer korrekte Darstellung in HA Devices. `configuration_url` in DeviceInfo hinzugefuegt.
+- **suggestion_panel.py**: `async_post_json` → `async_post` (korrekte API-Client-Methode).
+
+### Metrics
+- **Tests**: 845 passed, 4 skipped (HA) + 1914 passed (Core)
+- **Python-Dateien**: 334+ (HA) + 1092+ (Core)
+- Paired Release: HA v11.1.0 + Core v11.1.0
+
+---
+
 ## v11.0.0 (2026-02-27) — UNIFIED PIPELINE + CONTEXT-RICH CONVERSATION + SELF-HEALING
 
 ### Added

@@ -104,10 +104,19 @@ class CopilotBaseEntity(CoordinatorEntity["CopilotDataUpdateCoordinator"]):
 
     @property
     def device_info(self) -> DeviceInfo:
+        config_url = None
+        try:
+            host = str(self.coordinator._config.get("host") or "").strip()
+            port = int(self.coordinator._config.get("port") or DEFAULT_CORE_PORT)
+            if host:
+                config_url = f"http://{host}:{port}/"
+        except (TypeError, ValueError):
+            pass
         return DeviceInfo(
             identifiers=build_main_device_identifiers(self.coordinator._config),
             name="PilotSuite - Styx",
             manufacturer="PilotSuite",
             model="Home Assistant Integration",
             sw_version=VERSION,
+            configuration_url=config_url,
         )

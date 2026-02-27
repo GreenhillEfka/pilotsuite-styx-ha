@@ -6,7 +6,19 @@
 
 Home Assistant Custom Integration fuer **PilotSuite — Styx**, einen privacy-first, lokalen KI-Assistenten der die Muster deines Zuhauses lernt und intelligente Automatisierungen vorschlaegt.
 
-Diese Integration verbindet sich mit dem [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) (Port 8909) und stellt **94+ Sensoren**, **31 Module** und **Dashboard Cards** in Home Assistant bereit.
+PilotSuite besteht aus zwei Haelften: Diese **HACS Integration** (die Sinne + Haende) und das [**Core Add-on**](https://github.com/GreenhillEfka/pilotsuite-styx-core) (das Gehirn + Stimme). Zusammen bilden sie ein vollstaendiges lokales KI-SmartHome-System.
+
+```
+Home Assistant
++-- HACS Integration (ai_home_copilot)      <-- dieses Repo
+|     36+ Module, 140+ Entities, 94+ Sensoren
+|     Dashboard-Generierung, Config Flow, Suggestion Panel
+|     HTTP REST + Webhook (Token-Auth)
+|     v
++-- Core Add-on (copilot_core) Port 8909    <-- separates Repo
+      Ollama LLM (bundled), Brain Graph, Habitus Mining
+      Mood Engine, 14 Neuronen, RAG, Telegram Bot
+```
 
 ## Schnellstart
 
@@ -64,7 +76,7 @@ lovelace:
       filename: "pilotsuite-styx/habitus_zones_dashboard_latest.yaml"
 ```
 
-## 30 Module
+## 36+ Module (4 Tiers)
 
 | Modul | Funktion |
 |-------|----------|
@@ -98,8 +110,14 @@ lovelace:
 | PerformanceScalingModule | Performance-Monitoring |
 | OpsRunbookModule | Preflight-Checks und Smoke-Tests |
 | LegacyModule | Rueckwaertskompatibilitaet |
+| ZoneBootstrapModule | Zone-Config laden (zones_config.json → ZoneStore V2) |
+| LiveMoodEngine | Lokale Comfort/Joy/Frugality aus Entity-States |
+| AutomationAnalyzer | HA-Automationen analysieren, Self-Healing Repair Issues |
+| SuggestionLoader | Suggestion-Queue aus 4 Quellen befuellen |
+| AutomationAdoption | Core-Vorschlaege in HA-Automationen umwandeln |
+| ZoneSyncModule | Bidirektionale Zonen-Synchronisation mit Core |
 
-## 94+ Sensoren
+## 140+ Entities (94+ Sensoren)
 
 | Gruppe | Beispiele |
 |--------|-----------|
@@ -179,11 +197,12 @@ Verwaltung ueber **Settings → Integrations → PilotSuite → Configure → Ha
 
 | Dokument | Inhalt |
 |----------|--------|
+| [DUAL-REPO ARCHITEKTUR](docs/ARCHITECTURE_DUAL_REPO.md) | Gesamtkonzept: HA + Core, Datenfluss, Verantwortungsteilung |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | HA-seitige Architektur: Module, Entities, Config Flow |
 | [HANDBOOK](docs/HANDBOOK.md) | Setup, Module, Sensoren, Zonen, Troubleshooting |
-| [ARCHITECTURE](docs/ARCHITECTURE.md) | Systemdesign, Datenfluss, Entity-Struktur |
 | [DEVELOPER_GUIDE](docs/DEVELOPER_GUIDE.md) | CI, Tests, Release-Prozess, Beitragen |
 | [CHANGELOG](CHANGELOG.md) | Release-Historie |
-| [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) | Backend, API, Brain Graph, Mood Engine |
+| [Core Add-on](https://github.com/GreenhillEfka/pilotsuite-styx-core) | Backend, API, Brain Graph, Mood Engine, LLM |
 
 ## Lizenz
 

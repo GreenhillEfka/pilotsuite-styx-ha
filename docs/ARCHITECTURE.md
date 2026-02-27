@@ -1,8 +1,10 @@
 # PilotSuite HACS Integration -- Systemarchitektur
 
-> Domain: `ai_home_copilot` | 303 Python-Dateien | 31 Runtime-Module | 94+ Sensoren
+> Domain: `ai_home_copilot` | 334+ Python-Dateien | 36+ Runtime-Module | 140+ Entities
 >
-> Version: 7.7.16 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
+> Version: 11.1.0 | IoT-Klasse: `local_push` | Abhaengigkeit: `webhook`
+>
+> **Gesamtkonzept (Dual-Repo):** Siehe [ARCHITECTURE_DUAL_REPO.md](ARCHITECTURE_DUAL_REPO.md)
 
 ---
 
@@ -897,4 +899,11 @@ custom_components/ai_home_copilot/
 
 ---
 
-*Dieses Dokument beschreibt die Architektur der PilotSuite HACS Integration (Repository `pilotsuite-styx-ha`). Das Core Add-on (Repository `pilotsuite-styx-core`) wird separat dokumentiert.*
+---
+
+## Weiterführende Dokumentation
+
+- **Dual-Repo Gesamtkonzept:** [ARCHITECTURE_DUAL_REPO.md](ARCHITECTURE_DUAL_REPO.md) — Wie HA-Integration und Core zusammenarbeiten
+- **Core-Architektur:** [pilotsuite-styx-core/docs/ARCHITECTURE.md](https://github.com/GreenhillEfka/pilotsuite-styx-core/blob/main/docs/ARCHITECTURE.md)
+
+*Dieses Dokument beschreibt die HA-seitige Architektur. Fuer das Gesamtsystem siehe ARCHITECTURE_DUAL_REPO.md.*

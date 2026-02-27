@@ -6,14 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projektueberblick
 
-**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 94+ Sensoren, 35 Module und Dashboard Cards in Home Assistant bereit.
+**PilotSuite Styx** ist eine Home Assistant Custom Integration (HACS), die zusammen mit dem Core Add-on ein vollstaendiges lokales KI-SmartHome-System bildet.
 
-**Gegenstueck:** [pilotsuite-styx-core](../pilotsuite-styx-core) -- Core Add-on (Backend, Brain Graph, Habitus, Mood Engine). Endpoint-/Payload-/Auth-Aenderungen muessen integrationskompatibel bleiben. Version in `manifest.json` muss mit Release-Tag uebereinstimmen.
+**Dual-Repo-Architektur** — immer Hand-in-Hand entwickeln:
+- **Dieses Repo (HA):** Die Sinne + Haende — Sensoren, Module, Dashboard, Config Flow, Suggestion Panel
+- **[pilotsuite-styx-core](../pilotsuite-styx-core) (Core):** Das Gehirn + Stimme — Ollama LLM, Brain Graph, Habitus Mining, Neuronen, RAG
+- **Gesamtkonzept:** [docs/ARCHITECTURE_DUAL_REPO.md](docs/ARCHITECTURE_DUAL_REPO.md)
+
+Endpoint-/Payload-/Auth-Aenderungen muessen integrationskompatibel bleiben. Version in `manifest.json` muss mit Release-Tag uebereinstimmen und wird in beiden Repos parallel gebumpt.
 
 - **Domain:** `ai_home_copilot` (technisch, **NICHT aendern**)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Mindestversion:** HA 2024.1.0+
-- **Version:** 11.0.0
+- **Version:** 11.1.0
 
 ---
 
@@ -210,11 +215,11 @@ Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen
 
 ---
 
-## Aktueller Stand (v11.0.0)
+## Aktueller Stand (v11.1.0)
 
-- **Tests:** 845 passed, 4 skipped
-- **Python-Dateien:** 334 (alle kompilieren sauber)
-- 36+ Module in 4 Tiers (Kernel, Brain, Context, Extensions), alle mit Status-Tracking via `ModuleStatusSensor`
+- **Tests:** 845+ passed
+- **Python-Dateien:** 334+ (alle kompilieren sauber)
+- 37+ Module in 4 Tiers (Kernel, Brain, Context, Extensions), alle mit Status-Tracking via `ModuleStatusSensor`
 - 140+ Entities (94+ Sensoren inkl. 3 Live-Mood-Dimensionen, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
 - 8 Mood-Sensoren v3.0 (State, Confidence, Comfort, Joy, Energy, Stress, Frugality, NeuronActivity)
 - 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
