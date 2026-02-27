@@ -14,8 +14,8 @@ cards:
     title: 🧠 Neuronen Status
     show_header_toggle: false
     entities:
-      - entity: sensor.ai_copilot_neuron_dashboard
-        name: Neuron Dashboard
+      - entity: sensor.ai_home_copilot_neuron_activity
+        name: Neuron Activity
         icon: mdi:brain
       - entity: sensor.ai_copilot_mood
         name: Aktueller Mood

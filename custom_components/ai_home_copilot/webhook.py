@@ -18,6 +18,7 @@ EVENT_TYPE_STATUS = "status"
 EVENT_TYPE_MOOD = "mood_changed"
 EVENT_TYPE_SUGGESTION = "suggestion_new"
 EVENT_TYPE_NEURON = "neuron_update"
+EVENT_TYPE_PROACTIVE = "proactive_suggestion"
 
 
 def _make_webhook_url(hass: HomeAssistant, webhook_id: str) -> str:
@@ -90,6 +91,15 @@ async def async_register_webhook(hass: HomeAssistant, entry, coordinator) -> str
                 {"suggestion": data},
             )
             _LOGGER.debug("Webhook: suggestion push received")
+
+        elif event_type == EVENT_TYPE_PROACTIVE:
+            # Add-on pushes proactive mood-triggered suggestion
+            hass.bus.async_fire(
+                f"{DOMAIN}_proactive_suggestion",
+                {"suggestion": data, "source": "mood_trigger"},
+            )
+            _LOGGER.debug("Webhook: proactive suggestion received – %s",
+                          data.get("subtype", "unknown"))
 
         else:
             # Legacy status push (online/version)

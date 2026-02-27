@@ -82,6 +82,9 @@ _MODULE_IMPORTS = {
     "automation_adoption": (".core.modules.automation_adoption", "AutomationAdoptionModule"),
     "zone_sync": (".core.modules.zone_sync_module", "ZoneSyncModule"),
     "entity_discovery": (".core.modules.entity_discovery", "EntityDiscoveryModule"),
+    "zone_bootstrap": (".core.modules.zone_bootstrap", "ZoneBootstrapModule"),
+    "live_mood_engine": (".core.modules.live_mood_engine", "LiveMoodEngine"),
+    "automation_analyzer": (".core.modules.automation_analyzer", "AutomationAnalyzerModule"),
 }
 
 # ---------------------------------------------------------------------------
@@ -108,6 +111,8 @@ _TIER_1_BRAIN = [
     "mood",
     "mood_context",
     "zone_sync",
+    "zone_bootstrap",
+    "live_mood_engine",
     "history_backfill",
     "entity_discovery",
     "scene_module",              # T1: scene intelligence is brain-level
@@ -133,6 +138,7 @@ _TIER_3_EXTENSIONS = [
     "character_module",
     "waste_reminder",
     "birthday_reminder",
+    "automation_analyzer",
     "dev_surface",
     "ops_runbook",
     "unifi_module",
@@ -500,12 +506,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Set up User Preference Module separately (not a CopilotModule)
     try:
-        from .user_preference_module import UserPreferenceModule
+        from .core.modules.user_preference_module import UserPreferenceModule
         from .const import CONF_USER_PREFERENCE_ENABLED
 
         config = merged_entry_config(entry)
         if config.get(CONF_USER_PREFERENCE_ENABLED, False):
-            user_pref_module = UserPreferenceModule(hass, entry)
+            user_pref_module = UserPreferenceModule(hass, config)
             await user_pref_module.async_setup()
 
             if DOMAIN not in hass.data:
@@ -562,6 +568,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_setup_conversation(hass, entry)
     except Exception:
         _LOGGER.exception("Failed to set up conversation agent")
+
+    # Setup WebSocket API for suggestions + chat (v10.5.0)
+    try:
+        from .suggestion_panel import async_setup_suggestion_websocket
+        await async_setup_suggestion_websocket(hass, entry.entry_id)
+    except Exception:
+        _LOGGER.exception("Failed to set up suggestion WebSocket API")
 
     # Auto-configure Styx as default conversation agent (v5.21.0)
     try:

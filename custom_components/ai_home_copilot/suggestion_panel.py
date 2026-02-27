@@ -463,5 +463,48 @@ async def async_setup_suggestion_websocket(hass: HomeAssistant, entry_id: str) -
         else:
             connection.send_error(msg["id"], "action_failed", f"Failed to {action} suggestion")
     
+    @websocket_api.websocket_command({
+        vol.Required("type"): f"{DOMAIN}_chat_send",
+        vol.Required("message"): str,
+        vol.Optional("conversation_id"): str,
+    })
+    @websocket_api.async_response
+    async def ws_chat_send(hass_local, connection, msg):
+        """Send a chat message to Core Add-on and return the response.
+
+        Uses the coordinator's async_chat_completions() for the API call
+        so the request goes through the same auth + retry pipeline.
+        """
+        entry_data = hass.data.get(DOMAIN, {}).get(entry_id, {})
+        coordinator = entry_data.get("coordinator") if isinstance(entry_data, dict) else None
+        if not coordinator:
+            connection.send_error(msg["id"], "coordinator_not_found",
+                                  "Coordinator not initialized")
+            return
+
+        user_message = msg["message"]
+        conversation_id = msg.get("conversation_id")
+
+        try:
+            messages = [{"role": "user", "content": user_message}]
+            result = await coordinator.async_chat_completions(
+                messages, conversation_id=conversation_id,
+            )
+            # Extract assistant reply from OpenAI-compatible response
+            choices = result.get("choices", [])
+            reply = ""
+            if choices:
+                reply = choices[0].get("message", {}).get("content", "")
+
+            connection.send_result(msg["id"], {
+                "reply": reply,
+                "conversation_id": conversation_id,
+                "model": result.get("model", ""),
+            })
+        except Exception as exc:
+            _LOGGER.error("Chat WS error: %s", exc)
+            connection.send_error(msg["id"], "chat_error", str(exc))
+
     websocket_api.async_register_command(hass, ws_get_suggestions)
     websocket_api.async_register_command(hass, ws_suggestion_action)
+    websocket_api.async_register_command(hass, ws_chat_send)

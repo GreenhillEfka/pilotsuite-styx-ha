@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## v10.5.1 (2026-02-27) — LIVE SYSTEM INTEGRATION + AUTOMATION INTELLIGENCE
+
+### Added
+- **ZoneBootstrapModule** (`core/modules/zone_bootstrap.py`): Laedt `zones_config.json` in ZoneStore V2, Service `zone_bootstrap_reload` fuer manuelles Re-Import.
+- **LiveMoodEngine** (`core/modules/live_mood_engine.py`): Lokale Comfort/Joy/Frugality-Berechnung aus echten Entity-States (ohne Core-Abhaengigkeit).
+  - Comfort: Temperatur (22-24°C optimal), Luftfeuchte (40-60%), CO2 (<800ppm), Lärm (<50dB), Helligkeit (zeitadaptiv).
+  - Joy: Media-Player Status, Anwesenheit.
+  - Frugality: Stromverbrauch (<=50W → 1.0, >=500W → 0.0).
+- **AutomationAnalyzerModule** (`core/modules/automation_analyzer.py`): HA-Automationen analysieren, Health-Scoring, Repair-Hints, Verbesserungsvorschlaege mit YAML-Templates.
+- **3-Tab Dashboard Generator** (`dashboard_cards/pilotsuite_3tab_generator.py`): Habitus/Hausverwaltung/Styx Tabs dynamisch aus Zonen-Konfiguration.
+- **LiveMoodDimensionSensor** (3x): `sensor.ai_home_copilot_mood_comfort/joy/frugality` — Live-Mood als HA-Entities.
+- **initial_suggestions.json**: 8 datengetriebene Vorschlaege (3 Repairs + 4 Improvements + 1 User-Profil) aus Live-Analyse der 110 Automationen.
+- **Neue Tests**: `test_zone_bootstrap.py` (9), `test_live_mood_engine.py` (33), `test_3tab_dashboard.py` (19), `test_mood_sensors.py` (55), `test_auto_setup.py`, `test_entity_classifier.py`, `test_panel_setup.py`, `test_chat_websocket.py`.
+
+### Changed
+- **Module-System**: 3 neue Module in Tier-1 (zone_bootstrap, live_mood_engine) und Tier-3 (automation_analyzer).
+- **Mood-Sensoren**: `async_setup_entry` erstellt jetzt 6 statt 3 Sensoren (+ Comfort/Joy/Frugality).
+- **Zones Config**: 9 Habitus-Zonen mit 141 realen Entity-IDs, 12 Entity-Rollen.
+- **WebSocket**: Chat-Command `ai_home_copilot_chat_send` hinzugefuegt.
+- **Webhook**: `proactive_suggestion` Event-Typ behandelt.
+
+### Fixed
+- **Duplicate UserPreferenceModule**: Root-Level v0.1 geloescht, Import auf `core/modules/` v0.9 korrigiert.
+- **Dead Code**: `sensors/neuron_dashboard.py` (174 Zeilen, nie importiert) entfernt.
+- **Brain Graph Dashboard**: Entity-Referenz auf aktiven `sensor.ai_home_copilot_neuron_activity` aktualisiert.
+
+### Metrics
+- **Tests**: 752 passed, 4 skipped
+- **Python-Dateien**: 328 (kompilieren sauber)
+- **Module**: 35+ in 4 Tiers
+- **Entitaeten**: 141 reale IDs gemappt auf 9 Habitus-Zonen
+- **Automatisierungen analysiert**: 110 (99 aktiv, 2 deaktiviert, 9 unavailable, 35 nie getriggert)
+
+---
+
 ## v10.1.6 (2026-02-27) — ZONE MANAGEMENT + CLIMATE/HEATING + MODULE CONFIG
 
 ### Added

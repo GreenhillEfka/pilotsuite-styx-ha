@@ -5,60 +5,383 @@
       "name": "Wohnbereich",
       "zone_type": "area",
       "floor": "EG",
-      "priority": 5,
-      "tags": ["aicp.place.wohnzimmer", "aicp.place.wohnbereich"]
+      "priority": 9,
+      "tags": ["aicp.place.wohnzimmer", "aicp.place.wohnbereich"],
+      "entities": {
+        "motion": [
+          "binary_sensor.bewegung_wohnzimmer",
+          "binary_sensor.bewegung_grosse_couch",
+          "binary_sensor.bewegung_kleine_couch",
+          "binary_sensor.bewegung_spielwiese",
+          "binary_sensor.bewegung_schnapsschrank",
+          "binary_sensor.bewegung_durchgangsbereich_wohnbereich",
+          "binary_sensor.bewegung_durchgang_terrasse"
+        ],
+        "lights": [
+          "light.beleuchtung_wohnzimmer",
+          "light.deckenlicht",
+          "light.beleuchtung_durchgangsbereich",
+          "light.beleuchtung_terrassentur"
+        ],
+        "temperature": [
+          "sensor.thermostat_wohnzimmer_rechts_temperatur",
+          "sensor.thermostat_wohnzimmer_links_temperatur",
+          "sensor.temperatur_wohnbereich_messstation"
+        ],
+        "humidity": [
+          "sensor.thermostat_wohnzimmer_rechts_luftfeuchtigkeit",
+          "sensor.thermostat_wohnzimmer_links_luftfeuchtigkeit",
+          "sensor.luftfeuchtigkeit_wohnbereich_messstation"
+        ],
+        "co2": [
+          "sensor.co2_wohnbereich_messstation"
+        ],
+        "noise": [
+          "sensor.larm_wohnbereich_messstation"
+        ],
+        "pressure": [
+          "sensor.luftdruck_wohnbereich_messstation"
+        ],
+        "brightness": [
+          "sensor.helligkeit_wohnzimmer"
+        ],
+        "heating": [
+          "climate.thermostat_wohnzimmer_rechts",
+          "climate.thermostat_wohnzimmer_links"
+        ],
+        "media": [
+          "media_player.wohnbereich",
+          "media_player.fernseher_im_wohnzimmer",
+          "media_player.apple_tv_wohnzimmer",
+          "media_player.xbox_series_s"
+        ],
+        "cover": [
+          "cover.rollo_terrassentur"
+        ],
+        "power": [
+          "sensor.steckerleiste_wohnzimmer_electric_consumption_w",
+          "sensor.steckerleiste_wohnzimmer_electric_consumption_w_2",
+          "sensor.deckenlicht_links_electric_consumption_w",
+          "sensor.deckenlicht_rechts_electric_consumption_w"
+        ]
+      }
+    },
+    {
+      "zone_id": "zone:schlafbereich",
+      "name": "Schlafbereich",
+      "zone_type": "room",
+      "floor": "EG",
+      "priority": 8,
+      "tags": ["aicp.place.schlafzimmer", "aicp.place.schlafbereich"],
+      "entities": {
+        "motion": [
+          "binary_sensor.sensor_schlafzimmer_motion_detection"
+        ],
+        "lights": [
+          "light.beleuchtung_schlafzimmer",
+          "light.nachttischlampe",
+          "light.licht_schlafzimmer"
+        ],
+        "temperature": [
+          "sensor.sensor_schlafzimmer_air_temperature",
+          "sensor.sensor_aussenlager_air_temperature"
+        ],
+        "humidity": [
+          "sensor.sensor_schlafzimmer_humidity",
+          "sensor.luftfeuchtigkeit_vocolino"
+        ],
+        "brightness": [
+          "sensor.sensor_schlafzimmer_illuminance"
+        ],
+        "window": [
+          "binary_sensor.sensor_fenster_schlafzimmer_window_door_is_open"
+        ],
+        "media": [
+          "media_player.schlafbereich"
+        ],
+        "power": [
+          "sensor.licht_schlafzimmer_electric_consumption_w_2"
+        ]
+      }
     },
     {
       "zone_id": "zone:kochbereich",
       "name": "Kochbereich",
       "zone_type": "area",
       "floor": "EG",
-      "priority": 5,
-      "tags": ["aicp.place.kuche", "aicp.place.kochbereich"]
-    },
-    {
-      "zone_id": "zone:gangbereich",
-      "name": "Gangbereich",
-      "zone_type": "area",
-      "floor": "EG",
-      "priority": 3,
-      "tags": ["aicp.place.gang", "aicp.place.flur"]
+      "priority": 7,
+      "tags": ["aicp.place.kuche", "aicp.place.kochbereich"],
+      "child_zones": ["zone:speisekammer"],
+      "entities": {
+        "motion": [
+          "binary_sensor.sensor_presence_kuche_bewegung",
+          "binary_sensor.sensor_kochbereich_sensor_state_any"
+        ],
+        "lights": [
+          "light.beleuchtung_kuche",
+          "light.licht_kuche",
+          "light.licht_kuchenzeile",
+          "light.licht_spule",
+          "light.licht_kuchenschrank"
+        ],
+        "temperature": [
+          "sensor.thermostat_kochbereich_temperatur",
+          "sensor.sensor_kochbereich_air_temperature"
+        ],
+        "humidity": [
+          "sensor.thermostat_kochbereich_luftfeuchtigkeit"
+        ],
+        "brightness": [
+          "sensor.sensor_presence_kuche_helligkeit",
+          "sensor.sensor_kochbereich_illuminance"
+        ],
+        "heating": [
+          "climate.thermostat_kochbereich"
+        ],
+        "media": [
+          "media_player.kochbereich"
+        ],
+        "power": [
+          "sensor.licht_kuche_power",
+          "sensor.spulmaschine_electric_consumption_w",
+          "sensor.coca_cola_kuhlschrank_electric_consumption_w"
+        ]
+      }
     },
     {
       "zone_id": "zone:badbereich",
       "name": "Badbereich",
       "zone_type": "area",
       "floor": "EG",
-      "priority": 4,
-      "tags": ["aicp.place.bad", "aicp.place.badezimmer"]
+      "priority": 6,
+      "tags": ["aicp.place.bad", "aicp.place.badezimmer", "aicp.place.toilette"],
+      "entities": {
+        "motion": [
+          "binary_sensor.sensor_bad_bewegung",
+          "binary_sensor.sensor_toilette_bewegung",
+          "binary_sensor.toilette_bewegung"
+        ],
+        "lights": [
+          "light.beleuchtung_bad",
+          "light.hue_badspiegel",
+          "light.licht_badspiegel",
+          "light.hue_toilette",
+          "light.licht_toilette"
+        ],
+        "temperature": [
+          "sensor.sensor_bad_temperatur",
+          "sensor.sensor_toilette_temperatur"
+        ],
+        "brightness": [
+          "sensor.sensor_bad_helligkeit",
+          "sensor.sensor_toilette_helligkeit"
+        ],
+        "media": [
+          "media_player.badbereich"
+        ],
+        "power": [
+          "sensor.waschmaschine_electric_consumption_w",
+          "sensor.licht_badspiegel_electric_consumption_w",
+          "sensor.licht_toilette_electric_consumption_w"
+        ]
+      }
     },
     {
-      "zone_id": "zone:schlafbereich",
-      "name": "Schlafbereich",
+      "zone_id": "zone:buero",
+      "name": "Buerobereich",
+      "zone_type": "room",
+      "floor": "EG",
+      "priority": 8,
+      "tags": ["aicp.place.arbeitszimmer", "aicp.place.buero"],
+      "entities": {
+        "motion": [
+          "binary_sensor.sensor_arbeitszimmer_presence",
+          "binary_sensor.bewegung_arbeitszimmer_ai360"
+        ],
+        "lights": [
+          "light.arbeitszimmer_beleuchtung",
+          "light.retrolampe",
+          "light.shapes",
+          "light.hue_lightguide",
+          "light.lindu"
+        ],
+        "brightness": [
+          "sensor.sensor_arbeitszimmer_helligkeit"
+        ],
+        "media": [
+          "media_player.buerobereich",
+          "media_player.xbox_series_x",
+          "media_player.fire_tv_2"
+        ],
+        "power": [
+          "sensor.retroventilator_electric_consumption_w"
+        ]
+      }
+    },
+    {
+      "zone_id": "zone:gangbereich",
+      "name": "Gangbereich",
       "zone_type": "area",
-      "floor": "OG",
-      "priority": 5,
-      "tags": ["aicp.place.schlafzimmer", "aicp.place.schlafbereich"]
+      "floor": "EG",
+      "priority": 4,
+      "tags": ["aicp.place.gang", "aicp.place.flur", "aicp.place.vorraum"],
+      "entities": {
+        "motion": [
+          "binary_sensor.sammelsensor_bewegung_gang",
+          "binary_sensor.sensor_gang_motion_detection",
+          "binary_sensor.sensor_hintereingang_sensor_state_any"
+        ],
+        "lights": [
+          "light.beleuchtung_gang",
+          "light.edisonlampe",
+          "light.treppenlicht",
+          "light.hue_gang",
+          "light.licht_speise"
+        ],
+        "temperature": [
+          "sensor.thermostat_gangbereich_temperatur",
+          "sensor.sensor_gang_air_temperature",
+          "sensor.sensor_hintereingang_air_temperature"
+        ],
+        "humidity": [
+          "sensor.thermostat_gangbereich_luftfeuchtigkeit"
+        ],
+        "brightness": [
+          "sensor.sensor_gang_illuminance",
+          "sensor.kaffeemuhle_illuminance"
+        ],
+        "heating": [
+          "climate.thermostat_gangbereich"
+        ],
+        "media": [
+          "media_player.gangbereich"
+        ],
+        "power": [
+          "sensor.kaffeemaschine_electric_consumption_w",
+          "sensor.kaffeemuhle_electric_consumption_w"
+        ]
+      }
     },
     {
-      "zone_id": "zone:terassenbereich",
-      "name": "Terrassenbereich",
+      "zone_id": "zone:kinder",
+      "name": "Kinderbereich",
+      "zone_type": "area",
+      "floor": "EG",
+      "priority": 7,
+      "tags": ["aicp.place.kinderzimmer", "aicp.place.zimmer_mira", "aicp.place.zimmer_paul"],
+      "entities": {
+        "motion": [
+          "binary_sensor.sensor_zimmer_mira_sensor_state_any"
+        ],
+        "lights": [
+          "light.hue_zimmer_mira",
+          "light.bettbeleuchtung_mira",
+          "light.hue_go_links",
+          "light.hue_go_rechts",
+          "light.licht_zimmer_mira"
+        ],
+        "temperature": [
+          "sensor.thermostat_zimmer_mira_temperatur",
+          "sensor.feuermelder_zimmer_paul_air_temperature",
+          "sensor.sensor_zimmer_mira_air_temperature"
+        ],
+        "humidity": [
+          "sensor.thermostat_zimmer_mira_luftfeuchtigkeit",
+          "sensor.luftfeuchtigkeit_vocolina"
+        ],
+        "brightness": [
+          "sensor.sensor_zimmer_mira_illuminance"
+        ],
+        "window": [
+          "binary_sensor.sensor_fenster_rechts_window_door_is_open",
+          "binary_sensor.sensor_fenster_links_window_door_is_open",
+          "binary_sensor.sensor_dachfenster_window_door_is_open"
+        ],
+        "heating": [
+          "climate.thermostat_zimmer_mira"
+        ],
+        "power": [
+          "sensor.licht_zimmer_mira_electric_consumption_w"
+        ]
+      }
+    },
+    {
+      "zone_id": "zone:loft",
+      "name": "Loft",
+      "zone_type": "room",
+      "floor": "OG",
+      "priority": 3,
+      "tags": ["aicp.place.loft"],
+      "entities": {
+        "lights": [
+          "light.beleuchtung_loft",
+          "light.licht_spassecke",
+          "light.flutlicht_loft"
+        ],
+        "media": [
+          "media_player.sony_x77"
+        ],
+        "power": [
+          "sensor.flutlicht_loft_electric_consumption_w",
+          "sensor.smart_plug_netzwerkdienste_leistung"
+        ]
+      }
+    },
+    {
+      "zone_id": "zone:aussen",
+      "name": "Aussenbereich",
       "zone_type": "outdoor",
       "floor": "EG",
-      "priority": 3,
-      "tags": ["aicp.place.terrasse", "aicp.place.garten", "aicp.place.aussen"]
+      "priority": 2,
+      "tags": ["aicp.place.terrasse", "aicp.place.garten", "aicp.place.aussen"],
+      "entities": {
+        "motion": [
+          "binary_sensor.doorbell_repeater_5851_motion_sensor",
+          "binary_sensor.sensor_aussenlager_motion_detection"
+        ],
+        "lights": [
+          "light.beleuchtung_aussenbereich",
+          "light.gartenspots",
+          "light.gartenscheinwerfer",
+          "light.licht_aussenlager",
+          "light.licht_blumenkasten"
+        ],
+        "temperature": [
+          "sensor.terrasse_temperatur",
+          "sensor.sensor_aussenlager_air_temperature"
+        ],
+        "humidity": [
+          "sensor.terrasse_luftfeuchtigkeit",
+          "sensor.sensor_aussenlager_humidity"
+        ],
+        "power": [
+          "sensor.steckerleiste_aussenlager_energy_power"
+        ]
+      }
     }
   ],
   "tag_to_zone_mapping": {
     "aicp.place.wohnzimmer": "zone:wohnbereich",
+    "aicp.place.wohnbereich": "zone:wohnbereich",
+    "aicp.place.schlafzimmer": "zone:schlafbereich",
+    "aicp.place.schlafbereich": "zone:schlafbereich",
     "aicp.place.kuche": "zone:kochbereich",
     "aicp.place.kochbereich": "zone:kochbereich",
+    "aicp.place.speisekammer": "zone:kochbereich",
+    "aicp.place.bad": "zone:badbereich",
+    "aicp.place.badezimmer": "zone:badbereich",
+    "aicp.place.toilette": "zone:badbereich",
+    "aicp.place.arbeitszimmer": "zone:buero",
+    "aicp.place.buero": "zone:buero",
     "aicp.place.gang": "zone:gangbereich",
     "aicp.place.flur": "zone:gangbereich",
-    "aicp.place.bad": "zone:badbereich",
-    "aicp.place.schlafzimmer": "zone:schlafbereich",
-    "aicp.place.terrasse": "zone:terassenbereich",
-    "aicp.place.garten": "zone:terassenbereich",
-    "aicp.place.aussen": "zone:terassenbereich"
+    "aicp.place.vorraum": "zone:gangbereich",
+    "aicp.place.kinderzimmer": "zone:kinder",
+    "aicp.place.zimmer_mira": "zone:kinder",
+    "aicp.place.zimmer_paul": "zone:kinder",
+    "aicp.place.loft": "zone:loft",
+    "aicp.place.terrasse": "zone:aussen",
+    "aicp.place.garten": "zone:aussen",
+    "aicp.place.aussen": "zone:aussen"
   }
 }

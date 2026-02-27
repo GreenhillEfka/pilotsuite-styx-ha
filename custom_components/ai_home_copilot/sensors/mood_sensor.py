@@ -357,6 +357,78 @@ class NeuronActivitySensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
 
+def _safe_float(hass: HomeAssistant, entity_id: str, default: float = 0.0) -> float:
+    """Safely get a float value from an entity state."""
+    state = hass.states.get(entity_id)
+    if state is None or state.state in ("unknown", "unavailable", ""):
+        return default
+    try:
+        return float(state.state)
+    except (ValueError, TypeError):
+        return default
+
+
+class LiveMoodDimensionSensor(SensorEntity):
+    """Base class for live mood dimension sensors (Comfort/Joy/Frugality).
+
+    Reads from hass.data live_mood dict populated by LiveMoodEngineModule.
+    """
+
+    _attr_should_poll = True
+    _attr_native_unit_of_measurement = "%"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry_id: str,
+        dimension: str,
+        name: str,
+        icon: str,
+    ) -> None:
+        self.hass = hass
+        self._entry_id = entry_id
+        self._dimension = dimension
+        self._attr_name = name
+        self._attr_unique_id = f"ai_home_copilot_mood_{dimension}"
+        self._attr_icon = icon
+
+    @property
+    def native_value(self) -> int:
+        """Return the mood dimension as percentage (0-100)."""
+        live_mood = (
+            self.hass.data.get(DOMAIN, {})
+            .get(self._entry_id, {})
+            .get("live_mood", {})
+        )
+        if not live_mood:
+            return 0
+        # Average across all zones
+        values = [
+            z.get(self._dimension, 0.0)
+            for z in live_mood.values()
+            if isinstance(z, dict)
+        ]
+        if not values:
+            return 0
+        return int(sum(values) / len(values) * 100)
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return per-zone breakdown."""
+        live_mood = (
+            self.hass.data.get(DOMAIN, {})
+            .get(self._entry_id, {})
+            .get("live_mood", {})
+        )
+        if not live_mood:
+            return {}
+        per_zone = {}
+        for zone_id, moods in live_mood.items():
+            if isinstance(moods, dict):
+                per_zone[zone_id] = round(moods.get(self._dimension, 0.0), 3)
+        return {"per_zone": per_zone, "zone_count": len(per_zone)}
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -367,7 +439,7 @@ async def async_setup_entry(
     if coordinator is None:
         return
 
-    sensors = [
+    sensors: list[SensorEntity] = [
         MoodSensor(coordinator),
         MoodConfidenceSensor(coordinator),
         MoodComfortSensor(coordinator),
@@ -376,7 +448,16 @@ async def async_setup_entry(
         MoodStressSensor(coordinator),
         MoodFrugalitySensor(coordinator),
         NeuronActivitySensor(coordinator),
+        LiveMoodDimensionSensor(
+            hass, entry.entry_id, "comfort", "PilotSuite Mood Comfort", "mdi:sofa"
+        ),
+        LiveMoodDimensionSensor(
+            hass, entry.entry_id, "joy", "PilotSuite Mood Joy", "mdi:emoticon-happy"
+        ),
+        LiveMoodDimensionSensor(
+            hass, entry.entry_id, "frugality", "PilotSuite Mood Frugality", "mdi:leaf"
+        ),
     ]
 
     async_add_entities(sensors)
-    _LOGGER.info("Mood sensors v3.0 set up (%d sensors) for entry %s", len(sensors), entry.entry_id)
+    _LOGGER.info("Mood sensors v3.0 set up (%d sensors, incl. Comfort/Joy/Frugality) for entry %s", len(sensors), entry.entry_id)

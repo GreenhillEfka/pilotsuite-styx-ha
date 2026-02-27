@@ -2,8 +2,19 @@
 
 All notable changes to PilotSuite will be documented in this file.
 
-> Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md` (7.7.x Linie).
-> Diese Datei enthaelt vor allem aeltere 0.x Historie und bleibt als Archiv erhalten.
+> Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md`.
+> Diese Datei enthaelt zusaetzlich die aeltere 0.x Historie als Archiv.
+
+## [10.5.1] - 2026-02-27 — LIVE SYSTEM INTEGRATION + AUTOMATION INTELLIGENCE
+- ZoneBootstrapModule: zones_config.json → ZoneStore V2 (9 Zonen, 141 Entities)
+- LiveMoodEngine: Comfort/Joy/Frugality aus echten Entity-States
+- AutomationAnalyzerModule: Health-Scoring, Repair-Hints, Verbesserungsvorschlaege
+- 3-Tab Dashboard Generator (Habitus/Hausverwaltung/Styx)
+- LiveMoodDimensionSensor (3x: Comfort, Joy, Frugality)
+- initial_suggestions.json: 8 Vorschlaege aus Live-Analyse (110 Automationen)
+- WebSocket Chat + Proaktive Suggestions via Webhook
+- Dead Code entfernt: neuron_dashboard.py, root user_preference_module.py
+- 752 Tests, 328 Python-Dateien
 
 ## [9.0.0] - 2026-02-26
 - Architektur-Overhaul: EventBus, bidirektionale Zonensync, Tag-System v2.

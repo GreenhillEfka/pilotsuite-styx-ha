@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Domain:** `ai_home_copilot` (technisch, **NICHT aendern**)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Mindestversion:** HA 2024.1.0+
-- **Version:** 10.4.2
+- **Version:** 10.5.1
 
 ---
 
@@ -73,10 +73,33 @@ TIER 1 — BRAIN (11 Module, immer wenn Core erreichbar)
 TIER 2 — KONTEXT (7 Module, nur wenn relevante Entities vorhanden)
   energy_context, weather_context, media_zones, camera_context, network, ml_context, voice_context
 
-TIER 3 — ERWEITERUNGEN (11 Module, explizit aktivieren)
+TIER 3 — ERWEITERUNGEN (12 Module, explizit aktivieren)
   homekit_bridge, frigate_bridge, calendar_module, home_alerts, character_module,
-  waste_reminder, birthday_reminder, dev_surface, ops_runbook, unifi_module, quick_search
+  waste_reminder, birthday_reminder, automation_analyzer, dev_surface, ops_runbook, unifi_module, quick_search
 ```
+
+#### Wichtige Module (Referenz)
+
+| Modul | Datei | Funktion |
+|-------|-------|----------|
+| EventsForwarder | `events_forwarder.py` | HA Events an Core senden (batched, PII-redacted) |
+| HabitusMiner | `habitus_miner.py` | Pattern-Discovery und Zone-Management |
+| CandidatePoller | `candidate_poller.py` | Vorschlaege vom Core abholen |
+| BrainGraphSync | `brain_graph_sync.py` | Brain Graph Synchronisation |
+| MoodContextModule | `mood_context_module.py` | Mood-Integration und Kontext |
+| MediaContextModule | `media_context_module.py` | Media-Player Tracking |
+| EnergyContextModule | `energy_context_module.py` | Energiemonitoring |
+| WeatherContextModule | `weather_context_module.py` | Wetter-Integration |
+| UniFiModule | `unifi_module.py` | Netzwerk-Ueberwachung |
+| MLContextModule | `ml_context_module.py` | ML-Kontext und Features |
+| UserPreferenceModule | `core/modules/user_preference_module.py` | Multi-User Preference Learning |
+| ZoneBootstrapModule | `core/modules/zone_bootstrap.py` | Zone-Config in ZoneStore V2 laden |
+| LiveMoodEngine | `core/modules/live_mood_engine.py` | Lokale Comfort/Joy/Frugality |
+| AutomationAnalyzer | `core/modules/automation_analyzer.py` | HA-Automationen analysieren |
+| CharacterModule | `character_module.py` | CoPilot-Persoenlichkeit |
+| HomeAlertsModule | `home_alerts_module.py` | Kritische Zustandsueberwachung |
+| VoiceContext | `voice_context.py` | Sprachsteuerungs-Kontext |
+| KnowledgeGraphSync | `knowledge_graph_sync.py` | Knowledge Graph Synchronisation |
 
 Neue Module: `CopilotModule`-Interface aus `core/modules/module.py` implementieren, in `_MODULE_IMPORTS` + passende `_TIER_*` Liste eintragen. Boot-Reihenfolge: T0 → T1 → T2 → T3.
 
@@ -186,18 +209,25 @@ Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen
 
 ---
 
-## Aktueller Stand (v10.4.2)
+## Aktueller Stand (v10.5.1)
 
-- **Tests:** 579+ passed, 5 skipped
-- **Python-Dateien:** 329 (alle kompilieren sauber)
-- 35 Module in 4 Tiers, alle mit Status-Tracking via `ModuleStatusSensor`
-- 115+ Entities (100+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
+- **Tests:** 752 passed, 4 skipped
+- **Python-Dateien:** 328 (alle kompilieren sauber)
+- 35+ Module in 4 Tiers (Kernel, Brain, Context, Extensions), alle mit Status-Tracking via `ModuleStatusSensor`
+- 140+ Entities (94+ Sensoren inkl. 3 Live-Mood-Dimensionen, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
 - 8 Mood-Sensoren v3.0 (State, Confidence, Comfort, Joy, Energy, Stress, Frugality, NeuronActivity)
 - 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
+- Brain Graph Visualization (vis.js) + Summary Sensor
+- 3-Tab YAML Dashboard Generator (Habitus/Hausverwaltung/Styx) + 7-Tab Legacy Generator
+- 9 Habitus-Zonen mit 141 realen Entity-IDs, 12 Entity-Rollen
+- Live-Mood-Engine: Comfort/Joy/Frugality aus echten Entity-States
+- Automation-Analyzer: Health-Scoring, Repair-Hints, Verbesserungsvorschlaege
 - Auto-Setup: Zero-Config Zonen-Erstellung + ML Entity Classifier + Sidebar Panel
-- 29/29 Options-Flow Steps mit `data_description` + `_effective_config()` Preservation
+- 28/28 Options-Flow Steps mit `data_description` + `_effective_config()` Preservation
 - `DEFAULTS_MAP` + `ensure_defaults()` fuer ZeroConfig/QuickStart-Kompatibilitaet
 - `single_config_entry: true` in manifest.json
+- DeviceInfo Dataclass (HA Best Practice)
+- PilotSuite Branding durchgaengig
 
 ---
 
@@ -253,7 +283,11 @@ Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen
 | `custom_components/ai_home_copilot/core/runtime.py` | Modul-Lifecycle + ModuleStatus State Machine |
 | `custom_components/ai_home_copilot/core/modules/entity_tags_module.py` | NeuronTagResolver |
 | `custom_components/ai_home_copilot/habitus_zones_store_v2.py` | Zone Store |
-| `custom_components/ai_home_copilot/sensors/mood_sensor.py` | 8 Mood-Sensoren v3.0 |
+| `custom_components/ai_home_copilot/sensors/mood_sensor.py` | 8 Mood-Sensoren v3.0 + 3 LiveMoodDimension |
 | `custom_components/ai_home_copilot/sensors/neurons_14.py` | 14 Neuron-Sensoren |
+| `custom_components/ai_home_copilot/data/zones_config.json` | 9 Habitus-Zonen, 141 Entities |
+| `custom_components/ai_home_copilot/data/initial_suggestions.json` | Initiale Vorschlaege |
+| `custom_components/ai_home_copilot/repairs.py` | Governance UI Flows |
+| `docs/INTEGRATION_CONCEPT_v10.5.md` | Integrationskonzept mit Architektur |
 | `tests/conftest.py` | Globale HA-Mocks + Mock-Entity-Klassen |
 | `docs/ARCHITECTURE.md` | Vollstaendige Architektur-Dokumentation |

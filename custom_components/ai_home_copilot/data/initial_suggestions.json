@@ -1,0 +1,111 @@
+{
+  "suggestions": [
+    {
+      "id": "repair_unavailable_automations",
+      "type": "repair",
+      "severity": "high",
+      "title": "9 Automationen sind 'unavailable'",
+      "description": "Folgende Automationen haben fehlende Trigger-Entities oder sind nicht mehr geladen: Sound Syncronisation Detection, Magic Cube, Erdkeller Licht/Anwesenheit, Loft Spassecke (2x), Hue Schalter Kueche, Handzeichen (2x). Pruefen ob die referenzierten Entities/Geraete noch existieren.",
+      "affected_entities": [
+        "automation.sound_syncronisation_detection",
+        "automation.magic_cube",
+        "automation.erdkeller_automatisierung_licht",
+        "automation.erdkeller_automatisierung_anwesenheit",
+        "automation.loft_automation_licht_spassecke",
+        "automation.automation_licht_spassecke",
+        "automation.hue_schalter_kuche",
+        "automation.handzeichen_5_finger",
+        "automation.automation_handzeichen"
+      ],
+      "fix": "Automationen oeffnen → Trigger/Actions pruefen → fehlende Entities ersetzen oder Automation loeschen"
+    },
+    {
+      "id": "repair_disabled_ecosaver",
+      "type": "repair",
+      "severity": "medium",
+      "title": "Kaffeemaschine EcoSaver deaktiviert",
+      "description": "Die EcoSaver-Automation spart Strom indem die Kaffeemaschine nach Inaktivitaet ausgeschaltet wird. Derzeit deaktiviert — bei 15.297 Bezuegen koennte das relevant sein.",
+      "affected_entities": ["automation.kaffeemaschine_ecosaver"],
+      "fix": "Automation aktivieren oder Timeout anpassen"
+    },
+    {
+      "id": "repair_never_triggered_room_automations",
+      "type": "repair",
+      "severity": "medium",
+      "title": "Raum-Automationen nie ausgeloest",
+      "description": "Folgende Anwesenheits/Licht-Automationen wurden NIE getriggert: Schlafzimmer, Terrasse, Zimmer Mira, Vordereingang, Hintereingang. Die Motion-Sensoren oder Trigger-Bedingungen sollten geprueft werden.",
+      "affected_entities": [
+        "automation.schlafzimmer_automatisierung_anwesenheit",
+        "automation.schlafzimmer_automatisierung_licht",
+        "automation.terrasse_automatisierung_anwesenheit",
+        "automation.terrasse_automatisierung_licht",
+        "automation.zimmer_mira_automatisierung_anwesenheit",
+        "automation.zimmer_mira_automatisierung_licht",
+        "automation.vordereingang_automatisierung_anwesenheit",
+        "automation.vordereingang_automatisierung_licht",
+        "automation.hintereingang_automatisierung_anwesenheit"
+      ],
+      "fix": "Trigger-Entities pruefen (Motion-Sensor erreichbar?), Bedingungen ueberpruefen"
+    },
+    {
+      "id": "suggestion_co2_ventilation",
+      "type": "improvement",
+      "zone_id": "zone:wohnbereich",
+      "title": "CO2-basierte Lueftungserinnerung",
+      "description": "Der Wohnbereich hat einen CO2-Sensor (aktuell 713 ppm). Bei >1000 ppm koennte eine Notification oder TTS-Ansage zum Lueften erinnern.",
+      "example_yaml": "trigger:\n  - platform: numeric_state\n    entity_id: sensor.co2_wohnbereich_messstation\n    above: 1000\n    for: '00:05:00'\naction:\n  - service: notify.persistent_notification\n    data:\n      title: 'Lueftungserinnerung'\n      message: 'CO2 im Wohnbereich bei {{ states(\"sensor.co2_wohnbereich_messstation\") }} ppm. Bitte lueften!'"
+    },
+    {
+      "id": "suggestion_window_open_heating",
+      "type": "improvement",
+      "zone_id": "zone:kinder",
+      "title": "Heizung bei offenem Fenster drosseln",
+      "description": "Das Dachfenster im Zimmer Paul ist regelmaessig offen bei niedrigen Aussentemperaturen (aktuell 9.1°C). Die Heizung in den Kinderzimmern koennte automatisch gedrosselt werden.",
+      "example_yaml": "trigger:\n  - platform: state\n    entity_id: binary_sensor.sensor_dachfenster_window_door_is_open\n    to: 'on'\n    for: '00:03:00'\ncondition:\n  - condition: numeric_state\n    entity_id: sensor.terrasse_temperatur\n    below: 15\naction:\n  - service: climate.set_temperature\n    target:\n      entity_id: climate.thermostat_zimmer_mira\n    data:\n      temperature: 16"
+    },
+    {
+      "id": "suggestion_solar_surplus",
+      "type": "improvement",
+      "zone_id": null,
+      "title": "Solar-Ueberschuss nutzen",
+      "description": "Aktuell produziert die PV-Anlage mehr als verbraucht wird (804W Prod. vs 755W Verbrauch). Bei Ueberschuss koennten z.B. die Waschmaschine gestartet oder der Coca-Cola Kuehlschrank auf Turbo gestellt werden.",
+      "example_yaml": "trigger:\n  - platform: numeric_state\n    entity_id: sensor.stromverbrauch_paradiesgarten_21_electric_production_w\n    above: 1000\n    for: '00:10:00'\ncondition:\n  - condition: template\n    value_template: '{{ states(\"sensor.stromverbrauch_paradiesgarten_21_electric_production_w\") | float > states(\"sensor.stromverbrauch_paradiesgarten_21_electric_consumption_w\") | float * 1.2 }}'\naction:\n  - service: notify.persistent_notification\n    data:\n      title: 'Solar-Ueberschuss'\n      message: 'PV produziert {{ states(\"sensor.stromverbrauch_paradiesgarten_21_electric_production_w\") }}W — guter Zeitpunkt fuer Waschmaschine!'"
+    },
+    {
+      "id": "suggestion_night_security",
+      "type": "improvement",
+      "zone_id": null,
+      "title": "Nacht-Sicherheitscheck",
+      "description": "Beim Aktivieren des Schlafmodus koennten alle Fenster/Tueren geprueft und Lichter automatisch reduziert werden.",
+      "example_yaml": "trigger:\n  - platform: state\n    entity_id: input_boolean.schlafmodus_smarthome\n    to: 'on'\naction:\n  - service: light.turn_off\n    target:\n      entity_id:\n        - light.beleuchtung_gang\n        - light.beleuchtung_kuche\n        - light.beleuchtung_bad\n  - condition: state\n    entity_id: binary_sensor.sensor_dachfenster_window_door_is_open\n    state: 'on'\n  - service: notify.persistent_notification\n    data:\n      title: 'Fenster offen!'\n      message: 'Dachfenster Zimmer Paul ist noch offen.'"
+    },
+    {
+      "id": "profile_comfort_focus",
+      "type": "user_profile",
+      "title": "Nutzer-Profil: Komfort-orientiert",
+      "description": "Analyse der 99 aktiven Automationen zeigt: 23 Anwesenheits-Automationen (Licht-Steuerung pro Raum), 10 Musik-Cloud/Autoplay-Automationen (Sonos in jeder Zone), 6 TTS-Benachrichtigungen, umfangreiches Kaffeemaschinen-Ecosystem. Der Haushalt priorisiert Komfort und Entertainment ueber Energieeffizienz.",
+      "metrics": {
+        "comfort_score": 0.85,
+        "entertainment_score": 0.78,
+        "efficiency_score": 0.45,
+        "security_score": 0.35,
+        "automation_coverage": 0.72,
+        "avg_health_score": 0.68,
+        "disabled_ratio": 0.02,
+        "unavailable_ratio": 0.08,
+        "never_triggered_ratio": 0.32
+      }
+    }
+  ],
+  "metadata": {
+    "generated_at": "2026-02-27T20:00:00+01:00",
+    "ha_version": "2026.2.3",
+    "total_automations": 110,
+    "active_automations": 99,
+    "disabled_automations": 2,
+    "unavailable_automations": 9,
+    "never_triggered": 35,
+    "zones_analyzed": 9,
+    "entities_monitored": 141
+  }
+}

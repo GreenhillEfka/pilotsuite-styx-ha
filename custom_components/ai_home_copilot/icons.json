@@ -49,9 +49,6 @@
       "predictive_automation": {
         "default": "mdi:auto-fix"
       },
-      "neuron_dashboard": {
-        "default": "mdi:chart-timeline-variant"
-      },
       "attention_load": {
         "default": "mdi:head-lightbulb"
       },

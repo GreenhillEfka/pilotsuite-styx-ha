@@ -476,6 +476,23 @@ class UserPreferenceModule:
         self._data["users"][user_id]["character_id"] = character_id
         _LOGGER.debug(f"Mapped user {user_id} to character {character_id}")
     
+    async def set_tracked_users(
+        self, person_entities: list, primary_user: str | None = None
+    ) -> None:
+        """Set tracked person entities and optional primary user.
+
+        Called by user_preference_services.handle_track_users.
+        """
+        self._tracked_users = set(person_entities)
+        if primary_user:
+            self._active_user = primary_user
+            self._data["config"]["primary_user"] = primary_user
+        _LOGGER.debug(
+            "Tracked users updated: %s (primary=%s)",
+            person_entities,
+            primary_user,
+        )
+
     def set_learning_enabled(self, enabled: bool) -> None:
         """Enable or disable learning."""
         self._learning_enabled = enabled

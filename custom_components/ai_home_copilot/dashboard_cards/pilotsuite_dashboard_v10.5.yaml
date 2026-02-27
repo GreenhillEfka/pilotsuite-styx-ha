@@ -1,0 +1,576 @@
+# PilotSuite v10.5 Dashboard — 3-Tab Layout
+# Basierend auf echten Entities von SmartHome Paradiesgarten
+# Generiert: 2026-02-27
+#
+# Tabs: 1. Habitus (Mood/Zonen) | 2. Hausverwaltung | 3. Styx (Neural)
+
+title: PilotSuite
+views:
+
+  # ===========================================================================
+  # TAB 1: HABITUS — Zonen & Stimmung
+  # ===========================================================================
+  - title: Habitus
+    path: habitus
+    icon: mdi:home-heart
+    cards:
+
+      # --- Stimmungs-Header ---
+      - type: horizontal-stack
+        cards:
+          - type: gauge
+            entity: sensor.ai_home_copilot_mood_comfort
+            name: Komfort
+            min: 0
+            max: 100
+            severity:
+              green: 70
+              yellow: 40
+              red: 0
+          - type: gauge
+            entity: sensor.ai_home_copilot_mood_joy
+            name: Freude
+            min: 0
+            max: 100
+            severity:
+              green: 60
+              yellow: 30
+              red: 0
+          - type: gauge
+            entity: sensor.ai_home_copilot_mood_frugality
+            name: Sparsamkeit
+            min: 0
+            max: 100
+            severity:
+              green: 60
+              yellow: 30
+              red: 0
+
+      # --- Zonen-Grid (klickbar) ---
+      - type: grid
+        columns: 3
+        cards:
+          # Wohnbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Wohnbereich
+                  {{ states('sensor.temperatur_wohnbereich_messstation') }}°C |
+                  {{ states('sensor.luftfeuchtigkeit_wohnbereich_messstation') }}% |
+                  CO2: {{ states('sensor.co2_wohnbereich_messstation') }} ppm
+              - type: entities
+                entities:
+                  - entity: binary_sensor.wohnzimmer_anwesenheit
+                    name: Anwesenheit
+                  - entity: media_player.wohnbereich
+                    name: Sonos
+                  - entity: light.beleuchtung_wohnzimmer
+                    name: Licht
+                  - entity: climate.thermostat_wohnzimmer_rechts
+                    name: Heizung R
+                  - entity: cover.rollo_terrassentur
+                    name: Rollo
+
+          # Schlafbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Schlafbereich
+                  {{ states('sensor.sensor_schlafzimmer_air_temperature') }}°C |
+                  {{ states('sensor.sensor_schlafzimmer_humidity') }}% |
+                  {{ states('sensor.sensor_schlafzimmer_illuminance') }} lux
+              - type: entities
+                entities:
+                  - entity: binary_sensor.schlafzimmer_anwesenheit
+                    name: Anwesenheit
+                  - entity: media_player.schlafbereich
+                    name: Sonos
+                  - entity: light.beleuchtung_schlafzimmer
+                    name: Licht
+                  - entity: binary_sensor.sensor_fenster_schlafzimmer_window_door_is_open
+                    name: Fenster
+
+          # Kochbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Kochbereich
+                  {{ states('sensor.thermostat_kochbereich_temperatur') }}°C |
+                  {{ states('sensor.thermostat_kochbereich_luftfeuchtigkeit') }}%
+              - type: entities
+                entities:
+                  - entity: binary_sensor.kuche_anwesenheit
+                    name: Anwesenheit
+                  - entity: media_player.kochbereich
+                    name: Sonos
+                  - entity: light.beleuchtung_kuche
+                    name: Licht
+                  - entity: climate.thermostat_kochbereich
+                    name: Heizung
+                  - entity: vacuum.saugi
+                    name: Saugroboter
+
+          # Badbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Badbereich
+                  {{ states('sensor.sensor_bad_temperatur') }}°C |
+                  {{ states('sensor.sensor_toilette_temperatur') }}°C
+              - type: entities
+                entities:
+                  - entity: binary_sensor.bad_anwesenheit
+                    name: Bad
+                  - entity: binary_sensor.toilette_anwesenheit
+                    name: Toilette
+                  - entity: media_player.badbereich
+                    name: Sonos
+                  - entity: light.hue_badspiegel
+                    name: Badspiegel
+
+          # Buerobereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Buero
+                  {{ states('sensor.sensor_arbeitszimmer_helligkeit') }} lux
+              - type: entities
+                entities:
+                  - entity: binary_sensor.arbeitszimmer_anwesenheit
+                    name: Anwesenheit
+                  - entity: media_player.buerobereich
+                    name: Sonos
+                  - entity: light.arbeitszimmer_beleuchtung
+                    name: Licht
+                  - entity: media_player.xbox_series_x
+                    name: Xbox
+
+          # Gangbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Gang
+                  {{ states('sensor.thermostat_gangbereich_temperatur') }}°C |
+                  {{ states('sensor.thermostat_gangbereich_luftfeuchtigkeit') }}%
+              - type: entities
+                entities:
+                  - entity: binary_sensor.gang_anwesenheit
+                    name: Anwesenheit
+                  - entity: media_player.gangbereich
+                    name: Sonos
+                  - entity: light.beleuchtung_gang
+                    name: Licht
+                  - entity: switch.kaffeemaschine
+                    name: Kaffee
+
+      # --- Kinder + Loft + Aussen ---
+      - type: grid
+        columns: 3
+        cards:
+          # Kinderbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Kinder
+                  Mira: {{ states('sensor.thermostat_zimmer_mira_temperatur') }}°C |
+                  Paul: {{ states('sensor.feuermelder_zimmer_paul_air_temperature') }}°C
+              - type: entities
+                entities:
+                  - entity: binary_sensor.zimmer_mira_anwesenheit
+                    name: Mira
+                  - entity: binary_sensor.sensor_dachfenster_window_door_is_open
+                    name: Dachfenster Paul
+                  - entity: climate.thermostat_zimmer_mira
+                    name: Heizung Mira
+                  - entity: light.hue_zimmer_mira
+                    name: Licht Mira
+
+          # Loft
+          - type: entities
+            title: Loft
+            entities:
+              - entity: binary_sensor.loft_anwesenheit
+                name: Anwesenheit
+              - entity: light.beleuchtung_loft
+                name: Licht
+              - entity: media_player.sony_x77
+                name: Sony Speaker
+
+          # Aussenbereich
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: |
+                  ## Aussen
+                  {{ states('sensor.terrasse_temperatur') }}°C |
+                  {{ states('sensor.terrasse_luftfeuchtigkeit') }}% |
+                  Wind: {{ states('sensor.windmesser_terrasse_windgeschwindigkeit') }} km/h
+              - type: entities
+                entities:
+                  - entity: binary_sensor.terrasse_anwesenheit
+                    name: Terrasse
+                  - entity: light.beleuchtung_aussenbereich
+                    name: Aussen-Licht
+                  - entity: sensor.regen_niederschlagsmenge_heute
+                    name: Regen heute
+
+      # --- Presence Map ---
+      - type: entities
+        title: Personen
+        entities:
+          - entity: person.andreas
+            name: Andreas
+          - entity: person.efka
+            name: Efka
+          - entity: person.mira
+            name: Mira
+          - entity: person.pauli
+            name: Pauli
+          - entity: person.steffi
+            name: Steffi
+
+      # --- Mood History ---
+      - type: history-graph
+        title: Raumtemperaturen (24h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.temperatur_wohnbereich_messstation
+            name: Wohnbereich
+          - entity: sensor.sensor_schlafzimmer_air_temperature
+            name: Schlafzimmer
+          - entity: sensor.thermostat_kochbereich_temperatur
+            name: Kueche
+          - entity: sensor.thermostat_gangbereich_temperatur
+            name: Gang
+          - entity: sensor.terrasse_temperatur
+            name: Aussen
+
+
+  # ===========================================================================
+  # TAB 2: HAUSVERWALTUNG
+  # ===========================================================================
+  - title: Hausverwaltung
+    path: hausverwaltung
+    icon: mdi:home-city
+    cards:
+
+      # --- Energie ---
+      - type: vertical-stack
+        title: Energie
+        cards:
+          - type: grid
+            columns: 3
+            cards:
+              - type: entity
+                entity: sensor.stromverbrauch_paradiesgarten_21_electric_consumption_w
+                name: Verbrauch Gesamt
+                icon: mdi:flash
+                unit: W
+              - type: entity
+                entity: sensor.stromverbrauch_paradiesgarten_21_electric_production_w
+                name: PV Produktion
+                icon: mdi:solar-power
+                unit: W
+              - type: entity
+                entity: counter.gaszahler
+                name: Gaszaehler
+                icon: mdi:fire
+
+          - type: grid
+            columns: 2
+            cards:
+              - type: entity
+                entity: sensor.ostausrichtung_estimated_energy_production_today
+                name: PV Ost heute
+                icon: mdi:weather-sunny
+                unit: kWh
+              - type: entity
+                entity: sensor.westausrichtung_geschatzte_energieerzeugung_heute
+                name: PV West heute
+                icon: mdi:weather-sunny
+                unit: kWh
+
+          # PV History
+          - type: history-graph
+            title: Energiefluss (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.stromverbrauch_paradiesgarten_21_electric_consumption_w
+                name: Verbrauch
+              - entity: sensor.stromverbrauch_paradiesgarten_21_electric_production_w
+                name: Produktion
+
+      # --- Heizung ---
+      - type: vertical-stack
+        title: Heizung (Wolf CGB-2)
+        cards:
+          - type: grid
+            columns: 3
+            cards:
+              - type: entity
+                entity: sensor.heat_generator_1_boiler_water_temperature
+                name: Vorlauf
+                icon: mdi:thermometer
+              - type: entity
+                entity: sensor.heat_generator_1_return_temperature
+                name: Ruecklauf
+                icon: mdi:thermometer-low
+              - type: entity
+                entity: sensor.heat_generator_1_system_pressure
+                name: Druck
+                icon: mdi:gauge
+                unit: bar
+          - type: entities
+            entities:
+              - entity: sensor.heat_generator_1_burner_status
+                name: Brenner Status
+              - entity: sensor.heat_generator_1_operating_mode
+                name: Betriebsmodus
+              - entity: sensor.heat_generator_1_outside_temperature
+                name: Aussentemperatur
+              - entity: input_select.heizmodus
+                name: Heizmodus
+
+      # --- Sicherheit ---
+      - type: vertical-stack
+        title: Sicherheit
+        cards:
+          - type: entities
+            title: Tueren & Fenster
+            entities:
+              - entity: binary_sensor.sensor_fenster_schlafzimmer_window_door_is_open
+                name: Fenster Schlafzimmer
+              - entity: binary_sensor.sensor_fenster_rechts_window_door_is_open
+                name: Fenster Mira rechts
+              - entity: binary_sensor.sensor_fenster_links_window_door_is_open
+                name: Fenster Mira links
+              - entity: binary_sensor.sensor_dachfenster_window_door_is_open
+                name: Dachfenster Paul
+              - entity: binary_sensor.spasskiste_offnung
+                name: Spasskiste
+
+          - type: entities
+            title: Rauchmelder
+            entities:
+              - entity: binary_sensor.feuermelder_zimmer_mira_smoke_detected
+                name: Zimmer Mira
+              - entity: binary_sensor.feuermelder_zimmer_paul_smoke_detected
+                name: Zimmer Paul
+              - entity: binary_sensor.feuermelder_flur
+                name: Flur
+
+          - type: entities
+            title: Kameras
+            entities:
+              - entity: camera.ai360
+                name: AI360 (Kontrollraum)
+              - entity: camera.camera_hub_g3_2ed9
+                name: G3 (Arbeitszimmer)
+              - entity: camera.doorbell_repeater_5851
+                name: Doorbell (Terrasse)
+
+      # --- Geraete ---
+      - type: vertical-stack
+        title: Haushaltsgeraete
+        cards:
+          - type: grid
+            columns: 2
+            cards:
+              - type: entities
+                title: Kueche
+                entities:
+                  - entity: switch.kaffeemaschine
+                    name: Kaffeemaschine
+                  - entity: counter.kaffeemaschine_bezuge
+                    name: Bezuege total
+                  - entity: switch.spulmaschine
+                    name: Spuelmaschine
+                  - entity: switch.coca_cola_kuhlschrank
+                    name: Kuehlschrank
+
+              - type: entities
+                title: Reinigung & Waesche
+                entities:
+                  - entity: vacuum.saugi
+                    name: Saugroboter
+                  - entity: vacuum.wischi
+                    name: Wischroboter
+                  - entity: sensor.waschmaschine
+                    name: Waschmaschine
+                  - entity: sensor.waschmaschine_pre_state
+                    name: WM Status
+
+      # --- Netzwerk ---
+      - type: vertical-stack
+        title: Netzwerk & System
+        cards:
+          - type: grid
+            columns: 2
+            cards:
+              - type: entities
+                title: System
+                entities:
+                  - entity: sensor.system_monitor_prozessornutzung
+                    name: CPU
+                  - entity: sensor.system_monitor_arbeitsspeicherauslastung
+                    name: RAM
+                  - entity: sensor.system_monitor_massenspeicher_auslastung
+                    name: Speicher
+                  - entity: sensor.system_monitor_prozessortemperatur
+                    name: CPU Temp
+
+              - type: entities
+                title: NAS (DS1515)
+                entities:
+                  - entity: sensor.ds1515_cpu_auslastung_gesamt
+                    name: NAS CPU
+                  - entity: sensor.ds1515_volume_1_volume_nutzung
+                    name: Vol 1
+                  - entity: sensor.ds1515_volume_4_volume_nutzung
+                    name: Vol 4
+                  - entity: sensor.ds1515_laufwerk_3_status
+                    name: Disk 3
+
+          - type: entities
+            title: UniFi Dream Machine
+            entities:
+              - entity: sensor.dream_machine_special_edition_cpu_utilization
+                name: UDM CPU
+              - entity: sensor.dream_machine_special_edition_memory_utilization_2
+                name: UDM RAM
+              - entity: sensor.dream_machine_special_edition_google_wan_latency
+                name: WAN Latenz
+              - entity: sensor.dream_machine_special_edition_clients
+                name: Clients
+
+      # --- Wetter ---
+      - type: weather-forecast
+        entity: weather.pirateweather
+        show_forecast: true
+
+
+  # ===========================================================================
+  # TAB 3: STYX — Neural Intelligence
+  # ===========================================================================
+  - title: Styx
+    path: styx
+    icon: mdi:brain
+    cards:
+
+      # --- Neuron Status ---
+      - type: vertical-stack
+        title: Neural Pipeline
+        cards:
+          - type: grid
+            columns: 4
+            cards:
+              - type: entity
+                entity: sensor.ai_home_copilot_neuron_activity
+                name: Neuronen
+                icon: mdi:brain
+              - type: entity
+                entity: sensor.ai_home_copilot_mood
+                name: Stimmung
+                icon: mdi:emoticon
+              - type: entity
+                entity: sensor.ai_home_copilot_suggestion_queue
+                name: Vorschlaege
+                icon: mdi:lightbulb-on
+              - type: entity
+                entity: sensor.ai_home_copilot_brain_graph_summary
+                name: Brain Graph
+                icon: mdi:graph
+
+      # --- Brain Graph Visualization ---
+      - type: iframe
+        url: /api/ai_home_copilot/brain_graph/vis
+        aspect_ratio: 16:9
+        title: Brain Graph
+
+      # --- Mood per Zone ---
+      - type: vertical-stack
+        title: Stimmung pro Zone
+        cards:
+          - type: history-graph
+            title: Comfort (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.ai_home_copilot_mood_comfort
+                name: Gesamt Comfort
+
+          - type: history-graph
+            title: Joy (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.ai_home_copilot_mood_joy
+                name: Gesamt Joy
+
+      # --- Suggestions ---
+      - type: vertical-stack
+        title: Aktive Vorschlaege
+        cards:
+          - type: entities
+            entities:
+              - entity: sensor.ai_home_copilot_suggestion_queue
+                name: Warteschlange
+              - entity: button.ai_home_copilot_generate_overview
+                name: Uebersicht generieren
+              - entity: button.ai_home_copilot_demo_suggestion
+                name: Demo-Vorschlag
+
+      # --- Habitus Patterns ---
+      - type: vertical-stack
+        title: Habitus-Muster
+        cards:
+          - type: entities
+            entities:
+              - entity: sensor.ai_home_copilot_habit_summary
+                name: Muster-Zusammenfassung
+
+      # --- PilotSuite Actions ---
+      - type: vertical-stack
+        title: PilotSuite Aktionen
+        cards:
+          - type: grid
+            columns: 2
+            cards:
+              - type: button
+                entity: button.ai_home_copilot_generate_overview
+                name: Uebersicht
+                icon: mdi:file-document
+                show_state: false
+              - type: button
+                entity: button.ai_home_copilot_config_snapshot
+                name: Snapshot
+                icon: mdi:camera
+                show_state: false
+              - type: button
+                entity: button.ai_home_copilot_log_analysis
+                name: Log-Analyse
+                icon: mdi:text-search
+                show_state: false
+              - type: button
+                entity: button.ai_home_copilot_core_capabilities
+                name: Capabilities
+                icon: mdi:rocket-launch
+                show_state: false
+
+      # --- System Health ---
+      - type: vertical-stack
+        title: System Status
+        cards:
+          - type: entities
+            entities:
+              - entity: sensor.ai_home_copilot_status
+                name: PilotSuite Status
+              - entity: update.ai_home_copilot_update
+                name: Update verfuegbar
+              - entity: sensor.ai_home_copilot_forwarder_status
+                name: Event Forwarder
