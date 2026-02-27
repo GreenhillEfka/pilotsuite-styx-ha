@@ -550,9 +550,12 @@ class N3EventForwarder:
 
     async def _build_zone_mapping(self):
         """Build entity_id -> zone_id mapping from HA area registry."""
-        entity_registry = self.hass.helpers.entity_registry.async_get(self.hass)
-        area_registry = self.hass.helpers.area_registry.async_get(self.hass)
-        device_registry = self.hass.helpers.device_registry.async_get(self.hass)
+        from homeassistant.helpers import entity_registry as er
+        from homeassistant.helpers import area_registry as ar
+        from homeassistant.helpers import device_registry as dr
+        entity_registry = er.async_get(self.hass)
+        area_registry = ar.async_get(self.hass)
+        device_registry = dr.async_get(self.hass)
         
         self._entity_to_zone = {}
         

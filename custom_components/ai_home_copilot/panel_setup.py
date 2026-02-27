@@ -12,6 +12,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from homeassistant.components.frontend import (
+    async_register_built_in_panel,
+    async_remove_panel,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -31,24 +35,19 @@ CORE_ADDON_SLUG = "copilot_core"
 async def _resolve_ingress_url(hass: HomeAssistant) -> str | None:
     """Resolve the ingress URL for the Core add-on via Supervisor API."""
     try:
-        # Try the hassio component (HA Supervisor integration)
-        hassio = hass.components.hassio
-        if hassio is None:
-            return None
+        from homeassistant.components.hassio import async_get_addon_info
 
-        # Get add-on info via Supervisor API
-        addon_info = await hassio.async_get_addon_info(CORE_ADDON_SLUG)
+        addon_info = await async_get_addon_info(hass, CORE_ADDON_SLUG)
         if addon_info and isinstance(addon_info, dict):
             ingress_url = addon_info.get("ingress_url")
             if ingress_url:
                 _LOGGER.debug("Resolved Core ingress URL: %s", ingress_url)
                 return ingress_url
-    except Exception:
+    except (ImportError, Exception):
         _LOGGER.debug("Could not resolve ingress URL via Supervisor API", exc_info=True)
 
     # Fallback: try known ingress path pattern
     try:
-        # HA Supervisor ingress uses /api/hassio_ingress/<entry_token>
         hassio_data = hass.data.get("hassio")
         if hassio_data and isinstance(hassio_data, dict):
             ingress_panels = hassio_data.get("ingress_panels", {})
@@ -98,8 +97,8 @@ async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     try:
-        # Register iframe panel in HA sidebar
-        hass.components.frontend.async_register_built_in_panel(
+        async_register_built_in_panel(
+            hass,
             component_name="iframe",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
@@ -114,10 +113,10 @@ async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
 
-async def async_remove_panel(hass: HomeAssistant) -> None:
+async def async_remove_panel_entry(hass: HomeAssistant) -> None:
     """Remove the PilotSuite sidebar panel."""
     try:
-        hass.components.frontend.async_remove_panel(PANEL_URL_NAME)
+        async_remove_panel(hass, PANEL_URL_NAME)
         _LOGGER.info("PilotSuite sidebar panel removed")
     except Exception:
         _LOGGER.debug("Could not remove PilotSuite panel (may not exist)", exc_info=True)
