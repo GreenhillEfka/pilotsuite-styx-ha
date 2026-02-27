@@ -350,50 +350,45 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
         )
     
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from API with retry on transient failures."""
+        """Fetch data from API with retry on transient failures.
+
+        All best-effort API calls run concurrently via asyncio.gather to
+        reduce total polling latency from ~13 sequential round-trips to ~1.
+        """
         last_err: Exception | None = None
         for attempt in range(3):
             try:
+                # Status is the critical gate — must succeed.
                 status = await self.api.async_get_status()
 
-                # Core capabilities (best-effort; used for module/UX gating).
-                try:
-                    capabilities = await self.api.async_get("/api/v1/capabilities")
-                except Exception:  # noqa: BLE001
-                    capabilities = {}
-
-                # Get mood from neural system
-                mood_data = await self.api.async_get_mood()
-
-                # Get neuron states
-                neurons_data = await self.api.async_get_neurons()
-
-                # Get Core module states (best-effort, non-blocking)
-                core_modules = await self.api.async_get_core_modules()
-
-                # Get Brain Graph summary (best-effort)
-                brain_summary = await self.api.async_get_brain_summary()
-
-                # Get Habitus rules summary (best-effort)
-                habitus_rules = await self.api.async_get_habitus_rules_summary()
-
-                # Get RAG status (best-effort)
-                rag_status = await self.api.async_get_rag_status()
-
-                # Get habit learning data from ML context if available
-                habit_data = await self._get_habit_learning_data()
-
-                # Get Override Modes status (best-effort)
-                override_modes = await self._get_override_modes()
-
-                # Get Music Cloud status (best-effort)
-                music_cloud = await self._get_music_cloud_status()
-
-                # Get Light Module status (best-effort)
-                light_module = await self._get_light_module_status()
-
-                # Get Zone Automation status (best-effort)
-                zone_automation = await self._get_zone_automation_status()
+                # Fire all best-effort fetches in parallel.
+                (
+                    capabilities,
+                    mood_data,
+                    neurons_data,
+                    core_modules,
+                    brain_summary,
+                    habitus_rules,
+                    rag_status,
+                    habit_data,
+                    override_modes,
+                    music_cloud,
+                    light_module,
+                    zone_automation,
+                ) = await asyncio.gather(
+                    self._safe_fetch(self.api.async_get, "/api/v1/capabilities", fallback={}),
+                    self._safe_fetch(self.api.async_get_mood, fallback={"mood": "unknown", "confidence": 0.0}),
+                    self._safe_fetch(self.api.async_get_neurons, fallback={"neurons": {}}),
+                    self._safe_fetch(self.api.async_get_core_modules, fallback={}),
+                    self._safe_fetch(self.api.async_get_brain_summary, fallback={}),
+                    self._safe_fetch(self.api.async_get_habitus_rules_summary, fallback={}),
+                    self._safe_fetch(self.api.async_get_rag_status, fallback={}),
+                    self._get_habit_learning_data(),
+                    self._get_override_modes(),
+                    self._get_music_cloud_status(),
+                    self._get_light_module_status(),
+                    self._get_zone_automation_status(),
+                )
 
                 return {
                     "ok": bool(status.ok) if status.ok is not None else True,
@@ -421,7 +416,6 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                     await asyncio.sleep(2 ** attempt)  # 1s, 2s backoff
                     _LOGGER.debug("Retrying PilotSuite API (attempt %d): %s", attempt + 1, err)
                 continue
-                # fallthrough prevented by continue
             except Exception as err:  # noqa: BLE001
                 last_err = err
                 if attempt < 2:
@@ -438,34 +432,48 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
             last_err = RuntimeError("unknown API error")
         _LOGGER.warning("PilotSuite API unreachable after 3 attempts: %s", last_err)
         raise UpdateFailed(f"API unavailable after retries: {last_err}") from last_err
+
+    @staticmethod
+    async def _safe_fetch(coro_func, *args, fallback=None):
+        """Call an async function and return fallback on any error."""
+        try:
+            return await coro_func(*args)
+        except Exception:  # noqa: BLE001
+            return fallback
     
     async def _get_override_modes(self) -> dict[str, Any]:
         """Fetch override modes status from Core (best-effort)."""
         try:
             return await self.api.async_get("/api/v1/modes")
-        except Exception:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Override modes not available: %s", err)
             return {}
 
     async def _get_music_cloud_status(self) -> dict[str, Any]:
-        """Fetch Music Cloud status from Core (best-effort)."""
+        """Fetch Music Cloud status from Core (best-effort, parallel)."""
         try:
-            result = await self.api.async_get("/api/v1/media/cloud/status")
-            config = await self.api.async_get("/api/v1/media/cloud/config")
-            groups = await self.api.async_get("/api/v1/media/cloud/groups")
+            result, config, groups = await asyncio.gather(
+                self.api.async_get("/api/v1/media/cloud/status"),
+                self.api.async_get("/api/v1/media/cloud/config"),
+                self.api.async_get("/api/v1/media/cloud/groups"),
+            )
             return {
                 "status": result,
                 "config": config.get("config", {}) if isinstance(config, dict) else {},
                 "active_groups": groups.get("groups", []) if isinstance(groups, dict) else [],
             }
-        except Exception:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Music cloud status not available: %s", err)
             return {}
 
     async def _get_light_module_status(self) -> dict[str, Any]:
-        """Fetch Light Module status from Core (best-effort)."""
+        """Fetch Light Module status from Core (best-effort, parallel)."""
         try:
-            status = await self.api.async_get("/api/v1/light-module/status")
-            config = await self.api.async_get("/api/v1/light-module/config")
-            presets = await self.api.async_get("/api/v1/light-module/presets")
+            status, config, presets = await asyncio.gather(
+                self.api.async_get("/api/v1/light-module/status"),
+                self.api.async_get("/api/v1/light-module/config"),
+                self.api.async_get("/api/v1/light-module/presets"),
+            )
             return {
                 "enabled": status.get("ok", False),
                 "active_zones": len(status.get("zones", [])),
@@ -473,79 +481,105 @@ class CopilotDataUpdateCoordinator(DataUpdateCoordinator):
                 "config": config.get("config", {}),
                 "presets": presets.get("presets", {}),
             }
-        except Exception:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Light module status not available: %s", err)
             return {}
 
     async def _get_zone_automation_status(self) -> dict[str, Any]:
-        """Fetch Zone Automation status from Core (best-effort)."""
+        """Fetch Zone Automation status from Core (best-effort, parallel)."""
         try:
-            status = await self.api.async_get("/api/v1/zone-automation/status")
-            configs = await self.api.async_get("/api/v1/zone-automation/config")
+            status, configs = await asyncio.gather(
+                self.api.async_get("/api/v1/zone-automation/status"),
+                self.api.async_get("/api/v1/zone-automation/config"),
+            )
             return {
                 "total_zones": status.get("count", 0),
                 "zones": status.get("zones", []),
                 "configs": configs.get("configs", []),
             }
-        except Exception:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Zone automation status not available: %s", err)
             return {}
+
+    _EMPTY_HABIT_DATA: dict[str, Any] = {
+        "habit_summary": {},
+        "predictions": [],
+        "sequences": [],
+    }
 
     async def _get_habit_learning_data(self) -> dict[str, Any]:
         """Get habit learning data from ML context."""
         try:
-            # Try to get ML context from hass.data
-            entry_data = self.hass.data.get("ai_home_copilot", {})
-            
-            for entry_id, data in entry_data.items():
-                ml_context = data.get("ml_context")
-                if ml_context and ml_context.habit_predictor:
-                    # Get habit summary
-                    summary = ml_context.habit_predictor.get_habit_summary(hours=24)
-                    
-                    # Build predictions
-                    predictions = []
-                    for device_id, device_info in summary.get("device_patterns", {}).items():
-                        for event_type in device_info.get("event_types", []):
-                            pred = ml_context.get_habit_prediction(device_id, event_type)
-                            if pred.get("predicted"):
-                                predictions.append({
-                                    "pattern": f"{device_id}:{event_type}",
-                                    "confidence": pred.get("confidence", 0),
-                                    "predicted": True,
-                                    "details": pred.get("details", {}),
-                                })
-                    
-                    # Build sequences
-                    sequences = []
-                    for start_device, seq_list in ml_context.habit_predictor.sequence_patterns.items():
-                        if seq_list:
-                            seq_pred = ml_context.habit_predictor.predict_sequence(start_device)
-                            if seq_pred.get("predicted"):
-                                sequences.append({
-                                    "sequence": seq_pred.get("sequence", []),
-                                    "confidence": seq_pred.get("confidence", 0),
-                                    "occurrences": seq_pred.get("occurrences", 0),
-                                    "predicted": True,
-                                })
-                    
-                    return {
-                        "habit_summary": {
-                            "total_patterns": summary.get("total_patterns", 0),
-                            "time_patterns": summary.get("time_patterns", {}),
-                            "sequences": summary.get("sequences", {}),
-                            "device_patterns": summary.get("device_patterns", {}),
-                            "last_update": summary.get("last_update"),
-                        },
-                        "predictions": predictions,
-                        "sequences": sequences,
-                    }
+            ml_context = self._find_ml_context()
+            if ml_context is None:
+                return dict(self._EMPTY_HABIT_DATA)
+
+            predictor = ml_context.habit_predictor
+            summary = predictor.get_habit_summary(hours=24)
+
+            return {
+                "habit_summary": {
+                    "total_patterns": summary.get("total_patterns", 0),
+                    "time_patterns": summary.get("time_patterns", {}),
+                    "sequences": summary.get("sequences", {}),
+                    "device_patterns": summary.get("device_patterns", {}),
+                    "last_update": summary.get("last_update"),
+                },
+                "predictions": self._build_habit_predictions(ml_context, summary),
+                "sequences": self._build_habit_sequences(predictor),
+            }
         except Exception as e:
             _LOGGER.debug("Could not get habit learning data: %s", e)
-        
-        return {
-            "habit_summary": {},
-            "predictions": [],
-            "sequences": [],
-        }
+            return dict(self._EMPTY_HABIT_DATA)
+
+    def _find_ml_context(self) -> Any | None:
+        """Locate the first ml_context with an active habit_predictor."""
+        entry_data = self.hass.data.get("ai_home_copilot")
+        if not isinstance(entry_data, dict):
+            return None
+
+        for data in entry_data.values():
+            if not isinstance(data, dict):
+                continue
+            ml_context = data.get("ml_context")
+            if ml_context and getattr(ml_context, "habit_predictor", None):
+                return ml_context
+        return None
+
+    @staticmethod
+    def _build_habit_predictions(ml_context: Any, summary: dict) -> list[dict[str, Any]]:
+        """Build prediction list from device patterns in the summary."""
+        predictions: list[dict[str, Any]] = []
+        for device_id, device_info in summary.get("device_patterns", {}).items():
+            for event_type in device_info.get("event_types", []):
+                pred = ml_context.get_habit_prediction(device_id, event_type)
+                if not pred.get("predicted"):
+                    continue
+                predictions.append({
+                    "pattern": f"{device_id}:{event_type}",
+                    "confidence": pred.get("confidence", 0),
+                    "predicted": True,
+                    "details": pred.get("details", {}),
+                })
+        return predictions
+
+    @staticmethod
+    def _build_habit_sequences(predictor: Any) -> list[dict[str, Any]]:
+        """Build sequence list from the habit predictor."""
+        sequences: list[dict[str, Any]] = []
+        for start_device, seq_list in predictor.sequence_patterns.items():
+            if not seq_list:
+                continue
+            seq_pred = predictor.predict_sequence(start_device)
+            if not seq_pred.get("predicted"):
+                continue
+            sequences.append({
+                "sequence": seq_pred.get("sequence", []),
+                "confidence": seq_pred.get("confidence", 0),
+                "occurrences": seq_pred.get("occurrences", 0),
+                "predicted": True,
+            })
+        return sequences
     
     @callback
     def async_get_mood(self) -> dict[str, Any]:

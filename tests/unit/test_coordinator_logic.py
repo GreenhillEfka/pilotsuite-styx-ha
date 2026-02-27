@@ -286,5 +286,123 @@ class TestUpdateInterval:
             assert seconds <= 600, f"{name} interval too long: {seconds}s"
 
 
+class TestSafeFetchLogic:
+    """Tests for the _safe_fetch helper and parallel gather pattern."""
+
+    def test_safe_fetch_returns_fallback_on_error(self):
+        """_safe_fetch should return fallback when the coroutine raises."""
+        import asyncio
+
+        async def _failing_coro():
+            raise RuntimeError("boom")
+
+        async def _run():
+            from custom_components.ai_home_copilot.coordinator import (
+                CopilotDataUpdateCoordinator,
+            )
+
+            result = await CopilotDataUpdateCoordinator._safe_fetch(
+                _failing_coro, fallback={"default": True}
+            )
+            assert result == {"default": True}
+
+        asyncio.get_event_loop().run_until_complete(_run())
+
+    def test_safe_fetch_returns_value_on_success(self):
+        """_safe_fetch should return the coroutine result on success."""
+        import asyncio
+
+        async def _good_coro():
+            return {"ok": True}
+
+        async def _run():
+            from custom_components.ai_home_copilot.coordinator import (
+                CopilotDataUpdateCoordinator,
+            )
+
+            result = await CopilotDataUpdateCoordinator._safe_fetch(
+                _good_coro, fallback={}
+            )
+            assert result == {"ok": True}
+
+        asyncio.get_event_loop().run_until_complete(_run())
+
+    def test_safe_fetch_passes_args_to_coroutine(self):
+        """_safe_fetch should forward positional arguments."""
+        import asyncio
+
+        async def _echo(path):
+            return {"path": path}
+
+        async def _run():
+            from custom_components.ai_home_copilot.coordinator import (
+                CopilotDataUpdateCoordinator,
+            )
+
+            result = await CopilotDataUpdateCoordinator._safe_fetch(
+                _echo, "/api/v1/test", fallback={}
+            )
+            assert result == {"path": "/api/v1/test"}
+
+        asyncio.get_event_loop().run_until_complete(_run())
+
+
+class TestHabitDataHelpers:
+    """Tests for the refactored habit data extraction helpers."""
+
+    def test_find_ml_context_returns_none_for_non_dict(self):
+        """_find_ml_context should return None when entry_data is not a dict."""
+        from unittest.mock import MagicMock
+
+        coord = MagicMock()
+        coord.hass.data = {"ai_home_copilot": "not_a_dict"}
+
+        from custom_components.ai_home_copilot.coordinator import (
+            CopilotDataUpdateCoordinator,
+        )
+
+        result = CopilotDataUpdateCoordinator._find_ml_context(coord)
+        assert result is None
+
+    def test_find_ml_context_returns_none_for_no_ml(self):
+        """_find_ml_context should return None when no ml_context exists."""
+        from unittest.mock import MagicMock
+
+        coord = MagicMock()
+        coord.hass.data = {"ai_home_copilot": {"entry1": {"other": "data"}}}
+
+        from custom_components.ai_home_copilot.coordinator import (
+            CopilotDataUpdateCoordinator,
+        )
+
+        result = CopilotDataUpdateCoordinator._find_ml_context(coord)
+        assert result is None
+
+    def test_build_habit_predictions_empty(self):
+        """_build_habit_predictions returns empty list for empty summary."""
+        from custom_components.ai_home_copilot.coordinator import (
+            CopilotDataUpdateCoordinator,
+        )
+
+        from unittest.mock import MagicMock
+
+        ml = MagicMock()
+        result = CopilotDataUpdateCoordinator._build_habit_predictions(ml, {})
+        assert result == []
+
+    def test_build_habit_sequences_empty(self):
+        """_build_habit_sequences returns empty list when no patterns exist."""
+        from custom_components.ai_home_copilot.coordinator import (
+            CopilotDataUpdateCoordinator,
+        )
+
+        from unittest.mock import MagicMock
+
+        predictor = MagicMock()
+        predictor.sequence_patterns = {}
+        result = CopilotDataUpdateCoordinator._build_habit_sequences(predictor)
+        assert result == []
+
+
 # Mark all tests as unit tests
 pytestmark = pytest.mark.unit
