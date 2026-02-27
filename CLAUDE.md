@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Projektueberblick
 
-**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 94+ Sensoren, 36 Module und Dashboard Cards in Home Assistant bereit.
+**PilotSuite Styx** ist eine Home Assistant Custom Integration, verteilt ueber HACS. Sie verbindet sich mit dem PilotSuite Core Add-on (Port 8909) und stellt 94+ Sensoren, 35 Module und Dashboard Cards in Home Assistant bereit.
 
 **Gegenstueck:** [pilotsuite-styx-core](../pilotsuite-styx-core) -- Core Add-on (Backend, Brain Graph, Habitus, Mood Engine). Endpoint-/Payload-/Auth-Aenderungen muessen integrationskompatibel bleiben. Version in `manifest.json` muss mit Release-Tag uebereinstimmen.
 
@@ -40,9 +40,6 @@ bandit -r custom_components/ai_home_copilot -ll --skip B101,B404,B603
 
 # JSON/strings.json validieren
 python -c "import json; json.load(open('custom_components/ai_home_copilot/strings.json'))"
-
-# HACS validieren (lokal)
-hacs validate custom_components/ai_home_copilot
 ```
 
 ---
@@ -54,7 +51,7 @@ hacs validate custom_components/ai_home_copilot
 ```
 Home Assistant
 +-- HACS Integration (ai_home_copilot)      <-- dieses Repo
-|     36 Module, 115+ Entities, 94+ Sensoren
+|     35 Module, 115+ Entities, 94+ Sensoren
 |     HTTP REST + Webhook (Token-Auth)
 |     v
 +-- Core Add-on (copilot_core) Port 8909    <-- separates Repo
@@ -63,25 +60,25 @@ Home Assistant
 
 ### 4-Tier Modul-System
 
-36 Module in `__init__.py` (`_MODULE_IMPORTS` + `MODULE_TIERS`), geladen via `core/runtime.py`:
+35 Module in `__init__.py` (`_MODULE_IMPORTS` + `_TIER_*` Listen), geladen via `core/runtime.py`:
 
 ```
 TIER 0 — KERNEL (6 Module, kein Opt-Out)
-  legacy, coordinator_module, performance_scaling, events_forwarder, entity_tags, history_backfill
+  legacy, coordinator_module, performance_scaling, events_forwarder, entity_tags, brain_graph_sync
 
 TIER 1 — BRAIN (11 Module, immer wenn Core erreichbar)
-  brain_graph_sync, knowledge_graph_sync, habitus_miner, candidate_poller,
-  mood, mood_context, zone_sync, entity_discovery, automation_adoption, dev_surface, ops_runbook
+  knowledge_graph_sync, habitus_miner, candidate_poller, mood, mood_context,
+  zone_sync, history_backfill, entity_discovery, scene_module, person_tracking, automation_adoption
 
 TIER 2 — KONTEXT (7 Module, nur wenn relevante Entities vorhanden)
   energy_context, weather_context, media_zones, camera_context, network, ml_context, voice_context
 
 TIER 3 — ERWEITERUNGEN (11 Module, explizit aktivieren)
-  scene_module, homekit_bridge, frigate_bridge, calendar_module, home_alerts,
-  character_module, waste_reminder, birthday_reminder, unifi_module, quick_search, person_tracking
+  homekit_bridge, frigate_bridge, calendar_module, home_alerts, character_module,
+  waste_reminder, birthday_reminder, dev_surface, ops_runbook, unifi_module, quick_search
 ```
 
-Neue Module: `CopilotModule`-Interface aus `core/modules/module.py` implementieren, in `_MODULE_IMPORTS` + `MODULE_TIERS` eintragen.
+Neue Module: `CopilotModule`-Interface aus `core/modules/module.py` implementieren, in `_MODULE_IMPORTS` + passende `_TIER_*` Liste eintragen. Boot-Reihenfolge: T0 → T1 → T2 → T3.
 
 ### Coordinator Pattern
 
@@ -94,16 +91,33 @@ Neue Module: `CopilotModule`-Interface aus `core/modules/module.py` implementier
 
 ### Entity-Erstellung (sensor.py)
 
-Entities werden in `sensor.py:async_setup_entry()` tiered erstellt:
+Entities werden in `sensor.py:async_setup_entry()` tiered erstellt (spiegelt Modul-Tiers):
 - **TIER 0 (KERNEL)**: Immer — Version, API Status, Pipeline Health, LLM Health, System Health (15 Sensoren)
 - **TIER 1 (BRAIN)**: Immer — 8 Mood-Sensoren, Brain Graph, Habitus, Neuron Layer (16 Sensoren)
 - **TIER 2 (KONTEXT)**: Bedingt — Events Forwarder, Media, Camera, UniFi, Weather, Energy (je nach vorhandenen Entities)
 - **TIER 3**: Feature-Sensoren (Anomaly, Prediction, Intelligence, etc.)
 
+### Config Flow Architektur
+
+3 Setup-Pfade (Zero Config / Quick Start / Manual), aufgeteilt in 10 Dateien:
+
+| Datei | Verantwortung |
+|-------|---------------|
+| `config_flow.py` | Haupt-ConfigFlow + OptionsFlow Entry Points |
+| `config_options_flow.py` | 29 Options-Flow Steps mit `_effective_config()` |
+| `config_wizard_steps.py` | 7 Quick-Start Wizard Steps (Discovery → Zones → Entities → Features → Network → Review) |
+| `config_zones_flow.py` | Zonen-Verwaltung (CRUD) innerhalb Options-Flow |
+| `config_tags_flow.py` | Entity-Tag-Verwaltung innerhalb Options-Flow |
+| `config_schema_builders.py` | Volselect/Schema-Builder fuer dynamische Formulare |
+| `config_helpers.py` | Shared Utilities (Validierung, Konvertierung) |
+| `config_snapshot.py` | Config-Snapshot Datenklassen |
+| `config_snapshot_flow.py` | Snapshot Export/Import Flow |
+| `config_snapshot_store.py` | Snapshot Persistenz |
+
 ### Auto-Setup (v10.4.1)
 
-Drei neue Dateien fuer Zero-Config Onboarding:
-- **`auto_setup.py`**: Erstellt Habitus-Zonen aus HA Areas + taggt Entities automatisch. Aufgerufen einmalig nach Config-Entry-Erstellung. Run-once Guard via `_auto_setup_done`.
+Drei Dateien fuer Zero-Config Onboarding:
+- **`auto_setup.py`**: Erstellt Habitus-Zonen aus HA Areas + taggt Entities automatisch. Run-once Guard via `_auto_setup_done`.
 - **`entity_classifier.py`**: 4-Signal ML-Classifier (domain → device_class → UOM → keywords). Confidence-Kaskade: 0.9 > 0.8 > 0.75 > 0.6.
 - **`panel_setup.py`**: Registriert Sidebar-Panel (iframe zu Core Ingress). Nutzt direkte Imports aus `homeassistant.components.frontend`.
 
@@ -144,6 +158,10 @@ from homeassistant.helpers import device_registry as dr
 entity_reg = er.async_get(hass)
 ```
 
+### Config Defaults (`const.py`)
+
+`DEFAULTS_MAP` (62+ Keys) ist die zentrale Single Source of Truth fuer alle Config-Defaults. `ensure_defaults(config)` garantiert, dass jeder Config-Eintrag einen Wert hat — kritisch fuer Migration und ZeroConfig-Kompatibilitaet.
+
 ### Code-Stil
 
 - Python asyncio (async/await)
@@ -155,11 +173,24 @@ entity_reg = er.async_get(hass)
 
 ---
 
+## Tests
+
+Tests in `tests/` mit pytest. `conftest.py` stellt globale HA-Mocks bereit:
+
+- **`SubscriptableMagicMock`**: Unterstuetzt `Type[Generic]`-Subscripting fuer HA-Typen
+- **`MockCoordinatorEntity`**: Echte Basisklasse (kein MagicMock), damit Entities davon erben koennen
+- **`MockRepairsFlow`**: Echte Basisklasse fuer Repair-Flow-Tests
+- **10 Mock-Entity-Klassen**: `MockSensorEntity`, `MockBinarySensorEntity`, `MockButtonEntity`, `MockSelectEntity`, `MockSwitchEntity`, `MockNumberEntity`, `MockTextEntity`, `MockMediaPlayerEntity`, `MockCamera`, `MockCalendarEntity`
+
+Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen.
+
+---
+
 ## Aktueller Stand (v10.4.1)
 
 - **Tests:** 579+ passed, 5 skipped
 - **Python-Dateien:** 329 (alle kompilieren sauber)
-- 36 Module in 4 Tiers, alle mit Status-Tracking via `ModuleStatusSensor`
+- 35 Module in 4 Tiers, alle mit Status-Tracking via `ModuleStatusSensor`
 - 115+ Entities (100+ Sensoren, 22+ Buttons, Numbers, Selects), 22+ Dashboard Cards
 - 8 Mood-Sensoren v3.0 (State, Confidence, Comfort, Joy, Energy, Stress, Frugality, NeuronActivity)
 - 14 Kontext-Neuronen + NeuronLayerSensor + NeuronTagResolver (4-Phasen Multi-Layer Pipeline)
@@ -174,12 +205,13 @@ entity_reg = er.async_get(hass)
 
 - Aenderungen am DOMAIN-String `ai_home_copilot` sind **NICHT** erlaubt
 - Neue Entities muessen `CopilotBaseEntity` verwenden + `DeviceInfo` Dataclass
-- Neue Module: `CopilotModule`-Interface implementieren, in `_MODULE_IMPORTS` + `MODULE_TIERS` eintragen
+- Neue Module: `CopilotModule`-Interface implementieren, in `_MODULE_IMPORTS` + `_TIER_*` Liste eintragen
 - Alle unique_ids mit Prefix `ai_home_copilot_`
 - Neue Sensoren in `sensor.py:async_setup_entry()` im korrekten Tier instantiieren
 - HA Registry: **nur** `from homeassistant.helpers import ...` Pattern, **nie** `hass.helpers.*`
 - Frontend-Zugriff: **nur** `from homeassistant.components.frontend import ...`, **nie** `hass.components.*`
-- Tests in `/tests/` mit pytest
+- Neue Config-Optionen: Key in `DEFAULTS_MAP` (const.py) eintragen + `ensure_defaults()` testen
+- Tests: Mock-Klassen aus `conftest.py` verwenden, keine eigenen HA-Mocks
 - Dokumentation in Deutsch bevorzugt
 
 ### Projektprinzipien
@@ -210,15 +242,18 @@ entity_reg = er.async_get(hass)
 | `custom_components/ai_home_copilot/coordinator.py` | DataUpdateCoordinator + CopilotApiClient |
 | `custom_components/ai_home_copilot/sensor.py` | Entity-Erstellung (Tier 0-3) |
 | `custom_components/ai_home_copilot/entity.py` | CopilotBaseEntity Basisklasse |
-| `custom_components/ai_home_copilot/const.py` | Alle Konstanten und Defaults |
+| `custom_components/ai_home_copilot/const.py` | Alle Konstanten, DEFAULTS_MAP (62+ Keys) |
 | `custom_components/ai_home_copilot/config_flow.py` | 3 Setup-Pfade (Zero/Quick/Manual) |
+| `custom_components/ai_home_copilot/config_options_flow.py` | 29 Options-Flow Steps |
+| `custom_components/ai_home_copilot/config_wizard_steps.py` | 7-Step Quick-Start Wizard |
 | `custom_components/ai_home_copilot/forwarder_n3.py` | N3 Event Forwarder (Batching, PII) |
 | `custom_components/ai_home_copilot/auto_setup.py` | Zero-Config Zonen + Tags |
 | `custom_components/ai_home_copilot/entity_classifier.py` | 4-Signal ML Entity Classifier |
 | `custom_components/ai_home_copilot/panel_setup.py` | Sidebar Panel Registration |
-| `custom_components/ai_home_copilot/core/runtime.py` | Modul-Lifecycle + Registry |
+| `custom_components/ai_home_copilot/core/runtime.py` | Modul-Lifecycle + ModuleStatus State Machine |
 | `custom_components/ai_home_copilot/core/modules/entity_tags_module.py` | NeuronTagResolver |
 | `custom_components/ai_home_copilot/habitus_zones_store_v2.py` | Zone Store |
 | `custom_components/ai_home_copilot/sensors/mood_sensor.py` | 8 Mood-Sensoren v3.0 |
 | `custom_components/ai_home_copilot/sensors/neurons_14.py` | 14 Neuron-Sensoren |
+| `tests/conftest.py` | Globale HA-Mocks + Mock-Entity-Klassen |
 | `docs/ARCHITECTURE.md` | Vollstaendige Architektur-Dokumentation |
