@@ -232,7 +232,8 @@ ENTITY_PROFILES = [ENTITY_PROFILE_CORE, ENTITY_PROFILE_FULL]
 DEFAULT_ENTITY_PROFILE = ENTITY_PROFILE_FULL
 
 # Legacy YAML dashboards default (Lovelace YAML files under /config/pilotsuite-styx/).
-DEFAULT_LEGACY_YAML_DASHBOARDS = True
+# Default: disabled. The React/Core dashboard is the primary UI.
+DEFAULT_LEGACY_YAML_DASHBOARDS = False
 
 # Suggestion Panel
 CONF_SUGGESTION_PANEL_ENABLED = "suggestion_panel_enabled"
@@ -340,13 +341,21 @@ DEFAULT_ZONE_AUTOMATION_CIRCADIAN_ENABLED = True
 DEFAULT_ZONE_AUTOMATION_MEDIA_FOLLOW = True
 DEFAULT_ZONE_AUTOMATION_AUTO_TAG = True
 
-# Brightness threshold (0% = ignore, 100% = always on)
+# Brightness threshold (0% = ignore zone brightness, 100% = always on)
 CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD = "zone_automation_brightness_threshold"
 DEFAULT_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD = 50  # percent
 
 # Presence grace period configurable per zone
 CONF_ZONE_AUTOMATION_GRACE_PERIOD_S = "zone_automation_grace_period_s"
 DEFAULT_ZONE_AUTOMATION_GRACE_PERIOD_S = 300  # 5 min default
+
+# Sun occlusion transient filter: ignore brief outdoor brightness drops (cloud passing)
+CONF_ZONE_AUTOMATION_SUN_FILTER_SECONDS = "zone_automation_sun_filter_seconds"
+DEFAULT_ZONE_AUTOMATION_SUN_FILTER_SECONDS = 120  # 2 min — ignore dips shorter than this
+
+# Relative brightness mode: use outdoor/indoor ratio instead of absolute lux
+CONF_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS = "zone_automation_relative_brightness"
+DEFAULT_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS = True
 
 LIGHT_MODE_AUTO = "auto"
 LIGHT_MODE_MANUAL = "manual"
@@ -522,6 +531,8 @@ DEFAULTS_MAP: dict[str, object] = {
     CONF_ZONE_AUTOMATION_AUTO_TAG: DEFAULT_ZONE_AUTOMATION_AUTO_TAG,
     CONF_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD: DEFAULT_ZONE_AUTOMATION_BRIGHTNESS_THRESHOLD,
     CONF_ZONE_AUTOMATION_GRACE_PERIOD_S: DEFAULT_ZONE_AUTOMATION_GRACE_PERIOD_S,
+    CONF_ZONE_AUTOMATION_SUN_FILTER_SECONDS: DEFAULT_ZONE_AUTOMATION_SUN_FILTER_SECONDS,
+    CONF_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS: DEFAULT_ZONE_AUTOMATION_RELATIVE_BRIGHTNESS,
 }
 
 

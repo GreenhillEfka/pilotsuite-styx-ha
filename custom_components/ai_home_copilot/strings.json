@@ -42,11 +42,19 @@
         "description": "Configure entities for {zone_count} selected zones. {hint}"
       },
       "wizard_entities": {
-        "title": "Media Players",
-        "description": "Select your media players for music and TV control.",
+        "title": "Geräte & Entitäten",
+        "description": "Wähle die relevanten Geräte aus deinem Smart Home. Nur passende Geräteklassen werden angezeigt.",
         "data": {
-          "music_players": "Music players",
-          "tv_players": "TV players"
+          "music_players": "Musik-Lautsprecher",
+          "tv_players": "TV / Fernseher",
+          "lights": "Lichter",
+          "motion_sensors": "Bewegungsmelder",
+          "temperature_sensors": "Temperatursensoren",
+          "brightness_sensors": "Helligkeitssensoren",
+          "humidity_sensors": "Luftfeuchtesensoren",
+          "climate_devices": "Heizung / Klima",
+          "cover_devices": "Rollos / Jalousien",
+          "person_entities": "Haushaltsmitglieder (Personen)"
         }
       },
       "wizard_features": {
@@ -323,14 +331,28 @@
       },
       "module_zone_automation": {
         "title": "Zone Automation",
-        "description": "Configure brightness threshold and presence grace period for zone automation.",
+        "description": "Zone-based lighting, presence timeout and brightness control. Use the sliders to tune behavior per zone.",
         "data": {
+          "zone_automation_enabled": "Enable zone automation",
+          "zone_automation_light_mode": "Light mode",
           "zone_automation_brightness_threshold": "Brightness threshold (%)",
-          "zone_automation_grace_period_s": "Presence grace period (seconds)"
+          "zone_automation_presence_timeout": "Presence timeout (seconds)",
+          "zone_automation_grace_period_s": "Grace period after timeout (seconds)",
+          "zone_automation_target_lux": "Target illuminance (lux)",
+          "zone_automation_outdoor_sensor": "Outdoor brightness sensor",
+          "zone_automation_relative_brightness": "Use relative brightness (outdoor/indoor ratio)",
+          "zone_automation_sun_filter_seconds": "Sun occlusion filter (seconds)"
         },
         "data_description": {
-          "zone_automation_brightness_threshold": "Controls how sensitive the zone light automation reacts to brightness changes. 0% = brightness is ignored, 100% = lights always turn on when occupied (default: 50%).",
-          "zone_automation_grace_period_s": "Seconds after last detected presence before the zone is considered vacant and automations (lights, heating) switch to eco mode (default: 300s = 5 min)."
+          "zone_automation_enabled": "Enable automatic zone lighting and presence-based automation.",
+          "zone_automation_light_mode": "Light control mode: auto (PilotSuite decides), manual (user only), circadian (day/night cycle), presence_only (lights on/off by motion).",
+          "zone_automation_brightness_threshold": "Normalized threshold 0-100%. 0% = zone brightness is ignored (no auto-lights). 100% = lights always on when zone is occupied. The slider controls how sensitive the system reacts to brightness changes.",
+          "zone_automation_presence_timeout": "Seconds after the last detected motion/presence before the zone is considered vacant. Increase this to avoid lights turning off too quickly (default: 300s = 5 min).",
+          "zone_automation_grace_period_s": "Additional seconds after presence timeout before automations (lights, heating) switch to eco mode. This is the buffer period (default: 300s).",
+          "zone_automation_target_lux": "Target illuminance level in lux. The system tries to maintain this brightness via dimming/switching (default: 300 lux).",
+          "zone_automation_outdoor_sensor": "Optional outdoor brightness sensor (lux). Used for relative brightness mode to compare indoor vs outdoor light levels.",
+          "zone_automation_relative_brightness": "Use outdoor/indoor brightness ratio instead of absolute lux values. This prevents false triggers when clouds briefly block the sun — the ratio stays stable even when absolute values drop.",
+          "zone_automation_sun_filter_seconds": "Transient filter: ignore outdoor brightness drops shorter than this duration (e.g. cloud passing over the sun). Prevents lights from flickering on/off during brief weather changes (default: 120s = 2 min)."
         }
       },
       "module_ha_errors": {

@@ -363,11 +363,14 @@ def generate_zones_schema(zones: List[Dict]) -> vol.Schema:
         }),
     })
 
-# Entity selection schema
+# Entity selection schema — filter by relevant device classes only
 SCHEMA_ENTITIES = vol.Schema({
     vol.Optional("music_players", default=[]): selector({
         "entity": {
-            "filter": [{"domain": "media_player"}],
+            "filter": [
+                {"domain": "media_player", "device_class": "speaker"},
+                {"domain": "media_player", "device_class": "receiver"},
+            ],
             "multiple": True,
         }
     }),
@@ -380,6 +383,58 @@ SCHEMA_ENTITIES = vol.Schema({
     vol.Optional("lights", default=[]): selector({
         "entity": {
             "filter": [{"domain": "light"}],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("motion_sensors", default=[]): selector({
+        "entity": {
+            "filter": [
+                {"domain": "binary_sensor", "device_class": "motion"},
+                {"domain": "binary_sensor", "device_class": "presence"},
+                {"domain": "binary_sensor", "device_class": "occupancy"},
+            ],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("temperature_sensors", default=[]): selector({
+        "entity": {
+            "filter": [
+                {"domain": "sensor", "device_class": "temperature"},
+            ],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("brightness_sensors", default=[]): selector({
+        "entity": {
+            "filter": [
+                {"domain": "sensor", "device_class": "illuminance"},
+            ],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("humidity_sensors", default=[]): selector({
+        "entity": {
+            "filter": [
+                {"domain": "sensor", "device_class": "humidity"},
+            ],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("climate_devices", default=[]): selector({
+        "entity": {
+            "filter": [{"domain": "climate"}],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("cover_devices", default=[]): selector({
+        "entity": {
+            "filter": [{"domain": "cover"}],
+            "multiple": True,
+        }
+    }),
+    vol.Optional("person_entities", default=[]): selector({
+        "entity": {
+            "filter": [{"domain": "person"}],
             "multiple": True,
         }
     }),
