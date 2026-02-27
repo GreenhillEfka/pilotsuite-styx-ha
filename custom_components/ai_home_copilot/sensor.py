@@ -63,6 +63,11 @@ from .pipeline_health_entities import PipelineHealthSensor
 from .sensors.mood_sensor import (
     MoodSensor,
     MoodConfidenceSensor,
+    MoodComfortSensor,
+    MoodJoySensor,
+    MoodEnergySensor,
+    MoodStressSensor,
+    MoodFrugalitySensor,
     NeuronActivitySensor,
 )
 from .sensors.voice_context import (
@@ -226,9 +231,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     # ── TIER 1: BRAIN — always created (intelligence layer) ──────
     entities.extend([
-        # Mood Sensors (Neural System)
+        # Mood Sensors (Neural System v3.0 — 6 discrete + 5 continuous)
         MoodSensor(coordinator),
         MoodConfidenceSensor(coordinator),
+        MoodComfortSensor(coordinator),
+        MoodJoySensor(coordinator),
+        MoodEnergySensor(coordinator),
+        MoodStressSensor(coordinator),
+        MoodFrugalitySensor(coordinator),
         NeuronActivitySensor(coordinator),
         # Brain Graph & Habitus
         BrainGraphSummarySensor(coordinator),

@@ -732,8 +732,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Remove PilotSuite sidebar panel (v10.4.0)
     try:
-        from .panel_setup import async_remove_panel
-        await async_remove_panel(hass)
+        from .panel_setup import async_remove_panel_entry
+        await async_remove_panel_entry(hass)
     except Exception:
         _LOGGER.debug("Could not remove PilotSuite sidebar panel", exc_info=True)
 
