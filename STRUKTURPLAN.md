@@ -1,10 +1,10 @@
-# PilotSuite Styx — Strukturplan v9.2.0
+# PilotSuite Styx — Strukturplan (Soll/Ist-Abgleich v10.4.0)
 
 ## 1. IST-Zustand: Kritische Analyse
 
 ### 1.1 Module (HA Integration — `_MODULES` Boot-Kette)
 
-Die Integration bootet **28 Module** sequentiell. Scheitert eines, wird es stillschweigend uebersprungen.
+Die Integration bootet **36+ Module** sequentiell. Scheitert eines, wird es stillschweigend uebersprungen.
 
 | # | Modul | Systemkritisch | Status | Problem |
 |---|-------|----------------|--------|---------|
@@ -19,8 +19,8 @@ Die Integration bootet **28 Module** sequentiell. Scheitert eines, wird es still
 | 9 | `unifi_module` | Nein | OK | UniFi-Integration (optional) |
 | 10 | `brain_graph_sync` | JA | OK | Sync Brain Graph mit Core |
 | 11 | `candidate_poller` | JA | OK | Polling von Automations-Kandidaten |
-| 12 | `automation_adoption` | Nein | NEU v9.1 | HA-Automationen uebernehmen |
-| 13 | `zone_sync` | JA | NEU v9.1 | Bidirektionaler Zonen-Sync HA↔Core |
+| 12 | `automation_adoption` | Nein | OK | HA-Automationen uebernehmen (seit v9.1) |
+| 13 | `zone_sync` | JA | OK | Bidirektionaler Zonen-Sync HA↔Core (seit v9.1) |
 | 14 | `media_zones` | Nein | OK | Media Player / Musikwolke |
 | 15 | `mood` | JA | OK | Stimmungs-Engine |
 | 16 | `mood_context` | JA | OK | Stimmungs-Kontext fuer Entscheidungen |
@@ -37,20 +37,22 @@ Die Integration bootet **28 Module** sequentiell. Scheitert eines, wird es still
 | 27 | `waste_reminder` | Nein | OK | Muellabfuhr-Erinnerungen |
 | 28 | `birthday_reminder` | Nein | OK | Geburtstags-Erinnerungen |
 | 29 | `entity_tags` | **JA** | OK | Tag-System (Basis fuer Neuronenzuordnung) |
-| 30 | `entity_discovery` | JA | NEU v9.1 | Entity-Erkennung mit Geraete-Details |
+| 30 | `entity_discovery` | JA | OK | Entity-Erkennung mit Geraete-Details (seit v9.1) |
 | 31 | `person_tracking` | Nein | OK | Personen-Tracking |
 | 32 | `frigate_bridge` | Nein | OK | Frigate NVR |
 | 33 | `scene_module` | Nein | OK | Szenen-Vorschlaege |
 | 34 | `homekit_bridge` | Nein | OK | HomeKit-Export |
 | 35 | `calendar_module` | Nein | OK | Kalender-Integration |
+| 36 | `auto_setup` | Nein | OK | Automatisches Onboarding (NEU v10.4) |
+| 37 | `entity_classifier` | JA | OK | Entity-Klassifikation und Typ-Erkennung (NEU v10.4) |
+| 38 | `panel_setup` | Nein | OK | Sidebar-Panel Registrierung (NEU v10.4) |
 
-### 1.2 Sensor-Entities (aktuell ~120+ Sensoren)
+### 1.2 Sensor-Entities (optimiert)
 
-**Problem: Massiver Entity-Bloat.** Jede Instanz erzeugt 120+ Sensor-Entities, viele davon sind:
-- Immer `unknown`/`unavailable` (z.B. Fuel Price ohne Tankstellen-API)
-- Duplikate (z.B. Habitus Zones v1 + v2 parallel)
-- Debug-Only (Inspector-Sensoren)
-- Hardware-spezifisch aber immer erstellt (Z-Wave/Zigbee Mesh ohne Mesh)
+**Entity Audit aus v9.2.0: ✅ ABGESCHLOSSEN**
+- ~24 always-unknown Sensoren entfernt
+- Bedingte Entity-Erstellung implementiert (nur wenn Modul aktiv)
+- Entity-Count optimiert
 
 **Kategorisierung aller Sensoren:**
 
@@ -103,35 +105,35 @@ Die Integration bootet **28 Module** sequentiell. Scheitert eines, wird es still
 
 **Einsparung: ~40 Entities weniger pro Instanz**
 
-### 1.3 Config Flow / Options Flow Probleme
+### 1.3 Config Flow / Options Flow
 
-| Problem | Detail |
+| Problem | Status |
 |---------|--------|
-| Quick Guide | **GEFIXT** — Wizard-Step-Handler fehlten, jetzt implementiert |
-| Rekonfiguration | Bestehende Werte werden nicht vorbelegt (z.B. Ollama-Host) |
-| Unbeschriftete Optionen | `_clear_token`, Entity-Selektoren ohne description |
-| Neuronensystem | Manuelle Entity-Zuweisung statt Tag-basiert |
-| Ollama/SearXNG | **GEFIXT** — Jetzt als separate Host/Port in Options Flow |
+| Quick Guide | ✅ DONE — Wizard-Step-Handler implementiert |
+| Rekonfiguration | ✅ DONE — v10.2.0: `_effective_config()` mit Value Preservation |
+| Unbeschriftete Optionen | ✅ DONE — 29/29 Steps mit `data_description` |
+| Neuronensystem | ✅ DONE — NeuronTagResolver auto-assigns aus Tags |
+| Ollama/SearXNG | ✅ DONE — Separate Host/Port in Options Flow |
 
 ### 1.4 Dashboard (Core) — Tab-Struktur
 
-Aktuell 8 Tabs mit teilweise chaotischer Struktur:
+Aktuell 7 Tabs mit klarer Struktur:
 
-| Tab | Inhalt | Problem |
-|-----|--------|---------|
-| Styx (Chat) | Chat + Brain Graph + Vorschlaege | OK, aber Brain Graph nicht visualisiert |
+| Tab | Inhalt | Status |
+|-----|--------|--------|
+| Styx (Chat) | Chat + Brain Graph + Vorschlaege | OK |
 | Habitus | Zonen + Regeln | OK |
-| Stimmung | Mood + Trend | Chart-Daten fehlen oft |
-| Module | 21 Module-Kacheln | Keine Unterscheidung System/Optional |
+| Stimmung | Mood + Trend | OK |
+| Module | Tier-sortierte Module-Kacheln | OK |
 | System | Health + Diagnostik | OK |
 | Haushalt | Muell + Geburtstage + Kalender | OK |
-| Settings | LLM + Modelle + Routing + API | Zu viele Karten, unstrukturiert |
+| Settings | LLM + Modelle + Routing + API | OK |
 
 ---
 
 ## 2. SOLL-Architektur: Strukturplan
 
-### 2.1 Modul-Klassifikation: System vs. Optional
+### 2.1 Modul-Klassifikation: System vs. Optional — ✅ UMGESETZT (4-Tier-System aktiv seit v9.2.0)
 
 ```
 TIER 0 — KERNEL (immer laden, kein Opt-Out)
@@ -172,16 +174,19 @@ TIER 3 — ERWEITERUNGEN (explizit aktivieren)
 ├── waste_reminder      Muellabfuhr
 ├── birthday_reminder   Geburtstage
 ├── automation_adoption HA-Automationen uebernehmen
+├── auto_setup          Automatisches Onboarding (NEU v10.4)
+├── entity_classifier   Entity-Klassifikation (NEU v10.4)
+├── panel_setup         Sidebar-Panel (NEU v10.4)
 ├── dev_surface         Debug-Oberflaeche
 ├── ops_runbook         Betriebshandbuch
 ├── unifi_module        UniFi Advanced
 └── quick_search        Entity-Schnellsuche
 ```
 
-### 2.2 Neuronensystem: Tag-basierte Auto-Zuordnung
+### 2.2 Neuronensystem: Tag-basierte Auto-Zuordnung — ✅ UMGESETZT (NeuronTagResolver mit 40+ bilingualen Patterns)
 
-**Aktuell:** Manuelle Entity-Listen in der Config (CONF_NEURON_CONTEXT_ENTITIES etc.)
-**Neu:** Tag-basiertes System mit automatischer Uebernahme
+**Vorher:** Manuelle Entity-Listen in der Config (CONF_NEURON_CONTEXT_ENTITIES etc.)
+**Jetzt:** Tag-basiertes System mit automatischer Uebernahme
 
 #### Konzept: Tag → Neuron Mapping
 
@@ -288,9 +293,9 @@ class NeuronTagResolver:
    └→ Entities ohne Zuordnung aber mit relevantem Tag (z.B. "Licht")
 ```
 
-### 2.3 Dashboard-Redesign (Core)
+### 2.3 Dashboard-Redesign (Core) — ✅ TEILWEISE UMGESETZT (7-Tab Layout aktiv, Sidebar-Panel hinzugefuegt in v10.4.0)
 
-#### Neues Tab-Layout (7 Tabs, sauber strukturiert)
+#### Tab-Layout (7 Tabs, sauber strukturiert)
 
 ```
 TAB 1: UEBERSICHT (Home)
@@ -366,9 +371,7 @@ TAB 7: SYSTEM
 └── HA Entity Discovery (Status + Export)
 ```
 
-### 2.4 Core Add-on: Service-Architektur (IST)
-
-Der Core initialisiert **41 Services** und registriert **51+ Blueprints**.
+### 2.4 Core Add-on: Service-Architektur (IST) — ✅ UMGESETZT (41 Services, 51+ Blueprints)
 
 #### Systemkritische Core-Services (Tier 0+1)
 | Service | Funktion | Abhaengigkeiten |
@@ -426,7 +429,7 @@ Tab 6: Haushalt   — Familie, Praesenz
 Tab 7: Settings   — LLM, Routing, Modelle, Empfohlene, Modell-Verwaltung, API, Memory, RAG
 ```
 
-### 2.5 Brain Graph + Neuronenlayer Visualisierung
+### 2.5 Brain Graph + Neuronenlayer Visualisierung — ✅ UMGESETZT (Canvas Renderer, 3-Ring-Visualisierung)
 
 #### Brain Graph (Canvas-basiert)
 ```javascript
@@ -510,7 +513,7 @@ class NeuronLayerRenderer {
 }
 ```
 
-### 2.5 Options Flow: Rekonfiguration mit vorhandenen Werten
+### 2.6 Options Flow: Rekonfiguration mit vorhandenen Werten — ✅ UMGESETZT (alle Felder beschriftet, Tag-Auto-Resolve)
 
 ```python
 # Problem: Bei Rekonfiguration sind bestehende Werte nicht vorbelegt
@@ -545,34 +548,34 @@ async def async_step_neurons(self, user_input=None):
 
 ---
 
-## 3. Implementierungsplan (Phasen)
+## 3. Implementierungsplan (Phasen) — ALLE ABGESCHLOSSEN
 
-### Phase 1: Aufraemen (v9.2.0-alpha) — 2 Tage
-- [ ] Entity-Audit: Entferne ~40 Always-Unknown Sensoren
-- [ ] Entity-Erstellung bedingt machen (nur wenn Modul aktiv)
-- [ ] Options Flow: Bestehende Werte korrekt vorbelegen
-- [ ] Options Flow: Alle Felder beschriften (strings.json)
-- [ ] Dashboard-Tabs neu ordnen (s. 2.3)
+### Phase 1: Aufraemen (v9.2.0-alpha) — ✅ ABGESCHLOSSEN
+- [x] Entity-Audit: ~24 Always-Unknown Sensoren entfernt
+- [x] Entity-Erstellung bedingt machen (nur wenn Modul aktiv)
+- [x] Options Flow: Bestehende Werte korrekt vorbelegen (`_effective_config()`)
+- [x] Options Flow: Alle Felder beschriften (29/29 Steps mit `data_description`)
+- [x] Dashboard-Tabs neu ordnen (7-Tab Layout)
 
-### Phase 2: Tag-basiertes Neuronensystem (v9.2.0-beta) — 3 Tage
-- [ ] `NeuronTagResolver` in entity_tags_module.py
-- [ ] Automatische Tag-Vergabe bei Zonen-Erstellung
-- [ ] Automatische Device-Class → Neuron-Mapping
-- [ ] Tag-Uebernahme aus bestehenden HA-Labels
-- [ ] Options Flow: Neuronen auto-befuellt aus Tags
-- [ ] Dashboard: Neuronen-Zuordnungs-Ansicht
+### Phase 2: Tag-basiertes Neuronensystem (v9.2.0-beta) — ✅ ABGESCHLOSSEN
+- [x] `NeuronTagResolver` in entity_tags_module.py (40+ bilinguale Patterns)
+- [x] Automatische Tag-Vergabe bei Zonen-Erstellung
+- [x] Automatische Device-Class → Neuron-Mapping
+- [x] Tag-Uebernahme aus bestehenden HA-Labels
+- [x] Options Flow: Neuronen auto-befuellt aus Tags
+- [x] Dashboard: Neuronen-Zuordnungs-Ansicht
 
-### Phase 3: Visualisierung (v9.2.0-rc) — 2 Tage
-- [ ] Brain Graph Canvas-Renderer im Dashboard
-- [ ] Neuronenlayer 3-Ring-Visualisierung
-- [ ] Mood-Trend-Chart mit echten Daten
-- [ ] Modul-Status Timeline (letzte Aktivitaet)
+### Phase 3: Visualisierung (v9.2.0-rc) — ✅ ABGESCHLOSSEN
+- [x] Brain Graph Canvas-Renderer im Dashboard
+- [x] Neuronenlayer 3-Ring-Visualisierung
+- [x] Mood-Trend-Chart mit echten Daten
+- [x] Modul-Status Timeline (letzte Aktivitaet)
 
-### Phase 4: Modul-Klassifikation (v9.2.0) — 1 Tag
-- [ ] Tier 0/1/2/3 Klassifikation in __init__.py
-- [ ] Dashboard: Getrennte Darstellung System/Optional
-- [ ] Auto-Detection: Tier 2 Module automatisch aktivieren
-- [ ] Modul-Status-API: Letzter Run + Health + Entity-Count
+### Phase 4: Modul-Klassifikation (v9.2.0) — ✅ ABGESCHLOSSEN
+- [x] Tier 0/1/2/3 Klassifikation in __init__.py
+- [x] Dashboard: Getrennte Darstellung System/Optional
+- [x] Auto-Detection: Tier 2 Module automatisch aktivieren
+- [x] Modul-Status-API: Letzter Run + Health + Entity-Count
 
 ---
 
@@ -602,21 +605,21 @@ async def async_step_neurons(self, user_input=None):
 ## 5. Verbesserungsvorschlaege
 
 ### 5.1 Performance
-- **Lazy Entity Creation**: Nur Entities erstellen fuer aktive Module
-- **Batch-Updates**: Coordinator-Updates buendeln statt einzeln
-- **Entity-Caching**: Zonen-Aggregate nur bei Zustandsaenderung neu berechnen
+- **Lazy Entity Creation**: ✅ DONE — Nur Entities erstellen fuer aktive Module
+- **Batch-Updates**: ✅ DONE — Coordinator-Updates gebuendelt (Coordinator Batching)
+- **Entity-Caching**: OFFEN — Zonen-Aggregate nur bei Zustandsaenderung neu berechnen
 
 ### 5.2 UX
-- **Onboarding-Flow**: Nach Setup automatisch relevante Module aktivieren basierend auf vorhandenen Entities
-- **Status-Badges**: Jedes Modul zeigt klar "Aktiv/Inaktiv/Fehler"
-- **Tag-Editor**: Im Dashboard Tags visuell zuweisen (Drag & Drop)
+- **Onboarding-Flow**: ✅ DONE — Auto-Setup v10.4.0, automatische Modul-Aktivierung basierend auf vorhandenen Entities
+- **Status-Badges**: ✅ DONE — ModuleStatusSensor zeigt klar "Aktiv/Inaktiv/Fehler"
+- **Tag-Editor**: OFFEN (geplant) — Im Dashboard Tags visuell zuweisen (Drag & Drop)
 
 ### 5.3 Architektur
-- **Event-Bus Vereinheitlichung**: HA-seitiger EventBus der Module verbindet (statt jedes Modul einzeln)
-- **Config-Schema Validation**: Zentrale Schema-Validierung fuer alle Module
-- **Module-Dependencies**: Explizite Abhaengigkeiten statt impliziter Reihenfolge
+- **Event-Bus Vereinheitlichung**: ✅ DONE — EventBus v9.0.0, zentraler HA-seitiger EventBus verbindet Module
+- **Config-Schema Validation**: TEILWEISE — Zentrale Schema-Validierung fuer einige Module
+- **Module-Dependencies**: OFFEN — Explizite Abhaengigkeiten statt impliziter Reihenfolge (Dependency Graph)
 
-### 5.4 Tags als universelles Verbindungssystem
+### 5.4 Tags als universelles Verbindungssystem — ✅ DONE
 ```
 Tags sind der Schluessel zum gesamten System:
 - Habituszonen → vergeben Zone-Tags
@@ -630,3 +633,16 @@ Jede Entity kann beliebig viele Tags tragen.
 Tags werden automatisch (System) oder manuell (User) vergeben.
 Das Tag-System ist die gemeinsame Sprache aller Module.
 ```
+
+---
+
+## 6. Offene Punkte (v10.5.0+)
+
+| Thema | Beschreibung | Prioritaet |
+|-------|-------------|------------|
+| Tag-Editor im Dashboard | Drag & Drop Tag-Zuweisung, visueller Editor | Hoch |
+| Entity-Caching Optimierung | Zonen-Aggregate nur bei Zustandsaenderung neu berechnen | Mittel |
+| Explizite Modul-Dependencies | Dependency Graph statt impliziter Boot-Reihenfolge | Mittel |
+| WebSocket Echtzeit-Updates | Live-Push statt Polling fuer Dashboard-Daten | Hoch |
+| Voice-First Integration | Tiefere Anbindung an HA Assist fuer Sprachsteuerung | Niedrig |
+| Multi-Turn Conversation Context | Gespraechskontext ueber mehrere Interaktionen hinweg | Mittel |
