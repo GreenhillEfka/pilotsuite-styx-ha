@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Domain:** `ai_home_copilot` (technisch, **NICHT aendern**)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Mindestversion:** HA 2024.1.0+
-- **Version:** 10.4.1
+- **Version:** 10.4.2
 
 ---
 
@@ -114,7 +114,7 @@ Entities werden in `sensor.py:async_setup_entry()` tiered erstellt (spiegelt Mod
 | `config_snapshot_flow.py` | Snapshot Export/Import Flow |
 | `config_snapshot_store.py` | Snapshot Persistenz |
 
-### Auto-Setup (v10.4.1)
+### Auto-Setup (v10.4.2)
 
 Drei Dateien fuer Zero-Config Onboarding:
 - **`auto_setup.py`**: Erstellt Habitus-Zonen aus HA Areas + taggt Entities automatisch. Run-once Guard via `_auto_setup_done`.
@@ -186,7 +186,7 @@ Neue Tests muessen diese Mocks verwenden — **nicht** eigene HA-Mocks erstellen
 
 ---
 
-## Aktueller Stand (v10.4.1)
+## Aktueller Stand (v10.4.2)
 
 - **Tests:** 579+ passed, 5 skipped
 - **Python-Dateien:** 329 (alle kompilieren sauber)
