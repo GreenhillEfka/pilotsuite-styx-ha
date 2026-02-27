@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Domain:** `ai_home_copilot` (technisch, **NICHT aendern**)
 - **Sprache:** Python (asyncio, Home Assistant Framework)
 - **Mindestversion:** HA 2024.1.0+
-- **Version:** 10.4.0
+- **Version:** 10.4.1
 
 ---
 
@@ -100,7 +100,7 @@ Entities werden in `sensor.py:async_setup_entry()` tiered erstellt:
 - **TIER 2 (KONTEXT)**: Bedingt — Events Forwarder, Media, Camera, UniFi, Weather, Energy (je nach vorhandenen Entities)
 - **TIER 3**: Feature-Sensoren (Anomaly, Prediction, Intelligence, etc.)
 
-### Auto-Setup (v10.4.0)
+### Auto-Setup (v10.4.1)
 
 Drei neue Dateien fuer Zero-Config Onboarding:
 - **`auto_setup.py`**: Erstellt Habitus-Zonen aus HA Areas + taggt Entities automatisch. Aufgerufen einmalig nach Config-Entry-Erstellung. Run-once Guard via `_auto_setup_done`.
@@ -155,7 +155,7 @@ entity_reg = er.async_get(hass)
 
 ---
 
-## Aktueller Stand (v10.4.0)
+## Aktueller Stand (v10.4.1)
 
 - **Tests:** 579+ passed, 5 skipped
 - **Python-Dateien:** 329 (alle kompilieren sauber)
