@@ -207,6 +207,13 @@ async def async_generate_pilotsuite_dashboard(
         ),
         _resolve_entity(
             hass,
+            [
+                "button.ai_home_copilot_reload_lovelace_dashboards",
+                "button.pilotsuite_reload_lovelace_dashboards",
+            ],
+        ),
+        _resolve_entity(
+            hass,
             ["button.ai_home_copilot_forwarder_status", "button.pilotsuite_forwarder_status"],
         ),
         _resolve_entity(

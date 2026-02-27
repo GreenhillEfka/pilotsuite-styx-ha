@@ -49,6 +49,7 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
         calendar_states = self._hass.states.async_all("calendar")
         
         now = dt_util.now()
+        calendar_count = len(calendar_states)
         event_count = 0
         meetings_today = 0
         is_weekend = now.weekday() >= 5
@@ -57,7 +58,7 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
         calendar_context_data = None
         try:
             from ..module_connector import get_module_connector
-            entry_id = coordinator.config_entry.entry_id if hasattr(coordinator, 'config_entry') else "default"
+            entry_id = self.coordinator.config_entry.entry_id if hasattr(self.coordinator, 'config_entry') else "default"
             connector = await get_module_connector(self._hass, entry_id)
             calendar_context_data = connector.calendar_context.to_dict()
         except Exception:  # noqa: BLE001
@@ -66,26 +67,28 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
         # Try to get calendar events via service
         try:
             for cal in calendar_states:
-                if cal.state != "unknown":
+                # Count calendars that are "known" (available)
+                if cal.state not in ("unknown", "unavailable"):
                     event_count += 1
-                    
-                # Get actual events if available
-                try:
-                    result = await self._hass.services.async_call(
-                        "calendar",
-                        "get_events",
-                        {
-                            "entity_id": cal.entity_id,
-                            "start_date_time": now.isoformat(),
-                            "end_date_time": (now + timedelta(days=1)).isoformat(),
-                        },
-                        blocking=False,
-                    )
-                    if result and cal.entity_id in result:
-                        events = result[cal.entity_id].get("events", [])
+
+                # Fetch today's events (best effort). We keep this bounded: if the
+                # service fails or does not support return_response, we simply
+                # degrade to a coarse load estimation.
+                result = await self._hass.services.async_call(
+                    "calendar",
+                    "get_events",
+                    {
+                        "entity_id": cal.entity_id,
+                        "start_date_time": now.isoformat(),
+                        "end_date_time": (now + timedelta(days=1)).isoformat(),
+                    },
+                    blocking=True,
+                    return_response=True,
+                )
+                if isinstance(result, dict) and cal.entity_id in result:
+                    events = result[cal.entity_id].get("events", [])
+                    if isinstance(events, list):
                         meetings_today += len(events)
-                except Exception:  # noqa: BLE001
-                    pass
         except Exception as err:
             _LOGGER.debug("Error fetching calendar events: %s", err)
         
@@ -125,6 +128,7 @@ class CalendarLoadSensor(CoordinatorEntity, SensorEntity):
         
         self._attr_native_value = load
         self._attr_extra_state_attributes = {
+            "calendar_count": calendar_count,
             "event_count": event_count,
             "meetings_today": meetings_today,
             "hour": now.hour,

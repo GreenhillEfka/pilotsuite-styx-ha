@@ -117,6 +117,39 @@ class CopilotReloadConfigEntryButton(CopilotBaseEntity, ButtonEntity):
         await self.hass.config_entries.async_reload(self._entry_id)
 
 
+class CopilotReloadLovelaceDashboardsButton(CopilotBaseEntity, ButtonEntity):
+    """Reload Lovelace YAML dashboards/resources so regenerated YAML is visible."""
+
+    _attr_has_entity_name = False
+    _attr_name = "PilotSuite reload dashboards"
+    _attr_unique_id = "ai_home_copilot_reload_lovelace_dashboards"
+    _attr_icon = "mdi:view-dashboard-outline"
+
+    async def async_press(self) -> None:
+        # Best-effort: different HA versions expose different lovelace reload services.
+        called = False
+        for domain, service in (("lovelace", "reload"), ("lovelace", "reload_resources")):
+            if self.hass.services.has_service(domain, service):
+                await self.hass.services.async_call(domain, service, {}, blocking=False)
+                called = True
+                break
+
+        if called:
+            persistent_notification.async_create(
+                self.hass,
+                "Lovelace reload ausgelöst. Falls du das YAML-Dashboard offen hast: Browser-Reload.",
+                title="PilotSuite Dashboards",
+                notification_id="ai_home_copilot_lovelace_reload",
+            )
+        else:
+            persistent_notification.async_create(
+                self.hass,
+                "Kein Lovelace-Reload-Service gefunden. Bitte Home Assistant neu starten.",
+                title="PilotSuite Dashboards",
+                notification_id="ai_home_copilot_lovelace_reload",
+            )
+
+
 
 class CopilotGenerateHabitusDashboardButton(CopilotBaseEntity, ButtonEntity):
     _attr_has_entity_name = False
@@ -191,4 +224,3 @@ class CopilotDownloadPilotSuiteDashboardButton(CopilotBaseEntity, ButtonEntity):
                 title="PilotSuite PilotSuite dashboard",
                 notification_id="ai_home_copilot_pilotsuite_dashboard_download",
             )
-

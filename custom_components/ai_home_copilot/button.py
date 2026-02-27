@@ -45,6 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         async_add_entities(
             [
                 CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
+                CopilotReloadLovelaceDashboardsButton(coordinator),
                 CopilotPingCoreButton(coordinator, entry),
                 HabitusZonesV2ValidateButton(coordinator, entry),
                 CopilotGenerateHabitusDashboardButton(coordinator, entry),
@@ -65,6 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         CopilotGenerateConfigSnapshotButton(coordinator, entry),
         CopilotDownloadConfigSnapshotButton(coordinator),
         CopilotReloadConfigEntryButton(coordinator, entry.entry_id),
+        CopilotReloadLovelaceDashboardsButton(coordinator),
         CopilotGenerateHabitusDashboardButton(coordinator, entry),
         CopilotDownloadHabitusDashboardButton(coordinator, entry),
         CopilotGeneratePilotSuiteDashboardButton(coordinator, entry),
@@ -136,6 +138,7 @@ from .button_system import (
     CopilotGenerateConfigSnapshotButton,
     CopilotDownloadConfigSnapshotButton,
     CopilotReloadConfigEntryButton,
+    CopilotReloadLovelaceDashboardsButton,
     CopilotGenerateHabitusDashboardButton,
     CopilotDownloadHabitusDashboardButton,
     CopilotGeneratePilotSuiteDashboardButton,

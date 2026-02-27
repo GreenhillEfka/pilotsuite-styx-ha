@@ -177,11 +177,17 @@ def _as_bool(value: object, default: bool = False) -> bool:
 
 
 def _legacy_yaml_dashboards_enabled(entry: ConfigEntry) -> bool:
-    """Legacy YAML dashboard generation is opt-in (React dashboard is primary)."""
+    """Return True if Lovelace YAML dashboards should be generated/wired.
+
+    Vision / UX: zero-config installs should have dashboards available immediately.
+    Users can still disable this via the option `legacy_yaml_dashboards: false`.
+    """
     cfg = merged_entry_config(entry)
-    if "legacy_yaml_dashboards" in cfg:
-        return _as_bool(cfg.get("legacy_yaml_dashboards"), False)
-    return _as_bool(os.environ.get("PILOTSUITE_LEGACY_YAML_DASHBOARDS"), False)
+    from .const import CONF_LEGACY_YAML_DASHBOARDS, DEFAULT_LEGACY_YAML_DASHBOARDS
+
+    if CONF_LEGACY_YAML_DASHBOARDS in cfg:
+        return _as_bool(cfg.get(CONF_LEGACY_YAML_DASHBOARDS), DEFAULT_LEGACY_YAML_DASHBOARDS)
+    return _as_bool(os.environ.get("PILOTSUITE_LEGACY_YAML_DASHBOARDS"), DEFAULT_LEGACY_YAML_DASHBOARDS)
 
 
 async def _async_migrate_entry_identity(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -644,7 +650,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "Your local AI assistant **Styx** is set up and running.\n\n"
                     "**Quick start:**\n"
                     "- Open **Settings > Voice assistants** and select **PilotSuite** as your conversation agent\n"
-                    "- Use the PilotSuite dashboard for Mood, Neurons, and Habitus cards\n"
+                    "- Dashboards (YAML) are generated under `/config/pilotsuite-styx/`\n"
+                    "  PilotSuite also tries to wire them into Lovelace automatically — check the\n"
+                    "  **PilotSuite Dashboard Wiring** notification (a restart may be required).\n"
+                    "  After changes: use **PilotSuite reload dashboards**.\n"
                     "- Configure Habitus zones via **Settings > Integrations > PilotSuite > Configure**\n\n"
                     "All processing runs locally on your Home Assistant — no cloud required."
                 ),

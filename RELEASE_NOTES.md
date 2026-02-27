@@ -2,6 +2,15 @@
 
 > Hinweis: Fuer die vollstaendige Historie siehe `CHANGELOG.md`.
 
+## v10.1.4 (2026-02-27)
+
+- Zero-config: Dashboards + Events werden ab jetzt out-of-the-box aktiviert (Entity-Profile `full`, Forwarder enabled, YAML-Dashboards enabled).
+- Dashboard UX: Habitus-Zonen YAML ist nie mehr leer (Starter-View + Buttons).
+- Core Pipeline: Waste + Birthdays werden HA → Core gepusht (Haushalt-Tab bekommt echte Daten).
+- Button: **PilotSuite reload dashboards**.
+- Fix: Calendar Sensor (`calendar.get_events`) stabilisiert.
+- Paired Release: Core `v10.1.4`
+
 ## v10.1.3 (2026-02-26)
 
 - Core/HA Versionschutz: Major/Minor Mismatch wird als Repairs-Hinweis angezeigt.

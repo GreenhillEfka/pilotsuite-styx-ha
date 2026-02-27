@@ -16,6 +16,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+import time as py_time
 from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant, callback
@@ -126,6 +127,8 @@ class BirthdayReminderModule(CopilotModule):
         self._tts_entity: str = ""
         self._reminder_hour: int = 8
         self._api_client = None
+        self._last_birthdays_sig: str = ""
+        self._last_birthdays_forward_ts: float = 0.0
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         """Set up the birthday reminder module."""
@@ -307,6 +310,38 @@ class BirthdayReminderModule(CopilotModule):
         self._state.upcoming_birthdays = all_birthdays
         self._state.today_birthdays = [b for b in all_birthdays if b.days_until == 0]
         self._state.last_scan = now
+
+        # Forward to Core add-on for unified household dashboard visibility.
+        await self._forward_birthdays_to_core()
+
+    async def _forward_birthdays_to_core(self) -> None:
+        """Push upcoming birthdays list to Core (best-effort, throttled)."""
+        if not self._api_client:
+            return
+
+        now_ts = py_time.time()
+        if (now_ts - self._last_birthdays_forward_ts) < 600:  # 10 min
+            return
+
+        payload_list = [b.to_dict() for b in self._state.upcoming_birthdays]
+        sig = ";".join(
+            f"{b.get('name','')}|{b.get('date','')}|{b.get('days_until','')}"
+            for b in payload_list
+            if isinstance(b, dict)
+        )
+        if sig and sig == self._last_birthdays_sig:
+            self._last_birthdays_forward_ts = now_ts
+            return
+
+        try:
+            await self._api_client.async_post(
+                "/api/v1/birthday/update",
+                {"birthdays": payload_list},
+            )
+            self._last_birthdays_sig = sig
+            self._last_birthdays_forward_ts = now_ts
+        except Exception:
+            _LOGGER.debug("Failed to forward birthdays to Core", exc_info=True)
 
     async def _fetch_events(
         self, calendar_entity: str, start: datetime, end: datetime

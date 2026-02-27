@@ -13,12 +13,9 @@ This repository contains the Home Assistant integration for PilotSuite Styx.
 This repo is tightly coupled with `pilotsuite-styx-core`; keep API contracts and versioning aligned across both.
 
 ## Build, Test, and Development Commands
-- Full test suite:  
-  `cd /Users/andreas/pilotsuite-styx-ha && pytest -q`
-- Focused config/zone tests:  
-  `pytest -q tests/test_config_zones_flow.py tests/test_config_options_flow_merge.py`
-- Focused identity/migration tests:  
-  `pytest -q tests/test_device_identity.py tests/test_connection_config_migration.py`
+- Full test suite: `pytest -q`
+- Focused config/zone tests: `pytest -q tests/test_config_zones_flow.py tests/test_config_options_flow_merge.py`
+- Focused identity/migration tests: `pytest -q tests/test_device_identity.py tests/test_connection_config_migration.py`
 
 Run targeted tests while iterating, then run full suite before pushing.
 
@@ -36,8 +33,8 @@ Run targeted tests while iterating, then run full suite before pushing.
 - Keep tests deterministic and local (no hard network dependency).
 
 ## Commit & Pull Request Guidelines
-- Commit messages: imperative, concise, scope-first.  
-  Example: `fix options flow null handling for test light selector`
+- Commit messages follow a light “conventional commits” pattern used in this repo:
+  `feat: ...`, `fix: ...`, `chore: ...`, and release commits like `v10.1.3: ...`.
 - One logical change per commit.
 - PR/release notes should include:
   - problem and user-visible impact

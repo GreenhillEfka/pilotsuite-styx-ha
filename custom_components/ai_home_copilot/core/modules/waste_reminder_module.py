@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, time
+import time as py_time
 from typing import Any, Optional
 
 from homeassistant.core import HomeAssistant, callback
@@ -166,6 +167,8 @@ class WasteReminderModule(CopilotModule):
         self._reminder_evening_hour: int = 19
         self._reminder_morning_hour: int = 7
         self._api_client = None
+        self._last_collections_sig: str = ""
+        self._last_collections_forward_ts: float = 0.0
 
     async def async_setup_entry(self, ctx: ModuleContext) -> None:
         """Set up the waste reminder module."""
@@ -367,6 +370,44 @@ class WasteReminderModule(CopilotModule):
         self._state.tomorrow_collections = [c for c in collections if c.days_to == 1]
         self._state.today_collections = [c for c in collections if c.days_to == 0]
         self._state.last_scan = dt_util.utcnow()
+
+        # Forward schedule to Core add-on for unified household dashboard visibility.
+        await self._forward_collections_to_core()
+
+    async def _forward_collections_to_core(self) -> None:
+        """Push current waste collection schedule to Core (best-effort, throttled)."""
+        if not self._api_client:
+            return
+        # Avoid spamming Core on frequent sensor updates.
+        now_ts = py_time.time()
+        if (now_ts - self._last_collections_forward_ts) < 300:  # 5 min
+            return
+
+        collections = self._state.to_dict().get("collections", [])
+        if not isinstance(collections, list):
+            return
+
+        sig_parts = []
+        for c in collections:
+            if not isinstance(c, dict):
+                continue
+            sig_parts.append(
+                f"{c.get('waste_type','')}|{c.get('days_to','')}|{c.get('next_date','')}"
+            )
+        sig = ";".join(sig_parts)
+        if sig and sig == self._last_collections_sig:
+            self._last_collections_forward_ts = now_ts
+            return
+
+        try:
+            await self._api_client.async_post(
+                "/api/v1/waste/collections",
+                {"collections": collections},
+            )
+            self._last_collections_sig = sig
+            self._last_collections_forward_ts = now_ts
+        except Exception:
+            _LOGGER.debug("Failed to forward waste collections to Core", exc_info=True)
 
     # ------------------------------------------------------------------
     # Event Handlers

@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## v10.1.4 (2026-02-27) — DASHBOARD + CONTEXT PIPELINE FIXES
+
+### Added
+- Button: **PilotSuite reload dashboards** (Lovelace YAML/resources reload trigger).
+- HA → Core Forwarding: Waste collections + Birthdays list are now pushed to Core so the Core Haushalt UI can render real data.
+
+### Changed
+- Zero-config defaults hardened:
+  - Entity profile defaults to `full` (instead of `core`).
+  - Events forwarder defaults to enabled.
+  - Legacy YAML dashboards default to enabled (generation + wiring on first run).
+- Habitus-Zonen YAML: If no zones exist yet, a starter view with instructions is generated (no more blank dashboard).
+
+### Fixed
+- Calendar sensor: repaired coordinator reference + service call handling for `calendar.get_events`.
+- CI: Production Guard now fetches tags reliably (`fetch-tags: true`) for scheduled tag checks.
+
 ## v10.1.3 (2026-02-26) — COMPAT GUARDRAILS
 
 ### Added

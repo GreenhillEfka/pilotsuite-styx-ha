@@ -498,13 +498,51 @@ async def async_generate_habitus_zones_dashboard(
     for z in zones:
         views.append(_lovelace_yaml_for_zone(hass, z))
 
+    if not views:
+        # Zero-config installs should never produce an empty (blank) dashboard.
+        # Keep this view lightweight and purely instructional; the real content
+        # appears once Habitus zones are configured.
+        views.append(
+            "  - title: Habitus Zones\n"
+            "    path: habitus-zones\n"
+            "    icon: mdi:layers-outline\n"
+            "    cards:\n"
+            "      - type: markdown\n"
+            "        title: Willkommen\n"
+            "        content: |\n"
+            "          Es sind noch keine **Habitus-Zonen** konfiguriert.\n"
+            "          \n"
+            "          Nächste Schritte:\n"
+            "          1. Öffne **Einstellungen → Geräte & Dienste → Integrationen → PilotSuite → Konfigurieren**\n"
+            "          2. Erstelle deine Zonen (z.B. Wohnbereich, Kochbereich, Schlafbereich)\n"
+            "          3. Drücke **PilotSuite generate habitus dashboard** und danach **PilotSuite reload dashboards**\n"
+            "          \n"
+            "          Hinweis: Dieses Dashboard wird als YAML-Datei generiert.\n"
+            "          Falls es nicht im Sidebar auftaucht, fehlt meist der `lovelace: dashboards:` Eintrag in `configuration.yaml`.\n"
+            "      - type: entities\n"
+            "        title: PilotSuite\n"
+            "        show_header_toggle: false\n"
+            "        entities:\n"
+            "          - entity: button.ai_home_copilot_generate_habitus_dashboard\n"
+            "          - entity: button.ai_home_copilot_generate_pilotsuite_dashboard\n"
+            "          - entity: button.ai_home_copilot_reload_lovelace_dashboards\n"
+            "          - entity: button.ai_home_copilot_reload_config_entry\n"
+            "      - type: entities\n"
+            "        title: Status\n"
+            "        show_header_toggle: false\n"
+            "        entities:\n"
+            "          - entity: binary_sensor.ai_home_copilot_online\n"
+            "          - entity: sensor.ai_home_copilot_version\n"
+            "          - entity: sensor.ai_home_copilot_habitus_zones_count\n"
+        )
+
     content = (
         "# Generiert von PilotSuite (Habitus-Zonen)\n"
         "# Governance-first: Diese Datei wird NICHT automatisch in Lovelace importiert.\n"
         "# Sie wird von den Buttons aktualisiert (Generate).\n\n"
         "title: Habitus-Zonen\n"
         "views:\n"
-        + ("\n".join(views) if views else "  - title: Habitus Zones\n    path: habitus-zones\n    icon: mdi:layers-outline\n    cards: []\n")
+        + "\n".join(views)
     )
 
     primary_out_dir = Path(hass.config.path(PRIMARY_DASHBOARD_DIR))
