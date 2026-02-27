@@ -36,6 +36,8 @@ Run targeted tests while iterating, then run full suite before pushing.
 - Commit messages follow a light “conventional commits” pattern used in this repo:
   `feat: ...`, `fix: ...`, `chore: ...`, and release commits like `v10.1.3: ...`.
 - One logical change per commit.
+- Paired releases: keep versions aligned with `pilotsuite-styx-core` and tag both repos with the same `vX.Y.Z`.
+  - HA version lives in `custom_components/ai_home_copilot/manifest.json` (and must match the release tag).
 - PR/release notes should include:
   - problem and user-visible impact
   - touched modules/files

@@ -2,6 +2,10 @@
 
 > Hinweis: Fuer die vollstaendige Historie siehe `CHANGELOG.md`.
 
+## v10.1.5 (2026-02-27)
+
+- Paired Release: Core `v10.1.5` (Habitus Miner konfigurierbar + mining repariert, native HA Shopping List, Network-T0 health, entities list endpoint, Chat-History Persistenz).
+
 ## v10.1.4 (2026-02-27)
 
 - Zero-config: Dashboards + Events werden ab jetzt out-of-the-box aktiviert (Entity-Profile `full`, Forwarder enabled, YAML-Dashboards enabled).

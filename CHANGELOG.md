@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v10.1.5 (2026-02-27) — CORE WIRING + HABITUS MINER + SHOPPING LIST
+
+### Changed
+- Paired Release: Core `v10.1.5` (Habitus Miner Config, native HA Shopping List, Network T0 health, entities list endpoint, chat history persistence).
+
 ## v10.1.4 (2026-02-27) — DASHBOARD + CONTEXT PIPELINE FIXES
 
 ### Added
