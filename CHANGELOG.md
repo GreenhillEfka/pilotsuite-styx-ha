@@ -1,5 +1,62 @@
 # CHANGELOG
 
+## v11.2.3 (2026-02-28) — PERIODIC CACHE PRUNING + TEST INFRASTRUCTURE FIX
+
+### Added
+- **Periodic Cache Pruning**: New background task `_prune_cache_loop()` for automatic cleanup of debounce and seen events caches
+- **Configurable TTLs**: `debounce_cache_ttl=3600s`, `seen_events_ttl=7200s`, `prune_interval=600s`
+- **Cache Stats**: Added pruning configuration to `async_get_stats()` output
+
+### Changed
+- **_save_persistent_state**: Now calls `_prune_caches()` before saving to reduce storage size
+- **async_stop**: Properly cancels `_prune_task` on shutdown
+
+### Fixed
+- **Test Infrastructure**: Added `custom_components/__init__.py` and `custom_components/ai_home_copilot/__init__.py` for proper Python package imports
+- **tests/test_forwarder_n3.py**: Complete rewrite with working test suite (10 tests passing)
+
+### Validation
+- `python3 -m pytest tests/test_forwarder_n3.py -v` — 10 passed
+
+---
+
+## v11.2.2 (2026-02-28) — P0 SECURITY & STABILITY PATCHES
+
+### Security Fixes
+- **forwarder_n3.py (S1):** Fixed privacy leak in `_project_attributes()` — unknown domains now default to deny-all (empty dict) instead of allowing all attributes through
+
+### Stability Fixes
+- **forwarder_n3.py (Q2/Q3):** Fixed `_flush_loop()` and `_heartbeat_loop()` — exception handlers moved INSIDE the `while True` loop
+- **forwarder_n3.py (Q5):** Fixed race condition in `_flush_events()` re-queue logic
+
+### Data Integrity Fixes
+- **habitus_zones_store_v2.py (D1):** Fixed read-modify-write race condition
+- **habitus_zones_store_v2.py (E1):** Fixed crash on bad priority input
+
+---
+
+## v11.2.1 (2026-02-28) — P0 SECURITY & STABILITY PATCHES
+
+### Security Fixes
+- **forwarder_n3.py (S1):** Fixed privacy leak in `_project_attributes()` — unknown domains now default to deny-all (empty dict) instead of allowing all attributes through. This prevents PII leakage for unconfigured entity domains like `camera`, `alarm_control_panel`, etc.
+
+### Stability Fixes
+- **forwarder_n3.py (Q2/Q3):** Fixed `_flush_loop()` and `_heartbeat_loop()` — exception handlers moved INSIDE the `while True` loop so transient errors don't permanently exit the loops. Forwarder now recovers from HTTP/circuit-breaker errors.
+- **forwarder_n3.py (Q5):** Fixed race condition in `_flush_events()` re-queue logic — re-queue now happens INSIDE `async with self._queue_lock` to prevent data loss during concurrent operations.
+
+### Data Integrity Fixes
+- **habitus_zones_store_v2.py (D1):** Fixed read-modify-write race condition in `async_set_zones_v2()` — added per-entry `asyncio.Lock` to prevent concurrent writes from overwriting each other's changes.
+- **habitus_zones_store_v2.py (E1):** Fixed crash on bad priority input — `int()` parsing now wrapped in try/except with graceful fallback to 0 and warning log.
+
+### Changed
+- **Version:** Bumped to `11.2.1` (paired release with Core `11.2.1`).
+
+### Validation
+- Python syntax check passed for both files
+- Fix patterns verified via grep
+
+---
+
 ## v11.2.0 (2026-02-28) — LIVE ENTITY UX + DOCS FRESHNESS GATE + PAIRED RELEASE
 
 ### Added
