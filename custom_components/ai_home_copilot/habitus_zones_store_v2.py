@@ -9,9 +9,12 @@ Features:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Literal
+from typing import Any, Dict, Literal
+
+import asyncio
 
 from homeassistant.core import HomeAssistant, Event, callback
 from homeassistant.helpers.storage import Store
@@ -25,6 +28,9 @@ STORAGE_KEY = f"{DOMAIN}.habitus_zones_v2"
 
 SIGNAL_HABITUS_ZONES_V2_UPDATED = f"{DOMAIN}_habitus_zones_v2_updated"
 SIGNAL_HABITUS_ZONE_CONFLICT = f"{DOMAIN}_habitus_zone_conflict"
+
+# Module-level lock dict for storage race condition fix (D1)
+_store_locks: Dict[str, asyncio.Lock] = {}
 
 
 class ConflictResolutionStrategy(Enum):
@@ -548,7 +554,13 @@ def _normalize_zone_v2(obj: dict[str, Any], default_floor: str | None = None) ->
         current_state = current_state_raw
 
     # Metadata
-    priority = int(obj.get("priority", 0))
+    # E1: Crash on Bad Priority Input - handle invalid priority gracefully
+    priority_raw = obj.get("priority", 0)
+    try:
+        priority = int(priority_raw)
+    except (ValueError, TypeError):
+        priority = 0
+        logging.getLogger(__name__).warning("Invalid priority %r for zone %s, using default", priority_raw, zid)
     tags = _as_tuple(obj.get("tags"))
     metadata = obj.get("metadata")
     if metadata and not isinstance(metadata, dict):
@@ -608,39 +620,42 @@ async def async_set_zones_v2(
     validate: bool = True
 ) -> None:
     """Save zones v2 for a config entry."""
-    # Validate if requested
-    if validate:
-        for z in zones:
-            _validate_zone_v2(hass, z)
+    # D1: Storage Race Condition fix - use per-entry lock
+    lock = _store_locks.setdefault(entry_id, asyncio.Lock())
+    async with lock:
+        # Validate if requested
+        if validate:
+            for z in zones:
+                _validate_zone_v2(hass, z)
 
-    st = _store(hass)
-    data = await st.async_load() or {}
-    entries = data.setdefault("entries", {})
-    if not isinstance(entries, dict):
-        entries = {}
-        data["entries"] = entries
+        st = _store(hass)
+        data = await st.async_load() or {}
+        entries = data.setdefault("entries", {})
+        if not isinstance(entries, dict):
+            entries = {}
+            data["entries"] = entries
 
-    entries[entry_id] = [
-        {
-            "id": z.zone_id,
-            "name": z.name,
-            "zone_type": z.zone_type,
-            "entity_ids": list(z.entity_ids),
-            **({"entities": {k: list(v) for k, v in z.entities.items()}} if z.entities else {}),
-            **({"parent": z.parent_zone_id} if z.parent_zone_id else {}),
-            **({"child_zones": list(z.child_zone_ids)} if z.child_zone_ids else {}),
-            **({"floor": z.floor} if z.floor else {}),
-            **({"graph_node_id": z.graph_node_id} if z.graph_node_id else {}),
-            "current_state": z.current_state,
-            "priority": z.priority,
-            "tags": list(z.tags),
-            **({"metadata": z.metadata} if z.metadata else {}),
-        }
-        for z in zones
-    ]
+        entries[entry_id] = [
+            {
+                "id": z.zone_id,
+                "name": z.name,
+                "zone_type": z.zone_type,
+                "entity_ids": list(z.entity_ids),
+                **({"entities": {k: list(v) for k, v in z.entities.items()}} if z.entities else {}),
+                **({"parent": z.parent_zone_id} if z.parent_zone_id else {}),
+                **({"child_zones": list(z.child_zone_ids)} if z.child_zone_ids else {}),
+                **({"floor": z.floor} if z.floor else {}),
+                **({"graph_node_id": z.graph_node_id} if z.graph_node_id else {}),
+                "current_state": z.current_state,
+                "priority": z.priority,
+                "tags": list(z.tags),
+                **({"metadata": z.metadata} if z.metadata else {}),
+            }
+            for z in zones
+        ]
 
-    await st.async_save(data)
-    async_dispatcher_send(hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, entry_id)
+        await st.async_save(data)
+        async_dispatcher_send(hass, SIGNAL_HABITUS_ZONES_V2_UPDATED, entry_id)
 
 
 def _domain(entity_id: str) -> str:

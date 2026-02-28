@@ -427,11 +427,15 @@ class N3EventForwarder:
     def _project_attributes(self, domain: str, attributes: Dict[str, Any]) -> Dict[str, Any]:
         """Project attributes according to N3 specification privacy policy."""
         projected = {}
-        allowed_attrs = DOMAIN_PROJECTIONS.get(domain, set())
+        allowed_attrs = DOMAIN_PROJECTIONS.get(domain)
+        
+        # Default-deny for unknown domains
+        if allowed_attrs is None:
+            return {}
         
         for key, value in attributes.items():
             # Skip if not in projection allowlist for this domain
-            if allowed_attrs and key not in allowed_attrs:
+            if key not in allowed_attrs:
                 continue
                 
             # Skip if in global redaction list
@@ -625,8 +629,8 @@ class N3EventForwarder:
             expected_exception=Exception
         )
         
-        try:
-            while True:
+        while True:
+            try:
                 await asyncio.sleep(self._flush_interval)
                 if self._pending_events:
                     try:
@@ -636,10 +640,11 @@ class N3EventForwarder:
                             "Flush circuit breaker open: %s. Skipping flush until recovery.",
                             e
                         )
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:
-            _LOGGER.exception("Error in flush loop: %s", e)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                _LOGGER.exception("Error in flush iteration: %s", e)
+                # Continue to next iteration
 
     async def _heartbeat_loop(self):
         """Background task to send heartbeat envelopes periodically."""
@@ -727,13 +732,15 @@ class N3EventForwarder:
                         "Failed to send events to Core: %s %s - %s", 
                         response.status, response.reason, error_text
                     )
-                    # Re-queue failed events (at front to preserve order)
-                    self._pending_events = events_to_send + self._pending_events
+                    # Re-queue failed events (at front to preserve order) - INSIDE LOCK
+                    async with self._queue_lock:
+                        self._pending_events = events_to_send + self._pending_events
                     
         except Exception as e:
             _LOGGER.exception("Exception sending events to Core: %s", e)
-            # Re-queue failed events
-            self._pending_events = events_to_send + self._pending_events
+            # Re-queue failed events - INSIDE LOCK
+            async with self._queue_lock:
+                self._pending_events = events_to_send + self._pending_events
 
     async def _load_persistent_state(self):
         """Load persistent state from storage."""
