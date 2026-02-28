@@ -143,10 +143,31 @@ class TestN3EventForwarder:
         assert forwarder._pending_events == []
         assert forwarder._debounce_cache == {}
         assert forwarder._batch_size == 10
+        # Test new pruning configuration
+        assert forwarder._debounce_cache_ttl == 3600
+        assert forwarder._seen_events_ttl == 7200
+        assert forwarder._prune_interval == 600
     
     def test_debounce_cache_initially_empty(self, forwarder):
         """Test debounce cache starts empty."""
         assert len(forwarder._debounce_cache) == 0
+    
+    def test_prune_caches_method_exists(self, forwarder):
+        """Test prune_caches method exists and works."""
+        # Add some test data
+        forwarder._debounce_cache["test1"] = time.time() - 7200  # Old entry
+        forwarder._debounce_cache["test2"] = time.time() - 100   # Recent entry
+        forwarder._seen_events["seen1"] = time.time() - 7200     # Expired
+        forwarder._seen_events["seen2"] = time.time() + 3600     # Valid
+        
+        # Prune
+        forwarder._prune_caches()
+        
+        # Check results
+        assert "test1" not in forwarder._debounce_cache  # Pruned
+        assert "test2" in forwarder._debounce_cache      # Kept
+        assert "seen1" not in forwarder._seen_events     # Pruned
+        assert "seen2" in forwarder._seen_events         # Kept
     
     def test_enqueue_event(self, forwarder):
         """Test event enqueue."""
