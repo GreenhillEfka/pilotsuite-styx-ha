@@ -87,6 +87,12 @@ class N3EventForwarder:
         self._seen_events: Dict[str, float] = {}  # context_id -> expires_at
         self._queue_lock = asyncio.Lock()  # Lock for thread-safe queue operations
         
+        # Periodic pruning configuration
+        self._debounce_cache_ttl = 3600  # 1 hour TTL for debounce entries
+        self._seen_events_ttl = 7200     # 2 hour TTL for seen events
+        self._prune_interval = 600       # Prune every 10 minutes
+        self._prune_task: Optional[asyncio.Task] = None
+        
         # Zone mapping
         self._entity_to_zone: Dict[str, str] = {}
         
@@ -158,6 +164,9 @@ class N3EventForwarder:
         if self._heartbeat_enabled and self._heartbeat_interval > 0:
             self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         
+        # Start periodic pruning task for cache cleanup
+        self._prune_task = asyncio.create_task(self._prune_cache_loop())
+        
         _LOGGER.info("N3 Event Forwarder started successfully")
 
     async def async_stop(self):
@@ -185,6 +194,13 @@ class N3EventForwarder:
             self._heartbeat_task.cancel()
             try:
                 await self._heartbeat_task
+            except asyncio.CancelledError:
+                pass
+        
+        if self._prune_task and not self._prune_task.done():
+            self._prune_task.cancel()
+            try:
+                await self._prune_task
             except asyncio.CancelledError:
                 pass
         
@@ -703,6 +719,43 @@ class N3EventForwarder:
         except Exception as e:
             _LOGGER.exception("Exception sending heartbeat to Core: %s", e)
 
+    async def _prune_cache_loop(self):
+        """Background task to periodically prune old cache entries."""
+        try:
+            while True:
+                await asyncio.sleep(self._prune_interval)
+                self._prune_caches()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            _LOGGER.exception("Error in prune cache loop: %s", e)
+
+    def _prune_caches(self):
+        """Remove expired entries from debounce and seen caches."""
+        now = time.time()
+        
+        # Prune debounce cache
+        old_debounce_count = len(self._debounce_cache)
+        self._debounce_cache = {
+            k: v for k, v in self._debounce_cache.items()
+            if now - v < self._debounce_cache_ttl
+        }
+        pruned_debounce = old_debounce_count - len(self._debounce_cache)
+        
+        # Prune seen events cache
+        old_seen_count = len(self._seen_events)
+        self._seen_events = {
+            k: v for k, v in self._seen_events.items()
+            if v > now
+        }
+        pruned_seen = old_seen_count - len(self._seen_events)
+        
+        if pruned_debounce > 0 or pruned_seen > 0:
+            _LOGGER.debug(
+                "Pruned caches: %d debounce entries, %d seen events",
+                pruned_debounce, pruned_seen
+            )
+
     async def _flush_events(self):
         """Send pending events to CoPilot Core."""
         async with self._queue_lock:
@@ -761,16 +814,8 @@ class N3EventForwarder:
     async def _save_persistent_state(self):
         """Save persistent state to storage."""
         try:
-            # Clean up old debounce and seen events before saving
-            now = time.time()
-            self._debounce_cache = {
-                k: v for k, v in self._debounce_cache.items() 
-                if now - v < 3600  # Keep last hour
-            }
-            self._seen_events = {
-                k: v for k, v in self._seen_events.items() 
-                if v > now  # Keep non-expired
-            }
+            # Prune caches before saving (uses configured TTLs)
+            self._prune_caches()
             
             data = {
                 "pending_events": self._pending_events,
@@ -797,4 +842,7 @@ class N3EventForwarder:
             "idempotency_ttl": self._idempotency_ttl,
             "heartbeat_enabled": self._heartbeat_enabled,
             "heartbeat_interval": self._heartbeat_interval,
+            "prune_interval": self._prune_interval,
+            "debounce_cache_ttl": self._debounce_cache_ttl,
+            "seen_events_ttl": self._seen_events_ttl,
         }
