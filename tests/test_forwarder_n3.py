@@ -155,20 +155,24 @@ class TestN3EventForwarder:
         assert "custom_attr" not in projected
 
     def test_project_attributes_unknown_domain(self, mock_hass_obj, forwarder_config_obj):
-        """Test attribute projection for unknown domain."""
+        """Test attribute projection for unknown domain - default-deny for security."""
         forwarder = N3EventForwarder(mock_hass_obj, forwarder_config_obj)
         
         attrs = {
             "some_attr": "value",
             "another_attr": 123,
-            "friendly_name": "Test Entity",  # Should be redacted by default
+            "friendly_name": "Test Entity",
+            "secret_key": "should_not_leak",
         }
         
-        # Unknown domains allow all attributes except globally redacted ones
+        # S1: Unknown domains now return EMPTY dict (default-deny for security)
+        # This prevents PII leakage for new/unknown entity types
         projected = forwarder._project_attributes("unknown_domain", attrs)
-        assert projected["some_attr"] == "value"
-        assert projected["another_attr"] == 123
-        assert "friendly_name" not in projected  # Redacted by default
+        assert projected == {}, "Unknown domains should return empty dict (default-deny)"
+        
+        # Verify known domains still work
+        projected_light = forwarder._project_attributes("light", attrs)
+        assert "brightness" in projected_light or projected_light == {}  # Depends on DOMAIN_PROJECTIONS
 
     def test_redact_context_id(self, mock_hass_obj, forwarder_config_obj):
         """Test context ID redaction."""
