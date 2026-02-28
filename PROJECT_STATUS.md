@@ -3,17 +3,18 @@
 Scope: dual-repo production audit (`pilotsuite-styx-core` + `pilotsuite-styx-ha`).
 
 Release baseline:
-- Core add-on: `10.4.0`
-- HA integration: `10.4.0`
+- Core add-on: `11.2.0`
+- HA integration: `11.2.0`
 
 ## Executive Summary
 
 System is production-ready. All CI gates green, HACS validation passing, production guard workflows active.
 
-### Release History (v10.x)
+### Release History (v10.x -> v11.x)
 
 | Version | Core | HA | Key Changes |
 |---------|------|-----|------------|
+| v11.2.0 | Core pipeline hardening, proactive mood wiring, contract cleanup | Dashboard signal-density uplift, live infra discovery refinement | v11 baseline stabilization |
 | v10.4.0 | Auto-Setup API, documentation | Auto-Setup, Entity Classifier, Dashboard Panel | Zero-Config onboarding |
 | v10.3.0 | Blueprint consolidation, security | Parallel coordinator, habit refactoring | -260 lines boilerplate |
 | v10.2.0 | Unified Mood Engine v3.0 | Mood System v3.0, Automation Engine | 6 discrete + 5 continuous dimensions |
@@ -40,7 +41,7 @@ System is production-ready. All CI gates green, HACS validation passing, product
 - [x] HACS validation passing
 - [ ] HASSFest validation (temporarily disabled — KeyError: 'codeowners')
 - [x] Production guard workflows active (15-minute cadence)
-- [x] Dual-repo version sync (both at v10.4.0)
+- [x] Dual-repo version sync (both at v11.2.0)
 
 ## Architecture Posture
 

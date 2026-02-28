@@ -2,6 +2,17 @@
 
 > Hinweis: Fuer die vollstaendige Historie siehe `CHANGELOG.md`.
 
+## v11.2.0 (2026-02-28)
+
+- Paired Release: Core `v11.2.0`.
+- Dashboard UX auf Live-Entitaeten erweitert:
+  - Habitus: CO2/Lärm im Zonen-Header + Luftqualitaetsverlauf.
+  - Hausverwaltung: dynamische Sektionen fuer Energie/Heizung/CO2/Lärm/Medien/Sicherheit/Netzwerk/Wetter.
+  - Hausverwaltung: kompakte Zonenuebersicht mit rollenbasierter Verdichtung.
+- Infrastruktur-Erkennung verbessert (`media`, `co2`, `noise` + dedup/sort).
+- Neuer CI-Gate: `docs-freshness` Workflow + `scripts/check_docs_freshness.py`.
+- Kern-Dokumente auf Release-Baseline `11.2.0` synchronisiert.
+
 ## v10.1.5 (2026-02-27)
 
 - Paired Release: Core `v10.1.5` (Habitus Miner konfigurierbar + mining repariert, native HA Shopping List, Network-T0 health, entities list endpoint, Chat-History Persistenz).

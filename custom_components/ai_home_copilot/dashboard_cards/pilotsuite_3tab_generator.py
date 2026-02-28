@@ -111,6 +111,7 @@ def _build_zone_card(zone: dict[str, Any]) -> dict[str, Any]:
     humid = _first(_zone_entities(zone, "humidity"))
     co2 = _first(_zone_entities(zone, "co2"))
     brightness = _first(_zone_entities(zone, "brightness"))
+    noise = _first(_zone_entities(zone, "noise"))
 
     env_line_parts: list[str] = []
     if temp:
@@ -119,6 +120,8 @@ def _build_zone_card(zone: dict[str, Any]) -> dict[str, Any]:
         env_line_parts.append(f"{_tpl(humid)}%")
     if co2:
         env_line_parts.append(f"CO2: {_tpl(co2)} ppm")
+    if noise:
+        env_line_parts.append(f"Laerm: {_tpl(noise)}")
     if brightness and not co2:
         # Show brightness only when no CO2 sensor (to keep line concise)
         env_line_parts.append(f"{_tpl(brightness)} lux")
@@ -137,6 +140,8 @@ def _build_zone_card(zone: dict[str, Any]) -> dict[str, Any]:
         ("media", "Sonos"),
         ("lights", "Licht"),
         ("heating", "Heizung"),
+        ("co2", "CO2"),
+        ("noise", "Laerm"),
         ("cover", "Rollo"),
         ("window", "Fenster"),
         ("power", "Verbrauch"),
@@ -236,6 +241,32 @@ def _build_temperature_history(zones: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _build_environment_history(zones: list[dict[str, Any]]) -> dict[str, Any]:
+    """CO2/noise trend graph using representative zone sensors."""
+    entities: list[dict[str, Any]] = []
+
+    for zone in zones:
+        zone_name = zone.get("name", zone.get("zone_id", ""))
+        co2 = _first(_zone_entities(zone, "co2"))
+        noise = _first(_zone_entities(zone, "noise"))
+        if co2:
+            entities.append({"entity": co2, "name": f"{zone_name} CO2"})
+        if noise:
+            entities.append({"entity": noise, "name": f"{zone_name} Laerm"})
+        if len(entities) >= 10:
+            break
+
+    if not entities:
+        return {"type": "markdown", "content": "### Luftqualitaet\n*Keine CO2/Laerm-Entitaeten erkannt*"}
+
+    return {
+        "type": "history-graph",
+        "title": "Luftqualitaet (24h)",
+        "hours_to_show": 24,
+        "entities": entities,
+    }
+
+
 def generate_habitus_tab(
     zones: list[dict[str, Any]],
     persons: list[dict[str, str]] | None = None,
@@ -260,7 +291,10 @@ def generate_habitus_tab(
     # 3) Persons (dynamically discovered or hardcoded fallback)
     cards.append(_build_persons_card(persons))
 
-    # 4) Temperature history
+    # 4) Environment history (CO2/noise if available)
+    cards.append(_build_environment_history(zones))
+
+    # 5) Temperature history
     cards.append(_build_temperature_history(zones))
 
     return {
@@ -580,8 +614,51 @@ def _build_dynamic_section(
     }
 
 
+def _build_dynamic_history_section(
+    title: str,
+    entities: list[dict[str, str]],
+    *,
+    limit: int = 8,
+    hours: int = 24,
+) -> dict[str, Any]:
+    """Build a history graph card from discovered entities."""
+    if not entities:
+        return {"type": "markdown", "content": f"### {title}\n*Keine Verlaufdaten erkannt*"}
+    return {
+        "type": "history-graph",
+        "title": title,
+        "hours_to_show": hours,
+        "entities": [
+            {"entity": item["entity_id"], "name": item["name"]}
+            for item in entities[:limit]
+        ],
+    }
+
+
+def _build_zone_overview_section(zones: list[dict[str, Any]] | None) -> dict[str, Any]:
+    """Compact per-zone overview for high information density."""
+    if not zones:
+        return {"type": "markdown", "content": "### Zonenuebersicht\n*Keine Habitus-Zonen geladen*"}
+
+    lines: list[str] = ["### Zonenuebersicht (Habitus)"]
+    for zone in zones[:14]:
+        name = zone.get("name", zone.get("zone_id", "?"))
+        entities = zone.get("entities", {}) or {}
+        temp = len(entities.get("temperature", []))
+        heating = len(entities.get("heating", []))
+        media = len(entities.get("media", []))
+        co2 = len(entities.get("co2", []))
+        noise = len(entities.get("noise", []))
+        lights = len(entities.get("lights", []))
+        lines.append(
+            f"- **{name}**: Licht {lights}, Heizung {heating}, Medien {media}, CO2 {co2}, Laerm {noise}, Temp {temp}"
+        )
+    return {"type": "markdown", "content": "\n".join(lines)}
+
+
 def generate_hausverwaltung_tab(
     infrastructure: dict[str, list[dict[str, str]]] | None = None,
+    zones: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Generate Tab 2: Hausverwaltung.
 
@@ -593,10 +670,15 @@ def generate_hausverwaltung_tab(
     """
     if infrastructure:
         cards: list[dict[str, Any]] = []
+        cards.append(_build_zone_overview_section(zones))
+
         section_map = [
             ("Energie", "energy", "mdi:flash"),
             ("Heizung", "heating", "mdi:radiator"),
+            ("CO2", "co2", "mdi:molecule-co2"),
+            ("Laerm", "noise", "mdi:waveform"),
             ("Sicherheit", "security", "mdi:shield-home"),
+            ("Medien & Player", "media", "mdi:speaker-multiple"),
             ("Netzwerk", "network", "mdi:lan"),
             ("Wetter", "weather", "mdi:weather-cloudy"),
         ]
@@ -604,6 +686,16 @@ def generate_hausverwaltung_tab(
             ents = infrastructure.get(key, [])
             if ents:
                 cards.append(_build_dynamic_section(title, ents, icon))
+
+        energy_ents = infrastructure.get("energy", [])
+        if energy_ents:
+            cards.append(_build_dynamic_history_section("Energie-Verlauf (24h)", energy_ents, limit=6))
+
+        air_mix: list[dict[str, str]] = []
+        air_mix.extend(infrastructure.get("co2", []))
+        air_mix.extend(infrastructure.get("noise", []))
+        if air_mix:
+            cards.append(_build_dynamic_history_section("CO2/Laerm Verlauf (24h)", air_mix, limit=8))
 
         # Always add hardcoded devices section (appliances not discoverable)
         cards.append(_build_devices_section())
@@ -902,7 +994,7 @@ def generate_full_dashboard(
         "title": "PilotSuite",
         "views": [
             generate_habitus_tab(zones, persons=persons),
-            generate_hausverwaltung_tab(infrastructure=infrastructure),
+            generate_hausverwaltung_tab(infrastructure=infrastructure, zones=zones),
             generate_styx_tab(),
         ],
     }

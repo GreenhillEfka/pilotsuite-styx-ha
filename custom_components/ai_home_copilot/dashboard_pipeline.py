@@ -138,32 +138,86 @@ def _discover_infrastructure(hass: HomeAssistant) -> dict[str, list[dict[str, st
         "devices": [],
         "network": [],
         "weather": [],
+        "media": [],
+        "co2": [],
+        "noise": [],
     }
+
+    seen: dict[str, set[str]] = {key: set() for key in infra}
+
+    def _add(category: str, entity_id: str, name: str) -> None:
+        if entity_id in seen[category]:
+            return
+        seen[category].add(entity_id)
+        infra[category].append({"entity_id": entity_id, "name": name})
 
     for state in hass.states.async_all():
         eid = state.entity_id
+        eid_lower = eid.lower()
         attrs = state.attributes or {}
-        device_class = attrs.get("device_class", "")
-        friendly = attrs.get("friendly_name", eid)
+        device_class = str(attrs.get("device_class", "") or "").lower()
+        friendly = str(attrs.get("friendly_name", eid))
 
-        # Energy
-        if device_class in ("energy", "power") or "electric_consumption" in eid or "electric_production" in eid:
-            infra["energy"].append({"entity_id": eid, "name": friendly})
-        # Heating
-        elif eid.startswith("climate.") or "heat_generator" in eid or "heizmodus" in eid:
-            infra["heating"].append({"entity_id": eid, "name": friendly})
-        # Security: smoke, door/window binary sensors, cameras
-        elif device_class in ("smoke", "door", "window", "opening") and eid.startswith("binary_sensor."):
-            infra["security"].append({"entity_id": eid, "name": friendly})
-        elif eid.startswith("camera."):
-            infra["security"].append({"entity_id": eid, "name": friendly})
-        # Weather
-        elif eid.startswith("weather."):
-            infra["weather"].append({"entity_id": eid, "name": friendly})
-        # Network
-        elif "dream_machine" in eid or "unifi" in eid.lower():
-            infra["network"].append({"entity_id": eid, "name": friendly})
+        # Weather first so weather entities are never shadowed.
+        if eid_lower.startswith("weather."):
+            _add("weather", eid, friendly)
+            continue
 
+        # Media players for Hausverwaltung "Medien & Player".
+        if eid_lower.startswith("media_player."):
+            _add("media", eid, friendly)
+            continue
+
+        # Indoor air quality dimensions (CO2 / noise) for high-signal UX.
+        if device_class == "carbon_dioxide" or "co2" in eid_lower or "carbon" in eid_lower:
+            _add("co2", eid, friendly)
+            continue
+        if device_class in ("noise", "sound_pressure") or any(
+            token in eid_lower for token in ("noise", "sound", "laerm", "larm", "_db", ".db")
+        ):
+            _add("noise", eid, friendly)
+            continue
+
+        # Heating / climate.
+        if (
+            eid_lower.startswith("climate.")
+            or "heat_generator" in eid_lower
+            or "heizmodus" in eid_lower
+            or "thermostat" in eid_lower
+        ):
+            _add("heating", eid, friendly)
+            continue
+
+        # Security: smoke, openings, cameras, locks.
+        if (
+            device_class in ("smoke", "door", "window", "opening")
+            and eid_lower.startswith("binary_sensor.")
+        ) or eid_lower.startswith(("camera.", "lock.", "alarm_control_panel.")):
+            _add("security", eid, friendly)
+            continue
+
+        # Network / infrastructure (UniFi, NAS, UDM).
+        if any(token in eid_lower for token in ("dream_machine", "unifi", "wan_", "latency", "ds1515", "nas")):
+            _add("network", eid, friendly)
+            continue
+
+        # Energy / consumption / production.
+        if (
+            device_class in ("energy", "power")
+            or "electric_consumption" in eid_lower
+            or "electric_production" in eid_lower
+            or "_power" in eid_lower
+            or "_energy" in eid_lower
+        ):
+            _add("energy", eid, friendly)
+            continue
+
+        # Household devices / appliance surface.
+        if eid_lower.startswith(("switch.", "vacuum.", "fan.", "water_heater.", "humidifier.")):
+            _add("devices", eid, friendly)
+
+    for category in infra:
+        infra[category].sort(key=lambda item: item["name"].lower())
     return infra
 
 

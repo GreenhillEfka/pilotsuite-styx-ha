@@ -5,8 +5,8 @@ This document is the **definitive vision baseline** for the dual-repo system:
 - HACS integration repo: `pilotsuite-styx-ha`
 
 Version baseline:
-- Core add-on: `10.4.0`
-- HA integration: `10.4.0`
+- Core add-on: `11.2.0`
+- HA integration: `11.2.0`
 - Core API port: `8909`
 
 ---
@@ -19,7 +19,7 @@ PilotSuite Styx ist kein Automatisierungs-Tool -- es ist ein intelligenter Begle
 
 ---
 
-## Herkunft (v0.1 → v10.4.0)
+## Herkunft (v0.1 → v11.2.0)
 
 Die Entwicklung von PilotSuite Styx ist eine mehrstufige Reise von einem Prototyp zu einem produktionsreifen, KI-gestuetzten Smart-Home-System.
 
@@ -49,7 +49,7 @@ Konsolidierungsphase mit Zone Automation (ML-basierter Entity Classifier), Mood 
 
 ---
 
-## Aktueller Stand (v10.4.0)
+## Aktueller Stand (v11.2.0)
 
 ### Core Add-on (`pilotsuite-styx-core`)
 | Metrik | Wert |

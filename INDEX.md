@@ -4,7 +4,7 @@ Quick orientation for the Home Assistant integration repository (`pilotsuite-sty
 
 ## Current Baseline
 
-- Version: `10.4.0`
+- Version: `11.2.0`
 - Domain: `ai_home_copilot`
 - Product name/UI: `PilotSuite - Styx`
 - Companion backend: `pilotsuite-styx-core` (Core API default port `8909`)
@@ -26,7 +26,7 @@ Quick orientation for the Home Assistant integration repository (`pilotsuite-sty
 - Zero-config onboarding + Auto-Setup from HA areas
 - ML-style entity classifier (4-signal pipeline)
 - Sidebar dashboard panel (Core ingress iframe)
-- 36 modules in 4 tiers (T0-T3)
+- 39 modules in 4 tiers (T0-T3)
 - 115+ entities, 94+ sensors
 - NeuronTagResolver with bilingual patterns
 - Habitus Zones v2 with area-based suggestions
@@ -38,7 +38,7 @@ Quick orientation for the Home Assistant integration repository (`pilotsuite-sty
 
 - 579+ tests
 - 325+ Python files
-- 36 modules (4 tiers: T0-T3)
+- 39 modules (4 tiers: T0-T3)
 - 115+ entities, 94+ sensors
 
 ## Integration Focus (React-first)
@@ -60,4 +60,4 @@ Quick orientation for the Home Assistant integration repository (`pilotsuite-sty
 
 ## Release Chain
 
-Current release: v10.4.0
+Current release: v11.2.0

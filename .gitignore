@@ -32,3 +32,6 @@ htmlcov/
 *.p12
 secrets.yaml
 credentials.json
+
+# Local HA API snapshots
+.tmp_ha_live/

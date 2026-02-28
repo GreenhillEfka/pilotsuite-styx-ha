@@ -131,6 +131,48 @@ class TestDashboardPipelineHelpers:
         assert len(infra["security"]) == 1
         assert infra["security"][0]["entity_id"] == "camera.front_door"
 
+    def test_discover_infrastructure_co2(self):
+        """Test CO2 sensors are categorized under co2."""
+        from custom_components.ai_home_copilot.dashboard_pipeline import _discover_infrastructure
+
+        hass = MagicMock()
+        state = MagicMock()
+        state.entity_id = "sensor.livingroom_co2"
+        state.attributes = {"device_class": "carbon_dioxide", "friendly_name": "Livingroom CO2"}
+        hass.states.async_all.return_value = [state]
+
+        infra = _discover_infrastructure(hass)
+        assert len(infra["co2"]) == 1
+        assert infra["co2"][0]["entity_id"] == "sensor.livingroom_co2"
+
+    def test_discover_infrastructure_noise(self):
+        """Test noise sensors are categorized under noise."""
+        from custom_components.ai_home_copilot.dashboard_pipeline import _discover_infrastructure
+
+        hass = MagicMock()
+        state = MagicMock()
+        state.entity_id = "sensor.wohnzimmer_larm"
+        state.attributes = {"device_class": "sound_pressure", "friendly_name": "Wohnzimmer Laerm"}
+        hass.states.async_all.return_value = [state]
+
+        infra = _discover_infrastructure(hass)
+        assert len(infra["noise"]) == 1
+        assert infra["noise"][0]["entity_id"] == "sensor.wohnzimmer_larm"
+
+    def test_discover_infrastructure_media(self):
+        """Test media players are categorized under media."""
+        from custom_components.ai_home_copilot.dashboard_pipeline import _discover_infrastructure
+
+        hass = MagicMock()
+        state = MagicMock()
+        state.entity_id = "media_player.sonos_move"
+        state.attributes = {"friendly_name": "Sonos Move"}
+        hass.states.async_all.return_value = [state]
+
+        infra = _discover_infrastructure(hass)
+        assert len(infra["media"]) == 1
+        assert infra["media"][0]["entity_id"] == "media_player.sonos_move"
+
 
 class TestDashboardGenerator3Tab:
     """Tests for the 3-tab generator with dynamic parameters."""
@@ -193,6 +235,9 @@ class TestDashboardGenerator3Tab:
             "devices": [],
             "network": [],
             "weather": [{"entity_id": "weather.home", "name": "Home"}],
+            "media": [{"entity_id": "media_player.sonos", "name": "Sonos"}],
+            "co2": [{"entity_id": "sensor.co2", "name": "CO2"}],
+            "noise": [{"entity_id": "sensor.noise", "name": "Noise"}],
         }
 
         result = generate_hausverwaltung_tab(infrastructure=infra)

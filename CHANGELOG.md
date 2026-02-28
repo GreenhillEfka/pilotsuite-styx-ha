@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## v11.2.0 (2026-02-28) — LIVE ENTITY UX + DOCS FRESHNESS GATE + PAIRED RELEASE
+
+### Added
+- **Docs Freshness Gate**: Neuer CI-Workflow `.github/workflows/docs-freshness.yml` plus Checker `scripts/check_docs_freshness.py`.
+- **Live Integration Concept v11.2**: Konsolidiertes Konzept auf Basis realer HA-Instanz (`docs/INTEGRATION_CONCEPT_v11.2_LIVE_HA.md`).
+
+### Changed
+- **Version**: Bumped to `11.2.0` (paired release with Core `11.2.0`).
+- **Dashboard Pipeline** (`dashboard_pipeline.py`):
+  - Infrastruktur-Kategorien erweitert um `media`, `co2`, `noise`.
+  - Heuristiken verbessert und Entitaeten dedupliziert/sortiert.
+- **3-Tab Dashboard Generator** (`pilotsuite_3tab_generator.py`):
+  - Habitus: CO2/Lärm in Zone-Headern + Luftqualitaetsverlauf.
+  - Hausverwaltung: dynamische Sektionen fuer Energie/Heizung/CO2/Lärm/Medien/Sicherheit/Netzwerk/Wetter.
+  - Hausverwaltung: kompakte Zonenuebersicht + zusätzliche Verlaufskarten.
+- **Kern-Dokumente aktualisiert**: `INDEX.md`, `PROJECT_STATUS.md`, `PROJEKTPLAN.md`, `VISION.md`.
+
+### Fixed
+- **Historisch gewachsener Signalverlust im Dashboard**: reale CO2-/Lärm-/Media-Entitaeten werden nun systematisch in der dynamischen Hausverwaltung genutzt.
+
+### Validation
+- `pytest -q tests/test_3tab_dashboard.py tests/test_dashboard_pipeline.py`
+- `pytest -q tests/test_zone_bootstrap.py`
+
+---
+
 ## v11.1.0 (2026-02-27) — DUAL-REPO ARCHITECTURE + CORE SYNC + DEVICE ICON
 
 ### Added

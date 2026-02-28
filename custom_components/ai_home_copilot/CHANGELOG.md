@@ -5,6 +5,12 @@ All notable changes to PilotSuite will be documented in this file.
 > Hinweis (2026-02-22): Die aktive Release-Historie wird im Repository-Root gepflegt: `CHANGELOG.md`.
 > Diese Datei enthaelt zusaetzlich die aeltere 0.x Historie als Archiv.
 
+## [11.2.0] - 2026-02-28
+- Paired Release mit Core `11.2.0`.
+- Dashboard: Live-UX erweitert um CO2/Lärm-Verlauf und dichte Hausverwaltungssektionen.
+- Infrastruktur-Erkennung um `media`, `co2`, `noise` erweitert.
+- Docs-Freshness CI-Gate hinzugefuegt (`scripts/check_docs_freshness.py`).
+
 ## [10.5.1] - 2026-02-27 — LIVE SYSTEM INTEGRATION + AUTOMATION INTELLIGENCE
 - ZoneBootstrapModule: zones_config.json → ZoneStore V2 (9 Zonen, 141 Entities)
 - LiveMoodEngine: Comfort/Joy/Frugality aus echten Entity-States
